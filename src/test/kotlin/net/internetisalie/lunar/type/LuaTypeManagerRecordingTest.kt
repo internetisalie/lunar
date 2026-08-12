@@ -2,6 +2,7 @@ package net.internetisalie.lunar.type
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiModificationTracker
 import net.internetisalie.lunar.lang.psi.types.LuaPrimitiveType
 import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 import net.internetisalie.lunar.lang.psi.types.LuaTypeSourceRecorder
@@ -92,6 +93,36 @@ class LuaTypeManagerRecordingTest : TypeElevenDefinitionLibraryTestCase() {
     }
 
     /**
+     * Design §3.5, `getModuleType` row: the file a `require` resolved to is a recorded source.
+     *
+     * This is the module door's only **attributable** gate, and it exists because the end-to-end
+     * ones are not. Measured on the shipped build: with this `reportFile` deleted,
+     * `TypeElevenDr01ResidualTest`'s library-requires-a-project-module case stays **green**, because
+     * any library file that calls `require` resolves the global `require` itself through the
+     * all-scope fallback — `rescued=[global:require]`, probed — and §3.3 step 7 denies the pin for
+     * that reason instead. The end-to-end case still asserts the user-visible answer; it cannot say
+     * which guard produced it.
+     *
+     * Mutation: delete `LuaTypeSourceRecorder.reportFile(psiFile)` from `getModuleType` → red.
+     */
+    fun testResolvingAModuleRecordsTheFileItWasReadFrom() {
+        val moduleFile = myFixture.addFileToProject("recordedmodule.lua", "return { field = 1 }\n")
+        val consumer = myFixture.configureByText("consumer.lua", "local pad = 1\n")
+
+        val (resolved, frame) = recordingRead { manager().resolveModule("recordedmodule", consumer) }
+
+        assertNotSame(
+            "the fixture must resolve to a real module, or this is the absence path and not the §3.5 row",
+            LuaPrimitiveType.ANY,
+            resolved,
+        )
+        assertTrue(
+            "the module file must be a recorded source, but the frame holds ${frame.urls}",
+            frame.urls.contains(urlOf(moduleFile)),
+        )
+    }
+
+    /**
      * Design §3.1 step 5d / §1.12 — B1 in the module door. The `ANY` assertion is the whole point:
      * the answer is **non-null**, so the visitor embeds it and the caller records nothing at all
      * unless the absence is stated, and a library whose `require` resolves to nothing would be
@@ -154,17 +185,34 @@ class LuaTypeManagerRecordingTest : TypeElevenDefinitionLibraryTestCase() {
      * to carry the behaviour. Only replay is kept, so this test can attribute its red.
      *
      * Mutation: delete `LuaTypeSourceRecorder.replay(it.sourceFrame)` from `resolveGlobal`'s
-     * cache-hit branch → red, the warm frame's `absences` empty. (A red here also proves the second
-     * call was a cache hit: a recompute would have re-recorded the absence and stayed green.)
+     * cache-hit branch → red, the warm frame's `absences` empty.
+     *
+     * **TYPE-11-DR-22 — the hit has its own in-test evidence.** The earlier form of this test rested
+     * on "a red would prove the second call was a hit", which is evidence available only in the
+     * ledger run and not in the assertion: the answer is `null`, so there is nothing to compare
+     * identity on the way `testAMemoizedTypeReplaysItsSourcesIntoALaterBuild` does, and a
+     * `PsiModificationTracker` tick landing between the two calls would discard the entry, turn the
+     * second call into a recompute that re-records the absence, and leave this green while gating
+     * nothing. Asserting the tracker is still closes exactly that: the entry the cold call wrote
+     * cannot have been discarded, and `resolveGlobal` reads the cache before it does anything else,
+     * so the second call took the hit branch.
      */
     fun testAMemoizedAbsenceReplaysAsAnAbsence() {
         val consumer = myFixture.configureByText("consumer.lua", "local pad = 1\n")
+        val psiTracker = PsiModificationTracker.getInstance(project)
 
         val cold = runReadAction { manager().resolveGlobal("nothingDeclaresThisEither", consumer) }
+        val afterCold = psiTracker.modificationCount
         val (warm, frame) = recordingRead { manager().resolveGlobal("nothingDeclaresThisEither", consumer) }
 
         assertNull("the cold call must answer nothing, or there is no absence to replay", cold)
         assertNull(warm)
+        assertEquals(
+            "a PSI tick between the two calls discards the cached entry, so the second call would be " +
+                "a recompute and this test would assert nothing about replay",
+            afterCold,
+            psiTracker.modificationCount,
+        )
         assertEquals(setOf("global:nothingDeclaresThisEither"), frame.absences)
     }
 }

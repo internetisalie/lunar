@@ -121,6 +121,50 @@ class TypeElevenDr01ResidualTest : TypeElevenDefinitionLibraryTestCase() {
     }
 
     /**
+     * Residual path 3 — a library file `require`s a **project** module.
+     *
+     * `design.md` §6 states that `getModuleType` reports the project file and the library is
+     * therefore not pinnable; until now that specific path was reasoned rather than run, and it was
+     * the first item under `risks-and-gaps.md` "Test Case Gaps". It is a distinct door from the
+     * other two paths here — `resolveModule`, not `resolveGlobal` — and it reaches the project file
+     * through `resolveModuleCandidates`, which searches by *file name* rather than through any
+     * global-scope ordering, so nothing in paths 1 or 2 covers it.
+     *
+     * Its complement is `TypeElevenDr18ModuleAbsenceTest`: there the module does not exist yet, so
+     * there is no file to report and only the recorded **absence** denies the pin.
+     *
+     * ⚠ **Like that one, this asserts the answer without attributing it.** Measured: with
+     * `getModuleType`'s `reportFile` deleted it stays green, because resolving the global `require`
+     * goes through the all-scope fallback into `package.lua` and §3.3 step 7 denies the pin for that
+     * reason instead (probed frame: `urls=[package.lua] rescued=[global:require]`). The attributable
+     * gate for the §3.5 module row is
+     * `LuaTypeManagerRecordingTest.testResolvingAModuleRecordsTheFileItWasReadFrom`.
+     */
+    fun testALibraryThatRequiresAProjectModuleTracksThatModule() {
+        installDefinitionLibrary(
+            "luassert",
+            mapOf("requiring.lua" to "---@meta\n\nlibRequired = require(\"projmod\")\n"),
+        )
+        val projectModule = myFixture.addFileToProject("projmod.lua", "return { beforeEdit = 1 }\n")
+        announceRootsChange()
+        val consumer = myFixture.configureByText("consumer.lua", "local pad = 1\n")
+
+        val before = membersOfGlobal("libRequired", consumer)
+        println("DR-01 path3 before edit: libRequired members = $before")
+        assertEquals("the library global must take the required project module's members", setOf("beforeEdit"), before)
+
+        rewrite(projectModule, "return { afterEdit = 1 }\n")
+
+        val after = membersOfGlobal("libRequired", consumer)
+        println("DR-01 path3 after edit: libRequired members = $after")
+        assertEquals(
+            "editing the required project module must be reflected in the library global's type",
+            setOf("afterEdit"),
+            after,
+        )
+    }
+
+    /**
      * Control — **project→project**. `b.lua`'s snapshot takes its type from a global `a.lua`
      * declares; editing `a.lua` must be visible through `b.lua`. This is what pins "project files
      * stay on the project-wide tracker".

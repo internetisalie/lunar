@@ -473,6 +473,115 @@ Two harness defects were caught and fixed by this exercise rather than shipped:
   stayed green with *every file in the project pinned*. Only the third form, a **project→project**
   dependency, is sensitive to the churn tracker and goes red under that mutation.
 
+### Phase 3 (2026-08-11) — the condition goes live, and three outcome gates stop attributing
+
+Gate command for every row: `run "test --rerun --no-build-cache --tests '<class>'"`, one mutation per
+run, restored between runs. The unmutated TYPE-11 package was **72 tests, 0 failures**.
+
+**Three findings came out of this exercise, and all three are the same shape as §1.9 B3/B5: a guard
+whose *outcome* test cannot go red.** They are listed after the ledger.
+
+| Assertion | Mutation applied | Result |
+| :-- | :-- | :-- |
+| `TypeElevenPinSurvivesUnrelatedEditTest` (TC-1, TYPE-11-01) | §3.3 step 9 → always `MODIFICATION_COUNT` | **RED** — with `TypeElevenGenerationSignalTest`'s TC-2a and TC-2c in the same run (3 of 7) |
+| `TypeElevenGenerationSignalTest.testAPinnedLibraryFileDependsOnTheProjectRootModificationTracker` (TC-2a) | `generationTracker()` → `ModificationTracker.NEVER_CHANGED` | **RED, alone (1 of 5)** |
+| `…testTheProductionEnablePathTicksTheGenerationTracker` (TC-2b, Gap 2.3) | `notifyDefinitionRootsChanged()` deleted from `LuaProjectSettings.setEnabledDefinitionLibrariesAndNotify` | **RED, alone (1 of 6)** |
+| `…testAPinnedSnapshotIsWiredToAllThreeOfItsDependencies` (TC-2d, **new**) | the churn object dropped from `dependenciesFor`'s pinnable branch | **RED, alone (1 of 7)** — and TC-1 + TC-2c stayed **green**, which is the finding below |
+| `…testAPinnedSnapshotIsWiredToAllThreeOfItsDependencies` (TC-2d) | `targetModificationTracker` dropped from the pinnable branch | **RED (2 of 6)**, with TC-3 |
+| `…testATargetSwitchInvalidatesAPinnedDefinitionLibrarySnapshot` (TC-3) | as above | **RED (2 of 6)** |
+| `TypeElevenDumbModeDecisionTest.testTheDecisionIsNoWhileIndexing` (TC-16a, TYPE-11-05) | §3.3 step 1 (`DumbService.isDumb`) deleted | **RED, alone (1 of 3)** |
+| `…testTheSameShapeOfFileBuiltSmartRecordsItsSource` (TC-16c) | `.onEach { reportFile(it) }` deleted from `typeOfGlobalIn` | **RED, alone (1 of 3)** |
+| `TypeElevenPinnableCostTest` (TC-15) | `isPinnable` → `false` (a rule that pins nothing) | **RED, alone (1 of 1)** — and green under the step-9 mutation, which is the point: it measures the decision, not the wiring |
+| `TypeElevenDr11LateDeclarationTest` (TC-13) | §3.3 step 4 (`absences`) deleted | **RED, alone (1 of 1)** — re-earned against the shipped build, not the scaffold |
+| `TypeElevenDr15LateLibraryAnswerTest` (TC-19) | §3.3 step 7 (`rescuedGlobals`) deleted | **RED, alone (1 of 3)** — re-earned against the shipped build |
+| `TypeElevenIncompleteFrameDecisionTest.testARecordedAbsenceDeniesThePin` (**new**) | §3.3 step 4 deleted | **RED, alone (1 of 7)** |
+| `…testAWarmHitThatCouldNotBeReplayedDeniesThePin` (**new**) | §3.3 step 5 deleted | **RED, alone (1 of 7)** |
+| `…testAnInProgressHitDeniesThePin` (**new**) | §3.3 step 6 deleted | **RED, alone (1 of 7)** |
+| `…testAGlobalRescuedByTheAllScopeFallbackDeniesThePin` (**new**) | §3.3 step 7 deleted | **RED, alone (1 of 7)** |
+| `…testAWarmNestedSnapshotReplaysItsFrameIntoTheBuildThatAskedForIt` (**new**) | `reportWarmSnapshot` call deleted from `forFile` (§3.7 steps 2–4) | **RED, alone (1 of 7)** |
+| `…testAMutualLibraryCycleRecordsAnInProgressHit` (**new**) | `reportInProgressHit` call deleted from `forFile` (§3.1 step 5c) | **RED, alone (1 of 7)** |
+| `LuaTypeSourceRecorderCoverageTest.every cross-file door…` (TC-17) | one `PsiManager.getInstance(project).findFile(…)` injected into `LuaTypeManagerImpl` | **RED, alone (1 of 3)** — `.findFile(` `2 → 3` |
+| `LuaTypeSourceRecorderCoverageTest` (TC-17, false-positive check) | an existing `StubIndex.getElements(` re-wrapped across three lines | **GREEN** — formatting alone does not move the count, which is what the qualified-chain matcher could not manage |
+| `…only one path stores an answer beside its frame` (**new**, DR-21) | a second `CachedAnswer(…)` construction added to `LuaTypeManagerImpl` | **RED, alone (1 of 3)** |
+| `LuaTypeManagerRecordingTest.testAMemoizedAbsenceReplaysAsAnAbsence` (M6, **DR-22**) | a PSI tick (`addFileToProject`) inserted between the cold and warm calls | **RED, alone (1 of 7)** — the new `PsiModificationTracker` assertion is what fires, so the hit now has in-test evidence |
+| `…testAModuleThatResolvesToNothingIsRecordedAsAnAbsence` (§3.1 step 5d) | the `.also { reportAbsence("module:…") }` deleted from `doResolveModule`'s `ANY` fall-through | **RED, alone (1 of 7)** |
+| `…testResolvingAModuleRecordsTheFileItWasReadFrom` (**new**, §3.5 `getModuleType` row) | `reportFile(psiFile)` deleted from `getModuleType` | **RED, alone (1 of 7)** |
+
+#### Finding 1 — TC-2c cannot catch the omission §1.11 built it for
+
+§1.11 states, twice and in bold, that TC-2c is *"the only case that asserts `forFile` actually passes
+the churn object into `Result.create`"*. Run against a build whose pinnable branch does exactly that
+omission, **TC-2c passed** — as did TC-1, TC-2a, TC-3, TC-15 and every residual fixture:
+
+```
+mutation: pinnable branch emits Result.create(builtTypes, psiFile, targetTracker)
+run "test --tests '*TypeElevenGenerationSignalTest' --tests '*TypeElevenPinSurvivesUnrelatedEditTest'"
+BUILD SUCCESSFUL in 33s
+```
+
+Cause, probed rather than reasoned — the same `PsiFile` instance's `modificationStamp` moves across a
+roots change, and `forFile` depends on `psiFile` in **both** branches:
+
+```
+PROBE before: psi=283239940 stamp=0 valid=true  snap=1237688767
+PROBE after:  psi=283239940 stamp=1 valid=true  samePsi=true snap=914285686 sameSnap=false
+```
+
+§1.11 eliminated `MODIFICATION_COUNT` as the confound and left `psiFile` — which is the mechanism
+§1.6 had **already recorded** for the dumb-mode exit ("the library `PsiFile`'s own
+`modificationStamp` moves 0 -> 1"). No behavioural fixture can separate the two, because every route
+to a `ProjectRootModificationTracker` tick runs through `makeRootsChange`, which is what moves the
+stamp.
+
+**Fix, in §1.9 B5's idiom**: the dependency set is now one named, assertable value —
+`internal fun dependenciesFor(psiFile, frame): Array<Any>` — and `forFile` spreads it, so "omitted
+from `Result.create`" and "omitted from `dependenciesFor`" are the same edit. TC-2d asserts all three
+members by identity and is **red** under the mutation TC-2c cannot see. TC-2c is kept as the
+behavioural statement of the requirement.
+
+#### Finding 2 — step 7 subsumes §3.3 steps 5 and 6 on every fixture that can exist
+
+Re-earning the four TYPE-11-06 channels against the **shipped** build (the scaffold measured them one
+guard at a time, in a build that had only the guard under test):
+
+| mutation | DR-11 | DR-12 | DR-14 | DR-15 |
+| :-- | :-- | :-- | :-- | :-- |
+| step 4 (`absences`) deleted | **RED** | — | — | — |
+| §3.7 warm reporting deleted | — | *green* | — | — |
+| step 6 (`inProgressHits`) deleted | — | — | *green* | — |
+| step 7 (`rescuedGlobals`) deleted | — | — | *green* | **RED** |
+
+One cause for all three greens: a library global that only another library declares resolves through
+`doResolveGlobal`'s all-scope fallback, so **every cross-library reference is a rescued global** —
+and DR-12's and DR-14's fixtures are built entirely out of cross-library references. Two sufficient
+rejectors for one outcome attribute redness to neither, which is the shape Phase 1's review rejected
+in `de60eb83`. No fixture can separate them: an in-progress hit needs a library→library cycle (⇒
+rescued), and routing the cycle through a project file puts an unprovisioned URL in `urls` (⇒ step
+3).
+
+**This is not a production defect** — the guards are correct and each is measured at zero lost pins.
+It is a gap in what the plan claimed would catch one. Closed by `TypeElevenIncompleteFrameDecisionTest`:
+the decision on a frame with exactly one non-empty set (four rows above, one red each), plus the two
+*mechanism* assertions that stop those from being claims about states nothing reaches — a warm nested
+hit really does replay, and a real mutual cycle really does mark `inProgressHits`.
+
+#### Finding 3 — the module door's end-to-end cases do not attribute either, for the same reason
+
+`TypeElevenDr18ModuleAbsenceTest` (TC-20) stayed **green** with §3.1 step 5d deleted, and
+`TypeElevenDr01ResidualTest`'s new library-`require`s-a-project-module case stayed **green** with
+`getModuleType`'s `reportFile` deleted. Probed frame for `mu.lua` = `muAlias = require("mymod")`:
+
+```
+PROBE-MOD frame urls=[package.lua] absences=[module:mymod] warm=[] inProgress=[] rescued=[global:require] pinnable=false
+```
+
+`require` is itself a global that only a library file declares, so **any** library file containing a
+`require` is rescued-global-unpinnable before the module rules are consulted. Both module guards keep
+their place (a pin must be correct when it is taken), and both now have an attributable gate in
+`LuaTypeManagerRecordingTest` — the absence one already existed, the `getModuleType` one is new. The
+two end-to-end cases stay as user-visible correctness checks with the non-attribution written into
+their KDoc.
+
 ## Premises examined
 
 | Constraint treated as fixed | Verdict |
@@ -696,8 +805,12 @@ what was closed.
 - **Options / leaning**: cover it in implementation-plan Phase 3 with
   `TypeElevenGenerationSignalTest` case **(b)** — case (a) drives the decision and does not touch the enabler — driving `LuaDefinitionLibraryEnabler.apply` rather than
   the fixture helper, and in human-verification Scenarios 3.1/3.2.
-- **Resolved by**: implementation-plan Phase 3; until then this is the single largest
-  read-not-run claim in the plan.
+- **CLOSED, Phase 3 (2026-08-11)** — `TypeElevenGenerationSignalTest.testTheProductionEnablePathTicksTheGenerationTracker`
+  seeds both trees on disk, enables L1 alone, forces `LuaSettingsChangeListener.getInstance(project)`,
+  calls `LuaDefinitionLibraryEnabler.apply(listOf(L1, L2))` and pumps the EDT with
+  `PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()`. The tracker advances. Shown red by
+  deleting `notifyDefinitionRootsChanged()` from `LuaProjectSettings.setEnabledDefinitionLibrariesAndNotify`,
+  so it gates the chain rather than the fixture.
 
 ### Gap 2.2: Provenance for rocks trees is unanswered by design
 
@@ -751,8 +864,8 @@ what was closed.
 | TYPE-11-DR-15 | Step 9 blocker V2: does a global resolution that **succeeded** via the all-scope fallback get pinned, and is it then out-ranked by a project declaration it never re-judges? | `design.md` §3.1/§3.3, TYPE-11-06 | **done, positive (the defect is real)** — `design.md` §1.10. `expected:<[afterProject]> but was:<[beforeEdit]>`. Closed by §3.1 step 5b + §3.3 step 7. Two variants priced together; `dr15rescued` adopted over `dr15broad` — identical cost (`11`) on every fixture, and the broader one only duplicates the B1 absence rule. |
 | TYPE-11-DR-16 | Is there a **sixth** under-recording channel? Every review round so far has found one more (absence, warm inner, in-progress inner, rescued global), which makes "the list is closed" the weaker prior. Enumerate the memoized doors and early returns systematically rather than waiting for the next review. **Two grounded candidates already**: (a) **`resolveModule` has V2's shape and V2's fix does not cover it** — `resolveModuleCandidates` (`lang/path/LuaModuleFileResolver.kt:26-49`) yields **project source-path** candidates before index-found ones and `doResolveModule` takes the first that types, so a module answered by a library today can be out-ranked by a project file created later, and `reportRescuedGlobal` is scoped to `resolveGlobal` only; (b) `resolveModule` has **no dumb-mode guard** at all (only `:84` and `:141` do), so §3.4's "a dumb build records zero sources" is false for any library file containing `require` — see §1.9 B5, where the general claim is already flagged as narrower than it reads | Risk 1.1, TYPE-11-06 | todo |
 | TYPE-11-DR-20 | `addMethodsOf` (`LuaTypeManagerImpl.kt:542`) iterates every global-declaration stub key with **no `ProgressManager.checkCanceled()`**, which engineering-contract §2 requires of "PSI lookup routines". Pre-existing — the whole package has zero `checkCanceled` calls — but Phase 2 added a `reportFile` line inside that loop, so it made an already-uncancellable long loop longer. Deferred out of Phase 2 deliberately: a new cancellation point is a behaviour change and Phase 2's exit criterion is that nothing moves. **Fix it as its own change, not inside a TYPE-11 phase** | engineering-contract §2, Phase 2 review D2 | todo |
-| TYPE-11-DR-21 | Assert the invariant Phase 2 left implicit: **every path that stores a `null` answer reports the absence into the frame it stores.** Verified true today (`recordInto` is the only null-storing path and reports unconditionally), but nothing enforces it, and a future null-storing path that forgets re-creates §1.8 B1 through the cache — silently, since the suite stays green. Phase 3 owes a direct assertion | design §3.6, Phase 2 review | todo, Phase 3 |
-| TYPE-11-DR-22 | Strengthen or replace **M6** (`resolveGlobal` replay). Its red is proof-of-hit only in the ledger run, not in the assertion: the answer is `null`, so there is nothing to compare identity on, and if a PSI tick ever lands between the two calls it stays green while gating nothing. It also dies alongside M2. Give the hit its own in-test evidence, as M5 has via `assertSame` on an uninterned `LuaClassType` | Phase 2 review §4 | todo, Phase 3 |
+| TYPE-11-DR-21 | Assert the invariant Phase 2 left implicit: **every path that stores a `null` answer reports the absence into the frame it stores.** Verified true today (`recordInto` is the only null-storing path and reports unconditionally), but nothing enforces it, and a future null-storing path that forgets re-creates §1.8 B1 through the cache — silently, since the suite stays green. Phase 3 owes a direct assertion | design §3.6, Phase 2 review | **DONE, Phase 3 (2026-08-11)** — a behavioural assertion cannot catch a *new* storing path, so the enforceable form is structural: `LuaTypeSourceRecorderCoverageTest.only one path stores an answer beside its frame` pins the `CachedAnswer(` construction count at 2 (the declaration + `recordInto`), with a message telling a future author what a new site owes. Red under an injected second site |
+| TYPE-11-DR-22 | Strengthen or replace **M6** (`resolveGlobal` replay). Its red is proof-of-hit only in the ledger run, not in the assertion: the answer is `null`, so there is nothing to compare identity on, and if a PSI tick ever lands between the two calls it stays green while gating nothing. It also dies alongside M2. Give the hit its own in-test evidence, as M5 has via `assertSame` on an uninterned `LuaClassType` | Phase 2 review §4 | **DONE, Phase 3 (2026-08-11)** — M6 now asserts `PsiModificationTracker.modificationCount` is unchanged across the two calls. That is the hit's in-test evidence: the entry the cold call wrote cannot have been discarded, and `resolveGlobal` reads the cache before anything else. Red under a deliberate tick inserted between the calls |
 | TYPE-11-DR-18 | Price the module-absence rule (§3.1 step 5d, §1.12) in the same `REVIEW-COST` form every other absence rule was priced in: how many of the 11 provisioned files lose their pin when `resolveModule`'s `ANY` fall-through records an absence? Expected **zero** — nothing shipped `require`s — but expected is not measured, and this is the one rule adopted on correctness alone | §1.12, TYPE-11-06 | **DONE, Phase 2 (2026-08-11)** — `DR-18 REVIEW-COST TOTALS provisioned=11 withModuleRule=11 withoutModuleRule=11`. **Zero lost pins, measured.** Method below |
 | TYPE-11-DR-19 | **Discharge `reportFile`'s `?: return` premise, or drop the exemption.** §3.1 step 4 exempts `reportFile` from the governing rule ("whenever the loss of a mark yields a pin, the mark is unconditional") — but its loss *can* yield a pin: losing the **last** URL leaves `urls` empty, an empty `urls` clears §3.3 step 3 **vacuously**, and on a provisioned file with the other four sets empty every step clears and the file **is pinned** — the exact "empty because nothing was recorded, not because nothing was consumed" inversion §3.4 names. The mechanism argument the exemption previously rested on ("fewer URLs only weakens a test over the URLs that are present") is a **restatement, not a safety proof**, and is the same shape as the reasoning F1 overturned. What it actually needs is the named premise now written into §3.1 step 4: *a `PsiFile` reached as a consumed source always has a non-null `originalFile.virtualFile`* — every §3.5 site takes its file from `StubIndex` / `FileBasedIndex` / `PsiManager.findFile`, the `originalFile` hop already converts completion copies back, and a VFS-less PSI file (`DummyHolder`, non-physical `createFileFromText`) is neither index-reachable nor user-editable, so it cannot be a project dependency whose future content changes the answer. **Undischarged: reasoned, not run**, and `LuaTypeSourceRecorderTest.testReportFileWithNoUrlRecordsNothing` now *locks the no-op in with a green test*, so it is cemented until someone deliberately revisits it. **Phase 2 is the place**: it wires the six §3.5 `reportFile` sites, so it is the first point at which the premise can be gated (assert non-null at each site, or count nulls over the corpus) or the exemption dropped for a sixth `unidentifiedSources` set. ⚠ `reportFile`'s behaviour was deliberately **not** changed on this reasoning alone — flipping it unpriced repeats F1's error in the other direction, since a sentinel in `urls` reaches `isProvisionedUrl`, is classified unprovisioned, and costs every affected file its pin | `design.md` §3.1 step 4, §3.3 step 3, TYPE-11-06 | **DONE, Phase 2 (2026-08-11)** — premise **run** (47 331 calls, 1 null, and that one this suite's own non-physical fixture) and the exemption **dropped anyway**, at a measured cost of zero. Decision below |
 | TYPE-11-DR-17 | ~~Is Risk 1.1b reachable through the shipped fetcher?~~ **Answered by tracing, not by a spike: it is not** — `isCached` short-circuits before `fetch`, `cacheDir` is `<id>-<version>`, and no delete-and-refetch path exists. Reduced to a standing note on Risk 1.1b: re-open if such a path is ever added. Kept as a row so the reasoning is not rediscovered. Was: is Risk 1.1b reachable through the shipped fetcher? Replace a definition library's content in place under its existing `<id>-<version>` root, with a pinned snapshot already built, and see whether anything ticks. If it is reachable, pick between accepting it as documented scope, a content-level signal, or a fetch stamp that always changes the root | Risk 1.1b, TYPE-11-02 | todo |
@@ -761,15 +874,23 @@ what was closed.
 
 - **No test edits a library file.** Users cannot, and the invalidation path for a library content
   change is a roots change, which is covered by `TypeElevenGenerationSignalTest` (plan Phase 3).
-- **No test exercises a `require` from a library file into a project module.** `design.md` §6 says
-  `getModuleType` reports it and the file is therefore not pinnable; that specific path is reasoned,
-  not run. Cover it in plan Phase 3.
+- ~~**No test exercises a `require` from a library file into a project module.**~~ **Closed, Phase 3**
+  — `TypeElevenDr01ResidualTest.testALibraryThatRequiresAProjectModuleTracksThatModule`. ⚠ Running it
+  changed the claim: §6 says `getModuleType` reports the project file "and the file is therefore not
+  pinnable", but the file is unpinnable *before* that report is consulted, because `require` itself is
+  a rescued global (Finding 3 above). The reported URL is real and correct; it is simply not what
+  decides this case.
 - **No test covers a rocks tree**, deliberately — v1 leaves rocks on today's behaviour, so the
   existing rocks suites already assert the unchanged answer.
 - **Closed by the third round**: the absence shape and the warm-inner-snapshot shape now have
   fixtures (`TypeElevenDr11LateDeclarationTest`, `TypeElevenDr12WarmInnerSnapshotTest`), each shown
   red under the rule without its guard.
-- **No fixture asserts the pinnable *count*.** The value of the feature and the correctness of the
+- ~~**No fixture asserts the pinnable *count*.**~~ **Closed, Phase 3** — `TypeElevenPinnableCostTest`,
+  which asserts the enumerated count (11) first and then that none is rejected: measured
+  `TYPE11-COST provisioned=11 pinnable=11`. ⚠ It also caught a fixture leak the suite had no other
+  way to see: the light project's `LuaProjectSettings` is shared across test classes, so TC-3's
+  target switch left the next class enumerating the **5.1** tree (9 stubs). The base fixture now
+  restores the entry target in `tearDown`. Original text:  The value of the feature and the correctness of the
   rule pull in opposite directions, and only counting distinguishes "closed the hole" from "pinned
   nothing". The third round counted with a scaffold (`guarded=11`); nothing committed does. Phase 3
   should add it as its own live-fixture class `TypeElevenPinnableCostTest` (**not** alongside `LuaTypeSourceRecorderCoverageTest`, which reads text and cannot build fixtures — `design.md` TC-15).

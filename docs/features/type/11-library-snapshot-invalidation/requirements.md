@@ -326,6 +326,31 @@ assertion still owing an observed red. None of them blocks starting Phase 1, and
 stop reviewing is that the last two rounds found no defect in the design — an implementer running code
 will now find things faster than a sixth reading will.
 
+### Phase 3 (2026-08-11) — the feature is live, and TC-2c's gate was measured false
+
+`forFile` is conditional: a provisioned file whose recording is complete depends on
+`ProjectRootModificationTracker` + `targetModificationTracker` + itself, and every other file keeps
+today's `MODIFICATION_COUNT`. Measured on the shipped build, not on a scaffold:
+
+- **TYPE-11-01** — `TypeElevenPinSurvivesUnrelatedEditTest` green; red under "step 9 → always
+  `MODIFICATION_COUNT`". DR-04 probe in the same run: arm A median **6 287 µs**, arm B **22 859 µs**
+  (unpinned arm B was 349 700 µs; the 3–5× residual over arm A is unchanged and out of scope, §1.5).
+- **TYPE-11-06 pays for itself** — `TYPE11-COST provisioned=11 pinnable=11`, the count the de-risking
+  measured (`guarded=11`), now asserted rather than quoted.
+- **The one design correction.** §1.11 states that TC-2c is the only assertion that `forFile` passes
+  the churn object into `Result.create`. Run against a build that omits it, TC-2c **passed**: a roots
+  change moves the library `PsiFile`'s own `modificationStamp` (probed `0 -> 1` on the same instance)
+  and `psiFile` is a dependency in both branches. §1.11 removed one confound and left another that
+  §1.6 had already recorded. Fixed in the design's own idiom — the dependency set is now
+  `dependenciesFor`, one assertable value that `forFile` spreads — and gated by TC-2d, which is red
+  under exactly that mutation.
+- **Two further guards stopped attributing**, for one shared cause: step 7 (rescued globals) rejects
+  every cross-library fixture, so DR-12, DR-14, DR-18 and the new library-`require`s-a-project-module
+  case are all green with their *own* guard deleted. No production defect and no lost coverage of the
+  user-visible answer — but the guards now have decision-level and report-level gates
+  (`TypeElevenIncompleteFrameDecisionTest`, plus two new rows in `LuaTypeManagerRecordingTest`), one
+  red each.
+
 ## Relationship to COMP-09
 
 COMP-09 is **parked at Phase 1** because of this. Its Phase 2 was executed to plan and aborted

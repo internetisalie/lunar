@@ -151,9 +151,11 @@ are already committed and green on `main`. They must stay green at the end of ev
 ### Phase 3: Make `forFile` conditional [Must]
 
 - **Goal**: the feature. `TypeElevenDr04LatencyTest` arm B drops by an order of magnitude and
-  `TypeElevenDr01ResidualTest` stays green.
+  `TypeElevenDr01ResidualTest` stays green. **DONE (2026-08-11)** — arm A median 6 287 µs, arm B
+  22 859 µs (unpinned arm B was 349 700 µs); `TYPE11-COST provisioned=11 pinnable=11`; full suite
+  and corpus sweep green. Two tasks were added mid-phase by measurement, both recorded below.
 - **Tasks**:
-  - [ ] Edit `LuaTypesSnapshot.forFile` (`LuaTypes.kt:212-224`) — realizes design §2.3, §3.3 and
+  - [x] Edit `LuaTypesSnapshot.forFile` (`LuaTypes.kt:212-224`) — realizes design §2.3, §3.3 and
         §3.7. Wrap `LuaTypesVisitor.buildSnapshot(psiFile)` in `LuaTypeSourceRecorder.recording { … }`,
         register `snapshotFrames[snapshot] = frame`, compute `pinnable` by the seven short-circuiting
         tests in §3.3 steps 1–7, and select the churn dependency in step 9. **Steps 1–8 go in
@@ -162,21 +164,21 @@ are already committed and green on `main`. They must stay green at the end of ev
         has no assertion that goes red when it is deleted (design §1.9 B5). Track whether the provider
         ran (`var computed`) and, when it did not and `depth() > 0`, call
         `reportWarmSnapshot(psiFile, served)` (§3.7 steps 2–4).
-  - [ ] **The `inProgressSnapshot` early return reports before it returns** — `reportInProgressHit(psiFile)`
+  - [x] **The `inProgressSnapshot` early return reports before it returns** — `reportInProgressHit(psiFile)`
         into every open frame when it answers non-null at `depth() > 0` (§3.1 step 5c, §3.7, §1.10 V1).
         Keep the early return: it is the cycle-breaker. Nothing can be replayed here — the served
         snapshot is mid-build — so §3.3 step 6 makes the outer file unpinnable instead. It must stay
         **before** the warm-hit reporting; `psiFile` and `targetModificationTracker` are unchanged.
-  - [ ] Add `TypeElevenDr11LateDeclarationTest` and `TypeElevenDr12WarmInnerSnapshotTest` to the
+  - [x] Add `TypeElevenDr11LateDeclarationTest` and `TypeElevenDr12WarmInnerSnapshotTest` to the
         standing-green set — covers TYPE-11-06. **Already committed and green on `main`**; each was
         measured red under the rule without its guard (design §1.8), which is what makes them gates
         rather than decoration.
-  - [ ] Add `TypeElevenPinSurvivesUnrelatedEditTest` — **TYPE-11-01's gate**, TC-1. Snapshot
+  - [x] Add `TypeElevenPinSurvivesUnrelatedEditTest` — **TYPE-11-01's gate**, TC-1. Snapshot
         *instance identity* for a library file across an unrelated project edit. It is **red on `main`
         today**, which is the point: it is the only assertion that states what this feature does.
         `TypeElevenDr04LatencyTest` stays a printing probe with no assertions and does not gate
         anything (§1.5, TC-1b).
-  - [ ] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02, TC-2a/2b/3/4. Four cases, and the
+  - [x] Add `TypeElevenGenerationSignalTest` — covers TYPE-11-02, TC-2a/2b/3/4. Four cases, and the
         split between (a) and (b) is deliberate: one asserts a tick moves the pin, the other asserts
         the production chain produces a tick. Merged, the test fails for two unrelated reasons.
         **(a) TC-2a — assert the decision, not the outcome.** Build `forFile(wx.lua)` for an installed,
@@ -218,21 +220,21 @@ are already committed and green on `main`. They must stay green at the end of ev
         **(d) TC-4** — a project edit does not tick roots. Cheap regression check, **explicitly not a
         gate**: it is a platform fact no TYPE-11 defect can change and `rewriteAssertingRootsAreStill`
         already asserts it on every edit.
-  - [ ] Add `TypeElevenPinnableCostTest` — TC-15, and it is **its own live-fixture class**, not an
+  - [x] Add `TypeElevenPinnableCostTest` — TC-15, and it is **its own live-fixture class**, not an
         assertion inside the text-reading coverage test. Enumerate the bundled stdlib via
         `RuntimeLibraryProvider(project).getLibraryFiles(target)` plus the installed definition
         library root, build `forFile` on each in one clean epoch, read each frame from
         `snapshotFrames`, and assert **all 11 pinnable**. Assert the enumerated count (`11`) first or
         a fixture that found zero files passes vacuously. This is the only thing separating "closed
         TYPE-11-06" from "pinned nothing".
-  - [ ] Add `TypeElevenDr14InProgressTest` and `TypeElevenDr15LateLibraryAnswerTest` to the
+  - [x] Add `TypeElevenDr14InProgressTest` and `TypeElevenDr15LateLibraryAnswerTest` to the
         standing-green set — TYPE-11-06's third and fourth channels, TC-18 and TC-19. **Already
         committed and green on `main`**; each was measured red under the post-B1/B4 rule without its
         guard (design §1.10), which is what makes them gates rather than decoration.
         ⚠ **Measure them one class at a time.** A combined run turned DR-14 green for an unrelated
         reason — an earlier class's teardown edit recomputing the chain — and that false green is
         recorded in `risks-and-gaps.md`. The full suite remains the commit gate.
-  - [ ] Add `TypeElevenDumbModeDecisionTest` — covers TYPE-11-05, TC-16. **Three** assertions on the
+  - [x] Add `TypeElevenDumbModeDecisionTest` — covers TYPE-11-05, TC-16. **Three** assertions on the
         TC-12 fixture: (a) inside dumb mode `isPinnable(delta.lua, SourceFrame())` is `false`; (b)
         inside dumb mode the frame a real `forFile(delta.lua)` registers is present (`assertNotNull`
         first) and empty; (c) a **different** library file `epsilon.lua` (`libSmart = sharedByLibrary`),
@@ -252,7 +254,7 @@ are already committed and green on `main`. They must stay green at the end of ev
         **Stated mutation: delete §3.3 step 1** → the first assertion must go red (an empty frame on a
         provisioned file clears steps 2–7, so step 1 is the sole rejector). This is the gate §1.6
         said did not exist; `TypeElevenDr05DumbModeTest` stays a recorder and is not a gate.
-  - [ ] Add `LuaTypeSourceRecorderCoverageTest` — mitigates `risks-and-gaps.md` Risk 1.1, TC-17. Reads
+  - [x] Add `LuaTypeSourceRecorderCoverageTest` — mitigates `risks-and-gaps.md` Risk 1.1, TC-17. Reads
         **`LuaTypeManagerImpl.kt` and `LuaTypesVisitor.kt`** as text, **strips comments, then removes
         all whitespace**, then counts **five** bare members — `.findFile(`, `.getElements(`,
         `.getContainingFiles(`, `.getAllKeys(`, `.getLibraryFiles(` — against the recorded
@@ -271,12 +273,28 @@ are already committed and green on `main`. They must stay green at the end of ev
         **Stated mutation: inject one `PsiManager.getInstance(project).findFile(…)`** → `.findFile(`
         must go `2 → 3` and fail. Second check, to prove the guard is not fooled by formatting alone:
         re-wrapping an existing `StubIndex.getElements(` across lines must leave the count at `3`.
-  - [ ] Add `TypeElevenDr18ModuleAbsenceTest` — TC-20, TYPE-11-06's fifth channel. Library
+  - [x] Add `TypeElevenDr18ModuleAbsenceTest` — TC-20, TYPE-11-06's fifth channel. Library
         `mu.lua` = `muAlias = require("mymod")` with **nothing providing `mymod`** (assert
         `resolveModuleCandidates` is empty first), read it, then create the module and assert the type
         follows, roots tracker still. Red under §3 without step 5d (design §1.12).
-  - [ ] Add a library-`require`s-a-project-module case to `TypeElevenDr01ResidualTest` — closes the
+  - [x] Add a library-`require`s-a-project-module case to `TypeElevenDr01ResidualTest` — closes the
         first item under `risks-and-gaps.md` "Test Case Gaps".
+  - [x] **Added mid-phase — `internal fun dependenciesFor(psiFile, frame): Array<Any>` (§2.3) and
+        `TypeElevenGenerationSignalTest` case (f), TC-2d.** TC-2c was run against a build whose
+        pinnable branch omits the churn object from `Result.create` — the mutation §1.11 says only
+        TC-2c can catch — and **passed**. A roots change moves the library `PsiFile`'s own
+        `modificationStamp` (probed `0 -> 1`, same instance) and `psiFile` is a dependency in both
+        branches, so the snapshot rebuilds either way. `forFile` now spreads one named dependency
+        array and TC-2d asserts its three members by identity; red under that mutation and under
+        TC-3's.
+  - [x] **Added mid-phase — `TypeElevenIncompleteFrameDecisionTest` (7 tests) and
+        `LuaTypeManagerRecordingTest.testResolvingAModuleRecordsTheFileItWasReadFrom`.** Re-earning
+        the four TYPE-11-06 channels against the shipped build instead of the scaffold showed three
+        of them green with their own guard deleted: **step 7 subsumes steps 5 and 6 and both module
+        rules**, because every cross-library global reference is a rescued global and `require` is
+        itself one. The guards are gated on the decision (one non-empty set at a time, one red per
+        clause) and on the report (a warm hit really replays; a real cycle really marks
+        `inProgressHits`; the module door really records its file).
 - **Exit criteria**:
   - `tooling/gce-builder/gce-builder.sh run "ktlintCheck lintDocs test --rerun --no-build-cache"` —
     BUILD SUCCESSFUL, 0 failures.
@@ -331,22 +349,22 @@ are already committed and green on `main`. They must stay green at the end of ev
 
 ## Verification Tasks
 
-- [ ] `TypeElevenDr01ResidualTest` — 3 tests, covers TYPE-11-04. **Already committed and green on
+- [x] `TypeElevenDr01ResidualTest` — 3 tests, covers TYPE-11-04. **Already committed and green on
       `main`**; it must stay green through every phase.
-- [ ] `TypeElevenDr02ProvenanceTest` — 5 tests, covers TYPE-11-03. Already committed.
-- [ ] `TypeElevenDr11LateDeclarationTest` — 1 test, covers TYPE-11-06 (absence). Already committed
+- [x] `TypeElevenDr02ProvenanceTest` — 5 tests, covers TYPE-11-03. Already committed.
+- [x] `TypeElevenDr11LateDeclarationTest` — 1 test, covers TYPE-11-06 (absence). Already committed
       and green on `main`; red under the rule without §3.3 step 4 (design §1.8).
-- [ ] `TypeElevenDr12WarmInnerSnapshotTest` — 1 test, covers TYPE-11-06 (warm inner snapshot).
+- [x] `TypeElevenDr12WarmInnerSnapshotTest` — 1 test, covers TYPE-11-06 (warm inner snapshot).
       Already committed and green on `main`; red under the rule without §3.7 (design §1.8).
-- [ ] `TypeElevenDr05DumbModeTest` — 2 tests, TYPE-11-05. Already committed, and **explicitly not a
+- [x] `TypeElevenDr05DumbModeTest` — 2 tests, TYPE-11-05. Already committed, and **explicitly not a
       gate** (`risks-and-gaps.md` Gap 2.1): it records the outcome, which two mutations could not move.
-- [ ] `TypeElevenDumbModeDecisionTest` (Phase 3) — the gate for TYPE-11-05, TC-16. Asserts the
+- [x] `TypeElevenDumbModeDecisionTest` (Phase 3) — the gate for TYPE-11-05, TC-16. Asserts the
       decision rather than the outcome, plus that a real dumb build's frame is empty.
-- [ ] `TypeElevenDr04LatencyTest` — printing probe, **no assertions**. Read its numbers; do not treat
+- [x] `TypeElevenDr04LatencyTest` — printing probe, **no assertions**. Read its numbers; do not treat
       a green run as a pass, and do not cite it as TYPE-11-01's acceptance — `TypeElevenPinSurvivesUnrelatedEditTest`
       is that (TC-1).
-- [ ] `TypeElevenPinSurvivesUnrelatedEditTest` (Phase 3) — TYPE-11-01's gate, TC-1.
-- [ ] `TypeElevenPinnableCostTest` (Phase 3) — TC-15, the 11-of-11 pinnable count.
+- [x] `TypeElevenPinSurvivesUnrelatedEditTest` (Phase 3) — TYPE-11-01's gate, TC-1.
+- [x] `TypeElevenPinnableCostTest` (Phase 3) — TC-15, the 11-of-11 pinnable count.
 - [x] `LuaLibraryProvenanceTest` (Phase 1) — **9 tests**: the DR-02 assertions against the production
       service, the `"$root/"` separator, and one assertion per memoized dependency.
 - [x] `LuaTypeSourceRecorderTest` (Phase 1) — **12 tests**, the recorder's own algebra asserted
@@ -358,12 +376,12 @@ are already committed and green on `main`. They must stay green at the end of ev
       a §3.5 `reportFile` site firing, the `resolveGlobal` absence (§1.8 B1), the rescued global
       (§1.10 V2), the module absence (§1.12), and §3.6's replay for both a memoized answer's sources
       and a memoized absence.
-- [ ] `TypeElevenGenerationSignalTest` (Phase 3) — covers TYPE-11-02.
-- [ ] `TypeElevenDr14InProgressTest` — 2 tests, TYPE-11-06 (in-progress inner). Already committed;
+- [x] `TypeElevenGenerationSignalTest` (Phase 3) — covers TYPE-11-02.
+- [x] `TypeElevenDr14InProgressTest` — 2 tests, TYPE-11-06 (in-progress inner). Already committed;
       red under the post-B1/B4 rule without §3.3 step 6 (design §1.10 V1).
-- [ ] `TypeElevenDr15LateLibraryAnswerTest` — 1 test, TYPE-11-06 (rescued global). Already committed;
+- [x] `TypeElevenDr15LateLibraryAnswerTest` — 1 test, TYPE-11-06 (rescued global). Already committed;
       red under the post-B1/B4 rule without §3.3 step 7 (design §1.10 V2).
-- [ ] `LuaTypeSourceRecorderCoverageTest` (Phase 3) — mitigates Risk 1.1, TC-17. **Two files, five
+- [x] `LuaTypeSourceRecorderCoverageTest` (Phase 3) — mitigates Risk 1.1, TC-17. **Two files, five
       members**: `LuaTypeManagerImpl` `2 / 3 / 2 / 2 / 0`, `LuaTypesVisitor` `1 / 0 / 0 / 0 / 1`, on
       whitespace-collapsed, comment-stripped text. The qualified-chain form counted `1 / 3 / 0` (§1.9 B3).
 - [ ] Run `human-verification-checklists.md` — the whole feature is a *cache lifetime* change, and the
@@ -376,6 +394,6 @@ are already committed and green on `main`. They must stay green at the end of ev
 | :-- | :-- | :-- |
 | Phase 1: Provenance and the recorder, wired to nothing | done | Must |
 | Phase 2: Report from the type manager | done | Must |
-| Phase 3: Make `forFile` conditional | todo | Must |
+| Phase 3: Make `forFile` conditional | done | Must |
 | Phase 4: Close the negative de-risking results | todo | Should |
 | Phase 5: The remaining arm-B cost | todo | Could |

@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.lang.psi.types
 
+import com.intellij.openapi.project.DumbService
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.CachedValueProvider
@@ -202,25 +203,123 @@ class LuaTypesSnapshot(
          * Compute (or return a cached) [LuaTypes] snapshot for [file].
          *
          * MAINT-30-02 (§2.3/§3.4): memoized via [CachedValuesManager]. Dependencies are the file
-         * itself + [PsiModificationTracker.MODIFICATION_COUNT] (any reparse — the FileUserData
-         * text-hash-collision staleness is structurally impossible now) and the project's
+         * itself + a churn signal — [PsiModificationTracker.MODIFICATION_COUNT] for every file
+         * TYPE-11 does not pin (any reparse — the FileUserData text-hash-collision staleness is
+         * structurally impossible now) — and the project's
          * [State.targetModificationTracker], so a text-free REDIS↔Lua target switch also invalidates
          * (REDIS-04 §3.1a / TC-04). The TYPE-10 [inProgressSnapshot] reentrancy guard runs FIRST,
          * ahead of `getCachedValue`, so a re-entrant `visitFuncCall → forFile` never recurses into a
          * nested `getCachedValue` compute (TC-06).
+         *
+         * TYPE-11 §2.3/§3.3/§3.7: the build runs inside a [LuaTypeSourceRecorder] frame, the frame
+         * is registered against the snapshot it produced, and [churnDependencyFor] decides whether
+         * this file rebuilds on every PSI tick (today's behaviour) or only on a generation tick.
+         * The [inProgressSnapshot] guard still runs first — it is the cycle-breaker — but it now
+         * **reports before it returns** (§3.1 step 5c, §1.10 V1): the hit is served for whichever
+         * file is under construction, which is not necessarily the frame currently open, so the
+         * outer file must be judged unpinnable by §3.3 step 6.
          */
         fun forFile(file: PsiFile): LuaTypes {
             val psiFile = file.containingFile
-            LuaTypesVisitor.inProgressSnapshot(psiFile)?.let { return it }
-            return CachedValuesManager.getCachedValue(psiFile, LuaTypesVisitor.KEY) {
-                val targetTracker = LuaProjectSettings.getInstance(psiFile.project).state.targetModificationTracker
-                CachedValueProvider.Result.create(
-                    LuaTypesVisitor.buildSnapshot(psiFile),
-                    psiFile,
-                    PsiModificationTracker.MODIFICATION_COUNT,
-                    targetTracker,
-                )
+            LuaTypesVisitor.inProgressSnapshot(psiFile)?.let { inProgressTypes ->
+                if (LuaTypeSourceRecorder.depth() > 0) LuaTypeSourceRecorder.reportInProgressHit(psiFile)
+                return inProgressTypes
             }
+            var providerRan = false
+            val cachedTypes =
+                CachedValuesManager.getCachedValue(psiFile, LuaTypesVisitor.KEY) {
+                    providerRan = true
+                    val (builtTypes, sourceFrame) =
+                        LuaTypeSourceRecorder.recording { LuaTypesVisitor.buildSnapshot(psiFile) }
+                    LuaTypeSourceRecorder.snapshotFrames[builtTypes] = sourceFrame
+                    CachedValueProvider.Result.create(builtTypes, *dependenciesFor(psiFile, sourceFrame))
+                }
+            if (!providerRan && LuaTypeSourceRecorder.depth() > 0) {
+                LuaTypeSourceRecorder.reportWarmSnapshot(psiFile, cachedTypes)
+            }
+            return cachedTypes
         }
+
+        /**
+         * TYPE-11 §3.3 step 9 as **one assertable value** — everything [forFile]'s
+         * `CachedValueProvider.Result` depends on, in one place.
+         *
+         * §1.11 asserted that TC-2c ("tick roots, the pinned instance changed; edit a project file,
+         * it did not") was the only case able to catch a pinnable branch that computes the right
+         * churn object and then never passes it to `Result.create`. **Measured on this build, that
+         * is false**: under exactly that mutation TC-2c stays green, because a roots change moves
+         * the library `PsiFile`'s own `modificationStamp` (probed: `0 -> 1` on the *same* instance)
+         * and [forFile] depends on `psiFile` in both branches. §1.11 removed `MODIFICATION_COUNT` as
+         * the confound and left `psiFile` — the same mechanism §1.6 had already recorded for the
+         * dumb-mode exit.
+         *
+         * No behavioural fixture can close that: every way to tick `ProjectRootModificationTracker`
+         * goes through `makeRootsChange`, which is what moves the stamp. So the wiring is made
+         * *directly* assertable instead, exactly as §1.9 B5 did for the dumb-mode decision — and
+         * because [forFile] spreads this array, "omitted from `Result.create`" and "omitted from
+         * here" are the same edit.
+         */
+        internal fun dependenciesFor(
+            psiFile: PsiFile,
+            sourceFrame: LuaTypeSourceRecorder.SourceFrame,
+        ): Array<Any> =
+            arrayOf(
+                psiFile,
+                churnDependencyFor(psiFile, sourceFrame),
+                LuaProjectSettings.getInstance(psiFile.project).state.targetModificationTracker,
+            )
+
+        /**
+         * TYPE-11 §3.3 steps 1–8 — may this snapshot be pinned to the generation tracker?
+         *
+         * Short-circuiting, cheapest test first: step 2 rejects every project file before any set is
+         * iterated, and project files are the overwhelming majority of [forFile] calls.
+         *
+         * Steps 4–7 are the "sources unknown" half of the invariant and are not optional. Step 3 is
+         * vacuously true for an empty set, which is exactly the state a failed resolution (§1.8 B1),
+         * a warm inner snapshot (§1.8 B4), an in-progress nested snapshot (§1.10 V1) and a
+         * project-scope miss rescued by the all-scope fallback (§1.10 V2) each leave behind — all
+         * four measured shipping a stale type. **A pin must be correct at the moment it is taken;
+         * there is no second chance**, because [PsiModificationTracker.MODIFICATION_COUNT] is
+         * precisely the dependency the pin removes, so a pinned file is never re-judged.
+         *
+         * `internal` rather than `private` deliberately: TYPE-11-05's guard (step 1) has no
+         * assertion that can go red unless the decision can be asked directly (design §1.9 B5).
+         */
+        internal fun isPinnable(
+            psiFile: PsiFile,
+            sourceFrame: LuaTypeSourceRecorder.SourceFrame,
+        ): Boolean {
+            val targetProject = psiFile.project
+            if (DumbService.isDumb(targetProject)) return false
+            val provenance = LuaLibraryProvenance.getInstance(targetProject)
+            if (!provenance.isProvisioned(psiFile)) return false
+            if (sourceFrame.urls.any { !provenance.isProvisionedUrl(it) }) return false
+            return sourceFrame.absences.isEmpty() &&
+                sourceFrame.unreplayedWarm.isEmpty() &&
+                sourceFrame.inProgressHits.isEmpty() &&
+                sourceFrame.rescuedGlobals.isEmpty()
+        }
+
+        /**
+         * TYPE-11 §3.3 step 9 — the churn dependency [forFile] hands to `Result.create`.
+         *
+         * The return type is [Any] because the two branches share no narrower supertype:
+         * [PsiModificationTracker.MODIFICATION_COUNT] is a `Key` sentinel the platform
+         * special-cases, not a `ModificationTracker`.
+         *
+         * The target axis is deliberately **not** composited into the pinned branch —
+         * `targetModificationTracker` stays an explicit dependency of [forFile] in both branches, so
+         * two dependencies each have one job (TC-3).
+         */
+        internal fun churnDependencyFor(
+            psiFile: PsiFile,
+            sourceFrame: LuaTypeSourceRecorder.SourceFrame,
+        ): Any =
+            if (isPinnable(psiFile, sourceFrame)) {
+                LuaLibraryProvenance.getInstance(psiFile.project).generationTracker()
+            } else {
+                PsiModificationTracker.MODIFICATION_COUNT
+            }
     }
 }
