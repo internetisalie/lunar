@@ -58,14 +58,14 @@ class TypeElevenDr14InProgressTest : TypeElevenDefinitionLibraryTestCase() {
         return buffer.toString()
     }
 
-    private fun installCycle(): PsiFile {
-        installDefinitionLibrary(
-            "luassert",
-            mapOf(
-                "outer.lua" to "---@meta\n\nOuterSeed = projectSeed\nOuterGlobal = InnerSeed\n",
-                "inner.lua" to "---@meta\n\nInnerSeed = OuterSeed\n",
-            ),
+    private fun cycleFiles(): Map<String, String> =
+        mapOf(
+            "outer.lua" to "---@meta\n\nOuterSeed = projectSeed\nOuterGlobal = InnerSeed\n",
+            "inner.lua" to "---@meta\n\nInnerSeed = OuterSeed\n",
         )
+
+    private fun installCycle(): PsiFile {
+        installDefinitionLibrary("luassert", cycleFiles())
         return myFixture.addFileToProject("p.lua", "projectSeed = { beforeEdit = 1 }\n")
     }
 
@@ -131,6 +131,58 @@ class TypeElevenDr14InProgressTest : TypeElevenDefinitionLibraryTestCase() {
                 "was built while outer.lua's build was still in progress on the same thread",
             setOf("afterEdit"),
             innerAfter,
+        )
+    }
+
+    /**
+     * Q14c — **which** §3.3 guard keeps this fixture green when step 6 is deleted? The ledger
+     * credits step 7 (`rescuedGlobals`); Phase 3's review (F4) proposed step 4 (`absences`) as a
+     * second sufficient rejector, on the reading that re-entering outer.lua's in-flight build for
+     * `OuterSeed` answers nothing.
+     *
+     * Measured, and the review's reading is **refuted**: the re-entrant resolution answers, through
+     * `doResolveGlobal`'s all-scope fallback, so the mark it leaves is a *rescued global*, not an
+     * absence.
+     *
+     * ```
+     * urls=[…/outer.lua] absences=[] inProgressHits=[…/outer.lua]
+     * rescuedGlobals=[global:OuterSeed] unreplayedWarm=[]
+     * ```
+     *
+     * Two sufficient rejectors for one outcome attribute redness to neither — the shape Phase 1's
+     * review rejected in `de60eb83` — so this asserts the composition directly instead of inferring
+     * it from a mutation's colour. The empty `absences` is the load-bearing half: it is what makes
+     * step 7 the sole cause of the step-6 green, exactly as the ledger says.
+     */
+    fun testTheInProgressFixtureIsRejectedByTheRescuedGlobalAndNotByAnAbsence() {
+        val libraryRoot = installDefinitionLibrary("luassert", cycleFiles())
+        myFixture.addFileToProject("p.lua", "projectSeed = { beforeEdit = 1 }\n")
+        announceRootsChange()
+        val consumer = myFixture.configureByText("consumer.lua", "local pad = 1\n")
+
+        membersOfGlobal("OuterGlobal", consumer)
+        val innerFrame = frameOf(snapshotOf(checkNotNull(libraryRoot.findChild("inner.lua"))))
+        println(
+            "DR-14 inner.lua frame: urls=${innerFrame.urls} absences=${innerFrame.absences} " +
+                "inProgressHits=${innerFrame.inProgressHits} rescuedGlobals=${innerFrame.rescuedGlobals} " +
+                "unreplayedWarm=${innerFrame.unreplayedWarm}",
+        )
+
+        assertEquals(
+            "the re-entrant resolution answered, so nothing here is an absence — step 4 is not a " +
+                "second rejector on this fixture",
+            emptySet<String>(),
+            innerFrame.absences,
+        )
+        assertTrue(
+            "the answer came from the all-scope fallback, which is what step 7 rejects on " +
+                "(rescuedGlobals=${innerFrame.rescuedGlobals})",
+            innerFrame.rescuedGlobals.contains("global:OuterSeed"),
+        )
+        assertFalse(
+            "and step 6's own mark is present, so the two guards really do overlap here " +
+                "(inProgressHits=${innerFrame.inProgressHits})",
+            innerFrame.inProgressHits.isEmpty(),
         )
     }
 }

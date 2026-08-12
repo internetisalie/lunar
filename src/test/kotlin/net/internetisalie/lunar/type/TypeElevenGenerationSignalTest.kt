@@ -2,9 +2,15 @@ package net.internetisalie.lunar.type
 
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.roots.ProjectRootModificationTracker
+import com.intellij.openapi.util.Key
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.ParameterizedCachedValue
 import com.intellij.testFramework.PlatformTestUtil
 import net.internetisalie.lunar.definitions.LuaDefinitionLibraryEnabler
+import net.internetisalie.lunar.lang.psi.types.LuaTypes
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
+import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.Target
 import net.internetisalie.lunar.platform.target.VersionEntry
@@ -145,8 +151,12 @@ class TypeElevenGenerationSignalTest : TypeElevenDefinitionLibraryTestCase() {
      * Every route to a `ProjectRootModificationTracker` tick runs through `makeRootsChange`, which
      * is what moves that stamp, so no behavioural fixture can separate the two. The dependency set
      * is therefore asserted directly — the §1.9 B5 remedy, applied to the wiring instead of the
-     * decision. `forFile` spreads exactly this array, so "omitted from `Result.create`" and
-     * "omitted from `dependenciesFor`" are the same edit.
+     * decision.
+     *
+     * ⚠ This used to add that `forFile` spreads exactly this array, so "omitted from
+     * `Result.create`" and "omitted from `dependenciesFor`" are the same edit. **Measured false**
+     * (Phase 3 review F2): inlining the three arguments into the provider leaves this case green.
+     * [testTheProviderHandsEveryDependencyToTheResultItCreates] is the case that catches it.
      *
      * Mutations, each red here and green under TC-2c: the churn object dropped from the pinnable
      * branch; `targetTracker` dropped from the pinnable branch (TC-3's mutation, which this catches
@@ -175,6 +185,67 @@ class TypeElevenGenerationSignalTest : TypeElevenDefinitionLibraryTestCase() {
             dependencies.any { it === libraryPsi },
         )
         assertEquals("exactly three dependencies, each with one job", 3, dependencies.size)
+    }
+
+    /**
+     * TC-2e — the **hand-over**, closing the hole TC-2d cannot: what `forFile`'s provider passes to
+     * `Result.create`, read off the `CachedValue` the platform stored.
+     *
+     * TC-2d asserts `dependenciesFor`'s contents, and design §2.3 used to claim that "omitted from
+     * `Result.create`" and "omitted from `dependenciesFor`" were therefore *the same edit*. Phase
+     * 3's review (F2) refuted that: inlining `Result.create(builtTypes, psiFile, targetTracker)` and
+     * leaving `dependenciesFor` intact is green under TC-1, TC-2c, TC-2d and TC-3, because the
+     * spread is a convention, not an invariant a type can enforce.
+     *
+     * The gap closes by asking the stored cache entry instead of the helper. The `PsiElement`
+     * overload of `getCachedValue` stores a `ParameterizedCachedValue` under [LuaTypesVisitor.KEY]
+     * (measured: `PsiParameterizedCachedValue$Soft`) wrapping the production lambda in
+     * `CachedValuesManager$NonPhysicalPsiHandlerProvider`, and its `valueProvider` is public API, so
+     * recomputing through it yields the real `Result` — dependency items and all. The key is erased
+     * to `Key<Any>` for the read because `ParameterizedCachedValue` does **not** implement
+     * `CachedValue`, so `getUserData(KEY)`'s inserted checkcast would fail on the platform's own
+     * heap-polluting store.
+     *
+     * Mutation: inline `Result.create(builtTypes, psiFile, targetTracker)` into the provider,
+     * `dependenciesFor` untouched → **red here, green in TC-2d**.
+     */
+    fun testTheProviderHandsEveryDependencyToTheResultItCreates() {
+        val libraryRoot = installDefinitionLibrary("luassert", mapOf("wx.lua" to libraryText()))
+        val libraryFile = checkNotNull(libraryRoot.findChild("wx.lua"))
+        val libraryPsi = psiFileOf(libraryFile)
+        snapshotOf(libraryFile)
+
+        val dependencies = dependenciesTheProviderPasses(libraryPsi)
+
+        assertTrue(
+            "the pinned branch's churn object must reach `Result.create`, not merely be computed " +
+                "(dependencies=$dependencies)",
+            dependencies.any { it === ProjectRootModificationTracker.getInstance(project) },
+        )
+        assertTrue(
+            "and so must the target axis (dependencies=$dependencies)",
+            dependencies.any { it === LuaProjectSettings.getInstance(project).state.targetModificationTracker },
+        )
+        assertTrue("and the file itself (dependencies=$dependencies)", dependencies.any { it === libraryPsi })
+        assertEquals("exactly the three `dependenciesFor` returns", 3, dependencies.size)
+    }
+
+    /**
+     * The `CachedValueProvider.Result` [LuaTypesSnapshot.forFile]'s own lambda produces for
+     * [libraryPsi], recomputed through the provider the platform kept — see TC-2e.
+     */
+    private fun dependenciesTheProviderPasses(libraryPsi: PsiFile): List<Any> {
+        @Suppress("UNCHECKED_CAST")
+        val erasedKey = LuaTypesVisitor.KEY as Key<Any>
+        val stored =
+            checkNotNull(libraryPsi.getUserData(erasedKey)) {
+                "nothing is cached under LuaTypesVisitor.KEY, so this asserts nothing"
+            }
+
+        @Suppress("UNCHECKED_CAST")
+        val parameterized = stored as ParameterizedCachedValue<LuaTypes, PsiElement>
+        val recomputed = runReadAction { parameterized.valueProvider.compute(libraryPsi) }
+        return checkNotNull(recomputed) { "the provider returned no Result" }.dependencyItems.toList()
     }
 
     /**

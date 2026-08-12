@@ -929,6 +929,19 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   unable to catch a pinnable branch that computes the churn object and never passes it on: the roots
   tick moves the file's own `modificationStamp`, and `psiFile` is a dependency in both branches. Same
   remedy as §1.9 B5, applied to the wiring instead of the decision.
+
+  ⚠ **The spread is a convention, not an invariant, and this paragraph used to claim otherwise.**
+  It read that because `forFile` spreads the array, "omitted from `Result.create`" and "omitted from
+  `dependenciesFor`" are *the same edit*. They are not: inlining
+  `Result.create(builtTypes, psiFile, targetTracker)` and leaving `dependenciesFor` intact compiles,
+  and Phase 3's review measured it green under TC-1, TC-2c, TC-2d and TC-3. Nothing in the type
+  system makes `dependenciesFor` the single source — review does. What *does* now catch that edit is
+  **TC-2e**, which stops asking the helper and asks the cache: the `PsiElement` overload of
+  `getCachedValue` stores a `ParameterizedCachedValue` (measured: `PsiParameterizedCachedValue$Soft`)
+  whose public `valueProvider` is the production lambda wrapped in
+  `CachedValuesManager$NonPhysicalPsiHandlerProvider`, so recomputing through it yields the real
+  `Result` and its `dependencyItems`. Measured **red, alone (1 of 9)** under exactly that inlining,
+  with TC-2d green in the same run.
   Both live in `LuaTypesSnapshot`'s companion, beside `forFile`, which is `churnDependencyFor`'s only
   caller; `isPinnable` is called only by `churnDependencyFor` (§3.3 steps 1–8 and step 9). The `Any`
   return is not laziness: `PsiModificationTracker.MODIFICATION_COUNT` is a `Key` sentinel the platform
@@ -1125,9 +1138,11 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
   8. Otherwise pinnable.
   9. Pinnable → churn is `provenance.generationTracker()`; not pinnable → churn is
      `PsiModificationTracker.MODIFICATION_COUNT`. **The churn object then reaches `Result.create`
-     through `dependenciesFor` (§2.3), which `forFile` spreads** — added in Phase 3 so that "the
-     churn object was computed" and "the churn object was passed" are the same edit, because §1.11's
-     TC-2c was measured unable to tell them apart. **This selection is its own named function**,
+     through `dependenciesFor` (§2.3), which `forFile` spreads** — added in Phase 3 because §1.11's
+     TC-2c was measured unable to tell "the churn object was computed" from "the churn object was
+     passed". ⚠ The spread makes them the same edit *by convention only* (§2.3); the edit that
+     bypasses it is caught by **TC-2e**, which reads the dependency items off the `CachedValue` the
+     platform stored. **This selection is its own named function**,
      `internal fun churnDependencyFor(psiFile: PsiFile, frame: SourceFrame): Any` — return type `Any`,
      because `MODIFICATION_COUNT` is a `Key` sentinel the platform special-cases, not a
      `ModificationTracker`. `forFile` calls only this. **It must be assertable, because TYPE-11-02's
@@ -1146,7 +1161,12 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
     library declares resolves through the all-scope fallback, so every cross-library reference is a
     rescued global — and both fixtures are built entirely out of cross-library references. No fixture
     can separate them (an in-progress hit *needs* a library→library cycle; routing it through a
-    project file trips step 3 instead). The guards are gated on the **decision** and on the **report**
+    project file trips step 3 instead). Phase 3's review proposed step 4 as a *second* sufficient
+    rejector on DR-14; the frame was inspected and it is not — the re-entrant resolution answers
+    through the all-scope fallback, so `absences=[]` and `rescuedGlobals=[global:OuterSeed]`
+    (risks-and-gaps Finding 2, and now asserted by
+    `TypeElevenDr14InProgressTest.testTheInProgressFixtureIsRejectedByTheRescuedGlobalAndNotByAnAbsence`).
+    The guards are gated on the **decision** and on the **report**
     instead — `TypeElevenIncompleteFrameDecisionTest`, one red per clause — which is §1.9 B5's remedy
     applied to all four steps. The same holds for both module rules (§3.1 step 5d, §3.5's
     `getModuleType` row): `require` is itself a rescued global, so any file that calls it is
@@ -1348,21 +1368,35 @@ that says so.
 - **Steps**:
   1. When `forFile` computes a snapshot, store `snapshotFrames[snapshot] = frame` (weak-keyed) before
      returning the `CachedValueProvider.Result`.
-  2. `forFile` records whether its provider ran: set a local `var computed = false` and assign `true`
-     ⚠ (`computed == false` is a *conservative* warm signal, not an exact one: `CachedValueBase`
-     re-runs the provider on a hit whenever `IdempotenceChecker.areRandomChecksEnabled()`, which is
-     true stochastically in unit-test mode, and the losing side of a compute race registers a frame for
-     a value that is then discarded. Both directions are safe — a re-run reports into every open frame
-     directly, which is at least as complete as replay — but a test must not assert that a warm hit
-     took the warm path.)
-     as the provider's first statement.
-  3. If the provider did **not** run and `LuaTypeSourceRecorder.depth() > 0` — i.e. this was a nested
-     cache hit inside somebody else's build — call `reportWarmSnapshot(psiFile, served)`.
+  2. ⚠ **There is no warm signal, because the platform does not provide one.** This step used to
+     read "set a local `var computed = false` and assign `true` as the provider's first statement",
+     with a caveat that it was conservative rather than exact. Phase 3's review (F1) found it is
+     neither: `CachedValuesManager.getCachedValue`'s `PsiElement` overload reads the stored
+     `ParameterizedCachedValue` out of user data and returns `value.getValue(context)` **before it
+     looks at the provider it was handed** (`CachedValuesManager.java:216-224`, platform 261 sources),
+     so every call after the first *discards its own lambda*. A recompute therefore runs the **first**
+     call's provider and sets the **first** call's flag — a dead local of a returned stack frame — and
+     the current call sees `false`. The flag was `true` on exactly one call per file per session and
+     `false` on every other, hit and recompute alike. Measured on the real API, not read:
+     `TypeElevenWarmSignalMechanismTest.testAProviderPassedToALaterCallIsNeverTheOneThatRuns` forces a
+     recompute through an invalidated dependency and observes the second call's flag still `false`.
+  3. So the report is **unconditional**: whenever `LuaTypeSourceRecorder.depth() > 0` — i.e. this
+     `forFile` ran nested inside somebody else's build — call `reportWarmSnapshot(psiFile, served)`,
+     whatever `getCachedValue` did internally. That is what the flag produced in every reachable
+     state anyway, and it is safe in all three: a warm hit replays the served snapshot's frame; a
+     **cold** build replays the frame step 1 registered moments earlier, which is a set-wise no-op
+     because `report` and its siblings write to *every* open frame, so the inner frame's contents are
+     already in the outer one; and the losing side of a compute race replays the winner's frame,
+     which is strictly more conservative than reporting nothing. The no-op is asserted, not argued:
+     `…testAColdNestedBuildLeavesTheOuterFrameExactlyTheUnion` compares all five sets of the outer
+     frame against the registered inner frame after a cold nested build.
   4. `reportWarmSnapshot` looks the served snapshot up in `snapshotFrames`. Found → `replay(frame)`,
      so the inner file's sources, absences and incompleteness all propagate outward. Not found →
      add the URL to `unreplayedWarm`, which §3.3 step 5 turns into "not pinnable" — and if the URL
      cannot be determined, the `UNIDENTIFIED_WARM` sentinel goes in instead, never nothing (§3.1
-     step 4).
+     step 4). The name keeps *warm* although step 3 no longer knows warm from cold: it names the set
+     the miss branch fills and the vocabulary §3.3 step 5 is written in, and it is the identifier the
+     mutation ledger's `reportWarmSnapshot` rows were measured against.
 - **Rules / edge handling**:
   - **This is §3.6's argument applied to the second memoized door.** §3.6 says that without replay
     "a later build gets the type with no sources"; `forFile` is memoized on exactly the same footing
@@ -1374,7 +1408,9 @@ that says so.
   - The replayed frame is always consistent with the served snapshot, because they are discarded
     together: the frame is keyed on the snapshot instance, and an invalidated `CachedValue` drops the
     instance. A frame can only be missing if the snapshot outlived its weak entry, which is the
-    `unreplayedWarm` case and is handled conservatively.
+    `unreplayedWarm` case and is handled conservatively. That case stays a *warm*-only one under the
+    unconditional step 3: on the cold path the just-built snapshot is held by `forFile`'s own local,
+    so its weak entry cannot have been expunged between step 1's put and step 3's lookup.
   - ⚠ **The in-progress path is a third memoized door, not a self-loop.** This bullet used to read
     "it is the same file's own in-flight build, whose frame is the very frame currently open" and
     conclude that `LuaTypesVisitor.inProgressSnapshot` (`LuaTypes.kt:214`) needs no treatment.
@@ -1543,6 +1579,7 @@ cases, every one of which is already an executable fixture. Paths are relative t
 | TC-2a | TYPE-11-02 (**the pinned file depends on the generation tracker**) | Library installed and enabled; build `forFile(wx.lua)`, read its frame from `snapshotFrames`, assert `isPinnable` is `true`, then call `churnDependencyFor(wx.lua, frame)`. | The returned object **is** `ProjectRootModificationTracker.getInstance(project)` (identity). Mutations, both red: `generationTracker()` → `ModificationTracker.NEVER_CHANGED`; step 9 → always `MODIFICATION_COUNT`. ⚠ **The outcome form of this case is not gateable and was tried twice.** "Roots ticked, therefore the pinned snapshot rebuilt" is green on `main`, under any rule, and with the pin deleted, because `makeRootsChange` fires `propertyChanged(PROP_ROOTS)` and `canAffectPsi` admits it — every roots tick is a `MODIFICATION_COUNT` tick (§1.11, traced into platform source). Holding PSI still is impossible: the roots tick *is* the PSI event. `TypeElevenGenerationSignalTest` case (a). |
 | TC-2b | TYPE-11-02 (**the production chain reaches the tracker**) | Both trees seeded on disk with **L1 alone enabled**; `LuaSettingsChangeListener.getInstance(project)` **first** (see below); then `LuaDefinitionLibraryEnabler.apply(listOf(L1, L2))` — a list that **differs** from the stored one — then pump the EDT. | `ProjectRootModificationTracker.modificationCount` increased. ⚠ **`apply` publishes nothing unless the enabled list actually changes.** It delegates to `LuaProjectSettings.setEnabledDefinitionLibrariesAndNotify`, which early-returns on `normalized == state.enabledDefinitionLibraries` (`LuaProjectSettings.kt:184-188`); the enabler's *other* notify route (`LuaDefinitionLibraryEnabler.kt:74`) sits behind `if (missing.isEmpty()) return@newProjectBackgroundTask`, so it fires **only when a fetch actually happened** — which a seeded-tree test avoids by design, and the enabler's own comment says as much. Re-applying the same list therefore publishes nothing and this case would be **red against a correct implementation**. ⚠ **The subscriber is lazy and nothing instantiates it in a light fixture.** `LuaSettingsChangeListener` subscribes in its `init` and is a `@Service`, normally created by the `LuaTargetSyncStartup` post-startup activity (`plugin.xml:544-545`) — which does **not** run under `BasePlatformTestCase`. So `LuaProjectSettings.kt:199-205` publishes to **no subscriber**, `PlatformLibraryIndex.reload()` never runs, roots never ticks, and this case is red against a *correct* implementation. The existing `LuaSettingsNotificationTest.kt:47` forces the service for exactly this reason. Also: the publish is inside `invokeLater`, so the EDT must be pumped. This case exists to close `risks-and-gaps.md` Gap 2.3 and is deliberately **separate** from TC-2a — one asserts the chain produces a tick, the other asserts a tick moves the pin. Merging them yields a test that fails for two unrelated reasons. `TypeElevenGenerationSignalTest` case (b). |
 | TC-2d | TYPE-11-02 (**the wiring that fires**) | The TC-2a fixture. `LuaTypesSnapshot.dependenciesFor(wx.lua, itsFrame)` for a file the same case asserts pinnable. | Contains `ProjectRootModificationTracker.getInstance(project)`, `state.targetModificationTracker` and the `PsiFile`, by identity, and has size 3. Mutations, both red: the churn object dropped from the pinnable branch; `targetTracker` dropped from it. ⚠ **Added in Phase 3 because TC-2c was measured unable to catch the first of those** — a roots change moves the library `PsiFile`'s own `modificationStamp` (probed `0 -> 1`, same instance) and `forFile` depends on `psiFile` in both branches, so TC-2c is green under it. `TypeElevenGenerationSignalTest` case (f). |
+| TC-2e | TYPE-11-02 (**the hand-over**) | The TC-2a fixture, after `forFile` has cached. The `CachedValueProvider.Result` produced by the provider the platform stored under `LuaTypesVisitor.KEY`, reached through `ParameterizedCachedValue.getValueProvider()`. | Its `dependencyItems` contain the same three by identity, size 3. Mutation, **red alone (1 of 9)**: `Result.create(builtTypes, psiFile, targetTracker)` inlined into the provider with `dependenciesFor` intact — the edit TC-2d is green under, because the spread is a convention and not an invariant (§2.3). `TypeElevenGenerationSignalTest` case (g). |
 | TC-2c | TYPE-11-02 (**the wiring**) | The TC-2a fixture. After asserting the file pinnable, take instance `A`; announce a roots change; take `B`. In the **same** fixture, edit an unrelated project file and take `C`. | `A !== B` **and** `B === C`. Mutations, each red on one half: `generationTracker()` → `NEVER_CHANGED` (or the churn object omitted from `Result.create` entirely) → `A === B`; step 9 → always `MODIFICATION_COUNT` → `B !== C`. ⚠ **`A !== B` alone is green on `main`** (§1.11) — it is the pair that gates. ⚠⚠ **This row claimed to be the only case that asserts `forFile` passes the churn object into `Result.create`. Phase 3 measured that claim false** — under exactly that mutation TC-2c passes, because the roots tick moves the library `PsiFile`'s own `modificationStamp` and `psiFile` is a dependency in both branches (§1.11's ⚠⚠). **TC-2d is the case that fires.** This one remains the behavioural statement of the requirement. `TypeElevenGenerationSignalTest` case (e). |
 | TC-3 | TYPE-11-02 (target) | Pin a **definition-library** file (target-independent root), assert pinnable, then tick the target via **`LuaProjectSettings.getInstance(project).state.setTarget(...)`** and re-read `forFile`. | The snapshot instance changed. ⚠ **Use `state.setTarget`, not `setTargetAndNotify`.** The service-level `setTargetAndNotify` (`LuaProjectSettings.kt:157-160`) also publishes `LuaSettingsChangedListener.TOPIC` → `PlatformLibraryIndex.reload()` → `makeRootsChange`, which invalidates the snapshot through the **roots** tracker regardless of `targetTracker` — so the stated mutation (drop `targetTracker` from the *pinnable* branch of step 9) could not fire and the case would gate nothing. `state.setTarget` (`:133-137`) ticks `targetModificationTracker` alone, which is what this case is about. The KDoc tells callers to prefer `setTargetAndNotify`; that is right for production and wrong for this test, and the artifacts previously said only "setTarget". `TypeElevenGenerationSignalTest` case (c). |
 | TC-4 | TYPE-11-02 (no false tick) | Pinned library snapshot; edit an unrelated project file. | `ProjectRootModificationTracker.modificationCount` unchanged **and** the library snapshot instance is not rebuilt. ⚠ The first half is a platform fact no TYPE-11 defect can change, and it is already asserted on every edit by `TypeElevenDefinitionLibraryTestCase.rewriteAssertingRootsAreStill`; the second half is TC-1. Kept as a **cheap regression check, explicitly not a gate** — recorded so no reader counts it as TYPE-11-02's evidence. `TypeElevenGenerationSignalTest` case (d). |

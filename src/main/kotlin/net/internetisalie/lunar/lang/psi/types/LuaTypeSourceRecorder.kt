@@ -168,10 +168,20 @@ object LuaTypeSourceRecorder {
     }
 
     /**
-     * A nested `forFile` served warm (design §3.7 step 4). Its recorded frame is replayed when one
-     * survives, so the inner file's sources, absences and incompleteness all propagate outward;
-     * when it does not, the URL lands in `unreplayedWarm` and the outer file is judged unpinnable —
-     * or [UNIDENTIFIED_WARM] does, when the served file cannot be identified at all.
+     * A nested `forFile` that came back through `getCachedValue` (design §3.7 step 4). Its recorded
+     * frame is replayed when one survives, so the inner file's sources, absences and incompleteness
+     * all propagate outward; when it does not, the URL lands in `unreplayedWarm` and the outer file
+     * is judged unpinnable — or [UNIDENTIFIED_WARM] does, when the served file cannot be identified
+     * at all.
+     *
+     * ⚠ The name says *warm* because that is the case the [SourceFrame.unreplayedWarm] miss branch
+     * is named for and the case §3.3 step 5 was built for, **not** because the caller can tell warm
+     * from cold. It cannot: `CachedValuesManager.getCachedValue`'s `PsiElement` overload discards
+     * the lambda of every call after the first, so no flag the provider sets is observable to the
+     * call that asked (design §3.7, `TypeElevenWarmSignalMechanismTest`). `forFile` therefore calls
+     * this for **every** completed `getCachedValue` at `depth() > 0`; on the cold path the frame was
+     * registered moments earlier and the replay is a set-wise no-op, because [report] and its
+     * siblings already wrote to every open frame.
      */
     fun reportWarmSnapshot(
         psiFile: PsiFile,

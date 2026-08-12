@@ -534,10 +534,45 @@ to a `ProjectRootModificationTracker` tick runs through `makeRootsChange`, which
 stamp.
 
 **Fix, in §1.9 B5's idiom**: the dependency set is now one named, assertable value —
-`internal fun dependenciesFor(psiFile, frame): Array<Any>` — and `forFile` spreads it, so "omitted
-from `Result.create`" and "omitted from `dependenciesFor`" are the same edit. TC-2d asserts all three
-members by identity and is **red** under the mutation TC-2c cannot see. TC-2c is kept as the
-behavioural statement of the requirement.
+`internal fun dependenciesFor(psiFile, frame): Array<Any>`, which `forFile` spreads. TC-2d asserts
+all three members by identity and is **red** under the mutation TC-2c cannot see. TC-2c is kept as
+the behavioural statement of the requirement.
+
+##### Correction (Phase 3 review, F2) — the spread is a convention, and TC-2e is what enforces it
+
+The paragraph above used to end "…and `forFile` spreads it, so 'omitted from `Result.create`' and
+'omitted from `dependenciesFor`' are the same edit." **That is not an invariant.** Inlining the
+arguments at the call site and leaving `dependenciesFor` untouched compiles and is green under TC-1,
+TC-2c, TC-2d and TC-3 — the helper is the single source by convention, enforced by review, not by
+the type system.
+
+The review recorded this as uncatchable, on the ground that a test cannot observe a `CachedValue`'s
+dependency list. **Measured, it can** — through public API, and without a seam in production code:
+
+```
+PROBE stored=com.intellij.psi.impl.PsiParameterizedCachedValue$Soft
+PROBE provider=com.intellij.psi.util.CachedValuesManager$NonPhysicalPsiHandlerProvider
+PROBE deps=[net.internetisalie.lunar.lang.psi.LuaFile,
+            com.intellij.openapi.roots.ProjectRootModificationTrackerImpl,
+            com.intellij.openapi.util.SimpleModificationTracker]
+PROBE hasRoots=true hasTarget=true hasPsi=true size=3
+```
+
+`getCachedValue`'s `PsiElement` overload stores a `ParameterizedCachedValue` under
+`LuaTypesVisitor.KEY`, and `ParameterizedCachedValue.getValueProvider()` is public, so a test can
+recompute through the production lambda and read the `Result`'s `dependencyItems`. Two details make
+it work: the key must be read as `Key<Any>`, because `ParameterizedCachedValue` does **not**
+implement `CachedValue` and the checkcast the compiler inserts for `getUserData(KEY)` would fail on
+the platform's own heap-polluting store; and the recompute is harmless, since it only rebuilds a
+snapshot and re-registers its frame.
+
+That is now **TC-2e**
+(`TypeElevenGenerationSignalTest.testTheProviderHandsEveryDependencyToTheResultItCreates`), measured
+**RED, alone (1 of 9)** under the inlining, with TC-2d green in the same run. Residual fragility, and
+it is real: the case is coupled to two platform implementation choices (which `CachedValue`
+implementation the overload stores, and that its provider stays reachable). Both fail *loudly* —
+`checkNotNull` or a `ClassCastException`, never a silent pass — so the failure mode is a maintenance
+red on a platform bump, not a false green.
 
 #### Finding 2 — step 7 subsumes §3.3 steps 5 and 6 on every fixture that can exist
 
@@ -558,6 +593,26 @@ rejectors for one outcome attribute redness to neither, which is the shape Phase
 in `de60eb83`. No fixture can separate them: an in-progress hit needs a library→library cycle (⇒
 rescued), and routing the cycle through a project file puts an unprovisioned URL in `urls` (⇒ step
 3).
+
+##### Checked (Phase 3 review, F4) — the attribution above survives, and the proposed second rejector does not
+
+The review read the DR-14 green as misattributed, on the ground that step 4 is a sufficient rejector
+there too: "`resolveGlobal` records `absences=[global:OuterSeed]` off the in-progress snapshot".
+**Refuted by inspecting the frame** rather than the mutation's colour — the re-entrant resolution
+*answers*, through the all-scope fallback, so what it leaves is a rescued global and `absences` is
+empty:
+
+```
+DR-14 inner.lua frame: urls=[…/luassert-…/outer.lua] absences=[]
+                       inProgressHits=[…/luassert-…/outer.lua]
+                       rescuedGlobals=[global:OuterSeed] unreplayedWarm=[]
+```
+
+So the table stands as written: step 7 is the sole cause of DR-14's step-6 green, and steps 6 and 7
+are the only two guards that overlap on this fixture. The composition is now asserted rather than
+argued —
+`TypeElevenDr14InProgressTest.testTheInProgressFixtureIsRejectedByTheRescuedGlobalAndNotByAnAbsence`
+pins all three facts, the empty `absences` being the load-bearing one.
 
 **This is not a production defect** — the guards are correct and each is measured at zero lost pins.
 It is a gap in what the plan claimed would catch one. Closed by `TypeElevenIncompleteFrameDecisionTest`:
@@ -581,6 +636,49 @@ their place (a pin must be correct when it is taken), and both now have an attri
 `LuaTypeManagerRecordingTest` — the absence one already existed, the `getModuleType` one is new. The
 two end-to-end cases stay as user-visible correctness checks with the non-attribution written into
 their KDoc.
+
+#### Finding 4 — `forFile`'s warm signal was a flag the platform cannot set (Phase 3 review, F1)
+
+Shipped in `7c1f1862`, `forFile` opened with `var providerRan = false`, assigned it inside the
+`getCachedValue` lambda, and reported to §3.7 only when it was still `false`. Design §3.7 step 2
+described that as "a *conservative* warm signal, not an exact one". It is **neither**:
+
+```java
+// CachedValuesManager.java:216-224 (platform 261 sources)
+ParameterizedCachedValue<T, PsiElement> value = (ParameterizedCachedValue<T, PsiElement>)context.getUserData((Key)key);
+if (value != null) {
+  return value.getValue(context);          // ← the provider argument is never looked at
+}
+```
+
+The overload returns the stored value's `getValue` before touching the provider it was handed, so
+every call after the first discards its own lambda. A **recompute** therefore runs the *first* call's
+provider and sets the *first* call's flag — a dead local of a returned stack frame — leaving the
+current call's flag `false`. The flag was `true` on exactly one call per file per session and `false`
+on every other call, hit and recompute alike: the warm branch, unconditionally.
+
+Run, not read — `TypeElevenWarmSignalMechanismTest.testAProviderPassedToALaterCallIsNeverTheOneThatRuns`
+memoizes through the same overload with a `SimpleModificationTracker` dependency, ticks it, and calls
+again with a fresh lambda: the value is recomputed (`computations` rises) and the second lambda's flag
+is still `false`.
+
+**Benign in the shipped build**, which is why the suite was green: a fresh build has just written its
+own frame, so the warm branch it always took found that frame and replayed it idempotently. The cost
+was a misdescribed mechanism plus one latent way to lose a pin for nothing — an evicted weak
+`snapshotFrames` entry on a recompute would have marked `unreplayedWarm`.
+
+**Fix**: delete the flag; call `reportWarmSnapshot` whenever `depth() > 0`. Behaviour-preserving in
+all three reachable states, because every reporter writes to *every* open frame, so the replay of a
+frame built under the current outer frame adds nothing. Measured rather than argued —
+`…testAColdNestedBuildLeavesTheOuterFrameExactlyTheUnion` drives a **cold** nested build and compares
+all five sets of the outer frame with the registered inner frame: `unreplayedWarm` empty, `urls`,
+`absences`, `inProgressHits` and `rescuedGlobals` equal, with the project URL present so the
+equalities are not over empty sets.
+
+| Assertion | Mutation applied | Result |
+| :-- | :-- | :-- |
+| `TypeElevenGenerationSignalTest.testTheProviderHandsEveryDependencyToTheResultItCreates` (TC-2e, **new**) | `Result.create(builtTypes, psiFile, targetTracker)` inlined into the provider, `dependenciesFor` intact | **RED, alone (1 of 9)** — TC-2a, TC-2c, TC-2d, TC-3, TC-4 all green, which is Finding 1's correction |
+| `TypeElevenWarmSignalMechanismTest.testAColdNestedBuildLeavesTheOuterFrameExactlyTheUnion` (**new**) | `snapshotFrames[builtTypes] = sourceFrame` deleted from `forFile` (§3.7 step 1) | **RED, alone (1 of 2)** — the unconditional report then finds no frame and marks `unreplayedWarm` |
 
 ## Premises examined
 

@@ -351,6 +351,28 @@ today's `MODIFICATION_COUNT`. Measured on the shipped build, not on a scaffold:
   (`TypeElevenIncompleteFrameDecisionTest`, plus two new rows in `LuaTypeManagerRecordingTest`), one
   red each.
 
+### Phase 3 remediation (2026-08-11) — one shipped defect, one doc error, one claim that held
+
+Three findings from the Phase 3 review, each closed by measurement rather than by agreement
+(risks-and-gaps Findings 1, 2 and 4):
+
+- **F1 — real, in shipped code.** `forFile`'s `providerRan` flag could not work:
+  `CachedValuesManager.getCachedValue`'s `PsiElement` overload discards the lambda of every call
+  after the first, so a recompute sets the *first* call's flag and the current call always reads
+  `false`. Benign (the always-taken warm branch replayed a frame written moments earlier), but
+  misdescribed and one weak-entry eviction away from a wasted pin. The flag is deleted, the §3.7
+  report is unconditional at `depth() > 0`, and both halves are asserted in
+  `TypeElevenWarmSignalMechanismTest` — the platform's provider identity, and the cold-path replay
+  being a set-wise no-op.
+- **F2 — a doc error, now closed by an assertion instead of a convention.** §2.3 claimed the
+  `dependenciesFor` spread made an omission from `Result.create` "the same edit". It does not;
+  inlining the arguments is green under TC-1/2c/2d/3. The review recorded it as uncatchable — it is
+  not: **TC-2e** reads the dependency items off the `ParameterizedCachedValue` the platform stored
+  and is red, alone, under exactly that inlining.
+- **F4 — checked and refuted.** The review read DR-14's step-6 green as misattributed to step 7,
+  naming step 4 as a second rejector. The frame says otherwise (`absences=[]`,
+  `rescuedGlobals=[global:OuterSeed]`); the ledger's attribution stands and is now asserted.
+
 ## Relationship to COMP-09
 
 COMP-09 is **parked at Phase 1** because of this. Its Phase 2 was executed to plan and aborted

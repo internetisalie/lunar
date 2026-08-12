@@ -218,6 +218,21 @@ class LuaTypesSnapshot(
          * **reports before it returns** (§3.1 step 5c, §1.10 V1): the hit is served for whichever
          * file is under construction, which is not necessarily the frame currently open, so the
          * outer file must be judged unpinnable by §3.3 step 6.
+         *
+         * ⚠ The report to §3.7 is **unconditional at `depth() > 0`** — there is no "did my provider
+         * run?" flag, because the platform cannot answer that question. `getCachedValue`'s
+         * [com.intellij.psi.PsiElement] overload reads the stored `ParameterizedCachedValue` out of
+         * user data and returns `value.getValue(context)` **before it ever looks at the lambda it
+         * was handed** (`CachedValuesManager.java:216-224`), so every call after the first discards
+         * its own provider and any flag that provider would have set. Measured: a recompute forced
+         * by an invalidated dependency re-runs the **first** call's lambda, leaving the current
+         * call's flag `false` (`TypeElevenWarmSignalMechanismTest`). The unconditional call is what
+         * the flag actually produced in every reachable state, and it is safe in all three:
+         * a warm hit replays the served snapshot's frame; a fresh build replays the frame it just
+         * registered, which is a set-wise no-op because [LuaTypeSourceRecorder.report] and its
+         * siblings write to *every* open frame, so the inner frame's contents are already in the
+         * outer one; and a discarded compute race replays the winner's frame, which is strictly more
+         * conservative than reporting nothing.
          */
         fun forFile(file: PsiFile): LuaTypes {
             val psiFile = file.containingFile
@@ -225,16 +240,14 @@ class LuaTypesSnapshot(
                 if (LuaTypeSourceRecorder.depth() > 0) LuaTypeSourceRecorder.reportInProgressHit(psiFile)
                 return inProgressTypes
             }
-            var providerRan = false
             val cachedTypes =
                 CachedValuesManager.getCachedValue(psiFile, LuaTypesVisitor.KEY) {
-                    providerRan = true
                     val (builtTypes, sourceFrame) =
                         LuaTypeSourceRecorder.recording { LuaTypesVisitor.buildSnapshot(psiFile) }
                     LuaTypeSourceRecorder.snapshotFrames[builtTypes] = sourceFrame
                     CachedValueProvider.Result.create(builtTypes, *dependenciesFor(psiFile, sourceFrame))
                 }
-            if (!providerRan && LuaTypeSourceRecorder.depth() > 0) {
+            if (LuaTypeSourceRecorder.depth() > 0) {
                 LuaTypeSourceRecorder.reportWarmSnapshot(psiFile, cachedTypes)
             }
             return cachedTypes
@@ -255,9 +268,15 @@ class LuaTypesSnapshot(
          *
          * No behavioural fixture can close that: every way to tick `ProjectRootModificationTracker`
          * goes through `makeRootsChange`, which is what moves the stamp. So the wiring is made
-         * *directly* assertable instead, exactly as §1.9 B5 did for the dumb-mode decision — and
-         * because [forFile] spreads this array, "omitted from `Result.create`" and "omitted from
-         * here" are the same edit.
+         * *directly* assertable instead, exactly as §1.9 B5 did for the dumb-mode decision.
+         *
+         * ⚠ This used to add that, because [forFile] spreads the array, "omitted from
+         * `Result.create`" and "omitted from here" are the same edit. **They are not** — inlining
+         * the three arguments at the call site while leaving this function intact is green under
+         * TC-1, TC-2c, TC-2d and TC-3 (Phase 3 review F2). Being the single source is a convention
+         * held up by review, not by the type system; the assertion that catches the inlining is
+         * TC-2e, which reads the dependency items off the `CachedValue` the platform stored rather
+         * than off this function.
          */
         internal fun dependenciesFor(
             psiFile: PsiFile,

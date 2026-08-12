@@ -295,6 +295,14 @@ are already committed and green on `main`. They must stay green at the end of ev
         itself one. The guards are gated on the decision (one non-empty set at a time, one red per
         clause) and on the report (a warm hit really replays; a real cycle really marks
         `inProgressHits`; the module door really records its file).
+  - [x] **Post-review remediation (2026-08-11)** — F1: `providerRan` deleted from `forFile`, §3.7
+        step 2 rewritten (the platform discards every later call's provider, so the flag was the warm
+        branch unconditionally); `TypeElevenWarmSignalMechanismTest` (2 tests) measures both the
+        platform's provider identity and the cold-path replay being a set-wise no-op. F2: §2.3's
+        "same edit" claim corrected to a convention, and closed anyway by **TC-2e**, which reads the
+        stored `CachedValue`'s dependency items. F4: the DR-14 attribution was checked against the
+        frame and **stands** — step 4 is not a second rejector there — now asserted by
+        `TypeElevenDr14InProgressTest.testTheInProgressFixtureIsRejectedByTheRescuedGlobalAndNotByAnAbsence`.
 - **Exit criteria**:
   - `tooling/gce-builder/gce-builder.sh run "ktlintCheck lintDocs test --rerun --no-build-cache"` —
     BUILD SUCCESSFUL, 0 failures.

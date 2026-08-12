@@ -23,7 +23,10 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
  * | step 6 (`inProgressHits`) deleted | — | — | *green* | — |
  * | step 7 (`rescuedGlobals`) deleted | — | — | *green* | **red** |
  *
- * The three greens have one cause: **step 7 subsumes them on any library→library fixture.** A
+ * The three greens have one cause: **step 7 subsumes them on any library→library fixture** — the
+ * frames were inspected, not inferred, after Phase 3's review proposed step 4 as a second rejector
+ * on DR-14 (`TypeElevenDr14InProgressTest.testTheInProgressFixtureIsRejectedByTheRescuedGlobalAndNotByAnAbsence`
+ * records `absences=[]`, `rescuedGlobals=[global:OuterSeed]`). A
  * library global that only another library declares resolves through `doResolveGlobal`'s all-scope
  * fallback, so every cross-library reference is a rescued global — and DR-12's and DR-14's fixtures
  * are built entirely out of cross-library references. Two sufficient rejectors for one outcome
