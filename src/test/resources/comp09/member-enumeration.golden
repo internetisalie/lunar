@@ -73,7 +73,6 @@ Shapes|global|plain:fun()
 Shapes|class|direct:number
 Shapes|class|nested:{ ... }
 Shapes|class|plain:fun()
-Shapes|completion|deep
 Shapes|completion|direct
 Shapes|completion|nested
 Shapes|completion|plain
@@ -86,9 +85,12 @@ Base|class|inheritedField:string
 Base|class|inheritedFn:fun()
 Base|class|onClose:undefined
 Base|completion|Show
+Base|completion|inheritedField
 Base|completion|inheritedFn
+Base|completion|onClose
 Base|completion:|Show
 Base|completion:|inheritedFn
+Base|completion:|onClose
 Derived|shape|@class D : Base on a bare global, @field plus an overriding method
 Derived|global|Show:fun()
 Derived|global|ownFn:fun()
@@ -99,6 +101,7 @@ Derived|class|onClose:undefined
 Derived|class|ownField:number
 Derived|class|ownFn:fun()
 Derived|completion|Show
+Derived|completion|ownField
 Derived|completion|ownFn
 Derived|completion:|Show
 Derived|completion:|ownFn

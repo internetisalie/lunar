@@ -21,6 +21,8 @@ import com.intellij.util.ProcessingContext
 import net.internetisalie.lunar.lang.completion.LuaCrossFileCompletionProvider
 import net.internetisalie.lunar.lang.completion.LuaMemberLookup
 import net.internetisalie.lunar.lang.editor.LuaKeywordBlockCloser
+import net.internetisalie.lunar.lang.indexing.LuaReceiverMember
+import net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex
 import net.internetisalie.lunar.lang.psi.LuaBlock
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaExpr
@@ -28,6 +30,7 @@ import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFuncDef
 import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
+import net.internetisalie.lunar.lang.psi.LuaLocalBindingScan
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNameRef
@@ -136,6 +139,69 @@ class LuaCompletionContributor : CompletionContributor() {
                 LuaTypeManager.getInstance(nameRef.project).resolveGlobal(nameRef.text, nameRef)
                     ?: return emptyMap()
             return LuaGraphType.materialize(global, nameRef).getMembers()
+        }
+
+        /**
+         * COMP-09 §4.13 — **the change site**. True when the index answered and the caller must not
+         * build the snapshot.
+         *
+         * Everything below the call is untouched: this arm either answers outright or **declines by
+         * falling through**, never by re-implementing the graph arm. `crossFileGlobalMembers`, the
+         * `type == LuaGraphType.Undefined` guard and the shared emit loop are byte-for-byte as they
+         * were, which is why the golden's `global` and `class` door rows cannot move (design §1.10.5).
+         *
+         * **Order is measured, not stylistic.** `globalMembership` is asked FIRST and Rule S runs only
+         * if the index could answer. Routing is identical either way — DR-21's whole table was re-taken
+         * under both orderings and is byte-identical — so this is a pure cost decision: Rule S is
+         * O(file) and the reverse order costs 10 875–21 501 µs per completion on a 4 002-line file,
+         * where `found = false` short-circuits it to nothing here (design §1.10.6).
+         *
+         * **`exclude` is `parameters.originalFile`, not `containingFile`** (BL-8): during completion
+         * `receiverExpr.containingFile` is a *copy* with its own `VirtualFile`, so the plain form
+         * matches no candidate and the exclusion silently never fires. Rule S reads the **copy** — the
+         * file the user is typing in — and the two are wrong in opposite directions if swapped.
+         *
+         * Threading is unchanged: the provider already runs on the completion thread inside the
+         * platform's read action, `globalMembership` is `FileBasedIndex` reads with
+         * `ProgressManager.checkCanceled()` per callback, and Rule S is a cancellable PSI walk. While
+         * dumb, `globalMembership` reports `found = false` and this declines, preserving today's
+         * behaviour verbatim (design §4.9, DR-10).
+         *
+         * Four arguments rather than three: the ≤3-argument tripwire is waived here the same way the
+         * enclosing `addCompletions(parameters, context, result)` is, and [emitIndexed] is split out to
+         * keep each function inside the 30-logic-line rule (design §4.13, "Contract conformance").
+         */
+        private fun addIndexedGlobalMembers(
+            receiverExpr: PsiElement,
+            parameters: CompletionParameters,
+            isColon: Boolean,
+            result: CompletionResultSet,
+        ): Boolean {
+            val nameRef = bareNameOf(receiverExpr) ?: return false
+            val membership =
+                LuaReceiverMemberIndex.globalMembership(nameRef.text, nameRef.project, parameters.originalFile)
+            if (!membership.found || !membership.authoritative) return false
+            if (LuaLocalBindingScan.binds(receiverExpr.containingFile, nameRef.text)) return false
+            emitIndexed(membership.members, isColon, result)
+            return true
+        }
+
+        /**
+         * The index arm's emit loop. Its `isColon` filter is **syntactic** — how the member was
+         * declared — where the graph arm's is semantic, on the inferred type. Design §4.3's D3 records
+         * the divergence: `---@field onClose fun(): nil` indexes `Kind.FUNCTION` and so survives at a
+         * `:` caret, while `R.aliased = someFn` cannot be classified without resolution, is recorded
+         * `Kind.FIELD`, and does not.
+         */
+        private fun emitIndexed(
+            members: List<LuaReceiverMember>,
+            isColon: Boolean,
+            result: CompletionResultSet,
+        ) {
+            for (member in members) {
+                if (isColon && member.kind != LuaReceiverMember.Kind.FUNCTION) continue
+                result.addElement(PrioritizedLookupElement.withPriority(LuaMemberLookup.create(member), 100.0))
+            }
         }
 
         /**
@@ -359,6 +425,9 @@ class LuaCompletionContributor : CompletionContributor() {
 
                     val receiver = PsiTreeUtil.prevVisibleLeaf(prevLeaf) ?: return
                     val receiverExpr = findReceiverExpr(receiver) ?: return
+
+                    // COMP-09 §4.13 — answer from the index before the type graph is built.
+                    if (addIndexedGlobalMembers(receiverExpr, parameters, isColon, result)) return
 
                     // Build the snapshot from the file that actually owns receiverExpr (the in-memory
                     // completion copy), not parameters.originalFile — otherwise the PSI identities

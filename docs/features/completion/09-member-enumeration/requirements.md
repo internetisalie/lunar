@@ -2,7 +2,7 @@
 id: "COMP-09"
 title: "09: Member Enumeration"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "high"
 parent_id: "COMP"
 folders:
@@ -155,13 +155,13 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 | 10a | COMP-09-10 | `shadowed.lua` declares `Shadow = {}` + `function Shadow.fromLibrary()`; consumer is `local Shadow = { fromLocal = 1 }` | `Shadow.<caret>` | `[fromLocal]`, and **not** `fromLibrary`. This is `LuaGlobalMemberCompletionTest.aLocalShadowsTheCrossFileGlobal` verbatim; it must stay green **untouched** |
 | 10b | COMP-09-10 | Same library; consumer is `local function Shadow() end` | `Shadow.<caret>` | `[]` — identical to today |
 | 10c | COMP-09-10 | Same library; consumer is `local function f(Shadow) … end` | `Shadow.<caret>` inside `f` | `[]` — identical to today. **This is the mutation-proof case**: delete `LuaLocalBindingScan`'s `LuaParList` clause and this must go red offering `fromLibrary` |
-| 10d | COMP-09-10 | Same library; consumer is `for Shadow in pairs({}) do … end` and `for Shadow = 1, 2 do … end` | `Shadow.<caret>` inside each | Identical to today for both loop forms |
+| 10d | COMP-09-10 | Same library; consumer is `for Shadow in pairs({}) do … end` and `for Shadow = 1, 2 do … end` | `Shadow.<caret>` inside each | Identical to today for both loop forms. **MEASURED 2026-08-12 (Phase 2):** `[end]` for both, not `[]` — the keyword provider is registered on the bare `psiElement()` pattern and an open `do` block offers `end` at any caret inside it. DR-21 recorded the same `today=[end] hoisted=[end]` (design §1.10.4). No member appears beside it, which is the assertion that matters |
 | 10e | COMP-09-10 | Same library; the consumer itself writes `Shadow = { fromThisFile = 1 }`, and separately `function Shadow.here() end` | `Shadow.<caret>` | `[fromThisFile]` / `[here]` — the consumer's own binding wins, identical to today |
 | 10f | COMP-09-10 | Same library; consumer binds nothing | `Shadow.<caret>` | `[fromLibrary]` — the index arm, and the only case in 10a–10f that takes it |
 | 10g | COMP-09-10 | A **bundled stdlib** receiver on the default STANDARD 5.4 target, bound by `LuaTypesVisitor.freeGlobalSeed` → `resolveGlobal` off `runtime/standard/lua-5.4/table.lua:27` (`table = {}`), which the consumer file itself does not bind. **CORRECTED 2026-08-12**: an earlier revision said `seedAmbientGlobals` binds it. It does not — that function reads only files *named* `global.lua` (`LuaTypesVisitor.kt:1345`) and no `global.lua` exists under any `runtime/standard` root (design §1.10.8), so on this target the site declares nothing at all | `table.<caret>` | `[concat, insert, move, pack, remove, sort, unpack]` — identical to today, **through the index arm** (measured: the `LuaGlobalAssignmentIndex` candidate is `table.lua`, `found=true authoritative=true`, same seven members). This pins that Rule S asks only about the **consumer** file, for a receiver another file declares. It does **not** exercise `seedAmbientGlobals` — that is TC 10h |
 | 10h | COMP-09-10 | A project on a real **Redis** target. `Target`'s second parameter is a `VersionEntry`, **not a `String`** — `Target(LuaPlatform.REDIS, "7+")` does not compile. Build it the way `RedisAmbientTypingTest.setRedisTarget` does: `Target(LuaPlatform.REDIS, requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, "7+")))`, then `LuaProjectSettings.getInstance(project).setTargetAndNotify(target)` + `PlatformLibraryIndex.reload()` inside `EdtTestUtil.runInEdtAndWait`. Its bundled `runtime/redis/redis-7/global.lua` declares `KEYS = {}` and `ARGV = {}`. This is the **only** family of targets on which `seedAmbientGlobals`'s `scope.declare` (`LuaTypesVisitor.kt:1360`) fires — Redis 5/6/7 and Valkey 7.2/8 | `KEYS.<caret>`, `ARGV.<caret>`, and the same two at `:` | `[]` for all four — identical to today. **NEW 2026-08-12.** Design §4.14 deliberately leaves `:1360` outside Rule S, and until now that omission had neither a test nor a measurement while being live on a shipped target. Measured (design §1.10.8): today offers `[]` at both doors and the index answers `found=true, authoritative=true, members=[]`, because `KEYS = {}` is an empty table literal — no member from §4.3 source 4, no opacity sentinel from source 5. Restore STANDARD 5.4 in `tearDown` or the shared light project poisons the later `lang.indexing`/`lang.types` tests |
 | 10i | COMP-09-10 | The `Shadow` library; consumer is `function C:m() Shadow.<caret> end` with the receiver renamed to `self` — i.e. a library declaring `self = {}` + `function self.fromLibrary()`, and `self.<caret>` inside a method body | `self.<caret>` | `[]` — identical to today. **NEW 2026-08-12.** Rule S's `name == "self"` clause (design §4.14, `LuaTypesVisitor.kt:1414`) is the one clause with no PSI shape, so the `LuaParList` mutation proof cannot reach it. **Mutation-prove it separately**: delete the `name == "self"` early return and this must go red offering `fromLibrary` |
-| 10j | COMP-09-10 | The `Shadow` library; consumer is `local Shadow = { fromLocal = 1 }` followed by `if type(Shadow) == "table" then Shadow.<caret> end` — the type-guard narrowing that re-declares an already-bound name at `LuaTypesVisitor.kt:462` | `Shadow.<caret>` inside the guard | `[fromLocal]`, and **not** `fromLibrary` — identical to today. **NEW 2026-08-12.** §4.14's table calls `:462` "covered transitively"; this measures that claim instead of asserting it. If it comes back with `fromLibrary`, `:462` is not transitively covered and Rule S needs an eighth clause — a finding, not a failure |
+| 10j | COMP-09-10 | The `Shadow` library; consumer is `local Shadow = { fromLocal = 1 }` followed by `if type(Shadow) == "table" then Shadow.<caret> end` — the type-guard narrowing that re-declares an already-bound name at `LuaTypesVisitor.kt:462` | `Shadow.<caret>` inside the guard | **not** `fromLibrary` — identical to today. **NEW 2026-08-12.** §4.14's table calls `:462` "covered transitively"; this measures that claim instead of asserting it. If it comes back with `fromLibrary`, `:462` is not transitively covered and Rule S needs an eighth clause — a finding, not a failure. **MEASURED 2026-08-12 (Phase 2): `:462` IS covered** — `fromLibrary` is absent, so no eighth clause is needed. ⚠ **This row's `Then` also predicted `[fromLocal]` and that half was wrong**: the observed set is `[else, elseif, end]`, i.e. the three keywords an open `if` offers and **no member at all**. That is a pre-existing property of the narrowing path, not something Phase 2 caused — this arm declines, so everything below the insertion point runs byte-for-byte as before, and TC 10f is the control showing what a taken arm looks like. Recorded as a finding in [risks-and-gaps.md](risks-and-gaps.md) and out of COMP-09's scope |
 | 11 | COMP-09-10 | A 4 002-line consumer file whose receiver `t` is a file-local table | `t.<caret>`, instrument whether `LuaLocalBindingScan` ran | It does **not** run — `globalMembership` answers `found = false` and short-circuits it. Ordering is a measured cost decision, not a routing one: the reverse order costs 10 875–21 501 µs per completion here (design §1.10.6) |
 | 7 | COMP-09-02 | The `wx` fixture | Enumerate through `membersIn`, counting `processValues` callbacks | `entriesTraversed >= membersIn(R).size` (and `==` when no name repeats across declaring files — design §4.10b assertion 1) and does not move when 4 000 unrelated keys are added (design §4.10b). **Scoped**: the `catsClassTags` / `LuaImplicitFields` / `LuaTypesVisitor` walks are excluded — they are out of scope because §4.3/§4.6 do not touch them, not because they were measured cheap — the old 22 ms/949 ms justification is retracted, and their cost is DR-16 (design §4.11) |
 | 7a | COMP-09-07 | `wx`, `wxFrame`, `AllColon`, `Shapes` | Enumerate through **both** doors, never `resolveGlobal(r) ?: resolveType(r)` | The golden records each door separately. Two of the four resolve through only one door, so a collapsed golden is silently door-dependent (design §4.4a) |
@@ -186,11 +186,18 @@ per line; the consumers are Phases 2 and 3.
       members and it is downstream of the cost; converting it was executed, measured and aborted
       (`ABORT_REPLAN`, `d5af3231`). The re-plan's site is a new call **above**
       `LuaTypesSnapshot.forFile` (design §4.13) and this function stays byte-for-byte unchanged, which
-      is itself an exit check on Phase 2.
-- [ ] COMP-09-03 — TC 5 passes for all four sources. **Sources verified at the index** after Phase 1
-      (`LuaReceiverMemberIndexTest`): dotted assignment, `function R.f`/`function R:m` including the
-      all-colon receiver (TC 5a), `@field`, and the table literal. TC 5 itself is a completion test
-      and needs Phase 2.
+      is itself an exit check on Phase 2. **Phase 2 landed the new site and that exit check holds**:
+      `crossFileGlobalMembers`, the `Undefined` guard and the shared emit loop are byte-for-byte
+      unchanged, and the golden's eleven `global` and eleven `class` rows are byte-identical across
+      the re-record. The completion door is converted; `addMethodsOf` is Phase 3.
+- [x] COMP-09-03 — **MET at the completion door 2026-08-12 (Phase 2).** TC 5 passes for all four
+      sources. **Sources verified at the index** after Phase 1 (`LuaReceiverMemberIndexTest`): dotted
+      assignment, `function R.f`/`function R:m` including the all-colon receiver (TC 5a), `@field`,
+      and the table literal. TC 5 itself is a completion test and Phase 2 supplies it as **E1**
+      (`MemberEnumerationExpectationTest`), which puts all four sources at one receiver and asserts
+      both doors as exact sets. TC 7c/7d/7e are E2/E6/E7; TC 7f and TC 7f-bis are green on real
+      Redis 7+ / Valkey 8 targets. **The metamethod clause (COMP-09-05) is Phase 4** and the `@class`
+      door (`addMethodsOf`) is Phase 3, so this line is met for the *completion* door only.
 - [ ] ~~COMP-09-04b~~ — withdrawn; nothing to verify.
 - [ ] COMP-09-05 — TC 6; COMP-04-DR-01 and BUG-426's limitation are closed or re-scoped in writing.
 - [ ] COMP-09-06 — TC 4. **If any baseline moves, enumeration has become a type source: stop.**
@@ -199,19 +206,26 @@ per line; the consumers are Phases 2 and 3.
       reproduces the `@class` door on all four receivers; the completion door reproduces the global
       door with exactly the two declared divergences — `Shapes` loses `deep` (BUG-430) and `Derived`
       gains `ownField` (§4.5a). TC 7b and 7c are covered there too.
-- [ ] COMP-09-08 — the latency assertion exists, fails before the fix, passes after, and runs
-      without `-PwithPerf`. **Assertion 1 (wall clock, tier 1) is settled by measurement**: the armed
-      prototype flipped the inverted gate, reporting 13 ms against 100 ms, and a five-cold-sample
-      median of 7 414 µs against 490 995 µs unarmed (design §1.10.2). **Assertion 2 is replaced by a
-      count** (design §4.10a-bis) — its timing form flipped verdict between two runs of the same
-      code, so it is re-expressed as `LuaReceiverMemberWork.entries` per receiver, unmoved by
-      unrelated indexed content.
-- [ ] COMP-09-10 — Rule S is stated in design §4.14, TC 10a–10j pass, and **both** mutation proofs
-      are recorded in the commit message: delete the `LuaParList` clause and TC 10c goes red; delete
-      the `name == "self"` early return and TC 10i goes red. One clause deletion proves one clause,
-      and §4.14's table has seven. TC 10h additionally pins the one `LuaScope.declare` site Rule S
-      deliberately excludes (`seedAmbientGlobals`, `LuaTypesVisitor.kt:1360`) on the only target
-      family it fires on.
+- [x] COMP-09-08 — **MET 2026-08-12 (Phase 2).** The latency assertion exists, failed before the fix,
+      passes after, and runs without `-PwithPerf`. **Assertion 1 (wall clock, tier 1) is enforced**:
+      `MemberEnumerationLatencyGateTest.BUDGET_ENFORCED` is `true`, and the run that flipped it
+      reported the inverted gate red at *"COMP-09-08 is now MET — 24 ms against a 100 ms budget"*.
+      Re-measured at the new site over **five distinct wide receivers, each in its own file** —
+      `[12046, 13162, 14604, 17580, 20540] µs`, **median 14 604 µs** against 490 995 µs unarmed
+      (design §1.10.2). **Assertion 2 is replaced by a count** (design §4.10a-bis) — its timing form
+      flipped verdict between two runs of the same code, so it is re-expressed as
+      `LuaReceiverMemberWork.entries` per receiver: measured `narrow=3->3 wide=3600->3600` across the
+      addition of 4 000 unrelated indexed members.
+- [x] COMP-09-10 — **MET 2026-08-12 (Phase 2).** Rule S is stated in design §4.14, implemented as
+      `net.internetisalie.lunar.lang.psi.LuaLocalBindingScan`, and TC 10a–10j pass
+      (`MemberEnumerationShadowingTest`, plus TC 10h in `MemberEnumerationRedisTargetTest`). Both
+      mutation proofs are recorded in the commit message and each reddened **exactly one** test with
+      the same invented member: deleting the `LuaParList` clause reddened TC 10c
+      (`expected:<[]> but was:<[fromLibrary]>`) and deleting the `name == "self"` early return
+      reddened TC 10i (identically) — one clause deletion proves one clause, and §4.14's table has
+      seven. TC 10h additionally pins the one `LuaScope.declare` site Rule S deliberately excludes
+      (`seedAmbientGlobals`, `LuaTypesVisitor.kt:1360`) on the only target family it fires on, and it
+      is green on a real `Target(REDIS, 7+)`: `KEYS`/`ARGV` offer `[]` at both doors, as today.
 - [ ] COMP-09-09 — the work bound is instrumented and asserted (TC 9); adding unrelated indexed
       content does not change entries traversed. **The instrument is complete after Phase 1**: all
       four of design §4.10b's assertions are armed and green in `MemberEnumerationWorkBoundGateTest`

@@ -194,6 +194,34 @@ from there and this table only for the reds:
   The table is derived from the ten `LuaScope.declare` call sites rather than from imagination, and
   a future grammar addition that binds a name must add a clause. That is stated in §4.14 rather than
   left to be discovered.
+- **DISCHARGED 2026-08-12 (Phase 2), and both proofs are real.** `LuaLocalBindingScan` shipped;
+  TC 10a–10j are green in `MemberEnumerationShadowingTest` (TC 10h in
+  `MemberEnumerationRedisTargetTest`, on a real `Target(REDIS, 7+)`). Each mutation reddened
+  **exactly one** test, and both with the same invented member — deleting the `LuaParList` clause gave
+  TC 10c `expected:<[]> but was:<[fromLibrary]>`, deleting the `name == "self"` early return gave
+  TC 10i the identical failure. That the *other* eight stayed green under each deletion is the part
+  that shows one clause deletion reaches one clause.
+
+### Phase 2 findings — two measured corrections to expectations, neither a behaviour change
+
+Recorded because both were written as predictions and both were partly wrong; leaving them uncorrected
+is how a document starts certifying what it assumed.
+
+1. **DR-21's colon-mover count was wrong; design §4.5a's was right.** The re-record moved **exactly
+   one** colon row — `Base|completion:|onClose` — not the two DR-21's "9 of 11 byte-identical" summary
+   implied. The disagreement had no pasted colon output anywhere to adjudicate it, which is why task 0
+   recorded a colon baseline on unarmed code first. It is now settled by a checked-in artifact.
+
+2. **TC 10j's `Then` column predicted `[fromLocal]`; the measured set is `[else, elseif, end]`.** The
+   half that decides the test is unaffected — `fromLibrary` is **absent**, so `LuaTypesVisitor.kt:462`
+   *is* transitively covered by the `LuaLocalVarDecl` clause and Rule S needs no eighth clause. The
+   other half is a **pre-existing property of the type-guard narrowing path**: inside
+   `if type(Shadow) == "table" then`, completion on `Shadow.` offers no member at all, today and after.
+   It is not caused by Phase 2 — this arm *declines* on that fixture, so everything below the insertion
+   point runs byte-for-byte as before, and TC 10f is the control showing what a taken arm produces.
+   **Out of COMP-09's scope and deliberately not chased here**: narrowing dropping a table literal's
+   members is a type-engine question, not an enumeration one. Flagged for a separate bug report rather
+   than absorbed into this feature.
 
 ### Risk 1.2: The scope and file-confinement semantics are lost in translation
 

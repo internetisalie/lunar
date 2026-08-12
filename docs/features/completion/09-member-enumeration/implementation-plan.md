@@ -392,7 +392,29 @@ its own invalidation axis, that is a second mechanism and belongs in its own fea
 needed to ship Phases 2–4. *(Minting or retiring a roadmap ID is the supervisor's call, not this
 document's.)*
 
-## Phase 2: The change site — hoist above the snapshot build
+## Phase 2: The change site — hoist above the snapshot build — **DONE 2026-08-12**
+
+> **Landed, and every declared expectation held.** The golden's diff is exactly the four rows the table
+> below declares — `4` insertions, `1` deletion (`git diff --numstat`) — and its hash moves
+> `5479f471e3524a924f425581acf737f6` → **`38c7586ecfddd17bdb79785b3b3a9f31`**.
+>
+> **The colon-mover disagreement is settled, and design §4.5a was right.** Exactly **one** colon row
+> moved (`Base|completion:|onClose`); DR-21's summary implying two is corrected against a checked-in
+> artifact. **Zero `global`, `class` or `shape` rows moved** — verified by diffing those rows alone,
+> which is COMP-09-06's structural guarantee showing up as a measurement.
+>
+> Measured at the new site: cold time-to-first over **five distinct wide receivers, each in its own
+> file** = `[12046, 13162, 14604, 17580, 20540] µs`, **median 14 604 µs** against a 100 ms budget
+> (490 995 µs unarmed, design §1.10.2). Assertion 2's count form: `narrow=3->3 wide=3600->3600` across
+> 4 000 unrelated indexed members. Both Rule S mutation proofs reddened **exactly one** test each, both
+> with `expected:<[]> but was:<[fromLibrary]>`.
+>
+> **Two `Then` columns in requirements.md were corrected by measurement, neither a behaviour change.**
+> TC 10d's loop forms offer `[end]`, not `[]` — the keyword provider fires on the bare `psiElement()`
+> pattern inside an open `do` block, and DR-21 had recorded the same. TC 10j offers
+> `[else, elseif, end]`, not `[fromLocal]`: `:462` **is** transitively covered (no `fromLibrary`, which
+> is the verdict the row itself names), and the missing `fromLocal` is a pre-existing property of the
+> narrowing path on an arm that declines. See risks-and-gaps' Phase 2 findings.
 
 - **Goal**: `wx.<caret>` answered from the index **before** `LuaTypesSnapshot.forFile` runs;
   COMP-09-08 assertion 1 goes green. Measured on the prototype: cold time-to-first **491 ms → 7.4 ms**,
@@ -454,7 +476,7 @@ document's.)*
         explicitly unchanged), and **no colon-door output is pasted anywhere in design §1.10**. The
         recorded baseline decides it. If a second mover appears, add it to the diff table below as a
         declared expectation; if none does, DR-21's count is corrected against a checked-in artifact.
-  - [ ] **Add `net.internetisalie.lunar.lang.psi.LuaLocalBindingScan`** — design §4.14. One public
+  - [x] **Add `net.internetisalie.lunar.lang.psi.LuaLocalBindingScan`** — design §4.14. One public
         method, `fun binds(file: PsiFile, name: String): Boolean`, implemented as a single
         `PsiTreeUtil.processElements(file) { … }` pass with an early exit over the seven clauses in
         §4.14's table. **Do not substitute `LuaFileBindingsIndex`**: it walks file-scope statements
@@ -462,7 +484,7 @@ document's.)*
         `file.getBlockList().forEach { block -> block.statementList… }` at `:355-357`), so it misses
         parameters, for-loop variables and nested locals —
         the member-inventing direction. §4.14 states why.
-  - [ ] **Add the hoist to `LuaCompletionContributor`** — design §4.13, verbatim. One call inserted
+  - [x] **Add the hoist to `LuaCompletionContributor`** — design §4.13, verbatim. One call inserted
         after `findReceiverExpr` (`:361` today) and before `val snapshot = LuaTypesSnapshot.forFile(...)`:
         ```kotlin
         if (addIndexedGlobalMembers(receiverExpr, parameters, isColon, result)) return
@@ -471,14 +493,14 @@ document's.)*
         `globalMembership` first, `LuaLocalBindingScan.binds` only if `found && authoritative`. The
         reverse order costs 10 875–21 501 µs per completion on a 4 002-line file and buys nothing —
         routing is identical either way (design §1.10.6).
-  - [ ] **Change nothing below the insertion point.** `crossFileGlobalMembers`, the
+  - [x] **Change nothing below the insertion point.** `crossFileGlobalMembers`, the
         `type == LuaGraphType.Undefined` guard and the shared emit loop stay byte-for-byte as they are.
         Design §4.5b's branch split is **withdrawn** — it existed only because the old site replaced a
         function in place. The non-authoritative case is `return false`, not a re-implemented graph arm.
-  - [ ] Add `LuaMemberLookup.create(member: LuaReceiverMember): LookupElement` —
+  - [x] Add `LuaMemberLookup.create(member: LuaReceiverMember): LookupElement` —
         `net.internetisalie.lunar.lang.completion.LuaMemberLookup`, icon `AllIcons.Nodes.Method` for
         `Kind.FUNCTION` else `AllIcons.Nodes.Field`, **no type text** (design §4.13).
-  - [ ] **Re-record the golden, declaring every move.** The armed suite moves exactly two tests, and
+  - [x] **Re-record the golden, declaring every move.** The armed suite moves exactly two tests, and
         the golden's diff on the **dot** caret is three receivers on the `completion` door only —
         every `global` and `class` row is byte-identical (design §1.10.5). The golden's checked-in
         hash moves from task 0's hash to whatever this re-record produces; put both in the commit
@@ -504,7 +526,7 @@ document's.)*
         re-record**. Do not treat an undeclared colon movement as noise; that is precisely the
         failure this exit criterion exists to catch. `global` and `class` rows must still be
         byte-identical either way.
-  - [ ] **Write seven expectation tests** — new class
+  - [x] **Write seven expectation tests** — new class
         `net.internetisalie.lunar.definitions.MemberEnumerationExpectationTest : LibraryRootTestCase()`,
         offered set read through the inherited `completionsFor(...)` (which recovers the
         auto-inserted single match — BUG-431). E2/E3/E5–E7 call
@@ -606,7 +628,7 @@ document's.)*
         needed for the no-invention guard**: the golden already pins `wx|completion` at exactly
         `{wxFileExists, wxID_ANY}` and `wxFrame`/`AllColon`/`luassert` at `<none>`, and Phase 2's exit
         requires those rows to be byte-identical.
-  - [ ] **Write TC 7f and TC 7f-bis — the `@field` superset on the bundled stubs, and its control.**
+  - [x] **Write TC 7f and TC 7f-bis — the `@field` superset on the bundled stubs, and its control.**
         New class
         `net.internetisalie.lunar.definitions.MemberEnumerationRedisTargetTest : IndexedBasePlatformTestCase()`.
         Set the target exactly the way `RedisAmbientTypingTest.setRedisTarget` does — **`Target`'s
@@ -650,30 +672,30 @@ document's.)*
         whose function sets differ, which covers the family without one test per version.
         **This is also why "exactly two tests move" is a STANDARD-target statement**: DR-21/DR-22
         never set a Redis target, so the armed-suite count says nothing about these.
-  - [ ] **Write TC 10h and TC 10i/10j** — the three Rule S clauses the mutation proof cannot reach.
+  - [x] **Write TC 10h and TC 10i/10j** — the three Rule S clauses the mutation proof cannot reach.
         TC 10h goes in `MemberEnumerationRedisTargetTest` (it needs the Redis target): `KEYS.<caret>`
         and `ARGV.<caret>` offer `[]` at both doors, matching today, which is what pins §4.14's
         deliberate exclusion of the `seedAmbientGlobals` declare site (`LuaTypesVisitor.kt:1360`) —
         the one site live on no other target. TC 10i (`name == "self"`) and TC 10j (`:462` type-guard
         narrowing) go with the other Rule S tests; design §4.14 gives both fixtures.
-  - [ ] **Write the Rule S tests** — TC 10a–10j, one per binding form, each asserting the offered set
+  - [x] **Write the Rule S tests** — TC 10a–10j, one per binding form, each asserting the offered set
         is identical to today's. The prototype's ten scenarios and their output are in design §1.10.4;
         `localVarShadow` is `LuaGlobalMemberCompletionTest.aLocalShadowsTheCrossFileGlobal`'s exact
         fixture and that test must stay green untouched.
-  - [ ] **Mutation-prove Rule S — twice**, because one clause deletion reaches one clause. (a) Delete
+  - [x] **Mutation-prove Rule S — twice**, because one clause deletion reaches one clause. (a) Delete
         the `LuaParList` clause from `LuaLocalBindingScan` and TC 10c
         (`local function f(Shadow) Shadow.<caret> end`) must go red, offering `fromLibrary`.
         (b) Delete the `name == "self"` early return and TC 10i must go red. A Rule S test suite that
         survives clause deletion is not testing Rule S; a proof that only ever deletes the same clause
         is not testing the other six.
-  - [ ] **Replace COMP-09-08 assertion 2 with a count** — design §4.10a-bis. The timing form flips
+  - [x] **Replace COMP-09-08 assertion 2 with a count** — design §4.10a-bis. The timing form flips
         verdict between two runs of the same prototype (1x met / 3x not met), which is DR-08's rule
         firing. Assert `LuaReceiverMemberWork.entries` instead: `narrowMembers` for the narrow
         receiver, `wideMembers` for the wide one, neither moving when unrelated indexed content is
         added. Keep the timings as printed records beside assertion 1.
-  - [ ] Flip `MemberEnumerationLatencyGateTest.BUDGET_ENFORCED` to `true`. It is the phase's exit
+  - [x] Flip `MemberEnumerationLatencyGateTest.BUDGET_ENFORCED` to `true`. It is the phase's exit
         criterion; the inverted gate is currently the thing that goes red when the budget is met.
-  - [ ] Re-measure cold time-to-first: **five distinct wide receivers, each in its own file**, median
+  - [x] Re-measure cold time-to-first: **five distinct wide receivers, each in its own file**, median
         of five. A single receiver cannot be re-measured cold and produced 13 783 / 35 416 / 49 403 µs
         across three runs of the same code (design §1.10.2).
 - **Exit**:

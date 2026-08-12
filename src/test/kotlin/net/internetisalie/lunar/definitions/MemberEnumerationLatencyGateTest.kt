@@ -1,6 +1,8 @@
 package net.internetisalie.lunar.definitions
 
-import kotlin.math.ceil
+import com.intellij.openapi.application.runReadAction
+import net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex
+import net.internetisalie.lunar.lang.indexing.LuaReceiverMemberWork
 
 /**
  * COMP-09-08 — **the latency target, enforced instead of documented.**
@@ -20,6 +22,11 @@ import kotlin.math.ceil
  * | 1 | cold time-to-first < the budget | **red** — "was 1054 ms against a 100 ms budget" |
  * | 2 | narrow and wide receivers within the harness's own noise floor | **red** — "scales 64x against a measured noise floor of 2x" |
  *
+ * **Assertion 2 no longer exists in that form.** Phase 2 replaced it with a **count** — design
+ * §4.10a-bis — because its timing derivation flipped verdict between two runs of the same code once the
+ * arm it was measuring got fast enough that the noise floor *was* the measurement. Assertion 1 is
+ * unchanged in kind and is now enforcing.
+ *
  * The floor came out at 2x from five cold 3-member receivers at 10 018 / 10 142 / 10 392 / 10 620 /
  * 11 604 us — `ceil(p95/p50)` = `ceil(11604/10392)` = 2. **The next run on the same machine gave a
  * floor of 3x and a ratio of 37x**, which is the whole argument for deriving the factor rather than
@@ -38,85 +45,96 @@ import kotlin.math.ceil
  * file, because the per-file `LuaTypesSnapshot` is memoized.
  */
 class MemberEnumerationLatencyGateTest : TimedCompletionTestCase() {
-    /** Assertion 1: cold time-to-first against the `non-functional.md` budget, tier 1. */
+    /**
+     * Assertion 1: cold time-to-first against the `non-functional.md` budget, tier 1.
+     *
+     * **Median of five distinct wide receivers, each in its own file** (Phase 2). A single receiver
+     * cannot be re-measured cold — the per-file `LuaTypesSnapshot` is memoized, so sample two onwards
+     * measure memoization — and the same one receiver produced 13 783 / 35 416 / 49 403 µs across three
+     * runs of the same code (design §1.10.2). Five distinct receivers give a median that is a property
+     * of the code rather than of which sample the machine happened to schedule well.
+     */
     fun testColdTimeToFirstIsWithinTheBudget() {
         installFirstElementProbe()
         registerLibraryRoot(fixture())
-        val wide = timeCompletion("$WIDE_RECEIVER.<caret>\n")
+        val wideUs = (0 until WIDE_RECEIVERS).map { timeToFirstUs("$WIDE_PREFIX$it.<caret>\n") }.sorted()
         val opaque = timeCompletion("$OPAQUE_RECEIVER.<caret>\n")
-        println("COMP-09-08 tier 1 (syntactic, $WIDE_MEMBERS members) cold time-to-first = $wide")
+        println("COMP-09-08 tier 1 (syntactic, $WIDE_MEMBERS members) cold samples (us) = $wideUs")
         println("COMP-09-08 tier 2 (require-bound) cold time-to-first = $opaque  [RECORDED, not asserted]")
-        val firstUs = wide?.firstUs ?: -1
-        assertTrue("the probe saw no completion result at all, so nothing was measured", firstUs >= 0)
-        assertGate(
-            "cold time-to-first for `$WIDE_RECEIVER.` was ${firstUs / 1000} ms against a $BUDGET_MS ms budget",
-            firstUs < BUDGET_MS * 1000,
-        )
-    }
-
-    /**
-     * Assertion 2: the NFR's independence clause. Time-to-first must not track member count.
-     *
-     * The factor is **derived, not picked** (DR-17): `ceil(p95 / p50)` over five cold samples of the
-     * *narrow* receiver alone — the harness's own noise floor, measured on a case where member count
-     * cannot be the variable. A wide-vs-narrow ratio inside that band is independence; outside it is
-     * not. Each narrow sample is a different receiver in a different file, because a second sample of
-     * the same receiver is warm and would measure memoization.
-     *
-     * **The liveness guard is outside [assertGate] on purpose, and it is the reason this test is not
-     * the defect it was written to prevent.** [timeToFirstUs] returns -1 when the probe saw no
-     * completion result at all, and a -1 `wideUs` makes `ratio` 0, which is `<= factor`, which is
-     * `met` — so a dead probe reported the requirement MET. Inverted that is red, which is why it
-     * went unnoticed at Phase 0; the moment [BUDGET_ENFORCED] flips it would have gone **silently
-     * green on a harness that measured nothing**. Routing the guard through [assertGate] would
-     * reproduce the same hazard one level up, so it is a plain `assertTrue` that fails in *both*
-     * switch positions.
-     *
-     * **Mutation-proved on gce-builder, 2026-08-09**, by making `timeToFirstUs` return -1 for the
-     * wide receiver and for two of the five narrow ones:
-     *
-     * | code | [BUDGET_ENFORCED] | result |
-     * | :-- | :-- | :-- |
-     * | without this guard | `true` | **BUILD SUCCESSFUL** — the defect |
-     * | with this guard | `false` | red — `narrow=[-1, -1, 15191, 37526, 228760] wide=-1us` |
-     * | with this guard | `true` | red — `narrow=[-1, -1, 19124, 40984, 212584] wide=-1us` |
-     *
-     * The sample lists are the point. A **whole**-probe break is the case the `floor > 0` check below
-     * already caught; the case it did not is a **partly** dead probe — the median of `[-1, -1, …]` is
-     * a live sample, so `floor > 0` passes on a harness that lost two fifths of its narrow samples
-     * and all of its wide one. Partly dead is also the shape a real regression takes: `wx.` offering
-     * nothing is indistinguishable, to a stopwatch, from `wx.` being instant.
-     */
-    fun testTimeToFirstIsIndependentOfMemberCount() {
-        installFirstElementProbe()
-        registerLibraryRoot(fixture())
-        val narrowUs = (0 until NARROW_RECEIVERS).map { timeToFirstUs("$NARROW_PREFIX$it.<caret>\n") }.sorted()
-        val wideUs = timeToFirstUs("$WIDE_RECEIVER.<caret>\n")
         assertTrue(
-            "the probe saw no completion result at all, so nothing was measured " +
-                "(narrow=$narrowUs wide=${wideUs}us) — the ratio below would be computed from a " +
-                "dead harness",
-            narrowUs.isNotEmpty() && narrowUs.all { it >= 0 } && wideUs >= 0,
+            "the probe saw no completion result at all, so nothing was measured (wide=$wideUs)",
+            wideUs.size == WIDE_RECEIVERS && wideUs.all { it >= 0 },
         )
-        val floor = narrowUs[narrowUs.size / 2]
-        assertTrue("no narrow sample was observed, so there is no noise floor to compare against", floor > 0)
-        val factor = ceil(narrowUs.last().toDouble() / floor).toInt()
-        val ratio = (wideUs / floor).toInt()
-        println("COMP-09-08 narrow cold samples (us) = $narrowUs  p50=$floor p95=${narrowUs.last()}")
-        println("COMP-09-08 noise floor factor = ${factor}x; wide ($WIDE_MEMBERS members) = ${wideUs}us = ${ratio}x")
+        val medianUs = wideUs[WIDE_RECEIVERS / 2]
         assertGate(
-            "time-to-first scales ${ratio}x with member count against a measured noise floor of ${factor}x",
-            ratio <= factor,
+            "cold time-to-first for a $WIDE_MEMBERS-member receiver was ${medianUs / 1000} ms — median of " +
+                "$WIDE_RECEIVERS distinct receivers, each in its own file — against a $BUDGET_MS ms budget",
+            medianUs < BUDGET_MS * 1000,
         )
     }
 
     /**
-     * One direction switch for both assertions, so neither can be quietly left behind.
+     * Assertion 2: the NFR's independence clause — **as a COUNT, not a timing ratio** (design
+     * §4.10a-bis, Phase 2).
      *
-     * While [BUDGET_ENFORCED] is false the gate asserts the **miss** — the same measured quantity
-     * against the same budget, inverted — so it goes red the moment COMP-09-08 is met and Phase 2
-     * cannot land without flipping it. That is Phase 2's exit criterion, and it keeps a
-     * known-unfixed requirement from parking a red test on main for three phases.
+     * **The timing form was replaced, not tuned, and its own success broke it.** It derived a noise
+     * floor as `ceil(p95 / p50)` over five cold *narrow* receivers, which worked while the narrow
+     * receivers were served by the graph and their cost was dominated by real work. Served from the
+     * index they cost almost nothing but the platform's fixed completion overhead, so `p95/p50` measures
+     * scheduler jitter on a ~6 ms constant. Three armed runs of the *same* prototype disagreed — 1x
+     * (met), 3x and 4x (not met) — while assertion 1 was comfortably met in all three. That is DR-08's
+     * standing rule firing: **gate on a count, never a timing threshold, wherever a count will do.**
+     *
+     * A count will do, and it already exists. The quantity this assertion is trying to express is "work
+     * does not track member count", and `LuaReceiverMemberWork.entries` measures exactly that at the
+     * traversal site: `FileBasedIndex.processValues` calls back once per (key, file) pair, so counting
+     * callbacks **is** the traversal count. It is machine-independent and cannot flip on jitter.
+     *
+     * Asked at the **completion door** (`globalMembership`) — the door the hoisted site actually uses —
+     * rather than through `completeBasic`, because `LuaReceiverMemberWork` is a `ThreadLocal` and is
+     * only readable on the thread that recorded into it.
+     *
+     * **What the count cannot say** is that a per-entry cost did not explode; assertion 1 covers that.
+     * 3 600 entries under a 100 ms wall budget bounds the per-entry cost at 27 µs, against a measured
+     * index read of 1 010–3 576 µs for those 3 600 entries (design §1.10.7), two orders inside it.
+     */
+    fun testTraversalDoesNotTrackMemberCount() {
+        registerLibraryRoot(fixture())
+        myFixture.configureByText("consumer.lua", "local x = 1\n")
+        val narrowBefore = entriesToAnswer("${NARROW_PREFIX}0")
+        val wideBefore = entriesToAnswer("${WIDE_PREFIX}0")
+        registerLibraryRoot(unrelatedFixture())
+        val narrowAfter = entriesToAnswer("${NARROW_PREFIX}0")
+        val wideAfter = entriesToAnswer("${WIDE_PREFIX}0")
+        println("COMP-09-08 entries narrow=$narrowBefore->$narrowAfter wide=$wideBefore->$wideAfter")
+        assertEquals("the narrow receiver's traversal is its own member count", NARROW_MEMBERS, narrowBefore)
+        assertEquals("the wide receiver's traversal is its own member count", WIDE_MEMBERS, wideBefore)
+        assertEquals(
+            "adding ${UNRELATED_RECEIVERS * UNRELATED_MEMBERS} unrelated indexed members moved the " +
+                "narrow receiver's work — enumeration is scanning, not looking up",
+            narrowBefore,
+            narrowAfter,
+        )
+        assertEquals("and it must not have moved the wide receiver's either", wideBefore, wideAfter)
+    }
+
+    /** Entries the **completion door** traverses to answer [receiverName]. */
+    private fun entriesToAnswer(receiverName: String): Int =
+        runReadAction {
+            LuaReceiverMemberWork.reset()
+            LuaReceiverMemberIndex.globalMembership(receiverName, project, myFixture.file)
+            LuaReceiverMemberWork.entries
+        }
+
+    /**
+     * The direction switch for assertion 1, **flipped to enforcing by Phase 2**.
+     *
+     * While [BUDGET_ENFORCED] was false the gate asserted the **miss** — the same measured quantity
+     * against the same budget, inverted — so it went red the moment COMP-09-08 was met and Phase 2
+     * could not land without flipping it. It kept a known-unfixed requirement from parking a red test on
+     * main for three phases, and it is what reported the budget being met (24 ms against 100 ms) on the
+     * run that flipped it. Assertion 2 no longer routes through here: a count has no "miss" direction to
+     * assert, so it holds unconditionally.
      */
     private fun assertGate(
         finding: String,
@@ -133,34 +151,61 @@ class MemberEnumerationLatencyGateTest : TimedCompletionTestCase() {
         }
     }
 
-    /** One receiver per file: a shared file would make every receiver after the first warm. */
+    /**
+     * One receiver per file: a shared file would make every receiver after the first warm.
+     *
+     * There are [WIDE_RECEIVERS] wide receivers rather than one because a **cold** measurement is
+     * single-use per file, so a median of five needs five files.
+     */
     private fun fixture(): Map<String, String> {
-        val wide = StringBuilder("---@meta\n\n---@class $WIDE_RECEIVER\n$WIDE_RECEIVER = {}\n\n")
-        repeat(3400) { i -> wide.append("---@type number\n$WIDE_RECEIVER.wxC_$i = nil\n\n") }
-        repeat(200) { i -> wide.append("---@return boolean\nfunction $WIDE_RECEIVER.f$i() end\n\n") }
-        wide.append("return $WIDE_RECEIVER\n")
-        val files = mutableMapOf("wide.lua" to wide.toString())
-        repeat(NARROW_RECEIVERS) { r ->
-            val narrow = StringBuilder("---@meta\n\n---@class $NARROW_PREFIX$r\n$NARROW_PREFIX$r = {}\n\n")
-            repeat(3) { i -> narrow.append("---@type number\n$NARROW_PREFIX$r.n$i = nil\n\n") }
-            files["narrow$r.lua"] = narrow.toString()
-        }
+        val files = mutableMapOf<String, String>()
+        repeat(WIDE_RECEIVERS) { r -> files["wide$r.lua"] = wideFile("$WIDE_PREFIX$r") }
+        repeat(NARROW_RECEIVERS) { r -> files["narrow$r.lua"] = narrowFile("$NARROW_PREFIX$r") }
         files["luassert.lua"] = Comp09GoldenFixture.files().getValue("luassert.lua")
         files["opaque.lua"] = "---@meta\n\n$OPAQUE_RECEIVER = require(\"luassert\")\n"
         return files
     }
 
+    private fun wideFile(receiverName: String): String {
+        val wide = StringBuilder("---@meta\n\n---@class $receiverName\n$receiverName = {}\n\n")
+        repeat(WIDE_FIELDS) { i -> wide.append("---@type number\n$receiverName.wxC_$i = nil\n\n") }
+        repeat(WIDE_MEMBERS - WIDE_FIELDS) { i ->
+            wide.append("---@return boolean\nfunction $receiverName.f$i() end\n\n")
+        }
+        wide.append("return $receiverName\n")
+        return wide.toString()
+    }
+
+    private fun narrowFile(receiverName: String): String {
+        val narrow = StringBuilder("---@meta\n\n---@class $receiverName\n$receiverName = {}\n\n")
+        repeat(NARROW_MEMBERS) { i -> narrow.append("---@type number\n$receiverName.n$i = nil\n\n") }
+        return narrow.toString()
+    }
+
+    /** Indexed content with nothing to do with either measured receiver — assertion 2's second arm. */
+    private fun unrelatedFixture(): Map<String, String> =
+        (0 until UNRELATED_RECEIVERS).associate { r ->
+            val noise = StringBuilder("---@meta\n\nUnrelated$r = {}\n\n")
+            repeat(UNRELATED_MEMBERS) { i -> noise.append("---@return boolean\nfunction Unrelated$r.n$i() end\n\n") }
+            "unrelated$r.lua" to noise.toString()
+        }
+
     private companion object {
-        /** Flipped by Phase 2, whose goal is exactly "COMP-09-08 goes green". */
-        const val BUDGET_ENFORCED = false
+        /** Flipped to `true` by Phase 2, whose goal is exactly "COMP-09-08 goes green". */
+        const val BUDGET_ENFORCED = true
 
         /** `docs/features/non-functional.md`: time-to-first-result, tier 1. Not a budget of ours. */
         const val BUDGET_MS = 100L
 
-        const val WIDE_RECEIVER = "wx"
+        const val WIDE_PREFIX = "Wide"
+        const val WIDE_RECEIVERS = 5
         const val WIDE_MEMBERS = 3600
+        const val WIDE_FIELDS = 3400
         const val NARROW_PREFIX = "Narrow"
         const val NARROW_RECEIVERS = 5
+        const val NARROW_MEMBERS = 3
         const val OPAQUE_RECEIVER = "Opaque"
+        const val UNRELATED_RECEIVERS = 40
+        const val UNRELATED_MEMBERS = 100
     }
 }
