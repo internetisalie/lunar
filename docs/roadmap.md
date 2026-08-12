@@ -70,7 +70,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-413 | Generated doc comments infer wrong `@param` types | todo | C | — | — | ✓ |
 | BUG-414 | Debugger variable navigation walks PSI with no read action | todo | S | — | — | ✓ |
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
-| BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | — | ✓ |
+| BUG-422 | `LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite | todo | M | — | **recurred 2026-08-12** during COMP-09 Phase 4 remediation: `testForProjectResolvesRuntimeAndAppliesEnvironment` failed once (`expected the runtime dir prepended to PATH`) then passed on two further full runs over identical inputs. No causal path from that change — consistent with the PATH/env caching this row already suspects | ✓ |
 | BUG-419 | Type engine reports incompatibility it cannot know — defect 3 shipped, report not closed | in_progress | M | — | — | ✓ |
 | BUG-428 | A `nil` arm from `and`/`or` is reported as a certain nil instead of optionality | todo | S | — | — | ✓ |
 | BUG-430 | `a.b.c = v` makes `c` a member of `a` and leaves `a.b` empty; the two enumeration doors disagree | todo | **L** | — | found by COMP-09 DR-09. **Root cause grounded 2026-08-08 and it is engine-scale** — an exact table literal does not accrete later member writes; needs a plan-feature pass with corpus measurement, not a bug fix | ✓ |
