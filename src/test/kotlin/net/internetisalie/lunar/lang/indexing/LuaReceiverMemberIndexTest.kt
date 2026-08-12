@@ -121,6 +121,51 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
         assertTrue("a keyed suffix `Shapes[1]` is not a member name", "1" !in namesOf("Shapes"))
     }
 
+    /**
+     * **The input filter must accept exactly what `LuaFileType` is registered for.**
+     *
+     * `plugin.xml` registers it for `extensions="lua;rockspec"` *and*
+     * `fileNames=".luacheckrc;.busted"`; this index's filter used to read `file.extension == "lua"`,
+     * so three of those four registrations were silently unindexed. It survived every gate the
+     * feature has — the golden fixture is all `.lua`, and so is the corpus tree — because a *subset*
+     * is invisible to a guard built to catch a superset (design §4.9, Risk 1.1).
+     *
+     * Measured on the shape below before the fix: the `@class` door returned
+     * `[fromLua, same]` where the `getAllKeys` scan it replaced returned
+     * `[fromBusted, fromLua, fromLuacheckrc, fromRockspec, same]` — the stub builder runs for the
+     * *file type*, so the scan saw all four registrations and the index saw one.
+     *
+     * **Both doors, and they legitimately disagree.** The union door reads the index across the whole
+     * scope and must now see all four. The completion door must **not**, and that is not this defect:
+     * it selects its declaring file through `LuaGlobalAssignmentIndex`, whose own filter is still
+     * `extension == "lua"`, so only `multi.lua` is ever a candidate. That filter is pre-existing and
+     * out of COMP-09's scope; this asserts today's completion behaviour so that closing it elsewhere
+     * is a deliberate, visible move rather than a side effect.
+     */
+    fun testEveryFileTypeRegistrationIsIndexed() {
+        registerLibraryRoot(
+            mapOf(
+                "multi.lua" to "---@meta\n\nMulti = {}\n\nfunction Multi.fromLua() end\n\nreturn Multi\n",
+                "multi.rockspec" to "function Multi.fromRockspec() end\n",
+                ".luacheckrc" to "function Multi.fromLuacheckrc() end\n",
+                ".busted" to "function Multi.fromBusted() end\n",
+            ),
+        )
+        myFixture.configureByText("consumer.lua", "local x = 1\n")
+        assertEquals(
+            "the union door must see every registration LuaFileType carries, not only `.lua`",
+            listOf("fromBusted", "fromLua", "fromLuacheckrc", "fromRockspec"),
+            namesOf("Multi"),
+        )
+        assertEquals(
+            "the completion door picks ONE declaring file and gets its candidates from " +
+                "LuaGlobalAssignmentIndex, which is still `.lua`-only — pre-existing, out of scope, " +
+                "and pinned here so that changing it is deliberate",
+            listOf("fromLua"),
+            globalNamesOf("Multi"),
+        )
+    }
+
     /** Source 3 — `---@field`, with `Kind` taken from the declared type text. */
     fun testClassFieldsAreIndexedAndTypedFromTheirDeclaredType() {
         seedGolden()

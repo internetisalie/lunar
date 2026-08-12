@@ -848,6 +848,6 @@ document's.)*
 | 0: Golden file and instrument | **done** (2026-08-09) | Must |
 | 1: `LuaReceiverMemberIndex` | **done** (2026-08-09, remediated 2026-08-09) | Must |
 | 2: The change site — hoist above the snapshot build | **planned** (re-cut 2026-08-12 from a measured prototype; supersedes the aborted "Completion consumer") | Must |
-| 3: Materialization consumer | planned | Must |
+| 3: Materialization consumer | **done** (2026-08-12, remediated 2026-08-12) | Must |
 | 4: `@class` metamethods | planned | Should |
 | 5: Re-measure and decide deferrals | planned | Must |

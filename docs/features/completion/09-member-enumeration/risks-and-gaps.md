@@ -45,8 +45,22 @@ folders:
   A flat `membersOf(receiver, allScope)` union returned `[alsoPrivate, privateToThisFile, real]`
   against a golden of `[real]` — the extras came from an unrelated file-local `wx`. The design's
   answer is first-declaring-file-only within a scope-precedence chain (design §4.5), which reproduces
-  today's `typeOfGlobalIn`. The risk stays open until the consumers stop scanning (Phase 3) and the
-  four corpus baselines are re-run, because until then the superset is fixed only at the index.
+  today's `typeOfGlobalIn`. The risk stayed open until the consumers stopped scanning and the corpus
+  baselines were re-run, because until then the superset was fixed only at the index.
+- **STATUS (Phase 3, 2026-08-12): both consumers have stopped scanning and the risk as written is
+  CLOSED.** `LuaTypeManagerImpl` contains zero `getAllKeys` calls, the golden is unmoved
+  (`38c7586ecfddd17bdb79785b3b3a9f31`) and the corpus baselines were re-run with no movement. The
+  superset failure mode did not fire at either consumer.
+- **STATUS (Phase 3 remediation, 2026-08-12): the failure that DID ship was the OPPOSITE one, and
+  every gate this risk built was structurally blind to it.** `LuaReceiverMemberIndex`'s input filter
+  read `file.extension == "lua"` while `LuaFileType` is registered for `lua;rockspec` plus the file
+  names `.luacheckrc`/`.busted`, so the `@class` door returned a **subset**: measured
+  `[fromBusted, fromLua, fromLuacheckrc, fromRockspec, same]` → `[fromLua, same]`. The golden is all
+  `.lua` and so is the corpus tree, so neither moved. **A guard built for a superset certifies a
+  subset**, and "any movement stops the change" says nothing about content that was never in the
+  fixture. The filter is now derived from `LuaFileType` and the shape is asserted at the union door
+  (`LuaReceiverMemberIndexTest.testEveryFileTypeRegistrationIsIndexed`) and at the `@class` door
+  (`MemberEnumerationMaterializationTest.testEveryLuaFileTypeRegistrationContributesMembers`).
 - **STATUS (Phase 1 remediation, 2026-08-09): the firing shape above is now an assertion.**
   `testDr09b`, named here as the gate, was a print-only harness and was deleted in Phase 1; its
   membership half is re-homed in `LuaReceiverMemberDoorParityTest` (per-door, all four receivers) and
@@ -222,6 +236,54 @@ is how a document starts certifying what it assumed.
    **Out of COMP-09's scope and deliberately not chased here**: narrowing dropping a table literal's
    members is a type-engine question, not an enumeration one. Flagged for a separate bug report rather
    than absorbed into this feature.
+
+### GAP (Phase 3, 2026-08-12) — a dot/colon name collision has **no behaviour to preserve**, and the choice is undeclared
+
+**OPEN. Escalated rather than decided, because deciding it changes user-visible behaviour under a
+`Must` requirement (COMP-09-07) and needs a declared expectation, a test and a CHANGELOG line.**
+
+`function R.m()` and `function R:m()` in one receiver produce two distinct
+`LuaGlobalDeclarationIndex` keys and one member name. `membersIn` de-dupes by **name**
+(`seen.putIfAbsent(it.name, it)`), so exactly one separator survives and `declaredMethod` rebuilds a
+single key from it. The old scan visited both keys and let `addMethodsOf`'s `containsKey` first-wins
+choose. The two therefore select different declarations, and the resolved function type flips with
+them — a colon declaration also carries an implicit `self`, so signature help, quick-doc and
+parameter info move too.
+
+**Measured, on five receivers that are structurally IDENTICAL — dot declared first, colon second,
+differing only in name** (`LibraryRootTestCase`, one file each, `---@return string` on the dot and
+`---@return number` on the colon):
+
+| receiver | pre-phase (`87875c9f`, `getAllKeys` scan) | Phase 3 (`5c155380`, `membersIn`) |
+| :-- | :-- | :-- |
+| `Alpha.race` | `fun(dotArg: string): string` | `fun(dotArg: string): string` |
+| `Bravo.race` | `fun(colonArg: number): number` | `fun(dotArg: string): string` |
+| `Charlie.race` | `fun(colonArg: number): number` | `fun(dotArg: string): string` |
+| `Delta.race` | `fun(dotArg: string): string` | `fun(dotArg: string): string` |
+| `Echo.race` | `fun(colonArg: number): number` | `fun(dotArg: string): string` |
+
+**Pre-phase answers the same question five different ways on five identical inputs — two dot, three
+colon.** Two further receivers show the flip runs in both directions: `Widget.same` (dot declared
+first) went COLON → DOT, and `Gadget.flip` (colon declared first) went DOT → COLON.
+
+The cause is that the pre-phase winner was `StubIndex.getAllKeys` traversal order, which is neither
+declaration order nor lexicographic, and which is not even confined to the project: the key list for
+`Widget` in a run of *one* test class contained `Widget.m0`…`Widget.m49`, `Widget.shared`,
+`Widget.fromLibrary`, `Widget.plain` and `Widget.nested.deep` — all fixtures of
+`MemberEnumerationMaterializationTest`, **which did not run in that invocation**. `getAllKeys` reads a
+persistent enumerator, so in a real IDE the tie-break depends on every Lua file that install has ever
+indexed.
+
+**So "preserve today's behaviour" is unsatisfiable as written**: there is no rule in the source to
+preserve. Phase 3's `membersIn` result is *first declaration in file order*, which is deterministic,
+source-derived, and — measured — the rule the **global** door already follows: pre-phase
+`resolveGlobal` returned the dot declaration for all five receivers, so the `@class` door now agrees
+with the global door where it disagreed on three of five before. That is an argument for the new
+behaviour, not authority to declare it; the call is the supervisor's.
+
+Not a regression, checked in the same run: a **FIELD/FUNCTION** collision (`Collide.f = 1` beside
+`function Collide:f()`) resolves to `f: number` both before and after — `materializeClass` seeds the
+field before `addMethodsOf` runs and its `containsKey` guard holds either way.
 
 ### Risk 1.2: The scope and file-confinement semantics are lost in translation
 

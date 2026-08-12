@@ -8,6 +8,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.indexing.DataIndexer
+import com.intellij.util.indexing.DefaultFileTypeSpecificInputFilter
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileContent
@@ -15,6 +16,7 @@ import com.intellij.util.indexing.ID
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.EnumeratorStringDescriptor
 import com.intellij.util.io.KeyDescriptor
+import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaExpr
@@ -136,17 +138,35 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
 
     override fun getIndexer(): DataIndexer<String, List<LuaReceiverMember>, FileContent> = indexer
 
-    override fun getVersion(): Int = 1
+    /**
+     * 1 → 2: the input filter widened from `extension == "lua"` to every registration `LuaFileType`
+     * carries, so the index's **content** changed. Without the bump a persisted index keeps the
+     * `.lua`-only entries and the fix is invisible on any machine that has indexed before it.
+     */
+    override fun getVersion(): Int = 2
 
     override fun dependsOnFileContent(): Boolean = true
 
     override fun indexDirectories(): Boolean = false
 
-    override fun getInputFilter(): FileBasedIndex.InputFilter = InputFilter()
-
-    private class InputFilter : FileBasedIndex.InputFilter {
-        override fun acceptInput(file: VirtualFile): Boolean = file.extension == "lua"
-    }
+    /**
+     * **Derived from the file type, not from a second list of extensions.** `plugin.xml` registers
+     * `LuaFileType` for `extensions="lua;rockspec"` *and* `fileNames=".luacheckrc;.busted"`, and this
+     * index's own filter re-stated only the first half of the first half: `file.extension == "lua"`.
+     * Measured, a receiver whose members came from a `.rockspec`, a `.luacheckrc` and a `.busted`
+     * beside its `.lua` file lost all three at the `@class` door
+     * (`[fromBusted, fromLua, fromLuacheckrc, fromRockspec, same]` → `[fromLua, same]`), because the
+     * `StubIndex` key scan Phase 3 replaced was filtered by the *stub* builder — which runs for the
+     * file type — and this index was not.
+     *
+     * `DefaultFileTypeSpecificInputFilter` is instantiated directly rather than subclassed on
+     * purpose: `RequiredIndexesEvaluator.toHint` turns it into a real file-type predicate only when
+     * `filter.javaClass == DefaultFileTypeSpecificInputFilter::class.java` — "yes, we want to check
+     * exact class" — because a subclass could override `acceptInput`. A subclass here would silently
+     * degrade the filter to "accept everything" and lean on [Indexer]'s `psiFile !is LuaFile` guard
+     * for correctness while offering every file in the project to this indexer.
+     */
+    override fun getInputFilter(): FileBasedIndex.InputFilter = DefaultFileTypeSpecificInputFilter(LuaFileType)
 
     /**
      * What the index knows about a receiver, and **whether it is authoritative**.

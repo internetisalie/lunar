@@ -189,6 +189,47 @@ class MemberEnumerationMaterializationTest : LibraryRootTestCase() {
     }
 
     /**
+     * Row 5 — **every registration `LuaFileType` carries is a member source**, not just `.lua`.
+     *
+     * `plugin.xml` registers the file type for `extensions="lua;rockspec"` *and*
+     * `fileNames=".luacheckrc;.busted"`. The `getAllKeys` scan this door used to run was filtered by
+     * the **stub builder**, which runs per *file type*, so all four contributed; `LuaReceiverMemberIndex`
+     * re-stated the filter as `file.extension == "lua"` and three of the four stopped contributing.
+     * Measured on this exact fixture, the class door went
+     * `[fromBusted, fromLua, fromLuacheckrc, fromRockspec]` → `[fromLua]`.
+     *
+     * It is a row of §4.6's preservation table like the four above, and it is the one the golden
+     * could not hold: every file in `Comp09GoldenFixture` is `.lua`, so a filter that drops the other
+     * three registrations moves no golden line. A **subset** is invisible to every gate this phase
+     * had, all of which were built for the superset failure mode (Risk 1.1).
+     */
+    fun testEveryLuaFileTypeRegistrationContributesMembers() {
+        registerLibraryRoot(
+            mapOf(
+                "widget.lua" to
+                    """
+                    ---@class Widget
+                    Widget = {}
+
+                    ---@return string
+                    function Widget.fromLua() end
+
+                    return Widget
+                    """.trimIndent(),
+                "widget.rockspec" to "function Widget.fromRockspec() end\n",
+                ".luacheckrc" to "function Widget.fromLuacheckrc() end\n",
+                ".busted" to "function Widget.fromBusted() end\n",
+            ),
+        )
+        assertEquals(
+            "a `.rockspec`, a `.luacheckrc` and a `.busted` are Lua files by registration and their " +
+                "declarations are class members, exactly as they were under the key scan",
+            listOf("fromBusted", "fromLua", "fromLuacheckrc", "fromRockspec"),
+            classMembers("Widget").keys.sorted(),
+        )
+    }
+
+    /**
      * **COMP-09-09 at the materialization door** — design §4.10b assertion 2, moved from the index
      * to the consumer that Phase 3 converted.
      *
@@ -204,6 +245,15 @@ class MemberEnumerationMaterializationTest : LibraryRootTestCase() {
      * comparison would pass having measured nothing — hence the `> 0` assertion on the noisy arm,
      * which only holds if `membersIn` genuinely ran again. And the counter is read inside the read
      * action, on the thread that recorded into it (`LuaReceiverMemberWork` is a `ThreadLocal`).
+     *
+     * **What the counter means.** `membersIn` calls `LuaReceiverMemberWork.reset()` on entry, so a
+     * reading taken after a materialization is the **last enumeration**, not a total over the door.
+     * `addMethodsOf` runs one `membersIn` per `MethodScan`, and `collectMethodMembers` makes one for
+     * the class name plus one per differently-named declaring local — so on a fixture with a
+     * declaring local this would report that local's scan alone. Here the declaring local is itself
+     * named `Widget`, which `collectMethodMembers` skips via `takeIf { it != className }`, so exactly
+     * one scan runs and the absolute `entries == METHOD_COUNT` / `files == 1` below are readable as
+     * the whole enumeration.
      */
     fun testMaterializationWorkDoesNotMoveWhenUnrelatedContentIsAdded() {
         registerLibraryRoot(
@@ -243,6 +293,13 @@ class MemberEnumerationMaterializationTest : LibraryRootTestCase() {
             "the bound is the receiver's OWN declared members, not the size of the key space",
             METHOD_COUNT,
             quiet.entries,
+        )
+        assertEquals(
+            "`files` needs an ABSOLUTE anchor, not just quiet-equals-noisy: the receiver is declared " +
+                "in one file, so one `processValues` callback is the whole enumeration. Without this, " +
+                "a change that read every declaring file twice would move both arms together and pass",
+            1,
+            quiet.files,
         )
     }
 

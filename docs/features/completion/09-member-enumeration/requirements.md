@@ -215,6 +215,15 @@ per line; the consumers are Phases 2 and 3.
       reproduces the `@class` door on all four receivers; the completion door reproduces the global
       door with exactly the two declared divergences — `Shapes` loses `deep` (BUG-430) and `Derived`
       gains `ownField` (§4.5a). TC 7b and 7c are covered there too.
+      **Phase 3 broke it twice and one half is fixed (2026-08-12).** *(a)* The receiver index accepted
+      only `file.extension == "lua"` while `LuaFileType` is registered for `lua;rockspec` plus the
+      file names `.luacheckrc`/`.busted`, so the `@class` door returned a subset — measured
+      `[fromBusted, fromLua, fromLuacheckrc, fromRockspec, same]` → `[fromLua, same]`. **Fixed**: the
+      filter is derived from the file type and the shape is asserted at both index doors and at the
+      `@class` door. *(b)* A dot/colon name collision on one receiver now resolves to the
+      **first-declared** function where the `getAllKeys` scan resolved it by key-enumeration order.
+      **Open** — see risks-and-gaps, "GAP (Phase 3, 2026-08-12)": the old order is not a function of
+      the source, so there is no behaviour to preserve, and choosing one needs a declared expectation.
 - [x] COMP-09-08 — **MET 2026-08-12 (Phase 2).** The latency assertion exists, failed before the fix,
       passes after, and runs without `-PwithPerf`. **Assertion 1 (wall clock, tier 1) is enforced**:
       `MemberEnumerationLatencyGateTest.BUDGET_ENFORCED` is `true`, and the run that flipped it
@@ -248,17 +257,21 @@ per line; the consumers are Phases 2 and 3.
       declaring file, not above it. Under the old `getAllKeys` scan the same enumeration visited the
       whole key space. **Guarded against vacuity**: `resolveType` is memoized, so a cached second
       answer would leave the thread-local holding the first arm's numbers; the test asserts
-      `noisy.entries > 0` first, which only holds if `membersIn` genuinely ran again.
+      `noisy.entries > 0` first, which only holds if `membersIn` genuinely ran again. **Both the
+      `entries` and the `files` figures carry an absolute anchor** (added in the Phase 3
+      remediation): `entries == METHOD_COUNT` and `files == 1`, so a change that moved both arms
+      together cannot pass on the quiet-equals-noisy comparison alone.
       **The instrument was complete after Phase 1**: all
       four of design §4.10b's assertions are armed and green in `MemberEnumerationWorkBoundGateTest`
       — assertion 4, the *completion* door, was red until `LuaReceiverMemberWork` reached
-      `membersInFile` (BL-5). The requirement still needs Phase 3, where the consumers stop scanning.
+      `membersInFile` (BL-5). That left the *materialization* door outstanding until Phase 3, and
+      Phase 3 supplied it — see the measurement above.
       **Assertion 4 holds `filesVisited == 1` for its fixture, not by construction.** DR-19c makes
       `membershipOver` read every candidate to decide opacity, so a receiver bare-bound in two files
       in the chosen scope visits two on a *correct* implementation; `quietFixture()` yields exactly
-      one candidate, which is what pins the 1. Phase 3 uses assertion 4 as its D2-leak detector and
-      must read it as "one candidate in, one file read" — a count above the candidate count is the
-      leak, a count equal to it is not.
+      one candidate, which is what pins the 1. Phase 3 used assertion 4 as its D2-leak detector,
+      read as "one candidate in, one file read" — a count above the candidate count is the leak, a
+      count equal to it is not — and measured a count equal to it.
 - [ ] Each cache in the "Why this is a capability" table is re-measured and either removed as
       redundant or kept with a stated reason.
 

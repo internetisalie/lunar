@@ -5,7 +5,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * TC-17 — **did a new way of reading another file appear?**
+ * TC-17 — **did the number of calls to a KNOWN cross-file door move?**
  *
  * Design §3.5 enumerates every place `LuaTypeManagerImpl` turns another file's content into type
  * information, and `LuaTypesVisitor.seedAmbientGlobals` is the counter-example that proves the
@@ -13,6 +13,16 @@ import java.io.File
  * while depending on an unrecorded file — a silent stale-type defect, not a crash — so this counts
  * the door calls and fails the build when the count moves. It does not decide whether a new site
  * needs a `reportFile`; it forces the author to.
+ *
+ * **What it cannot do, measured.** It counts occurrences of the member names in [doorMembers] and
+ * nothing else, so a genuinely *new* kind of cross-file read is invisible to it until someone adds
+ * that member to the list by hand. Injecting a `FileBasedIndex.getInstance().getValues(…)` call into
+ * a mutated copy of `LuaTypeManagerImpl` left all six counts unchanged and this test green. The
+ * arrival of `.membersIn(` in COMP-09 Phase 3 was caught the same way every arrival is — the
+ * *removals* beside it moved `.getAllKeys(` from 2 to 0 and reddened the test, and the author then
+ * chose to enumerate the new door rather than merely re-baseline the old one. So read this as a
+ * ratchet over an enumerated set, not a detector of unenumerated doors: **once a door is on the
+ * list its call count is pinned; getting it onto the list is a human act.**
  *
  * **The matcher is the measured one, not the obvious one** (§1.9 B3). Counting qualified chains was
  * measured against the real file at `1 / 3 / 0`: ktlint wraps both
@@ -30,12 +40,16 @@ import java.io.File
  */
 class LuaTypeSourceRecorderCoverageTest {
     /**
-     * `.membersIn(` joined this list in COMP-09 Phase 3, which is the case the guard was written
-     * for: `addMethodsOf` stopped reading `StubIndex.getAllKeys` and started reading
-     * `LuaReceiverMemberIndex.membersIn`, a **new kind** of cross-file read that none of the five
-     * original members would have counted. Left off the list, the two `.getAllKeys(` removals would
-     * have shown up as a count *drop* — trivially re-baselined — while an unrecognised door came in
-     * unremarked, which is precisely the silent case this test exists to prevent.
+     * `.membersIn(` joined this list in COMP-09 Phase 3: `addMethodsOf` stopped reading
+     * `StubIndex.getAllKeys` and started reading `LuaReceiverMemberIndex.membersIn`, a **new kind**
+     * of cross-file read that none of the five original members counted — and, until it was added
+     * here, still did not.
+     *
+     * What the list buys is *afterwards*, not at the moment of arrival: with `.membersIn(` on it, a
+     * second `membersIn` call site now reddens the test. Left off, the two `.getAllKeys(` removals
+     * would still have reddened it, but re-baselining `[2,3,2,0,0]` would have been enough to make it
+     * green again with the new door unremarked — which is the outcome this entry prevents. Adding an
+     * entry is the only way a door enters the ratchet; nothing here discovers one.
      */
     private val doorMembers =
         listOf(
@@ -51,7 +65,9 @@ class LuaTypeSourceRecorderCoverageTest {
      * Stated mutation: inject one `PsiManager.getInstance(project).findFile(…)` into
      * `LuaTypeManagerImpl` → its `.findFile(` count goes `2 → 3` and this fails. Second check, that
      * the guard is not fooled by formatting alone: re-wrapping an existing `StubIndex.getElements(`
-     * across lines leaves `.getElements(` at `3`.
+     * across lines leaves `.getElements(` at `3`. Third, the **negative** result that bounds the
+     * claim: injecting a `.getValues(` call — a door on no line of this list — leaves every count
+     * untouched and this test green.
      *
      * **COMP-09 Phase 3 re-earned this count** — `.getAllKeys(` went `2 → 0` and `.membersIn(`
      * `0 → 1`, as `addMethodsOf` swapped a scan of every global-declaration key for a receiver-keyed
