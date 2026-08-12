@@ -2,16 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
-- **A library file's type snapshot must not be invalidated by an unrelated keystroke** (TYPE-11):
-  library types are cached against the dependency generation — library roots and language target —
-  instead of every keystroke; measured 334 ms → ~11 ms per keystroke with a 123 KiB definition
-  library installed ([8d536e87](https://github.com/internetisalie/lunar/commit/8d536e87)).
-- **`LuaTypeReference`'s memoized answer carries no recording frame** (BUG-434): a type name read
-  before the library's graph was built hid the file it resolved into, so the library kept its old
-  types after that file changed ([e7f0ba4d](https://github.com/internetisalie/lunar/commit/e7f0ba4d)).
-- **`resolveType` has no dumb-mode guard** (BUG-432): type resolution during indexing reported an
-  IDE internal error instead of degrading quietly until the indexes are ready
-  ([b6cc37d3](https://github.com/internetisalie/lunar/commit/b6cc37d3)).
+- **Library snapshot invalidation** (TYPE-11): library types depend on the dependency generation —
+  library roots and language target — instead of every keystroke; 334 ms → ~11 ms per keystroke with
+  a 123 KiB definition library ([8d536e87](https://github.com/internetisalie/lunar/commit/8d536e87)).
+- **Lazy type reference escapes the recording frame** (BUG-434): a type name read before the library's
+  graph was built hid the file it resolved into, leaving stale types ([e7f0ba4d](https://github.com/internetisalie/lunar/commit/e7f0ba4d)).
+- **`resolveType` logs an IDE error during indexing** (BUG-432): type resolution now degrades quietly
+  while the indexes build ([b6cc37d3](https://github.com/internetisalie/lunar/commit/b6cc37d3)).
 
 ### A global API declared in another file now carries its types (BUG-427)
 
