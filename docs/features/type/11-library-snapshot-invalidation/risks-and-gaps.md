@@ -230,6 +230,184 @@ null) is redundant with the existing B1 absence rule wherever it fires, so it ne
 `dr15rescued` would have kept. **Recommended rule: `dr15rescued`** — same measured cost as `dr15broad`
 on every case tried, and it does not duplicate bookkeeping the absence rule already does.
 
+### Fifth measurement round (2026-08-12, `main` @ `8d536e87`) — DR-08
+
+Same discipline, same builder, same revert (`git diff -- src/main/` empty at commit). This round
+**attributes** the arm-B residual `design.md` §1.5 measured but never profiled, and identifies §1.5's
+26x outlier. It changes no production behaviour and reopens nothing: TYPE-11 is `done`, and DR-08's
+deliverable is a decision.
+
+| Scaffold file / edit | Purpose | State |
+| :-- | :-- | :-- |
+| `src/main/kotlin/.../lang/psi/types/LuaDrEightProbe.kt` (new, 61 lines) | `object` holding a `ConcurrentHashMap<String, Bucket>` of `calls` / `inclusiveNs` / `exclusiveNs` plus a thread-local child-time stack, so every named site reports **self** time as well as inclusive time; `measure(label, body)`, `count(label, howMany)`, `reset()`, `report(header)`. Self time is the whole point — every outer site's inclusive time is dominated by whatever it calls, so only the exclusive column attributes anything | **deleted** |
+| `LuaTypes.kt` — `forFile`, `graphTypeToLuaType`, `tableToLuaType` | `measure("buildSnapshot:<file name>")` around the `getCachedValue` compute (labelled per file, so the library's own build separates from each consumer's); `measure("graphTypeToLuaType(entry)")` on the public conversion entry; `count` on the `visited` map allocation and on `type.getMembers().size` per table walked; `measure` around the nominal `resolveType` hop | **reverted to HEAD** |
+| `LuaTypeManagerImpl.kt` — both resolution doors and their internals | `count` on `resolveGlobal` / `resolveType` cache hits; `measure` around `doResolveGlobal:<name>`, `typeOfGlobalIn`'s `getContainingFiles` and `PsiManager.findFile`, `globalTypeIn`'s `forFile` / `getGlobalType` / `graphTypeToLuaType`; and around `doResolveType`, `materializeClass`, `materializeUnhostedClass`, `catsClassTags`, `LuaImplicitFields.collect`, `getAllKeys` and `addMethodsOf`, with key- and query-counts inside `addMethodsOf` | **reverted to HEAD** |
+| `LuaTypesVisitor.kt` — `buildSnapshot` (companion), `freeGlobalSeed`, `declaredMemberType` | the companion's four phases split into `seedAmbientGlobals` / `accept` / `checkTypes` / `materialize`, which is what moved the largest term out of an unattributed remainder; `measure` around the visitor's two `resolveGlobal` calls and both `fromLuaType` conversions | **reverted to HEAD** |
+| `LuaGraphType.kt` — `fromLuaType`, `LuaClassType` branch | `count` on the reverse member walk | **reverted to HEAD** |
+| `LuaTypeReference.kt` — `resolved` | BUG-434's memoized door, instrumented in case it was on this path. **It never fired** — no bucket appeared in any of the 30 samples | **reverted to HEAD** |
+| `src/test/kotlin/.../type/TypeElevenDr08ProfileTest.kt` (new) | `TypeElevenDr04LatencyTest`'s shape with three arms — no library, 360 members, 3 600 members — five samples each, the consumer file created **outside** the timer exactly as DR-04 does, reported in **call order** rather than sorted, each with its own probe dump and a `GarbageCollectorMXBean` count/time delta | **deleted with the scaffold** |
+
+**Two things about the method, both of which decided a conclusion.**
+
+- **Report in call order, not sorted.** §1.5's raw samples are sorted, which is what hid the outlier:
+  once sorted, `858515` is simply "the last element" and could be anything. In call order it is
+  **always sample #0**, in all four arm-B runs now on record, which is what identifies it.
+- **Three sizes, not two.** The predicted cause is a claim that the cost scales with the member set.
+  That is a proportionality claim and needs a third point to test; a tenth-size library (340 fields +
+  20 methods, same tags, same shape) is what turns "the member walk is involved" into "the member
+  walk is the mechanism, and here is its slope".
+
+#### The breakdown, as measured
+
+Two independent runs of the same class, medians of five per arm within each run. The whole §1.5 rule
+applies unchanged — **compare only within a run**, never a figure from run 2 against one from run 3.
+
+```
+### run 2 (2026-08-12 10:16 UTC)
+  armA       median-of-5 total=    6930us  sample0=    17886us
+  armBtenth  median-of-5 total=   12626us  sample0=    92276us
+  armB       median-of-5 total=   33906us  sample0=   976827us
+  term                                   armA  armB/10     armB
+  buildSnapshot.checkTypes                 10      531     7546
+  graphTypeToLuaType(entry)                 0      471     5400
+  globalTypeIn.getGlobalType                0      364     3167
+  freeGlobalSeed.fromLuaType                0      192     2371
+  typeOfGlobalIn.indexQuery              5712     6086     7601
+  buildSnapshot.accept                    170      197      269
+  SUM of the four member-linear            10     1558    18484
+  visitedMapAlloc calls/sample = 1, tableMemberWalk = 3600
+  sample0 buildSnapshot:wx.lua incl = armB 844609us / armB10 68305us
+
+### run 3 (2026-08-12 10:18 UTC)
+  armA       median-of-5 total=    7225us  sample0=     9474us
+  armBtenth  median-of-5 total=   11932us  sample0=    74573us
+  armB       median-of-5 total=   29020us  sample0=  1103971us
+  term                                   armA  armB/10     armB
+  buildSnapshot.checkTypes                  7      618     5697
+  graphTypeToLuaType(entry)                 0      417     4924
+  globalTypeIn.getGlobalType                0      367     3862
+  freeGlobalSeed.fromLuaType                0      223     2075
+  typeOfGlobalIn.indexQuery              6395     6092     6621
+  buildSnapshot.accept                    184      228      220
+  SUM of the four member-linear             7     1625    16558
+  visitedMapAlloc calls/sample = 1, tableMemberWalk = 3600
+  sample0 buildSnapshot:wx.lua incl = armB 955406us / armB10 53670us
+```
+
+All figures are **exclusive** (self) time, medians of samples 1–4 — sample 0 is excluded from the
+steady state because it is a different event (below). Arm B lands at **4.0x / 4.9x** arm A within its
+own run, reproducing §1.5's 3–5x band on a different day and a different build.
+
+#### What the residual is
+
+The arm-B-only residual is **~16.6–18.5 ms** of work that is strictly linear in the library's member
+set, split across **four** components — not one:
+
+| term | armB (3 600) | share | what it is |
+| :-- | --: | --: | :-- |
+| `LuaTypeGraph.checkTypes()` | 5.7–7.5 ms | ~34–41% | the consumer's own fixed-point pass, over a graph that now contains 3 600 member `VariableNode`s embedded by the seed. Each iteration sums `upSet.size + downSet.size` over every node (`LuaTypeGraph.kt:309-314`) |
+| `LuaTypesSnapshot.graphTypeToLuaType` | 4.9–5.4 ms | ~29% | graph `Table` → `LuaTableLiteralType`, one `LuaTypeMember` per member |
+| `LuaTypesSnapshot.getGlobalType` | 3.2–3.9 ms | ~19–21% | `typeOf`'s write/read merge (`LuaTypes.kt:77-86`) allocating a fresh 3 600-entry `mergedMembers` map per call |
+| `LuaGraphType.fromLuaType` | 2.1–2.4 ms | ~12–13% | the return trip, `LuaType` → graph, one `VariableNode` per member |
+
+**Proportionality, measured.** Ten times fewer members costs 10.2x / 11.9x less: `1 558 → 18 484` and
+`1 625 → 16 558` µs. Every one of the four terms moves with the member count; nothing fixed hides in
+them.
+
+#### The prediction, judged
+
+§1.5 and `requirements.md` both predicted "every free global re-runs `resolveGlobal` +
+`graphTypeToLuaType`, which builds a **fresh `visited` map per call** and walks the library table's
+full member set". Point by point, against the numbers above:
+
+| predicted term | verdict | measured |
+| :-- | :-- | :-- |
+| the fresh `visited` map per call | **refuted** | `visitedMapAlloc calls=1` per `forFile`, not per member and not per global. One `HashMap` allocation per keystroke, tens of nanoseconds — four orders of magnitude below the residual it was named as the cause of |
+| `resolveGlobal` itself | **refuted** | the door plus `doResolveGlobal` plus `findFile` is **60–150 µs**, under 1% of the residual. The index query underneath it (`typeOfGlobalIn.indexQuery`, 5.7–8.8 ms) is real but **identical in all three arms**, including the one with no library at all — it is arm A's *own* dominant cost, not part of the gap |
+| `graphTypeToLuaType` | **confirmed, but partial** | real, and 29% of the residual — not the whole of it |
+| walking the library table's full member set | **confirmed as the mechanism** | 3 600 members walked per keystroke, linear slope measured. But it is **four** walks in four components, and the single largest, `checkTypes`, is in the type-graph engine, which the prediction never mentions |
+
+So the reasoned answer and the measured answer differ again, in the same direction as every previous
+round: the named mechanism is right, the named *sites* account for under a third of it, and the two
+concrete claims about *why* (`visited` allocation, `resolveGlobal` re-running) are both refuted by
+their own counters. **Two further predictions this round set out to test and found off-path**:
+`materializeUnhostedClass` / `addMethodsOf` / `catsClassTags` — the BUG-433 stub-key scan — **never
+run** on this path (the graph `Table` for `wx` carries no `className`, so `tableToLuaType` takes the
+anonymous branch and never reaches nominal resolution), and BUG-434's `LuaTypeReference.resolved`
+door never fires either. Both were instrumented; both stayed absent from all 30 samples.
+
+#### The outlier is the cold library build, and it is 58x the residual
+
+§1.5's `858515 µs` and `843603 µs`, "in both re-runs, at the same position", are **sample #0**, and
+they are `buildSnapshot:wx.lua` — the 123 KiB library file's own type-graph construction, entered
+from inside the first consumer's build via `resolveGlobal → globalTypeIn.forFile`:
+
+```
+armB sample 0: total=976827us   buildSnapshot:wx.lua incl=844609us  gcCount=3 gcTimeMs=24
+armB sample 0: total=1103971us  buildSnapshot:wx.lua incl=955406us  gcCount=3 gcTimeMs=31
+   of which (run 2): buildSnapshot.accept excl=690159us, buildSnapshot.checkTypes excl=168584us
+armB/10 sample 0:  buildSnapshot:wx.lua incl=68305us / 53670us
+```
+
+`844 609` and `955 406` against §1.5's `858 515` and `843 603` — the same event, on four runs across
+three days. It happens **once per session per library**, in whichever sample first touches it, and it
+is `~690 ms` of AST traversal plus `~170 ms` of `checkTypes` over the library's own 3 600 declarations.
+
+**It is not GC**: 3 collections totalling 24–31 ms inside a 977–1 104 ms sample, and the steady-state
+samples record 0 collections while showing the full residual. It is not the `visited` map, which is
+one allocation. It is **exactly the cost `requirements.md` already scoped out** — "the cold first
+build of a session still pays the full library graph once (COMP-09's index is the answer to that
+half)" — arriving in the DR-04 harness because arm B's first sample is the first thing in the JVM to
+touch the library. A median of five is the right statistic for the steady state and the **wrong** one
+for this: it is not noise, it is a second, larger, differently-owned cost sharing a sample set.
+
+#### DR-08's verdict: not worth doing as its own feature
+
+Three reasons, each with its number.
+
+1. **At most half of it is reachable without re-architecting the engine.** The two conversion terms —
+   `graphTypeToLuaType` and `getGlobalType`, 8.1–8.8 ms of the 16.6–18.5 ms — are addressable by an
+   idiom this codebase already has: the library snapshot is now pinned, so the `LuaType` derived from
+   it is stable within a generation too, and `LuaTypeManagerImpl.CachedAnswer` already carries the
+   `SourceFrame` that would decide whether a given answer may be pinned. That change would take arm B
+   from ~29 ms to ~20 ms — still **~2.8x** arm A, still missing `requirements.md`'s "near the 9 ms
+   baseline" criterion. The other half (`checkTypes` + `fromLuaType`) is the *consumer's* graph being
+   rebuilt because the consumer file genuinely changed; removing it means materializing table members
+   lazily in `LuaGraphType.Table`, which is engine-scale work of the kind BUG-430 is already parked on.
+2. **The same data holds a number 58x larger that is already owned.** 955 ms cold against 16.6 ms
+   recurring. COMP-09 went **`ready` on 2026-08-12** — unblocked by TYPE-11 itself — and its whole
+   purpose is to stop building that graph. Spending the next performance slot on the 16 ms while the
+   955 ms is unclaimed is the wrong order, and DR-08's contribution to COMP-09 is that the 955 ms is
+   now attributed (`accept` 690 ms / `checkTypes` 170 ms) rather than assumed.
+3. **It is linear, and the measured case is deliberately extreme.** 3 600 members in a *single* class
+   is DR-20's pain case, chosen because it hurt. At 360 members the entire residual is **1.6 ms** —
+   inside arm A's own run-to-run swing (§1.5: 3.2–10.4 ms), i.e. not measurable as a user-facing
+   effect, let alone visible as one.
+
+**What would change this answer**, stated so it can be checked rather than re-argued: COMP-09 landing
+(after which this becomes the largest remaining per-keystroke library cost, and reason 2 expires), or
+a catalog entry shipping with >1 000 members in one class **plus** a user report — the shape of the
+evidence that put DR-20 on the board in the first place.
+
+#### The gate a future attempt must start with — count, not time
+
+This is the load-bearing half of the recommendation, because a performance feature here begins with
+**no gate**: `TypeElevenDr04LatencyTest` has zero assertions by design, and §1.5 forbids the
+cross-run comparison a timing threshold would need. Worse, the within-run ratio that §1.5 *does*
+permit is itself unstable — **3.3x, 5.2x, 4.9x, 4.0x** across the four runs now on record — so a
+threshold loose enough not to flake (say 8x) would sail past a 2x regression.
+
+The assertion that is deterministic is the one this probe already produced as a by-product:
+**`graphTypeToLuaType` converts the library's global table once per `forFile` call, walking 3 600
+members every time.** That is a *count*, it is exact, and it is invariant to the machine. The gate for
+any fix is therefore "N consumer rebuilds against an unchanged pinned library perform **≤1**
+conversion of that library's global type, not N", asserted over a fixed fixture and shown red by
+reverting the memoization — the same idiom as `TypeElevenPinnableCostTest`'s
+`TYPE11-COST provisioned=11 pinnable=11` and the `REVIEW-COST TOTALS` rows, both of which are counts
+for exactly this reason. Note what that costs: the counter has to live in production code or behind a
+test-visible hook, since a `src/main` probe cannot be reverted and gate anything. **That cost is part
+of the feature, and it is a further reason this is a feature rather than a patch.**
+
 ## Mutation ledger — every assertion, and the mutation that turned it red
 
 "A test that cannot fail is not a gate." Each row was run; the `result` column is the observed
@@ -1037,14 +1215,27 @@ what was closed.
   change in the hot path of a performance feature, so it was filed rather than rushed; the pricing it
   needed is the four measurements in the Status row above. See BUG-434 and the Phase 4 section.
 
-### Risk 1.4: The win is smaller than the headline suggests
+### Risk 1.4: The win is smaller than the headline suggests — **ACCEPTED, DR-08: attributed, and not worth closing**
 
 - **Impact**: expectations. `design.md` §1.5 measures arm B at 3–5× arm A after the change, against a
   DR-04 success criterion of "near the 9 ms baseline".
 - **Likelihood**: **certain** — it is already measured.
 - **Mitigation**: state it, do not hide it. The recurring per-keystroke cost drops from hundreds of
-  milliseconds to tens; the remaining gap is the `resolveGlobal` + `graphTypeToLuaType` conversion
-  `requirements.md` already named, and it is a separate piece of work (DR-08).
+  milliseconds to tens; the remaining gap is ~16.6–18.5 ms of member-set-linear work.
+- **Attributed (2026-08-12, DR-08)** — full breakdown in "Fifth measurement round" above. The residual
+  is **four** terms, all linear in the library's member count: `checkTypes` 5.7–7.5 ms (~34–41%),
+  `graphTypeToLuaType` 4.9–5.4 ms (~29%), `getGlobalType`'s write/read merge 3.2–3.9 ms (~19–21%),
+  `fromLuaType` 2.1–2.4 ms (~12–13%). The predicted cause is **wrong in its two concrete claims**: the
+  fresh `visited` map is **one allocation per `forFile`** (`visitedMapAlloc calls=1`), and
+  `resolveGlobal` itself is 60–150 µs — under 1%. The index query beneath it is the same size in the
+  **no-library** arm, so it is not part of the gap at all.
+- **Accepted, not scheduled.** At most half the residual is reachable without engine-scale change
+  (~29 ms → ~20 ms, still ~2.8× arm A and still short of the criterion); the same run holds a **955 ms**
+  cold library build, 58× larger, which is COMP-09's — and COMP-09 went `ready` on 2026-08-12. At a
+  tenth the member count the whole residual is 1.6 ms, inside arm A's own 3.2–10.4 ms swing. **No
+  follow-up feature is filed**; the conditions that would reverse that, and the count-based gate any
+  attempt must start with, are stated in the DR-08 verdict above.
+- **Resolved by**: DR-08.
 
 ## Design Gaps
 
@@ -1126,9 +1317,13 @@ The original entry, kept because the question it asked is the one that was answe
 
 ## Technical Debt & Future Work
 
-- **TBD: the remaining 3–5× in DR-04 arm B.** Every free global still re-runs `resolveGlobal` +
-  `graphTypeToLuaType`, building a fresh `visited` map per call and walking the library table's full
-  member set. Out of scope; see DR-08.
+- ~~**TBD: the remaining 3–5× in DR-04 arm B.**~~ **Measured and closed as "not worth doing", DR-08
+  (2026-08-12)** — and the sentence this replaces was wrong twice over: the `visited` map is one
+  allocation per `forFile`, and `resolveGlobal` itself is under 1% of the gap. The residual is
+  ~16.6–18.5 ms across four member-linear terms, the largest of which (`checkTypes`) is in the type
+  graph, not in either site named here. No follow-up feature is filed; see Risk 1.4 and the DR-08
+  verdict for the numbers, the conditions that would reverse the decision, and the count-based gate
+  any attempt must start with.
 - **TBD: `LibraryRootTestCase` and `TypeElevenDefinitionLibraryTestCase` now overlap.** The former
   registers an anonymous provider (invisible to provenance); the latter goes through the real
   definition-library path. They are kept apart on purpose — the anonymous one is the right tool for
@@ -1144,8 +1339,11 @@ The original entry, kept because the question it asked is the one that was answe
   absence rule is scoped to *global* resolution in `design.md` §3.1 step 5: a "resolution answered
   nothing" signal that fires on `boolean|nil` measures nothing about declarations. Worth a separate
   look at whether these should be parsed by `TypeParser` before reaching the door.
-- **TBD: COMP-09.** This feature removes the recurring per-edit cost only. The first completion of a
-  session still builds the library graph once, which is what COMP-09's index avoids.
+- **TBD: COMP-09 — and DR-08 priced it.** This feature removes the recurring per-edit cost only. The
+  first completion of a session still builds the library graph once, which is what COMP-09's index
+  avoids: **844 609 / 955 406 µs** for the 123 KiB library, of which ~690 ms is
+  `buildSnapshot.accept` (AST traversal) and ~170 ms is `checkTypes`. That is **58× the recurring
+  residual** DR-08 declined to chase, and it is the number COMP-09 should be measured against.
 
 ## Pre-Implementation De-risking Tasks
 
@@ -1160,7 +1358,7 @@ The original entry, kept because the question it asked is the one that was answe
 | TYPE-11-DR-05 | Build a snapshot under `DumbService.isDumb`, exit, complete again | TYPE-11-05 | **done, negative** — `design.md` §1.6. Nulls are baked in; they do not survive; two mutations failed to make the harness red. Reopened as DR-06. **Its trace nonetheless grounds the gate that replaced it** (§1.9 B5): `libDumb graph type = Undefined` inside the dumb block *is* `resolveGlobal` having returned null, i.e. the empty frame TC-16 asserts on |
 | TYPE-11-DR-06 | Determine whether the `modificationStamp` move at dumb-mode exit is platform behaviour or a `DumbModeTestUtils` artifact. If the former, TYPE-11-05's guard is dead code and should be deleted; if the latter, build a fixture that reproduces the staleness | Gap 2.1, TYPE-11-05 | **DONE, Phase 4 (2026-08-12) — negative, and now explained.** Platform behaviour, not a `DumbModeTestUtils` artifact: `FileManagerImpl`'s constructor subscribes `processFileTypesChanged` to **both** dumb-mode edges, which invalidates all physical PSI and moves every cached file's `modificationStamp` (`0 → 1` on entry, `1 → 2` on exit, `2 → 4` on a second episode; `roots` and the VFS stamp still; a bare event pump moves nothing). The *outcome* therefore cannot occur in a real IDE either, so the guard is **insurance and stays**; Gap 2.1 closes. Method and full output above |
 | TYPE-11-DR-07 | Probe whether a `LuaTypeReference` can be resolved after its recording frame closed, and whether the resulting source can reach a pinned snapshot | Risk 1.3 | **DONE, Phase 4 (2026-08-12) — positive: the defect is real, filed as BUG-434.** Reachable, and by the *opposite* mechanism to the one Risk 1.3 named: the reference is consumed **inside** the frame by `fromLuaType`, and `resolved`'s `by lazy` short-circuits before `resolveType`, so neither `recordInto` nor `replay` runs. `arm2 pre-forced urls=[lib.lua] pinnable=true` against `arm1 cold urls=[lib.lua, gadget.lua] pinnable=false`; end to end `arm3 after=[spin] sameSnapshot=true` against `arm4 after=[spun] sameSnapshot=false`. Attribution proven by replacing the `by lazy` with a `get()` — every arm then reports the cold result. **Sixth under-recording channel. Fixed in Phase 5 (2026-08-12)**: the memoized answer now carries its `SourceFrame` and replays it on every read (design §3.1 step 7), priced at zero pins (`provisioned=11 pinnable=11`), 2630/0/1 routine, 2638/0/1 corpus and DR-04 arm B inside the harness noise band. Risk 1.3 closed |
-| TYPE-11-DR-08 | Profile the residual arm-B cost (`resolveGlobal` + `graphTypeToLuaType`, fresh `visited` map per call over a 3 600-member table) and decide whether it is a separate feature | Risk 1.4 | todo |
+| TYPE-11-DR-08 | Profile the residual arm-B cost (`resolveGlobal` + `graphTypeToLuaType`, fresh `visited` map per call over a 3 600-member table) and decide whether it is a separate feature | Risk 1.4 | **DONE, Phase 5 (2026-08-12) — attributed, and the decision is NOT a separate feature.** Method and full output in "Fifth measurement round" above. The residual is **four** member-linear terms, not one: `checkTypes` ~34–41%, `graphTypeToLuaType` ~29%, `getGlobalType`'s write/read merge ~19–21%, `fromLuaType` ~12–13%; measured linear (10× fewer members ⇒ 10.2×/11.9× less). **Both concrete claims in the prediction are refuted**: the `visited` map is *one* allocation per `forFile` (`visitedMapAlloc calls=1`), and `resolveGlobal` itself is 60–150 µs (<1%) — while `typeOfGlobalIn.indexQuery`, the biggest thing under that door, is **the same size in the no-library arm**. §1.5's 26× outlier is **sample #0**, the cold `buildSnapshot:wx.lua` (844 609 / 955 406 µs here vs §1.5's 858 515 / 843 603) — once per session, COMP-09's, not GC (3 collections, 24–31 ms). Verdict: ≤half is reachable without engine-scale change and would still land ~2.8× arm A; 1.6 ms at a tenth the members; the 955 ms next to it is 58× bigger and already owned. Gate for any future attempt: a **count** (≤1 conversion per generation), never a timing threshold — the within-run ratio swings 3.3/5.2/4.9/4.0× |
 | TYPE-11-DR-11 | Step 9 blocker B1: does a build whose global resolution answered **nothing** get pinned, and does the declaration written afterwards fail to reach it? | TYPE-11-06, `design.md` §3.3/§3.4 | **done, positive (the defect is real)** — `design.md` §1.8. `expected:<[afterDeclared]> but was:<[]>`. Closed by §3.3 step 4; measured cost **zero** pinned files. |
 | TYPE-11-DR-12 | Step 9 blocker B4: is the interleaving reachable in which a nested `forFile` is served warm, so the outer library file records an incomplete source set and is pinned? | TYPE-11-06, `design.md` §3.6 | **done, positive (the defect is real, and needs no roots tick)** — `design.md` §1.8. `expected:<[afterEdit]> but was:<[beforeEdit]>`. Closed by §3.7 (replay), not by blanket-unpinnable; measured cost **zero** pinned files. |
 | TYPE-11-DR-13 | Price the alternative to blanket-unpinnable for B1: is there a tracker that ticks when a global declaration appears? | `design.md` §9 | **done, not adopted** — `FileBasedIndex.getIndexModificationStamp(LuaGlobalAssignmentIndex.KEY, project)` exists and behaves as hoped (`16 / 16 / 17`), but the rule it would optimise costs nothing, so the second invalidation axis buys nothing. |

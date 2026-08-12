@@ -128,7 +128,7 @@ snapshots on the global tracker).
 | TYPE-11-DR-01 | Swap `forFile`'s dependency to a generation-scoped one **for platform-library files only**, run the full suite and the corpus sweeps. What breaks tells you whether the cross-file residual is real. Include the two named residual paths explicitly: a project file shadowing a stub global (BUG-427 ordering) and a project file adding a method to a stub-defined class. | the residual above; TYPE-11-04 |
 | TYPE-11-DR-02 | Can every file `resolveGlobal` resolves into be matched by `VirtualFile` identity against the provenance set (`RuntimeLibraryProvider` / definition-library registry)? Watch for identity traps — `originalFile`, light-fixture copies, event-system vs local file system. | TYPE-11-03 |
 | TYPE-11-DR-03 | *(Deferred — rocks are out of v1 scope.)* Before ever extending this to rocks trees: does `RockspecSourcePathProvider.forceRefreshTracker` tick on `luarocks install` into an existing root? If not, what does — and if nothing does, that signal must be built. | follow-up scope only |
-| TYPE-11-DR-04 | Re-measure DR-20's 9 ms / 334 ms pair after the change, medians of >=5. **Success is landing near the 9 ms no-library baseline, not the warm ~1 ms** — the old warm number was the consumer's own snapshot served from cache; after a keystroke that snapshot correctly rebuilds, and every free global re-runs `resolveGlobal` + `graphTypeToLuaType`, which builds a fresh `visited` map per call and walks the library table's full member set. If the number lands well above 9 ms, that conversion is the next cost to look at — not a failure of the invalidation change. | TYPE-11-01 |
+| TYPE-11-DR-04 | Re-measure DR-20's 9 ms / 334 ms pair after the change, medians of >=5. **Success is landing near the 9 ms no-library baseline, not the warm ~1 ms** — the old warm number was the consumer's own snapshot served from cache; after a keystroke that snapshot correctly rebuilds, and every free global re-runs `resolveGlobal` + `graphTypeToLuaType`, which builds a fresh `visited` map per call and walks the library table's full member set. If the number lands well above 9 ms, that conversion is the next cost to look at — not a failure of the invalidation change. ⚠ **It did land well above 9 ms, and this sentence's diagnosis was measured wrong (DR-08, 2026-08-12): the `visited` map is one allocation per `forFile`, `resolveGlobal` is <1%, and the biggest term is `checkTypes` in the type graph.** | TYPE-11-01 |
 | TYPE-11-DR-05 | Build a snapshot under `DumbService.isDumb` (index-rebuild test fixture), exit dumb mode, complete again. Do the baked-in nulls survive? Verifies the guard demanded by TYPE-11-05 actually engages. | TYPE-11-05 |
 
 ### De-risking outcomes (run 2026-08-09; full output in [design.md](design.md) §1)
@@ -421,9 +421,21 @@ build, and one design premise corrected twice — `clearPsiCaches` moves `modifi
 **entry and exit and on `makeRootsChange`**, which §1.6 and §1.11 had each attributed to their own event.
 Reviewing a plan finds defects in the plan; only running the code finds defects in the reasoning.
 
-**Open, and deliberately not blocking**: Phase 5 / DR-08 (the residual 3–5× arm-B cost, `Could`),
-DR-16 (is there a seventh channel — `resolveType`'s reentrancy branch returns `null` with no absence
-mark and has not been probed), DR-17, and BUG-433 (`addMethodsOf` cancellation).
+**Open, and deliberately not blocking**: DR-16 (is there a seventh channel — `resolveType`'s
+reentrancy branch returns `null` with no absence mark and has not been probed), DR-17, and BUG-433
+(`addMethodsOf` cancellation).
+
+**Phase 5 / DR-08 (`Could`) is closed, 2026-08-12, with a decision rather than a fix, and it
+reopens nothing.** The residual 3–5× was profiled: ~16.6–18.5 ms across **four** member-linear terms
+(`checkTypes` ~34–41%, `graphTypeToLuaType` ~29%, `getGlobalType`'s write/read merge ~19–21%,
+`fromLuaType` ~12–13%). The prediction the row below (DR-04) and the residual note both carry —
+"a fresh `visited` map per call" plus a re-run of `resolveGlobal` — is **refuted by its own
+counters**: one map allocation per `forFile`, and 60–150 µs for `resolveGlobal`. The 26× spike in
+§1.5's raw samples is the **cold library build**, once per session, and belongs to COMP-09. Verdict:
+**not worth a follow-up feature** — at most half is reachable without engine-scale change and would
+still land ~2.8× arm A, and at a tenth the member count the whole residual is 1.6 ms. See
+`risks-and-gaps.md` Risk 1.4 and "Fifth measurement round" for the numbers, the conditions that
+would reverse the decision, and the count-based gate any attempt must start with.
 
 ## Relationship to COMP-09
 

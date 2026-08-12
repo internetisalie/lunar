@@ -214,6 +214,20 @@ named the reason — every free global still re-runs `resolveGlobal` + `graphTyp
 builds a fresh `visited` map per call and walks the library table's full member set. That residual
 cost is **out of scope here** and is filed as a follow-up in `risks-and-gaps.md`.
 
+⚠ **PROFILED IN PHASE 5 (DR-08, 2026-08-12), and the prediction in the paragraph above is wrong in
+both of its concrete claims.** The fresh `visited` map is **one allocation per `forFile`**, not one
+per global and not one per member; `resolveGlobal` itself costs 60–150 µs, under 1% of the gap; and
+the index query beneath it is **the same size in the no-library arm**, so it is arm A's own dominant
+cost rather than part of the residual. What survives is the member *walk*, and it is **four** walks —
+`checkTypes` (~34–41%), `graphTypeToLuaType` (~29%), `getGlobalType`'s write/read merge (~19–21%),
+`fromLuaType` (~12–13%) — the largest of which lives in the type-graph engine and is named nowhere
+above. The raw samples' `858515` and `843603` are **not noise and not a median's tail**: they are
+sample **#0** in call order, and they are the cold `buildSnapshot` of `wx.lua` itself (measured again
+at `844609` and `955406`), a once-per-session cost that belongs to COMP-09. DR-08's decision is that
+the recurring residual is **not worth a feature**; the full breakdown, the reasoning and the
+count-based gate a future attempt would need are in `risks-and-gaps.md` ("Fifth measurement round"
+and Risk 1.4).
+
 ### 1.6 DR-05 — the dumb-mode staleness class did NOT reproduce
 
 `requirements.md` asserts that a snapshot built while `DumbService.isDumb` bakes in `resolveGlobal`'s
