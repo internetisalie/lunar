@@ -2,7 +2,7 @@
 id: "TYPE-11"
 title: "11: A library file's type snapshot must not be invalidated by an unrelated keystroke"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "high"
 parent_id: "TYPE"
 folders:
@@ -399,6 +399,31 @@ it. Phase 5 closes it.
   (28 234 → 29 839 µs) against an arm-A noise band of −25 %…+17 %, and **below** Phase 3's in-suite
   reference (22 859 µs) in both in-suite runs (15 147 µs, 10 906 µs). Full evidence in
   `docs/features/bug-fixes/434-lazy-type-reference-escapes-the-recording-frame/bug-report.md`.
+
+### Delivered (2026-08-12)
+
+All four `Must` phases shipped and gated. Final state: **2 638 tests, 0 failures**, corpus sweep green
+(`LuaCorpusSweepTest` / `LuaTortureCorpusTest` / `LuaInspectionParityTest`), `provisioned=11
+pinnable=11`, DR-04 arm B **22 859 → ~11 000 µs** in-suite against an unpinned reference of 349 700 µs.
+
+**Six under-recording channels, not four.** Planning found and closed four (absence, warm inner,
+in-progress inner, rescued global). Implementation found two more, both by measurement: the module
+door's `ANY` fall-through (§1.12, planning) and **`LuaTypeReference`'s frameless memoization**
+(BUG-434, Phase 4) — the latter shipping as a live stale type until it was fixed, and the only one no
+`isPinnable` clause could ever have caught, because a frame that is wrongly *clean* is
+indistinguishable from a correct one.
+
+**What the phases found that five Step 9 rounds could not**, recorded because the ratio is the lesson:
+one production defect (markers whose `?: return` granted the pin they exist to deny), one platform
+misunderstanding (`getCachedValue` discards the lambda you hand it after the first call, so a
+`providerRan` flag cannot work), two guards subsumed by step 7 and therefore decorative on the shipped
+build, and one design premise corrected twice — `clearPsiCaches` moves `modificationStamp` on dumb-mode
+**entry and exit and on `makeRootsChange`**, which §1.6 and §1.11 had each attributed to their own event.
+Reviewing a plan finds defects in the plan; only running the code finds defects in the reasoning.
+
+**Open, and deliberately not blocking**: Phase 5 / DR-08 (the residual 3–5× arm-B cost, `Could`),
+DR-16 (is there a seventh channel — `resolveType`'s reentrancy branch returns `null` with no absence
+mark and has not been probed), DR-17, and BUG-433 (`addMethodsOf` cancellation).
 
 ## Relationship to COMP-09
 
