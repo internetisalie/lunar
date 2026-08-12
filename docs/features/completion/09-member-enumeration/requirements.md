@@ -190,14 +190,23 @@ per line; the consumers are Phases 2 and 3.
       `crossFileGlobalMembers`, the `Undefined` guard and the shared emit loop are byte-for-byte
       unchanged, and the golden's eleven `global` and eleven `class` rows are byte-identical across
       the re-record. The completion door is converted; `addMethodsOf` is Phase 3.
+      **Phase 3 converted `addMethodsOf` (2026-08-12).** Both `StubIndex.getAllKeys` scans are gone
+      — `LuaTypeManagerImpl` now contains **zero** `getAllKeys` calls — and the `allKeys` parameter
+      is dropped, taking the function to two arguments. Candidates come from
+      `LuaReceiverMemberIndex.membersIn` (the materialization door, never `membersOfGlobal`), and
+      the `LuaFuncDecl` lookup moved into a `declaredMethod` helper that carries BUG-398's
+      confinement. The golden is byte-identical in **both** directions and no `class` row moved.
 - [x] COMP-09-03 — **MET at the completion door 2026-08-12 (Phase 2).** TC 5 passes for all four
       sources. **Sources verified at the index** after Phase 1 (`LuaReceiverMemberIndexTest`): dotted
       assignment, `function R.f`/`function R:m` including the all-colon receiver (TC 5a), `@field`,
       and the table literal. TC 5 itself is a completion test and Phase 2 supplies it as **E1**
       (`MemberEnumerationExpectationTest`), which puts all four sources at one receiver and asserts
       both doors as exact sets. TC 7c/7d/7e are E2/E6/E7; TC 7f and TC 7f-bis are green on real
-      Redis 7+ / Valkey 8 targets. **The metamethod clause (COMP-09-05) is Phase 4** and the `@class`
-      door (`addMethodsOf`) is Phase 3, so this line is met for the *completion* door only.
+      Redis 7+ / Valkey 8 targets. **The metamethod clause (COMP-09-05) is Phase 4.** The `@class`
+      door (`addMethodsOf`) was converted by **Phase 3**, whose four preservation tests
+      (`MemberEnumerationMaterializationTest`) pin design §4.6's table row by row; the four index
+      sources reach that door only as *candidates*, since a member is admitted there only when a
+      `LuaFuncDecl` stub backs it.
 - [ ] ~~COMP-09-04b~~ — withdrawn; nothing to verify.
 - [ ] COMP-09-05 — TC 6; COMP-04-DR-01 and BUG-426's limitation are closed or re-scoped in writing.
 - [ ] COMP-09-06 — TC 4. **If any baseline moves, enumeration has become a type source: stop.**
@@ -226,8 +235,21 @@ per line; the consumers are Phases 2 and 3.
       seven. TC 10h additionally pins the one `LuaScope.declare` site Rule S deliberately excludes
       (`seedAmbientGlobals`, `LuaTypesVisitor.kt:1360`) on the only target family it fires on, and it
       is green on a real `Target(REDIS, 7+)`: `KEYS`/`ARGV` offer `[]` at both doors, as today.
-- [ ] COMP-09-09 — the work bound is instrumented and asserted (TC 9); adding unrelated indexed
-      content does not change entries traversed. **The instrument is complete after Phase 1**: all
+- [x] COMP-09-09 — **MET 2026-08-12 (Phase 3).** The work bound is instrumented and asserted (TC 9);
+      adding unrelated indexed content does not change entries traversed. **Both doors are now
+      green.** The completion door was met at Phase 1 (assertion 4) and the *materialization* door —
+      the half requiring "the consumers stop scanning" — is met here:
+      `MemberEnumerationMaterializationTest.testMaterializationWorkDoesNotMoveWhenUnrelatedContentIsAdded`
+      measures `LuaReceiverMemberWork` **through `resolveType`**, so it observes what `addMethodsOf`
+      asks for rather than what the index can do. Measured `quiet=Traversal(entries=50, files=1)`
+      and `noisy=Traversal(entries=50, files=1)` across the addition of 4 000 unrelated indexed
+      members (40 receivers × 100) — the bound is the receiver's own 50 declared methods, and it is
+      the "one candidate in, one file read" reading of assertion 4: `files == 1` equals the one
+      declaring file, not above it. Under the old `getAllKeys` scan the same enumeration visited the
+      whole key space. **Guarded against vacuity**: `resolveType` is memoized, so a cached second
+      answer would leave the thread-local holding the first arm's numbers; the test asserts
+      `noisy.entries > 0` first, which only holds if `membersIn` genuinely ran again.
+      **The instrument was complete after Phase 1**: all
       four of design §4.10b's assertions are armed and green in `MemberEnumerationWorkBoundGateTest`
       — assertion 4, the *completion* door, was red until `LuaReceiverMemberWork` reached
       `membersInFile` (BL-5). The requirement still needs Phase 3, where the consumers stop scanning.

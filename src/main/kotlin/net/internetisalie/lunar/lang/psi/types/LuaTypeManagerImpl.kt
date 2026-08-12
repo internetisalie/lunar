@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.psi.types
 
 import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.IndexNotReadyException
 import com.intellij.openapi.project.Project
@@ -20,6 +21,8 @@ import net.internetisalie.lunar.lang.indexing.LuaCatsTypeNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalAssignmentIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
+import net.internetisalie.lunar.lang.indexing.LuaReceiverMember
+import net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex
 import net.internetisalie.lunar.lang.path.resolveModuleCandidates
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
@@ -424,11 +427,7 @@ class LuaTypeManagerImpl(
             parts.superTypeNames.forEach { superTypes.add(LuaTypeReference(it, tag)) }
         }
         LuaImplicitFields.collect(setOf(name), tags.mapNotNull { it.containingFile }.distinct(), membersMap)
-        addMethodsOf(
-            MethodScan(name, name, null),
-            StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project),
-            membersMap,
-        )
+        addMethodsOf(MethodScan(name, name, null), membersMap)
         return LuaClassType(name, superTypes, membersMap)
     }
 
@@ -516,11 +515,10 @@ class LuaTypeManagerImpl(
         decls: Collection<LuaLocalVarDecl>,
         membersMap: MutableMap<String, LuaTypeMember>,
     ) {
-        val allKeys = StubIndex.getInstance().getAllKeys(LuaGlobalDeclarationIndex.KEY, project)
-        addMethodsOf(MethodScan(className, className, null), allKeys, membersMap)
+        addMethodsOf(MethodScan(className, className, null), membersMap)
         decls.forEach { decl ->
             val localName = declaredName(decl)?.takeIf { it != className } ?: return@forEach
-            addMethodsOf(MethodScan(className, localName, decl.containingFile), allKeys, membersMap)
+            addMethodsOf(MethodScan(className, localName, decl.containingFile), membersMap)
         }
     }
 
@@ -531,40 +529,60 @@ class LuaTypeManagerImpl(
         val onlyIn: PsiFile?,
     )
 
+    /**
+     * The candidate members of [MethodScan.receiver] come from [LuaReceiverMemberIndex.membersIn]
+     * (design §4.6) — a receiver-keyed lookup — rather than from a scan of every
+     * [LuaGlobalDeclarationIndex] key, which visited the whole key space to answer a
+     * one-receiver question (COMP-09-01, COMP-09-09's work bound).
+     *
+     * `membersIn` is the **materialization** door and not `membersOfGlobal`: this consumer wants
+     * every declaring file's members unioned, which is what BUG-399's `allScope` is about, where the
+     * completion door deliberately takes one file. Collapsing the two is how defect D2 happened.
+     *
+     * The index is a candidate source, not the answer: the member is only admitted once
+     * [declaredMethod] finds a real `LuaFuncDecl` stub behind it, so a member the index knows from
+     * an `---@field` or an `R.f = function() end` assignment (both `Kind.FUNCTION`, design §4.3)
+     * still contributes nothing here — exactly as the key scan's `LuaFuncDecl` filter did.
+     */
     private fun addMethodsOf(
         scan: MethodScan,
-        allKeys: Collection<String>,
         membersMap: MutableMap<String, LuaTypeMember>,
     ) {
         // allScope, for the same reason doResolveType uses it: `function Class.method` declarations
         // in a library file are a class's members just as much as a project file's are (BUG-399).
         val scope = GlobalSearchScope.allScope(project)
-        for (key in allKeys) {
-            val memberName = memberNameOf(key, scan.receiver) ?: continue
-            if (membersMap.containsKey(memberName)) continue
-
-            val decls =
-                StubIndex.getElements(
-                    LuaGlobalDeclarationIndex.KEY,
-                    key,
-                    project,
-                    scope,
-                    LuaFuncDecl::class.java,
-                )
-            val decl = decls.firstOrNull { scan.onlyIn == null || it.containingFile == scan.onlyIn } ?: continue
+        for (member in LuaReceiverMemberIndex.membersIn(scan.receiver, project, scope)) {
+            ProgressManager.checkCanceled()
+            if (member.kind != LuaReceiverMember.Kind.FUNCTION) continue
+            if (membersMap.containsKey(member.name)) continue
+            val decl = declaredMethod(scan, member, scope) ?: continue
             LuaTypeSourceRecorder.reportFile(decl.containingFile) // §3.5
             val fnType = funcTypeFromStub(scan.className, decl)
-            membersMap[memberName] = LuaTypeMember(memberName, fnType, sourceElement = decl)
+            membersMap[member.name] = LuaTypeMember(member.name, fnType, sourceElement = decl)
         }
     }
 
-    /** `Receiver.m` / `Receiver:m` → `m`; null for a non-match or a nested qualifier (`Foo.bar.baz`). */
-    private fun memberNameOf(
-        key: String,
-        receiver: String,
-    ): String? {
-        if (!key.startsWith("$receiver.") && !key.startsWith("$receiver:")) return null
-        return key.substring(receiver.length + 1).takeIf { !it.contains('.') && !it.contains(':') }
+    /**
+     * The `LuaFuncDecl` stub behind one indexed member, or null when there is none in [scope].
+     *
+     * BUG-398's file confinement lives here: a scan bound to a declaring local's name only honours
+     * declarations from that local's own file, where the variable exists.
+     */
+    private fun declaredMethod(
+        scan: MethodScan,
+        member: LuaReceiverMember,
+        scope: GlobalSearchScope,
+    ): LuaFuncDecl? {
+        val separator = if (member.separator == LuaReceiverMember.Separator.COLON) ":" else "."
+        val decls =
+            StubIndex.getElements(
+                LuaGlobalDeclarationIndex.KEY,
+                "${scan.receiver}$separator${member.name}",
+                project,
+                scope,
+                LuaFuncDecl::class.java,
+            )
+        return decls.firstOrNull { scan.onlyIn == null || it.containingFile == scan.onlyIn }
     }
 
     private fun funcTypeFromStub(

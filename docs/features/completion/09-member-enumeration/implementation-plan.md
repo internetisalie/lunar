@@ -721,7 +721,7 @@ document's.)*
     verify `LuaCorpusSweepTest` / `LuaTortureCorpusTest` / `LuaInspectionParityTest` appear in
     `build/test-results/test/` **with fresh timestamps** — `--rerun` does not clear that directory.
 
-## Phase 3: Materialization consumer
+## Phase 3: Materialization consumer — **DONE 2026-08-12**
 
 > **BUG-430 is open and Phase 3 proceeds anyway.** The both-directions golden diff runs straight into
 > it, so the expected result is stated here rather than discovered: BUG-430 is a **global-door**
@@ -734,18 +734,50 @@ document's.)*
 
 - **Goal**: both `getAllKeys` scans gone; COMP-09-09's `membersIn` assertions go green.
 - **Tasks**:
-  - [ ] Rewrite `addMethodsOf` — design §4.6; drop the `allKeys` parameter.
-  - [ ] Update both call sites — `collectMethodMembers` (`LuaTypeManagerImpl:519,520,523`) and `materializeUnhostedClass` (`:389`, whose `addMethodsOf` call is `:427`).
-  - [ ] A test per row of design §4.6's preservation table: `allScope` (BUG-399), first-wins,
-        `onlyIn` confinement (BUG-398), nested qualifiers.
-  - [ ] **Diff the golden in both directions.** A superset is the failure mode (see the hard gate).
-        Expect **zero** movement on `class` rows; anything else stops the phase.
-  - [ ] Use §4.10b assertion 4 as the D2-leak detector, read as *"one candidate in, one file read"* —
+  - [x] Rewrite `addMethodsOf` — design §4.6; drop the `allKeys` parameter. **Done**: the signature
+        is now `(scan: MethodScan, membersMap: MutableMap<String, LuaTypeMember>)` — two arguments,
+        the direction the contract's parameter cap wants. The `LuaFuncDecl` lookup is extracted to a
+        `declaredMethod(scan, member, scope)` helper, which is where BUG-398's `onlyIn` filter now
+        lives.
+  - [x] Update both call sites — `collectMethodMembers` (`LuaTypeManagerImpl:519,520,523`) and `materializeUnhostedClass` (`:389`, whose `addMethodsOf` call is `:427`). **All four anchors verified by grep before editing** and all were accurate. `LuaTypeManagerImpl` now contains **zero** `getAllKeys` calls.
+  - [x] A test per row of design §4.6's preservation table: `allScope` (BUG-399), first-wins,
+        `onlyIn` confinement (BUG-398), nested qualifiers. **`MemberEnumerationMaterializationTest`**,
+        on `LibraryRootTestCase` because the BUG-399 row is structurally invisible to a light fixture.
+        **Each row is mutation-proven**, and three of the four reddened *exactly* their own test:
+        removing the `containsKey` guard reddened only first-wins; replacing `declaredMethod`'s
+        filter with a bare `firstOrNull()` reddened only the confinement test; deleting the
+        nested-qualifier rule from the **index**'s `split` reddened only the nested-qualifier test —
+        which also demonstrates that row is still enforced after moving out of this file. The
+        `allScope → projectScope` mutation reddens all four, since every fixture is library-rooted.
+  - [x] **Diff the golden in both directions.** A superset is the failure mode (see the hard gate).
+        Expect **zero** movement on `class` rows; anything else stops the phase. **Both directions
+        empty** (`comm -23` and `comm -13` under `LC_ALL=C`, against the render captured from the
+        run itself, not just a re-hash of the untouched file); all 27 `class` rows identical; the
+        file's hash is still `38c7586ecfddd17bdb79785b3b3a9f31`.
+  - [x] Use §4.10b assertion 4 as the D2-leak detector, read as *"one candidate in, one file read"* —
         a count **above** the candidate count is the leak, a count equal to it is not (requirements.md
-        COMP-09-09's acceptance note).
+        COMP-09-09's acceptance note). **Measured through `resolveType`**, so it observes the
+        consumer rather than the index: `entries=50, files=1` for a 50-member receiver, unmoved by
+        4 000 unrelated indexed members. `files == 1` equals the candidate count; it is not above it.
+  - [x] **BUG-433 is RESOLVED by this phase** (supervisor question). Option 1, with option 2 applied
+        belt-and-braces: the unbounded walk is *gone*, not relocated — `getAllKeys` no longer appears
+        anywhere in `LuaTypeManagerImpl`, and the two surviving `getAllKeys` calls in `src/main`
+        (`LuaHierarchyUtil`, `GlobalSymbolRankingService`) are pre-existing sites this phase never
+        touched. The successor loop is bounded by the receiver's own members (measured 50, not 4 145)
+        and got a `ProgressManager.checkCanceled()` anyway, while the traversal that replaced the
+        scan — `processValues` inside `membersIn` — has carried one since Phase 1. Closing the
+        roadmap row is the supervisor's call.
 - **Exit**: COMP-09-09 green on both doors; golden byte-identical to Phase 2's re-record; **all four
   corpus baselines unmoved** (`test -PwithCorpus --rerun --no-build-cache`) — if any moves,
   enumeration has become a type source: stop and revert (COMP-09-06).
+- **One guard re-earned, not re-baselined.** `LuaTypeSourceRecorderCoverageTest` went red, which is
+  the behaviour it is built for: `.getAllKeys(` fell `2 → 0` while a **new kind** of cross-file read
+  (`.membersIn(`) arrived that none of its five counted members would have seen. It is registered as
+  a sixth door rather than the counts merely being lowered — otherwise the removals would have
+  read as a tidy count drop while an unrecognised door came in unremarked. The accounting: the new
+  door owes no extra `reportFile`, because `membersIn` yields candidate *names* and a name becomes
+  type information only once `declaredMethod` finds a `LuaFuncDecl`, whose `containingFile` is
+  reported exactly as the scan reported it.
 
 ## Phase 4: `@class` metamethods (COMP-09-05)
 

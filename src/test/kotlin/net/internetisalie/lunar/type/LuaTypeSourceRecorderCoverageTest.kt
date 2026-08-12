@@ -29,14 +29,38 @@ import java.io.File
  * Headless by construction: this reads Kotlin as **text**, never as PSI, so it needs no fixture.
  */
 class LuaTypeSourceRecorderCoverageTest {
+    /**
+     * `.membersIn(` joined this list in COMP-09 Phase 3, which is the case the guard was written
+     * for: `addMethodsOf` stopped reading `StubIndex.getAllKeys` and started reading
+     * `LuaReceiverMemberIndex.membersIn`, a **new kind** of cross-file read that none of the five
+     * original members would have counted. Left off the list, the two `.getAllKeys(` removals would
+     * have shown up as a count *drop* — trivially re-baselined — while an unrecognised door came in
+     * unremarked, which is precisely the silent case this test exists to prevent.
+     */
     private val doorMembers =
-        listOf(".findFile(", ".getElements(", ".getContainingFiles(", ".getAllKeys(", ".getLibraryFiles(")
+        listOf(
+            ".findFile(",
+            ".getElements(",
+            ".getContainingFiles(",
+            ".getAllKeys(",
+            ".getLibraryFiles(",
+            ".membersIn(",
+        )
 
     /**
      * Stated mutation: inject one `PsiManager.getInstance(project).findFile(…)` into
      * `LuaTypeManagerImpl` → its `.findFile(` count goes `2 → 3` and this fails. Second check, that
      * the guard is not fooled by formatting alone: re-wrapping an existing `StubIndex.getElements(`
      * across lines leaves `.getElements(` at `3`.
+     *
+     * **COMP-09 Phase 3 re-earned this count** — `.getAllKeys(` went `2 → 0` and `.membersIn(`
+     * `0 → 1`, as `addMethodsOf` swapped a scan of every global-declaration key for a receiver-keyed
+     * lookup. The accounting the message demands: **the new door owes no additional `reportFile`,
+     * and the two removed ones freed none.** `membersIn` supplies candidate *names*; a name only
+     * becomes type information once `declaredMethod` finds a `LuaFuncDecl` behind it, and that
+     * branch still reports `decl.containingFile` exactly as the scan did. A candidate with no
+     * declaration contributes no member, so no file's content entered the type through it. The
+     * `reportFile` call sites in this class are unchanged in number and in argument.
      */
     @Test
     fun `every cross-file door in the type manager is accounted for`() {
@@ -45,7 +69,7 @@ class LuaTypeSourceRecorderCoverageTest {
                 "place this class turns another file's content into type information; each one owes " +
                 "a LuaTypeSourceRecorder.reportFile, or a library snapshot is pinned while " +
                 "depending on a file nothing recorded",
-            listOf(2, 3, 2, 2, 0),
+            listOf(2, 3, 2, 0, 0, 1),
             countsIn("LuaTypeManagerImpl.kt"),
         )
     }
@@ -63,7 +87,7 @@ class LuaTypeSourceRecorderCoverageTest {
             "LuaTypesVisitor gained or lost a cross-file read. It runs INSIDE the recording frame, " +
                 "so anything it consumes that is not provisioned by construction must report " +
                 "(design §3.5's ⚠, DR-16)",
-            listOf(1, 0, 0, 0, 1),
+            listOf(1, 0, 0, 0, 1, 0),
             countsIn("LuaTypesVisitor.kt"),
         )
     }
