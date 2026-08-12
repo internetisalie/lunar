@@ -246,6 +246,17 @@ folders:
   filter already excludes it.
 - **Expected**: the offered sets are **unchanged** by COMP-09-05 — `v.` still shows `__add`, `v:`
   still does not. Only the operator check gains it.
+- **RE-MEASURED at Phase 4 (2026-08-12), after Phase 2's hoist, and it held.** DR-12's figures were
+  taken before global receivers moved onto the index arm, so they were re-run rather than carried
+  forward: `v.` = `[__add, len, x]` and `v:` = `[len]` for the class declared on a local **and** on a
+  global. The receiver-name carets on the global form are `Vec.` = `[__add, len, x]` and
+  `Vec:` = `[__add, len]` — `Vec:` keeping `__add` is scenario 2.x's syntactic-colon-filter
+  divergence (the field's type text starts `fun(`), not a metamethod-visibility change. If `__add`
+  at `Vec:` looks wrong to a human, say so here; it is the same judgement call as `onClose`.
+- **Also worth a human's eye**: the step above writes `local a, b = ...` typed as `Vec`. Do **not**
+  type them by calling the class (`local a, b = Vec(), Vec()`) — that infers `Undefined`, which
+  absorbs every diagnostic, so the scenario would "pass" against a build with no implementation at
+  all. Annotate the locals with `---@type Vec`.
 - **Worth noting for a future reader**: `LuaGraphType.kt:50-52` says metamethods are held separately
   because putting them in `localMembers` "would make `t.__add` complete on the instance, which is not
   what Lua exposes". For a `@class`-declared metamethod that has never been true. The comment

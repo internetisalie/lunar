@@ -413,6 +413,33 @@ verbatim if COMP-09-04 is reinstated.
   `LuaGraphType.fromLuaType`, and DR-12 measured that the completion sets do not move (`v.` offers
   `__add` today, `v:` does not). A COMP-10 split would carry a whole feature's overhead for a
   one-branch change, so it stays.
+- **SHIPPED that way (Phase 4, 2026-08-12).** One branch, no index involvement, no registration. The
+  arm moved into a private `LuaGraphType.classTable` helper only because the `when` it lived in was
+  already past the contract's function-length limit.
+
+### Phase 4 findings — one test removed as vacuous, one requirement fixture likewise
+
+Neither is a behaviour change; both are cases of a written expectation that could not have failed.
+
+- **The `ALL_METAMETHODS` name filter is not independently observable.** Design §4.7 specifies that
+  membership be tested against the union of the three `Trait` metamethod sets rather than the looser
+  `startsWith("__")` that `LuaTypesVisitor.metamethodsOf` applies to a real `setmetatable` metatable.
+  Mutation testing shows **loosening it changes nothing observable**: `LuaTypeGraph.implementsOperator`
+  re-tests the recorded name against the *trait's* own set, so a junk name in `metamethods` satisfies
+  no operator either way. A test written to pin the filter (a `@class` whose only `__`-prefixed member
+  is `__index`) is therefore indistinguishable from the plain no-metamethod control and was removed
+  rather than kept as coverage it does not provide — the repo's standing convention for a
+  mutation-survived test. The filter stays, because §4.7 specifies it and because `metamethods`
+  participates in `Table`'s data-class equality, which is a memoization key; **no test claims to
+  prove it**, which is the honest position and is recorded here so a future reader does not "restore"
+  the deleted test believing it guards something.
+- **Requirements TC 6's fixture could not fail.** `local a, b = V(), V()` reports nothing on the
+  *pre-change* code — `V()` calls a class declaring no `__call`, infers `Undefined`, and `Undefined`
+  absorbs every check — so the shape TC 6 and the human checklist both specified would have passed
+  against a build with no implementation at all. This is the same trap BUG-424's own fixture fell
+  into before BUG-426 landed, which is what made it worth re-checking rather than transcribing.
+  Corrected in requirements, the checklist, and the shipped test, which binds each operand with
+  `---@type V` and was confirmed red before the change.
 
 ## Pre-Implementation De-risking Tasks
 
@@ -443,7 +470,7 @@ verbatim if COMP-09-04 is reinstated.
 | COMP-09-00-DR-24 | §4.12's withdrawal does not cover one case: a file whose **only** receivers are opaque still pays one snapshot build, because nothing hoists it. Measure it | design §4.12 residual; Phase 5 | todo — the withdrawal rests on tier 2 improving *because of the tier-1 receivers around it*. A file with no tier-1 receivers has nothing to ride on. Not claimed fixed |
 | COMP-09-00-DR-25 | `LuaReceiverMemberIndex.Indexer.map` makes **four separate `findChildrenOfType` passes** over the same PSI (§4.3's five sources) and is the most expensive of the three whole-project Lua indexers. Decide whether one shared traversal is worth it | design §4.8a; Phase 5 | todo — 61 ms vs 20 ms vs 6 ms on the 123 KiB library (DR-18). A follow-up, explicitly **not** a blocker: the cost is one-off and persisted |
 | COMP-09-00-DR-14 | Third Step 9 review (B2, B5, B8): §4.5's scope rule was read off the tail of a call chain; the golden collapsed both doors with `?:`; COMP-09-03's inherited-members clause had no design | design §4.5, §4.4a, §4.5a | **done** — `CompNineDr14Test`. `membersOfGlobal` selects via `LuaGlobalAssignmentIndex` and matches the **global** door exactly on `wx`, `wxFrame` (`[]`, as today), `AllColon` (`[]`) and `Shapes` (minus `deep`, BUG-430). Per-door golden printed separately: two of four receivers resolve through only one door. Inherited members are **not** on today's completion door (`Derived.` offers `[ownFn]`), so the flat list is no regression. **New finding:** indexing `@field` adds `Derived.ownField` to completion — a superset the reviews missed, now declared and gated (TC 7c) |
-| COMP-09-00-DR-12 | Settle the two checklist questions argued in prose across two reviews: does a `@class` `__add` complete today, and does `Foo.` offer `baz` for `Foo.bar.baz` | checklist 2.2 + 3.1 | **done** — `CompNineDr12Test`. **Both resolved against the plan.** `v.` offers `[__add, len, x]` and `v:` offers `[len]`, so design §4.7 was right; `Foo.` offers `[bar, baz, direct]` and `Foo.bar.` offers `[]`, confirming BUG-430 is user-visible, not an API artefact |
+| COMP-09-00-DR-12 | Settle the two checklist questions argued in prose across two reviews: does a `@class` `__add` complete today, and does `Foo.` offer `baz` for `Foo.bar.baz` | checklist 2.2 + 3.1 | **done** — `CompNineDr12Test`. **Both resolved against the plan.** `v.` offers `[__add, len, x]` and `v:` offers `[len]`, so design §4.7 was right; `Foo.` offers `[bar, baz, direct]` and `Foo.bar.` offers `[]`, confirming BUG-430 is user-visible, not an API artefact. **RE-MEASURED at Phase 4 (2026-08-12) and unchanged**: the `v.`/`v:` half was taken before Phase 2 hoisted global receivers onto the index arm, so it was re-run rather than carried forward — `v.` = `[__add, len, x]`, `v:` = `[len]` for the class declared on a **local and on a global** alike. Now a permanent gate (`MemberEnumerationMetamethodTest`, exact sets) rather than a printed measurement |
 | COMP-09-00-DR-04 | ~~Incremental yield vs memoization~~ | Risk 1.3 | **withdrawn** — COMP-09-04 withdrawn (design §1.7), so nothing yields partially and no cache holds a partial result |
 | COMP-09-00-DR-07 | §3.3: would narrowing cache invalidation beat indexing? Previously only a "TBD" under Technical Debt with no task — the DoD requires every open question be tracked | design §3.3 | **done — DECIDED, design §1.2a.** Narrowing takes the post-edit case from ~200 ms to ~1 ms but cannot touch cold — hundreds of ms (392 / 463 / 1 152 across three runs), every session's first completion, over budget under all three — or the member-count scaling. The decision rests on the **direction only**: per DR-08 no ratio between two of this harness's figures is quotable, and the earlier wording here quoted three. Complement, not alternative: index now, narrow separately |
 | COMP-09-00-DR-08 | Re-measure every quoted figure with medians of ≥5 before it is cited anywhere. Step 9 showed −60 % run-to-run spread and one flipped verdict | design §1.8 | **done (Phase 0)** — the three remaining single-shot harnesses now median five runs through a shared `Medians` helper: `CompNineDrSpikeTest` (§1.1 buckets), `CompNineDr01Test` (§3.1) and `CompNineSection32Test` (§3.2 candidates B/C). §1.2 was re-run and its ratio disavowed (DR-02c row). The narrow-vs-broad *prefix* pair is withdrawn, not owed. A quantity that is unrepeatable by construction — a cold snapshot build is warm the second time — is now labelled `(single — unrepeatable by construction)` rather than averaged with warm samples, which is the error that once reported "1 ms vs 0 ms". **Standing consequence: the spread is wide enough that no *ratio* between two harness figures is quotable** — DR-02c's repaid fraction moved 22 % → 48 % between two clean medians-of-5 runs |

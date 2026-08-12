@@ -28,8 +28,16 @@ folders:
 
 ## De-risking Tasks (DR)
 
-- [ ] `COMP-04-DR-01`: Confirm the graph models `setmetatable(t, mt)` value flow (§3.3) for the
+- [x] `COMP-04-DR-01`: Confirm the graph models `setmetatable(t, mt)` value flow (§3.3) for the
       common literal case; decide whether to support `mt` aliased through a variable.
+      **Closed 2026-08-12, in two parts.** The aliased-`mt` question was answered by **BUG-426**: it
+      was not supported — a named metatable produced `Undefined`, which absorbed every check and made
+      the pattern look supported while being invisible — and `mergedTableOf` now merges what is
+      written to a node with what is demanded of it, so `local V = {}; V.__index = V` works. The
+      *declared* form was answered by **COMP-09-05**: a `---@class` declaring `__add` as a field now
+      makes its instances arithmetic-capable, inherited members included.
+      **`COMP-04-G-01` stays open**: a genuinely dynamic `mt` — one whose value is not locally
+      inferable — still falls back to `Any`, and neither change addresses that.
 - [ ] `COMP-04-DR-02`: Verify `snapshot.graphTypeToLuaType(gt)` yields a `LuaParameterizedType`
       with type args for `@type List<string>`; if not, thread generic args through the bridge.
 - [ ] `COMP-04-DR-03`: Decide whether to parse `@field` visibility prefixes (LuaCATS

@@ -123,8 +123,31 @@ The metamethod arm is why. Typing these values does create new checks, but the s
 the engine that a table implementing an operator satisfies it — and correctly typed values also stop
 falling into the other error paths they used to.
 
-## Known limitation
+## Known limitation — **CLOSED 2026-08-12 by COMP-09-05**
 
-Metamethods are recorded only from `setmetatable`. A `---@class` declaring `__add` as a field does
-not make its instances arithmetic-capable, and neither does assigning `__add` to a table that is
-never installed as a metatable — which is correct for the second case and a gap for the first.
+As shipped, metamethods were recorded only from `setmetatable`. A `---@class` declaring `__add` as a
+field did not make its instances arithmetic-capable, and neither does assigning `__add` to a table
+that is never installed as a metatable — which is correct for the second case and was a gap for the
+first.
+
+**The first case is now closed.** COMP-09-05 contributes a `@class`-declared member whose name is a
+known operator metamethod to `LuaGraphType.Table.metamethods`, so `---@class V` + `---@field __add`
+satisfies an arithmetic position exactly as a `setmetatable` metatable does. Supertypes come with
+it — `LuaClassType.getMembers()` already merges them, so `---@class D : Base` inherits `Base`'s
+`__add` with no separate walk. Tests: `MemberEnumerationMetamethodTest`.
+
+**The second case remains, and remains correct.** Assigning `__add` to a table that is never
+installed as a metatable still confers nothing, because it *is* nothing in Lua.
+
+Two properties of the fix worth knowing before extending it:
+
+- **The member stays a member.** It is contributed to `metamethods` *as well as* remaining in
+  `localMembers`, so completion is untouched: `v.` offers `__add` after this change exactly as it
+  did before it (measured — see COMP-09 design §4.7). `LuaGraphType.Table.metamethods`' own KDoc
+  says a metamethod should not complete on the instance; on the `@class` path it always has, and
+  COMP-09-05 preserved that **behaviour** rather than the intent. Changing it is a separate,
+  user-visible decision.
+- **The name filter is not the guard it looks like.** Membership is tested against the union of the
+  `Trait` metamethod sets rather than `startsWith("__")`, but mutation testing showed loosening it
+  changes no observable behaviour: `LuaTypeGraph.implementsOperator` re-tests the name against the
+  trait's own set, so a junk name in `metamethods` satisfies no operator either way.

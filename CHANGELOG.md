@@ -10,6 +10,10 @@
   `redis.REPL_ALL` ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
 - **A grandchild is no longer offered as a member** (BUG-430): `Shapes.nested.deep = 1` stops
   offering `deep` on `Shapes.`, where it does not exist ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
+- **A `---@class` can declare an operator metamethod** (COMP-09, closing BUG-426's known
+  limitation): `---@class Vec` with a `---@field __add fun(a: Vec, b: Vec): Vec` now makes `a + b`
+  legal on its instances, as `setmetatable` already did — inherited metamethods included, so
+  `---@class Mat : Vec` gets it too. What member completion offers is unchanged.
 - **`---@class` members no longer cost a project-wide scan** (COMP-09): materializing a class read
   every global-declaration key to find one receiver's methods — 4 145 keys for 50 members on the
   measured fixture. It is now a receiver-keyed lookup whose work does not grow when unrelated code is

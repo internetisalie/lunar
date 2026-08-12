@@ -15,6 +15,11 @@ import org.junit.runners.JUnit4
  *
  * These drive the platform inspection rather than the snapshot, because the thing that must not
  * regress is what the user is shown.
+ *
+ * **Scope: metamethods recorded from a real `setmetatable` metatable.** The other half — a
+ * `---@class` declaring `__add` as a field, which BUG-426 left as a Known limitation — is COMP-09-05
+ * and lives in `MemberEnumerationMetamethodTest`. The two mechanisms record into the same
+ * `LuaGraphType.Table.metamethods` and are consumed by the same `LuaTypeGraph.implementsOperator`.
  */
 @RunWith(JUnit4::class)
 class LuaOperatorTraitTest : BasePlatformTestCase() {

@@ -790,20 +790,47 @@ document's.)*
 
 - **Goal**: close COMP-04-DR-01 and BUG-426's Known limitation.
 - **Tasks**:
-  - [ ] Contribute `@class`-declared metamethod names to `LuaGraphType.Table.metamethods` — design
+  - [x] Contribute `@class`-declared metamethod names to `LuaGraphType.Table.metamethods` — design
         §4.7, **as well as** leaving them in `localMembers`.
-  - [ ] TC 6: `---@class V` with `__add`; `V() + V()` reports nothing.
-  - [ ] TC 6a: the offered sets are **unchanged** — `v.` still offers `__add`, `v:` still does not.
+  - [x] TC 6: `---@class V` with `__add`; `V() + V()` reports nothing.
+  - [x] TC 6a: the offered sets are **unchanged** — `v.` still offers `__add`, `v:` still does not.
         **Settled by DR-12**, which ended a contradiction this plan carried through two reviews: `v.`
         offers `[__add, len, x]` and `v:` offers `[len]` on today's code, so design §4.7 was right and
         this plan and the checklist were both wrong to expect `__add` absent. Assert the measured
         behaviour, not the intent `LuaGraphType.kt:50-52` describes.
-  - [ ] **Re-check TC 6a at the Phase 2 site.** `V` in TC 6a is a `@class` on a **global**, so after
+  - [x] **Re-check TC 6a at the Phase 2 site.** `V` in TC 6a is a `@class` on a **global**, so after
         Phase 2 the `v.`/`v:` carets may route through the index arm, where the `isColon` filter is
         *syntactic* rather than semantic (design §4.5b's surviving analysis). Assert the offered sets
         directly; do not assume DR-12's pre-Phase-2 measurement still describes them.
-  - [ ] Close BUG-426's limitation section or restate what remains.
+  - [x] Close BUG-426's limitation section or restate what remains.
 - **Exit**: TC 6 green; TC 6a re-measured post-Phase-2; corpus baselines unmoved.
+
+### Phase 4 outcome (2026-08-12)
+
+- **The change is one branch.** `LuaGraphType.fromLuaType`'s `is LuaClassType ->` arm moved into a
+  private `classTable` helper (the arm was inline in an already over-long `when`), which computes
+  `type.getMembers()` **once** and passes
+  `metamethods = declaredMembers.keys.filterTo(mutableSetOf()) { it in ALL_METAMETHODS }` to the
+  `Table` constructor. `localMembers` is populated from the same map, unchanged, so nothing is moved
+  out of it — "as well as", per design §4.7. `ALL_METAMETHODS` is the union of the three `Trait`
+  subobjects' sets, formed once as a `private val`, because `Trait` is sealed with no aggregate.
+- **TC 6a re-measured at this head and it did NOT move.** `v.` = `[__add, len, x]`, `v:` = `[len]`,
+  for the class declared on a local *and* on a global — identical to DR-12's pre-Phase-2 figures. The
+  receiver-name carets on the global form are `Vec.` = `[__add, len, x]`, `Vec:` = `[__add, len]`;
+  `Vec:` keeping `__add` is the index arm's syntactic `isColon` filter (TC 7e's known divergence),
+  not a metamethod-visibility change, and the instance carets TC 6a is about are unaffected.
+- **TC 6's fixture as the requirements wrote it could not fail** — `local a, b = V(), V()` reports
+  nothing on the *pre-change* code, because `V()` infers `Undefined`. Corrected in requirements and
+  asserted with `---@type V` operands, which report `V is not assignable to number` before and
+  nothing after.
+- **Mutation-proved three ways; one came back negative and is recorded, not hidden.** Dropping the
+  contribution is CAUGHT by five tests; weakening `implementsOperator` to `metamethods.isNotEmpty()`
+  is CAUGHT by the per-trait test; **loosening the name filter to `startsWith("__")` SURVIVED**,
+  because `implementsOperator` re-tests the name against the trait's own set. A test written to pin
+  that filter is indistinguishable from the plain no-metamethod control, so it was removed rather
+  than kept as coverage it does not provide. The filter stays (design §4.7 specifies it, and
+  `metamethods` is part of `Table`'s data-class equality, a memoization key) with no test claiming
+  to prove it.
 
 ## Phase 5: Re-measure and decide the deferrals
 
@@ -856,5 +883,5 @@ document's.)*
 | 1: `LuaReceiverMemberIndex` | **done** (2026-08-09, remediated 2026-08-09) | Must |
 | 2: The change site — hoist above the snapshot build | **done** (2026-08-12; re-cut that day from a measured prototype, superseding the aborted "Completion consumer") | Must |
 | 3: Materialization consumer | **done** (2026-08-12, remediated 2026-08-12) | Must |
-| 4: `@class` metamethods | planned | Should |
+| 4: `@class` metamethods | **done** (2026-08-12) | Should |
 | 5: Re-measure and decide deferrals | planned | Must |

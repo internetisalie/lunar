@@ -50,6 +50,15 @@ sealed class LuaGraphType {
          * Separate from [localMembers] because a metamethod is not a member *of this table*: it
          * lives on the metatable, which `setmetatable` is the only thing that establishes. Merging
          * them would make `t.__add` complete on the instance, which is not what Lua exposes.
+         *
+         * **That is the intent, and on the `@class` path it is not what the code does** (COMP-09-05).
+         * A `---@class V` declaring `__add` has always completed it on the instance, because
+         * [Companion.classTable] copies every member into [localMembers] — measured, `v.` offers
+         * `[__add, len, x]` and `v:` offers `[len]`. COMP-09-05 makes that member reach this set
+         * *as well*, so the operator position sees it; it deliberately does **not** remove it from
+         * [localMembers], because that would change what completion offers, which is a behaviour
+         * change no phase of COMP-09 authorised. The gap between this paragraph and that path is
+         * recorded rather than quietly inherited — design §4.7.
          */
         val metamethods: Set<kotlin.String> = emptySet(),
     ) : LuaGraphType()
@@ -264,17 +273,7 @@ sealed class LuaGraphType {
                     result
                 }
 
-                is LuaClassType -> {
-                    val members = LinkedHashMap<kotlin.String, VariableNode>()
-                    val supers = mutableListOf<LuaGraphType>()
-                    val result = Table(type.name, members, supers, isExact = true)
-                    visited[type] = result
-                    type.getMembers().forEach { (name, member) ->
-                        members[name] = memberNodeFor(member.type, graph, visited)
-                    }
-                    type.superTypes.forEach { supers.add(fromLuaType(it, graph, visited)) }
-                    result
-                }
+                is LuaClassType -> classTable(type, graph, visited)
 
                 is LuaUnionType -> {
                     val result = Union(emptySet())
@@ -296,6 +295,58 @@ sealed class LuaGraphType {
 
                 else -> Any
             }
+        }
+
+        /**
+         * Every metamethod name any [Trait] recognises. [Trait] is a sealed class whose subobjects
+         * each hold their own set and there is no aggregate, so the union is formed here, once.
+         */
+        private val ALL_METAMETHODS: Set<kotlin.String> =
+            setOf(Trait.Numberable, Trait.Stringable, Trait.Lengthable)
+                .flatMapTo(mutableSetOf()) { it.metamethods }
+
+        /**
+         * A `@class` as a graph table (COMP-09-05).
+         *
+         * A member whose name is a known metamethod contributes to [Table.metamethods] **as well
+         * as** staying in [Table.localMembers] — see that property's KDoc for why "as well as" and
+         * not "instead of". Three things constrain how:
+         *
+         * 1. [Table.metamethods] is a `val` and the table is constructed *before* [Table.localMembers]
+         *    is populated — it goes into [visited] first to break reference cycles, and the map is
+         *    mutated afterwards. So the set cannot be read back off the populated map.
+         * 2. `LuaClassType.getMembers()` already merges supertypes, so `---@class D : Base` inherits
+         *    `Base`'s `__add` through the same expression and no separate supertype walk is needed.
+         * 3. Membership is tested against [ALL_METAMETHODS] rather than `startsWith("__")` — the
+         *    looser test `LuaTypesVisitor.metamethodsOf` uses for a real `setmetatable` metatable —
+         *    so that this set means what its name says, since it is also part of [Table]'s
+         *    data-class equality and therefore a memoization key. **It is not a behavioural guard,
+         *    and no test pins it**: mutation testing (COMP-09 Phase 4) found that loosening it
+         *    survives, because `LuaTypeGraph.implementsOperator` re-tests the recorded name against
+         *    the *trait's* own set, so a junk name here satisfies no operator anyway.
+         */
+        private fun classTable(
+            type: LuaClassType,
+            graph: LuaTypeGraph,
+            visited: MutableMap<LuaType, LuaGraphType>,
+        ): Table {
+            val declaredMembers = type.getMembers()
+            val memberNodes = LinkedHashMap<kotlin.String, VariableNode>()
+            val superGraphTypes = mutableListOf<LuaGraphType>()
+            val classGraphType =
+                Table(
+                    type.name,
+                    memberNodes,
+                    superGraphTypes,
+                    isExact = true,
+                    metamethods = declaredMembers.keys.filterTo(mutableSetOf()) { it in ALL_METAMETHODS },
+                )
+            visited[type] = classGraphType
+            declaredMembers.forEach { (name, member) ->
+                memberNodes[name] = memberNodeFor(member.type, graph, visited)
+            }
+            type.superTypes.forEach { superGraphTypes.add(fromLuaType(it, graph, visited)) }
+            return classGraphType
         }
 
         private fun memberNodeFor(

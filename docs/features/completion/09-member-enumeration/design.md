@@ -1635,6 +1635,25 @@ on the instance, which is not what Lua exposes", and for a `@class`-declared met
 has. COMP-09-05 preserves the **behaviour**, not the intent. That is the conservative call and the
 right one here, but the gap is real and is recorded rather than quietly inherited.
 
+**Shipped 2026-08-12 (Phase 4), to this design, with two amendments.**
+
+- The `is LuaClassType ->` arm moved into a private `classTable` helper rather than gaining two
+  inline lines: the `when` it lived in was already well past the contract's function-length limit.
+  The helper also calls `type.getMembers()` **once** and reuses it for both the metamethod filter and
+  the member map, where the literal reading of fact 2 above would have walked the hierarchy twice.
+- Fact 1's `ALL_METAMETHODS` is right as specified but **buys nothing observable**, which mutation
+  testing established rather than argument: loosening it to `startsWith("__")` survives, because
+  `LuaTypeGraph.implementsOperator` re-tests the name against the trait's own set. It is kept
+  (`metamethods` is part of `Table`'s data-class equality, a memoization key) with no test claiming
+  to prove it. See risks-and-gaps, "Phase 4 findings".
+
+DR-12's measurement was **re-taken at the Phase 4 head**, not carried forward, because Phase 2 moved
+global receivers onto the index arm in between: `v.` = `[__add, len, x]` and `v:` = `[len]` for the
+class declared on a local *and* on a global, i.e. unchanged. The receiver-name carets on the global
+form are `Vec.` = `[__add, len, x]` and `Vec:` = `[__add, len]`; `Vec:` keeping `__add` is §4.13's
+syntactic `isColon` filter (the field's type text starts `fun(`, so §4.3 indexes it `Kind.FUNCTION`)
+— the divergence TC 7e already declares, not a metamethod-visibility change.
+
 ### 4.8 Registration and reindex boundaries
 
 ```xml
