@@ -239,8 +239,12 @@ is how a document starts certifying what it assumed.
 
 ### GAP (Phase 3, 2026-08-12) — a dot/colon name collision has **no behaviour to preserve**, and the choice is undeclared
 
-**OPEN. Escalated rather than decided, because deciding it changes user-visible behaviour under a
-`Must` requirement (COMP-09-07) and needs a declared expectation, a test and a CHANGELOG line.**
+**CLOSED 2026-08-12 — the new behaviour is ACCEPTED and DECLARED. The ruling is at the end of this
+section; the measurement below is kept verbatim as the evidence it rests on.**
+
+*(As escalated:)* **Escalated rather than decided, because deciding it changes user-visible behaviour
+under a `Must` requirement (COMP-09-07) and needs a declared expectation, a test and a CHANGELOG
+line.**
 
 `function R.m()` and `function R:m()` in one receiver produce two distinct
 `LuaGlobalDeclarationIndex` keys and one member name. `membersIn` de-dupes by **name**
@@ -284,6 +288,39 @@ behaviour, not authority to declare it; the call is the supervisor's.
 Not a regression, checked in the same run: a **FIELD/FUNCTION** collision (`Collide.f = 1` beside
 `function Collide:f()`) resolves to `f: number` both before and after — `materializeClass` seeds the
 field before `addMethodsOf` runs and its `containsKey` guard holds either way.
+
+#### RULING (supervisor, 2026-08-12) — accept the new behaviour and declare it
+
+**Accepted.** COMP-09-07 asks for behaviour preservation and there is no behaviour here to preserve:
+the old answer was an artifact of index traversal state, not a function of the source. The new rule —
+**first declaration in file order** — is deterministic, and it makes the `@class` door agree with the
+global door, which previously disagreed on three of the five receivers above. That removes a
+cross-door inconsistency rather than creating one. This is now a **declared** change, not an open
+question, and it is not to be re-litigated or reverted to order-dependence.
+
+Declared in three places, all landed 2026-08-12:
+
+- **CHANGELOG.md, `## [0.21]`** — one bullet, stated as a change and not as a fix.
+- **requirements.md, COMP-09-07** — recorded as the second declared exception, with the reason
+  preservation was unachievable.
+- **The test that pins the replacement rule** —
+  `MemberEnumerationMaterializationTest.testDotColonCollisionResolvesToTheFirstDeclarationInFileOrder`.
+  It pins **determinism**, not only a value: the five identical receivers above must be answered the
+  *same* way, which is the assertion a single-receiver test cannot make and which the pre-phase code
+  fails by construction. `Gadget` (colon declared first) states the reverse polarity, so the rule
+  reads "first in file order" rather than "dot wins". Both mutation-proven on gce-builder, each
+  reddening exactly this one test out of the class's seven:
+  - *last-wins* (`seen.putIfAbsent(...)` → `seen[...] = ...` in `membersIn`) —
+    `expected:<[fun(dotArg: string): string]> but was:<[fun(colonArg: number): number]>`.
+  - *order-dependence reintroduced* (per-file member list reversed on a receiver-name hash bit) —
+    `expected:<1> but was:<2>`, on `{Alpha=dot, Bravo=dot, Charlie=dot, Delta=dot, Echo=colon}`,
+    which is the pre-phase symptom exactly: identical inputs, different answers.
+
+**Scope of the claim.** Both declarations in the measurement and in the test live in **one file**, so
+"file order" is order within the declaring file. `membersIn` unions over declaring files through
+`processValues`, whose *file* order the platform does not specify, so a collision split across two
+files is not pinned by this ruling and is not claimed to be deterministic. No fixture and no reported
+case exhibits that shape; if one appears, it is a new question, not this one reopened.
 
 ### Risk 1.2: The scope and file-confinement semantics are lost in translation
 

@@ -28,6 +28,11 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypeMember
  * function's arithmetic would now be testing nothing. Each test below asserts the *observable*
  * class-door membership, which is where the rule has to survive whichever file it moved to.
  *
+ * Two further rows were added after the phase landed and are **not** rows of §4.6's preservation
+ * table: row 5 is a defect the table missed (every `LuaFileType` registration is a member source),
+ * and row 6 pins a **declared behaviour change** — the dot/colon tie-break, where there was no
+ * behaviour to preserve because the old answer was not a function of the source.
+ *
  * [LibraryRootTestCase], not `BasePlatformTestCase`: a light fixture's own files are entirely inside
  * `GlobalSearchScope.projectScope`, so the BUG-399 row is structurally invisible without a real
  * library root — the blind spot that let BUG-395/398/399 each ship green.
@@ -230,6 +235,54 @@ class MemberEnumerationMaterializationTest : LibraryRootTestCase() {
     }
 
     /**
+     * Row 6 — **the dot/colon tie-break is a DECLARED change, and what is pinned is determinism.**
+     *
+     * `function R.m()` and `function R:m()` are two `LuaGlobalDeclarationIndex` keys and one member
+     * name. `membersIn` de-dupes by name, so exactly one separator survives and `declaredMethod`
+     * rebuilds a single key from it; the resolved function type flips with the choice, and a colon
+     * declaration also carries an implicit `self`, so signature help and parameter info move too.
+     *
+     * The old `getAllKeys` scan let `addMethodsOf`'s `containsKey` first-wins pick whichever key the
+     * enumerator handed over first. Measured 2026-08-12 on these five structurally identical
+     * receivers, that answered **the same question five different ways — two dot, three colon** —
+     * because `getAllKeys` reads a persistent enumerator, so in a running IDE the winner depended on
+     * every Lua file that installation had ever indexed. COMP-09-07 asks for behaviour preservation
+     * and there was no behaviour to preserve; risks-and-gaps records the measurement and the ruling.
+     *
+     * So the assertion that matters is **not** a single receiver's type: one receiver would have
+     * passed under the old scan two times in five. It is that identical inputs get identical answers
+     * — a silent return to order-dependence has to redden this — plus the specific rule, **first
+     * declaration in file order**, stated in both polarities so it cannot be read as "dot wins".
+     * `Gadget` declares its colon form first and must resolve to it.
+     */
+    fun testDotColonCollisionResolvesToTheFirstDeclarationInFileOrder() {
+        registerLibraryRoot(
+            IDENTICAL_RECEIVERS.associate { "${it.lowercase()}.lua" to dotFirstSource(it) } +
+                ("gadget.lua" to COLON_FIRST_SOURCE),
+        )
+        val answers = IDENTICAL_RECEIVERS.associateWith { memberTypeName(it, "race") }
+        assertEquals(
+            "five receivers differing only in name, each with a dot declaration then a colon one in " +
+                "its own file, must be answered IDENTICALLY. The pre-Phase-3 key scan answered them " +
+                "two dot / three colon, decided by index traversal state rather than by the source. " +
+                "Got: $answers",
+            1,
+            answers.values.toSet().size,
+        )
+        assertEquals(
+            "and the declared rule is the FIRST declaration in file order, which is the dot one here",
+            setOf(DOT_DECLARED_TYPE),
+            answers.values.toSet(),
+        )
+        assertEquals(
+            "reverse polarity: the rule is 'first in file order', not 'dot wins'. `Gadget` declares " +
+                "`function Gadget:flip` before `function Gadget.flip`, so the colon form is the answer",
+            COLON_DECLARED_TYPE,
+            memberTypeName("Gadget", "flip"),
+        )
+    }
+
+    /**
      * **COMP-09-09 at the materialization door** — design §4.10b assertion 2, moved from the index
      * to the consumer that Phase 3 converted.
      *
@@ -319,6 +372,27 @@ class MemberEnumerationMaterializationTest : LibraryRootTestCase() {
         }
     }
 
+    /** The rendered type of one `@class`-door member, or null when the receiver does not offer it. */
+    private fun memberTypeName(
+        className: String,
+        member: String,
+    ): String? = classMembers(className)[member]?.type?.name
+
+    /** A receiver declaring `race` as a dot function first and as a colon function second. */
+    private fun dotFirstSource(receiver: String): String =
+        """
+        ---@class $receiver
+        local $receiver = {}
+
+        ---@param dotArg string
+        ---@return string
+        function $receiver.race(dotArg) end
+
+        ---@param colonArg number
+        ---@return number
+        function $receiver:race(colonArg) end
+        """.trimIndent()
+
     /** The `@class` door's own membership — `resolveType`, never collapsed with `resolveGlobal`. */
     private fun classMembers(className: String): Map<String, LuaTypeMember> {
         myFixture.configureByText("consumer.lua", "local x = 1\n")
@@ -335,5 +409,26 @@ class MemberEnumerationMaterializationTest : LibraryRootTestCase() {
         const val NOISE_PREFIX = "Noise"
         const val NOISE_RECEIVERS = 40
         const val NOISE_MEMBERS = 100
+
+        /** Five receivers that differ from one another only in name — the determinism sample. */
+        val IDENTICAL_RECEIVERS = listOf("Alpha", "Bravo", "Charlie", "Delta", "Echo")
+
+        const val DOT_DECLARED_TYPE = "fun(dotArg: string): string"
+        const val COLON_DECLARED_TYPE = "fun(colonArg: number): number"
+
+        /** The reverse polarity of [dotFirstSource]: the colon declaration comes first. */
+        val COLON_FIRST_SOURCE =
+            """
+            ---@class Gadget
+            local Gadget = {}
+
+            ---@param colonArg number
+            ---@return number
+            function Gadget:flip(colonArg) end
+
+            ---@param dotArg string
+            ---@return string
+            function Gadget.flip(dotArg) end
+            """.trimIndent()
     }
 }

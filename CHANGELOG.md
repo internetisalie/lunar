@@ -14,6 +14,12 @@
   every global-declaration key to find one receiver's methods — 4 145 keys for 50 members on the
   measured fixture. It is now a receiver-keyed lookup whose work does not grow when unrelated code is
   indexed, with the offered members unchanged ([b346f6c1](https://github.com/internetisalie/lunar/commit/b346f6c1)).
+- **Dot/colon member-name collisions resolve to the first declaration** (COMP-09): where a receiver
+  declares the same member name both as `function R.m` and as `function R:m`, the type shown for that
+  member — and with it quick documentation, signature help and parameter info — is now always the
+  declaration that comes first in file order. It previously varied: the winner was decided by index
+  traversal state rather than by the source, so two receivers written identically could be answered
+  differently ([b346f6c1](https://github.com/internetisalie/lunar/commit/b346f6c1)).
 - **Library snapshot invalidation** (TYPE-11): library types depend on the dependency generation —
   library roots and language target — instead of every keystroke; 334 ms → ~11 ms per keystroke with
   a 123 KiB definition library ([8d536e87](https://github.com/internetisalie/lunar/commit/8d536e87)).

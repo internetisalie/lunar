@@ -82,7 +82,7 @@ Four caches, one half-built index direction, and no single answer to the questio
 | ~~COMP-09-04b~~ | ~~**Lazy member-type rendering**~~ | — | **WITHDRAWN 2026-08-07 after Step 9 review.** Measured: 4 ms (median of 5) for 3 700 members' types + `displayName()`. Presentation was never on the critical path, and `renderElement` is *not* per-visible-row — that is `getExpensiveRenderer`. Design §1.7. |
 | COMP-09-05 | **`@class`-declared metamethods** | S | A `---@class` declaring `__add` makes its instances arithmetic-capable — closes COMP-04-DR-01 / BUG-426. |
 | COMP-09-06 | **No new type source** | M | The checker sees exactly what it sees today. Corpus baselines must not move. |
-| COMP-09-07 | **Behaviour-preserving against the `@class` door** | M | Same members, same types, same completions as today on every existing fixture — **except** where the two doors disagree, which DR-09 measured and BUG-430 records. `resolveType` → `materializeClass` is the door preserved; the global door's flattening of `a.b.c = v` is deliberately **not** reproduced. An unqualified "same as today" is unsatisfiable: two goldens exist for one receiver and one of them is a defect. Every golden entry names its door. |
+| COMP-09-07 | **Behaviour-preserving against the `@class` door** | M | Same members, same types, same completions as today on every existing fixture — **except** where the two doors disagree, which DR-09 measured and BUG-430 records. `resolveType` → `materializeClass` is the door preserved; the global door's flattening of `a.b.c = v` is deliberately **not** reproduced. An unqualified "same as today" is unsatisfiable: two goldens exist for one receiver and one of them is a defect. Every golden entry names its door. **A second declared exception (2026-08-12): a dot/colon member-name collision resolves to the first declaration in file order.** There was no behaviour to preserve — the prior winner came from index traversal state, not from the source — so the requirement is met by *declaring* the replacement rule and pinning its determinism, not by reproducing the old answer. |
 | COMP-09-08 | **The latency target is enforced** | M | A failing-first test asserts time-to-first-element against the `non-functional.md` budget, and runs in the routine loop — not behind `-PwithPerf`. |
 | COMP-09-09 | **The work bound is enforced** | M | **Entries traversed** per enumeration is instrumented and asserted proportional to matching entries; adding unrelated indexed content must not increase it. (An earlier revision restated this as "bound stub loads" on the strength of a mismeasured `getAllKeys` figure — reverted, design §2.) |
 | COMP-09-10 | **The shadowing rule is stated and gated** | M | **NEW 2026-08-12.** The change site (design §4.13) consults the index *before* the in-file type graph exists, which re-opens in-file-versus-global precedence. That precedence must be a **stated rule** (design §4.14, "Rule S"), derived from `LuaTypesVisitor.visitNameRef`'s `scope.lookup` rather than invented, with a test per binding form and a mutation proof. Inventing it implicitly to make a gate green is the rogue workaround the Phase 2 abort protocol forbids. |
@@ -215,15 +215,27 @@ per line; the consumers are Phases 2 and 3.
       reproduces the `@class` door on all four receivers; the completion door reproduces the global
       door with exactly the two declared divergences — `Shapes` loses `deep` (BUG-430) and `Derived`
       gains `ownField` (§4.5a). TC 7b and 7c are covered there too.
-      **Phase 3 broke it twice and one half is fixed (2026-08-12).** *(a)* The receiver index accepted
-      only `file.extension == "lua"` while `LuaFileType` is registered for `lua;rockspec` plus the
-      file names `.luacheckrc`/`.busted`, so the `@class` door returned a subset — measured
-      `[fromBusted, fromLua, fromLuacheckrc, fromRockspec, same]` → `[fromLua, same]`. **Fixed**: the
-      filter is derived from the file type and the shape is asserted at both index doors and at the
-      `@class` door. *(b)* A dot/colon name collision on one receiver now resolves to the
-      **first-declared** function where the `getAllKeys` scan resolved it by key-enumeration order.
-      **Open** — see risks-and-gaps, "GAP (Phase 3, 2026-08-12)": the old order is not a function of
-      the source, so there is no behaviour to preserve, and choosing one needs a declared expectation.
+      **Phase 3 broke it once, and declared one exception (2026-08-12).** *(a)* **A defect, fixed.**
+      The receiver index accepted only `file.extension == "lua"` while `LuaFileType` is registered for
+      `lua;rockspec` plus the file names `.luacheckrc`/`.busted`, so the `@class` door returned a
+      subset — measured `[fromBusted, fromLua, fromLuacheckrc, fromRockspec, same]` →
+      `[fromLua, same]`. The filter is now derived from the file type and the shape is asserted at
+      both index doors and at the `@class` door. *(b)* **A DECLARED exception, closed 2026-08-12.**
+      A dot/colon name collision on one receiver (`function R.m` beside `function R:m`) resolves to
+      the **first declaration in file order** where the `getAllKeys` scan resolved it by
+      key-enumeration order. **Preservation was not achievable here because the prior answer was not
+      a function of the input**: measured, five structurally identical receivers were answered two
+      dot / three colon by a persistent index enumerator, so there was no rule in the source to
+      preserve — see risks-and-gaps, "GAP (Phase 3, 2026-08-12)", for the measurement and the ruling.
+      The replacement rule is deterministic, agrees with the global door (which returned the dot
+      declaration on all five), and is pinned by
+      `MemberEnumerationMaterializationTest.testDotColonCollisionResolvesToTheFirstDeclarationInFileOrder`
+      — which asserts *determinism across identical receivers* as well as the value, and states both
+      polarities, so a return to order-dependence or a flip to last-wins reddens it (both mutation-proven).
+      **COMP-09-07 therefore holds as "behaviour-preserving except where declared", with this and the
+      two `@class`/global door divergences above as the whole declared set.** The box stays unticked
+      only because Phase 4 adds metamethod members at this same door and TC 3 has to be re-run against
+      it; nothing about the tie-break is outstanding.
 - [x] COMP-09-08 — **MET 2026-08-12 (Phase 2).** The latency assertion exists, failed before the fix,
       passes after, and runs without `-PwithPerf`. **Assertion 1 (wall clock, tier 1) is enforced**:
       `MemberEnumerationLatencyGateTest.BUDGET_ENFORCED` is `true`, and the run that flipped it
