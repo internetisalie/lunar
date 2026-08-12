@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Member completion answered from an index** (COMP-09): a global's members are offered without
+  building the declaring file's type graph first, taking the first completion against a large
+  definition library from ~491 ms to ~15 ms ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
+- **`---@field` members are offered** (COMP-09): a field declared on a `---@class` but never assigned
+  now completes — including the ten Redis and Valkey script constants such as `redis.LOG_WARNING` and
+  `redis.REPL_ALL` ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
+- **A grandchild is no longer offered as a member** (BUG-430): `Shapes.nested.deep = 1` stops
+  offering `deep` on `Shapes.`, where it does not exist ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
 - **Library snapshot invalidation** (TYPE-11): library types depend on the dependency generation —
   library roots and language target — instead of every keystroke; 334 ms → ~11 ms per keystroke with
   a 123 KiB definition library ([8d536e87](https://github.com/internetisalie/lunar/commit/8d536e87)).
