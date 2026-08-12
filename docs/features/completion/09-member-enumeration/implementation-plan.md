@@ -878,7 +878,7 @@ document's.)*
         path that never builds the snapshot; and the one door still over budget misses on a **first
         build**, which narrowing cannot make cheaper. Design §1.11.7.
   - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) — **NOT run in
-        Phase 5, deliberately.** See "The live checklist" below: 14 of its 17 scenarios are discharged
+        Phase 5, deliberately.** See "The live checklist" below: 15 of its 18 scenarios are discharged
         by automated real-flow tests, and whether the remaining 3 warrant a live GoLand pass is the
         supervisor's call, not the implementor's.
 - **Exit**: every acceptance criterion ticked or explicitly deferred with a reason; every DR row in

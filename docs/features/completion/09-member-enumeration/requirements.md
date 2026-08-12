@@ -186,7 +186,7 @@ deliberately **not** claimed by that status, each with a tracked owner rather th
 2. **`LuaReceiverMemberIndex.Indexer.map` walks the file five times** where one walk would do —
    ~40 ms of its 67 ms per-file build cost. One-off, persisted, on no latency path.
    Owner: **BUG-437** (DR-25).
-3. **The live IDE checklist has not been run.** 14 of its 17 scenarios are discharged by automated
+3. **The live IDE checklist has not been run.** 15 of its 18 scenarios are discharged by automated
    real-flow tests; 3 (perceived first-completion latency, the deliberate loss of type text, and the
    override gutter marker) need a human, and whether that pass is warranted is the supervisor's
    decision — see the implementation plan, "The live checklist".
