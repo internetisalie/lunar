@@ -25,9 +25,13 @@ folders:
   1. Open a Lua file. Type `wx.` and **do not type further**.
   2. Start a stopwatch at the `.` keypress; stop when the first suggestion appears.
 - **Expected**: first suggestion **under 100 ms** — no perceptible pause. Measured before this
-  feature: **746 ms** to first element (design §1.9). *(An earlier revision said ~12.9 s; that is
-  time-to-**exhaustive**, which is not what this scenario times, and any improvement would have
-  "passed" against it.)* The complete list settles ~31 ms later — §1.9 measured the gap.
+  feature: **746 ms** to first element (design §1.9), and **491 ms** median of five cold receivers on
+  the re-plan's fixture (§1.10.2). *(An earlier revision said ~12.9 s; that is time-to-**exhaustive**,
+  which is not what this scenario times, and any improvement would have "passed" against it.)* The
+  complete list settles ~31 ms later — §1.9 measured the gap.
+- **Fixture measurement for comparison**: the armed prototype gave **7.4 ms** median of five cold
+  wide receivers (§1.10.2). A stopwatch cannot resolve that; what this scenario checks is that the
+  *pause is gone*, not the microseconds.
 - **Result**: ⬜ Pass / ⬜ Fail — time observed: ______
 
 ### Scenario 1.2: The keystroke that used to cost the most
@@ -55,25 +59,104 @@ folders:
   in another. Restart between the two measurements so each is cold.
 - **Steps**:
   1. Time the small receiver's `.` to first suggestion, then the large one's.
-- **Expected**: **comparable**. DR-02a measured 41 ms vs 1 641 ms on today's code — a 40x spread that
-  `non-functional.md` forbids outright, since time-to-first must be independent of candidate count.
-  This is the clause most likely to still be violated after the fix, because it is the one nothing
-  before this feature ever checked.
+- **Expected**: **comparable**. DR-02a measured 41 ms for the small receiver and 1 641 ms for the
+  large one on today's code — one inside the 100 ms budget, one far outside it, which
+  `non-functional.md` forbids outright since time-to-first must be independent of candidate count.
+  *(An earlier revision called that "a 40x spread". The ratio is **retired** as a quotable quantity —
+  DR-08's standing consequence — and survives only as a pre-Phase-0 record; the two absolute figures
+  and which side of the budget each falls on are what this scenario is checking.)* This is the clause
+  most likely to still be violated after the fix, because it is the one nothing before this feature
+  ever checked.
+- ⚠ **Do not read a verdict off the stopwatch here.** The automated form of this assertion was
+  re-derived as a **count** (design §4.10a-bis) precisely because its timing form flipped verdict
+  across three runs of identical code (1x / 3x / 4x against the same derived 2x floor). Armed, the
+  prototype measured 6 214 µs narrow and 7 414 µs wide — a difference smaller than a human can time.
+  Record both numbers; the binding assertion is `LuaReceiverMemberWork.entries`, not this.
 - **Result**: ⬜ Pass / ⬜ Fail — small: ______  large: ______
 
-### Scenario 1.5: The slow tier — a receiver bound through `require`
+### Scenario 1.5: The `require`-bound receiver — REWRITTEN 2026-08-12, the "slow tier" is withdrawn
 
 - **Setup**: as 1.1, plus a library file containing `Helper = require("some.module")` and a project
-  file that uses `Helper.`.
+  file that uses `Helper.` **alongside at least one ordinary receiver such as `wx.`**. The second
+  receiver is the point of the scenario, not incidental.
 - **Steps**:
   1. Restart so nothing is cached. Time `Helper.` to first suggestion.
-- **Expected**: **unchanged from before this feature** — this receiver is deliberately *not* covered
-  by the 100 ms budget (design §4.12, `non-functional.md`'s two-tier statement). The index cannot see
-  through the binding, so it resolves through the type graph exactly as it does today.
-- ⚠ **This is the judgement no test makes.** If tier 2 is noticeably slow in ordinary use, the
-  two-tier contract is the wrong answer and the fix is to widen what the index can see through, not
-  to loosen the budget. Record how it feels.
-- **Result**: ⬜ Acceptable / ⬜ Noticeably slow — time observed: ______
+- **Expected**: **under 100 ms, like everything else.** An earlier revision exempted this receiver as
+  "tier 2" and asked only whether it *felt* acceptable. That exemption is **withdrawn** (design
+  §4.12): measured at the new change site it lands at 25–61 ms armed against 121–130 ms unarmed, with
+  no work specific to it. It improves because the *other* receivers in the file stop forcing the
+  consumer file's whole type-graph build — which is why the setup needs one.
+- ⚠ **If this is over 100 ms, that is a defect to file, not a contract to widen.** The one case not
+  covered is a file whose *only* receivers are opaque, which has nothing to ride on — that is
+  **DR-24**, and if this scenario is slow, check whether the file has any non-opaque receiver before
+  concluding anything.
+- **Result**: ⬜ Pass / ⬜ Fail — time observed: ______
+
+### Scenario 1.6: A big file that shadows a library name (Rule S's residual)
+
+- **Setup**: a **large** project file (2 000+ lines) which declares `local wx = { … }` at the top,
+  in a project that also has the wxLua library enabled.
+- **Steps**:
+  1. Restart. Type `wx.` inside that file and time to first suggestion.
+  2. Confirm the offered members are the **local's**, not the library's.
+- **Expected**: the local's members, and no perceptible pause. This is the one arm where Rule S's
+  O(file) walk runs (design §4.14) — measured at 8–16 ms on a 4 002-line file, on top of a path that
+  costs 124 ms without it. If it feels slow, that is **DR-23**.
+- **Result**: ⬜ Pass / ⬜ Fail — time: ______  members offered: ______
+
+### Scenario 1.7: Shadowing, by every binding form (COMP-09-10)
+
+- **Setup**: a project file declaring `Shadow = {}` and `function Shadow.fromLibrary() end`; a
+  separate consumer file.
+- **Steps**: in the consumer, one at a time, complete `Shadow.` under each of —
+  1. `local Shadow = { fromLocal = 1 }`
+  2. `local function Shadow() end`
+  3. inside `local function f(Shadow) … end`
+  4. inside `for Shadow in pairs({}) do … end` and `for Shadow = 1, 2 do … end`
+  5. after the consumer's own `Shadow = { fromThisFile = 1 }`
+  6. with the consumer binding nothing at all
+  7. inside `function C:m() … end`, completing `self.` (Rule S's `name == "self"` clause)
+  8. inside `if type(Shadow) == "table" then … end`, after `local Shadow = { fromLocal = 1 }`
+- **Expected**: 1–5, 7 and 8 offer **only what that file's own binding provides** and never
+  `fromLibrary`; 6 offers `fromLibrary`. This is the rule the aborted Phase 2 was forbidden from
+  inventing implicitly; TC 10a–10j automate it, and this scenario is the eyes-on confirmation that
+  the popup a user actually sees agrees. Cases 7 and 8 were added 2026-08-12 — they are the two
+  clauses the `LuaParList` mutation proof cannot reach (TC 10i, TC 10j).
+- **Result**: ⬜ Pass / ⬜ Fail — any case that leaked `fromLibrary`: ______
+
+### Scenario 1.8: A Redis target — the ambient globals and the `@class` stub (TC 10h, TC 7f)
+
+- **Setup**: **Settings → Languages & Frameworks → Lua**, set the target to **Redis 7+**; a script
+  file in the project. Nothing else — `KEYS`, `ARGV` and `redis` all come from the bundled stubs.
+- **Steps**:
+  1. Complete `KEYS.` and `ARGV.` (and both at `:`).
+  2. Complete `redis.` and `redis:`.
+- **Expected**: (1) offers **nothing**, exactly as today — this is the one `LuaScope.declare` site
+  Rule S deliberately excludes (`seedAmbientGlobals`), and it is live only on Redis/Valkey targets,
+  so it is invisible on the default STANDARD target every other scenario here uses. (2) `redis.`
+  offers the thirteen functions **plus** the ten `@field` constants (`LOG_DEBUG`, `REPL_ALL`,
+  `REDIS_VERSION`, …) — a **declared change**, design §4.5a's third instance; `redis:` offers
+  the thirteen functions only, unchanged. If `redis:` gains the constants, the syntactic `isColon`
+  filter is wrong, not the index.
+- ⚠ **"Thirteen" is a Redis 7+ number.** The bundled `redis.lua` declares **10** functions on Redis 5,
+  **11** on Redis 6, **13** on Redis 7+ and **12** on both Valkey targets (design §1.10.8a). Count the
+  *delta* — ten constants appear at `.` and none at `:` — rather than matching an absolute total.
+- **Result**: ⬜ Pass / ⬜ Fail — `KEYS.` offered: ______  `redis.` count: ______  `redis:` count: ______
+
+### Scenario 1.9: A Valkey target — `server.` must NOT move (TC 7f-bis, the control for Scenario 1.8)
+
+- **Setup**: **Settings → Languages & Frameworks → Lua**, set the target to **Valkey 8**; a script file.
+- **Steps**:
+  1. Complete `server.` and `server:`. Then complete `redis.` in the same file.
+- **Expected**: **`server.` and `server:` are unchanged** — `server.` offers its ten constants and its
+  eleven functions exactly as today, `server:` the eleven functions. `redis.` *does* gain its ten
+  constants. The two receivers carry the **same ten `---@field` declarations**; the only difference is
+  that `server.lua` also writes `server.LOG_DEBUG = 0`-style assignments, so the constants were
+  already visible to today's global door and to design §4.3's source 2 (measured, §1.10.8a).
+- ⚠ **If `server.` moves, the diagnosis is not "the `@field` source is wrong"** — it is that source 2
+  or the first-declaring-file selection stopped seeing the assignments. Check `server.LOG_DEBUG`
+  specifically before concluding anything about `@field`.
+- **Result**: ⬜ Pass / ⬜ Fail — `server.` count: ______  `server:` count: ______  `redis.` count: ______
 
 ## 2. Correctness of what is offered
 
@@ -122,7 +205,8 @@ folders:
   1. Ctrl+B on a member completed from the library.
   2. Look for the override gutter marker on the derived method and click it.
 - **Expected**: navigation lands in the library file; the gutter marker appears and navigates.
-  `sourceElement` feeds `LuaOverrideLineMarkerProvider` (design §4.1), and `materializeClass:256-262`
+  `sourceElement` feeds `LuaOverrideLineMarkerProvider` (design §4.1), and
+  `LuaTypeManagerImpl.materializeClass` (`LuaTypeManagerImpl.kt:341`, comment at `:357-361`)
   warns the parity harness compares names and types only — so this is checkable *only* by hand.
 - **Result**: ⬜ Pass / ⬜ Fail
 
@@ -134,10 +218,18 @@ folders:
   1. Type `Derived.` and invoke completion.
 - **Measured before the change** (DR-14): `[ownFn]` — the `@field` is **absent**, because the global
   door builds the type from the assignment and never reads the `@class` comment.
-- **Expected after**: `[ownField, ownFn]`. A **deliberate new member** on this path (design §4.5a),
-  declared rather than discovered. Inherited members from `Base` are still absent, and that is also
-  unchanged — they were never on this door.
-- **Result**: ⬜ Pass / ⬜ Fail — offered: ______
+- **Expected after**: `[Show, ownField, ownFn]`. A **deliberate new member** on this path (design
+  §4.5a), declared rather than discovered. Inherited members from `Base` are still absent, and that is
+  also unchanged — they were never on this door.
+- **And check `Base` too — EXTENDED 2026-08-12.** With `---@class Base` carrying
+  `---@field inheritedField string` and `---@field onClose fun(): nil`, `Base.` moves from
+  `[Show, inheritedFn]` to `[Show, inheritedField, inheritedFn, onClose]`, and **`Base:` moves from
+  `[Show, inheritedFn]` to `[Show, inheritedFn, onClose]`** — a `@field` whose type text starts
+  `fun(` is indexed as a function and survives the colon filter. Both are declared (TC 7d/7e). This
+  is the one place the index arm's *syntactic* colon filter visibly differs from the graph arm's
+  *semantic* one; if `onClose` looks wrong to a human at `Base:`, say so here — the automated tests
+  will happily assert whichever we choose.
+- **Result**: ⬜ Pass / ⬜ Fail — `Derived.`: ______  `Base.`: ______  `Base:`: ______
 
 ## 3. Operators (COMP-09-05)
 

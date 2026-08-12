@@ -39,7 +39,9 @@ folders:
 >
 > DR-02a (design §1.9) built the first-element observer NFR-1 was blocked on: cold time-to-first is
 > **746 ms** against a 100 ms budget, the gap to exhaustive is **31 ms (4 %)** — so first ==
-> exhaustive is measured now, not argued — and time-to-first scales **40x** with member count, which
+> exhaustive is measured now, not argued — and time-to-first is **not independent of member count**
+> (41 ms for 3 members, inside the budget; 1 641 ms for 3 600, far outside it — the `40x` this line
+> once quoted is retired as a ratio of two harness figures, per DR-08), which
 > violates the NFR's independence clause. **COMP-09-08 is designed off it (§4.10a) and both its
 > assertions are red today**, so the mutation proof Phase 0 asks for is already in hand.
 >
@@ -80,7 +82,8 @@ folders:
         `Busted`, not `assert`: a golden that shares a receiver name with a bundled stdlib stub would
         record whichever declaring file the unordered `getContainingFiles` returned.
   - [x] Add the `LuaOverrideLineMarkerProvider` case to the golden — `sourceElement` is load-bearing
-        (design §4.1) and `materializeClass:256-262` warns the parity harness cannot see it.
+        (design §4.1) and `LuaTypeManagerImpl.materializeClass` (`LuaTypeManagerImpl.kt:341`, comment
+        at `:357-361`) warns the parity harness cannot see it.
         → Four `override|…` rows recording the **source PSI class and file** per super member, so the
         Implement-vs-Override distinction is pinned: `Derived:Show` → `LuaFuncDeclImpl`,
         `Derived:onClose` → `LuaCatsFieldTagImpl`, `Derived:ownFn` → `<none>`.
@@ -91,7 +94,9 @@ folders:
         → Probe promoted to `FirstElementProbe` / `TimedCompletionTestCase`;
         `MemberEnumerationLatencyGateTest` holds both assertions. **Armed and run red on today's
         code**: `cold time-to-first for wx. was 1054 ms against a 100 ms budget`, and
-        `time-to-first scales 64x with member count against a measured noise floor of 2x`. Assertion
+        `time-to-first scales 64x with member count against a measured noise floor of 2x` — quoted as the
+        harness's own printed line, **not** as a figure this plan cites; the ratio form was retired by
+        DR-08 and the assertion replaced by a count (design §4.10a-bis). Assertion
         2's factor is **derived at run time by DR-17's stated rule** — `ceil(p95/p50)` over five cold
         3-member receivers, each in its own file — rather than picked; it measured 2x
         (10 018/10 142/10 392/10 620/11 604 us).
@@ -293,7 +298,7 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
   cancelled flag — the probe's first version was green for that reason alone.)*
   **Phase 1 then over-generalised this to "cannot be gated" full stop, and that was wrong for one of
   the two calls.** What is observable is not the throw but the probe: the platform checks *after*
-  each callback (`FileBasedIndexEx:424`, `:455`) and the plugin checks *before*, so a
+  each callback (`FileBasedIndexEx:424`, `:456`) and the plugin checks *before*, so a
   `CoreProgressManager.CheckCanceledHook` recording `LuaReceiverMemberWork.files` at every check sees
   two probes straddle one `recordVisit`. Gated in
   `LuaReceiverMemberCancellationTest.testTheUnionDoorProbesCancellationBeforeEachCallbackAndNotOnlyAfterIt`
@@ -341,63 +346,374 @@ is corrected above rather than argued with; the substantive item is the first.
   2 543 tests, 0 failures, 1 skipped** (2 541 + 2 added), ktlint 0 violations. Golden still
   `a8c580ccc7a9528c0fde41527d870c48`; `getVersion()` still 1; no `src/main` behaviour changed.
 
-## Phase 2: Completion consumer — **BLOCKED 2026-08-09, needs replanning**
+## Phases 2–5 were RE-CUT on 2026-08-12, not resumed
 
-> **Executed to this plan, measured, reverted.** The change site below —
-> `crossFileGlobalMembers`, `LuaCompletionContributor.kt:133-139` — is guarded by
-> `type == LuaGraphType.Undefined`, and that guard **does not open for any receiver with members**:
-> the in-file `LuaTypesSnapshot` already resolves a cross-file global to a populated `Table`. Probed
-> across every cross-file completion test in the repo, the branch is reached only by `luassert`,
-> `wxFrame` and `AllColon` — the three whose `@class` sits on a local and which offer `<none>`.
-> Implementing this phase exactly as written produced **zero behaviour change**.
+> **Phase 2 as previously written was executed to plan, measured, and aborted (`ABORT_REPLAN`).** Its
+> change site — `crossFileGlobalMembers`, `LuaCompletionContributor.kt:133-139` — sits behind
+> `type == LuaGraphType.Undefined`, a guard that never opens for a receiver with members, and is
+> downstream of the `LuaTypesSnapshot.forFile` build that is 88–97 % of the cost. The record is in
+> [risks-and-gaps.md](risks-and-gaps.md), "BLOCKER (Phase 2, 2026-08-09)".
 >
-> It is also **downstream of the cost**: `LuaTypesSnapshot.forFile` runs unconditionally before the
-> guard and is **88–97 %** of cold time-to-first (1 462 ms of 1 661 ms; 854 ms of 878 ms), so
-> COMP-09-08 cannot be flipped here at all. Full measurement, and what replanning owes, in
-> [risks-and-gaps.md](risks-and-gaps.md) — "BLOCKER (Phase 2, 2026-08-09)". **Phase 1's index is not
-> implicated**: it answers exactly as designed on every probed receiver.
+> **What unblocked the re-cut** is TYPE-11 shipping `done` (2026-08-12): the 334 ms recurring
+> per-keystroke cost is gone, and what COMP-09 now exists to remove is the **cold `buildSnapshot` of
+> the library file — 844–955 ms** for a 123 KiB / 3 600-member library, once per session (TYPE-11
+> DR-08).
+>
+> **The re-cut is prototyped, not proposed.** The abort happened because DR-14 validated
+> `membersOfGlobal` against `resolveGlobal` directly rather than through the contributor. DR-21/DR-22
+> therefore built the new site end to end, ran it through `myFixture.completeBasic()`, ran the **whole
+> 2 639-test suite armed**, and reverted it. Design §1.10 carries the pasted output; every task below
+> cites a run rather than a reading. **Phase 1's index needed no change** — the probe shows it answers
+> exactly as designed on every receiver.
 
-- **Goal**: `wx.<caret>` served from the index; COMP-09-08 goes green.
+### Scope decision: the remaining work stays inside COMP-09
+
+Recorded because the re-cut is large enough to ask. **Recommendation: keep it in COMP-09.** Reasons,
+in order of weight:
+
+1. **The change site is the consumer COMP-09-01 always named.** The requirement is "'members of X' is
+   answered by an index lookup, not a key scan", and Phase 1 built the index with the explicit note
+   that "nothing consumes it yet". Splitting the consumer out would leave COMP-09 shipping a
+   registered index that nothing uses — which is the state the abort left, and it is not a shippable
+   unit of value.
+2. **Six of nine requirements and every acceptance criterion are already written against it.**
+   COMP-09-07/-08/-09 are all asserted at this door; the golden, the latency gate and the work-bound
+   gate are checked in and inverted against it. A new ID would inherit all three artifacts or
+   duplicate them.
+3. **What changed is a call site, not a thesis.** The index, the selection rule, the opacity sentinel
+   and the two-door split all survived the abort intact — the probe confirms the index "answers
+   exactly as designed on every receiver". Only §4.5's *premise about which function is the door* was
+   wrong.
+4. **What genuinely is new gets a requirement, not a feature.** Rule S is the one invented rule, and
+   it is COMP-09-10 with its own tests and mutation proof.
+
+**What would reverse this**: if Phase 5's DR-23/DR-24 turn out to need a cached bound-name set with
+its own invalidation axis, that is a second mechanism and belongs in its own feature. It is not
+needed to ship Phases 2–4. *(Minting or retiring a roadmap ID is the supervisor's call, not this
+document's.)*
+
+## Phase 2: The change site — hoist above the snapshot build
+
+- **Goal**: `wx.<caret>` answered from the index **before** `LuaTypesSnapshot.forFile` runs;
+  COMP-09-08 assertion 1 goes green. Measured on the prototype: cold time-to-first **491 ms → 7.4 ms**,
+  both medians of five cold samples (design §1.10.2).
 - **Tasks**:
-  - [ ] **Implement the §4.5c fork here, in the contributor** — this is Phase 2's work, not
-        Phase 1's, because Phase 1's goal is "the index exists and nothing consumes it yet":
+  - [ ] **TASK 0 — extend the golden to a colon door FIRST, in its own commit, with no production
+        change.** DR-27, decided rather than deferred; see risks-and-gaps' DR-27 row for the full
+        reasoning. `MemberEnumerationGoldenTest.completionRows` (`MemberEnumerationGoldenTest.kt:99-102`)
+        emits only `completionsFor("$receiverName.<caret>\n")`. Add the `:` caret beside it, under a
+        distinct label so the two carets never collide:
+
         ```kotlin
-        val membership = LuaReceiverMemberIndex.globalMembership(
-            nameRef.text, nameRef.project, nameRef.containingFile?.originalFile)
-        if (membership.authoritative) emitIndexed(membership.members)   // §4.5b index arm
-        else emitGraph(...)                                            // §4.5b else arm, VERBATIM
+        private fun completionRows(receiverName: String): List<String> =
+            caretRows(receiverName, ".", "completion") + caretRows(receiverName, ":", "completion:")
+
+        private fun caretRows(receiverName: String, separator: String, label: String): List<String> {
+            val offered = completionsFor("$receiverName$separator<caret>\n").sorted()
+            return offered.ifEmpty { listOf("<none>") }.map { "$receiverName|$label|$it" }
+        }
         ```
-        `crossFileGlobalMembers` is **replaced** by this fork rather than re-typed. An earlier
-        revision said "rewrite it to return `List<LuaReceiverMember>`"; that cannot express the
-        non-authoritative branch, which yields `Map<String, VariableNode>` from the graph — the same
-        signature impossibility Step 9 raised against putting the fallback in the index.
-  - [ ] **Split the emit loop** — design §4.5b. It is shared by two branches today and the `else`
-        branch still needs `memberNode.write` for its type text and its *semantic* `isColon` filter,
-        so the branches separate and the `else` branch is copied **verbatim**. "The emit loop keeps
-        its shape" was Step 9 blocker B3.
-  - [ ] Add `LuaMemberLookup.create(LuaReceiverMember)` — icon from `kind`, **no type text** on this
-        path (design §4.5). D3 is bounded, not closed: `wx.f = function() end` is FUNCTION, but
-        `wx.f = someFn` is FIELD and vanishes from `wx:` completion. Add that case to the gate so the
-        residue stays visible.
-  - [ ] Amend TC 3 to expect absent type text on the cross-file path. This is a **visible behaviour
-        change** and must be an expectation, not a silent diff.
-  - [ ] Re-measure time-to-first-element, medians of ≥5.
-- **Exit**: COMP-09-08 green; golden unchanged for the in-file path; **completion membership diffed
-  against the golden in both directions** (design §4.9 D2 — today's path takes the *first* declaring
-  file only, so a union is a superset and Phase 3's diff does not cover this consumer); TC 6 and TC 7
-  green. *(An earlier revision cited TC 7a and TC 14 here; neither exists in `requirements.md`.)*
+
+        `HEADER` is written into the golden itself (`MemberEnumerationGoldenTest.kt:143-153`), so
+        **append** a legend line immediately after the existing
+        `# <receiver>|completion|<lookupString>   what \`R.<caret>\` offers` line —
+        `# <receiver>|completion:|<lookupString>  what \`R:<caret>\` offers` — and **do not reword
+        the existing one**, so the header change is also an addition.
+        **Exit for this task alone**: the golden's diff is a **pure addition** — `git diff` on
+        `src/test/resources/comp09/member-enumeration.golden` shows only `+` lines and **zero** `-`
+        lines, and `cut -d'|' -f2 member-enumeration.golden | sort -u` goes from
+        `shape | global | class | completion` to that plus `completion:`. Record the new hash beside
+        `a8c580ccc7a9528c0fde41527d870c48`. If any existing line moves, **stop**: the extension was
+        supposed to be behaviour-free and something else changed.
+
+        While in this file, fix its stale KDoc anchor: `MemberEnumerationGoldenTest.kt:30` still
+        cites `LuaTypeManagerImpl:256-262`, which is now unrelated code. The correct anchor is
+        `LuaTypeManagerImpl.materializeClass` (`LuaTypeManagerImpl.kt:341`), with the warning
+        comment at `:357-361`. This task's no-production-change rule covers `src/main`; a `src/test`
+        KDoc correction is compatible with it.
+
+        **Why before Phase 2 and not during it, or in Phase 5.** During Phase 2 the re-record would
+        carry the new caret *and* the arm's behaviour delta in one diff, which is exactly what the
+        every-line-declared exit criterion forbids — that objection is correct and is why the
+        deferral existed. It does not apply to a run on unarmed code, where the delta is zero.
+        Deferring to Phase 5 leaves two real gaps: after Phase 2 **nothing pins the colon door for
+        ten of the eleven receivers** (only E7 asserts `Base:`), and Phase 4's "re-check `v:` at the
+        Phase 2 site" task has no baseline to re-check against. It also settles a disagreement
+        between two artifacts: DR-21's row reports *nine of eleven* colon receivers byte-identical —
+        **two** movers — while design §4.5a declares exactly **one** (`Base:`, with `Derived:`
+        explicitly unchanged), and **no colon-door output is pasted anywhere in design §1.10**. The
+        recorded baseline decides it. If a second mover appears, add it to the diff table below as a
+        declared expectation; if none does, DR-21's count is corrected against a checked-in artifact.
+  - [ ] **Add `net.internetisalie.lunar.lang.psi.LuaLocalBindingScan`** — design §4.14. One public
+        method, `fun binds(file: PsiFile, name: String): Boolean`, implemented as a single
+        `PsiTreeUtil.processElements(file) { … }` pass with an early exit over the seven clauses in
+        §4.14's table. **Do not substitute `LuaFileBindingsIndex`**: it walks file-scope statements
+        only (`LuaFileBindingsIndex.extractBindings`, `LuaFileBindingsIndex.kt:350`, whose walk is
+        `file.getBlockList().forEach { block -> block.statementList… }` at `:355-357`), so it misses
+        parameters, for-loop variables and nested locals —
+        the member-inventing direction. §4.14 states why.
+  - [ ] **Add the hoist to `LuaCompletionContributor`** — design §4.13, verbatim. One call inserted
+        after `findReceiverExpr` (`:361` today) and before `val snapshot = LuaTypesSnapshot.forFile(...)`:
+        ```kotlin
+        if (addIndexedGlobalMembers(receiverExpr, parameters, isColon, result)) return
+        ```
+        plus the two private companion functions §4.13 gives in full. **Order matters and is measured**:
+        `globalMembership` first, `LuaLocalBindingScan.binds` only if `found && authoritative`. The
+        reverse order costs 10 875–21 501 µs per completion on a 4 002-line file and buys nothing —
+        routing is identical either way (design §1.10.6).
+  - [ ] **Change nothing below the insertion point.** `crossFileGlobalMembers`, the
+        `type == LuaGraphType.Undefined` guard and the shared emit loop stay byte-for-byte as they are.
+        Design §4.5b's branch split is **withdrawn** — it existed only because the old site replaced a
+        function in place. The non-authoritative case is `return false`, not a re-implemented graph arm.
+  - [ ] Add `LuaMemberLookup.create(member: LuaReceiverMember): LookupElement` —
+        `net.internetisalie.lunar.lang.completion.LuaMemberLookup`, icon `AllIcons.Nodes.Method` for
+        `Kind.FUNCTION` else `AllIcons.Nodes.Field`, **no type text** (design §4.13).
+  - [ ] **Re-record the golden, declaring every move.** The armed suite moves exactly two tests, and
+        the golden's diff on the **dot** caret is three receivers on the `completion` door only —
+        every `global` and `class` row is byte-identical (design §1.10.5). The golden's checked-in
+        hash moves from task 0's hash to whatever this re-record produces; put both in the commit
+        message.
+
+        | golden row | today | after | requirement |
+        | :-- | :-- | :-- | :-- |
+        | `Shapes\|completion` | `deep, direct, nested, plain` | `direct, nested, plain` | BUG-430, §4.4a, TC 3 |
+        | `Base\|completion` | `Show, inheritedFn` | `Show, inheritedField, inheritedFn, onClose` | §4.5a, **TC 7d** |
+        | `Derived\|completion` | `Show, ownFn` | `Show, ownField, ownFn` | §4.5a, TC 7c |
+        | `Base\|completion:` | `Show, inheritedFn` | `Show, inheritedFn, onClose` | §4.5a, **TC 7e** — the colon rows exist because of task 0 |
+
+        **The fourth row is new and depends on task 0 having run.** Before task 0 the golden had no
+        colon door at all — `completionRows` emitted only the `.` caret — which is why an earlier
+        revision listed a `Base:` row the file could not produce (Step 9 blocker B3) and a later one
+        struck it entirely. Task 0 gives the file a colon door on unarmed code, so `Base|completion:`
+        is now a row the golden *can* carry and Phase 2 declares it here as well as gating it in E7.
+
+        ⚠ **The design predicts exactly ONE colon mover and DR-21's summary implies two** ("9 of 11
+        colon receivers byte-identical"; risks-and-gaps' DR-21 row), with no colon output pasted
+        anywhere to adjudicate. If the re-record moves a second colon row, that is the disagreement
+        resolving — **name it here, decide in writing whether it is expected, and only then
+        re-record**. Do not treat an undeclared colon movement as noise; that is precisely the
+        failure this exit criterion exists to catch. `global` and `class` rows must still be
+        byte-identical either way.
+  - [ ] **Write seven expectation tests** — new class
+        `net.internetisalie.lunar.definitions.MemberEnumerationExpectationTest : LibraryRootTestCase()`,
+        offered set read through the inherited `completionsFor(...)` (which recovers the
+        auto-inserted single match — BUG-431). E2/E3/E5–E7 call
+        `registerLibraryRoot(Comp09GoldenFixture.files())`; **E1 and E4 each register their own
+        single-file library root** — `registerLibraryRoot(mapOf("sources.lua" to SOURCES))` and
+        `mapOf("residue.lua" to RESIDUE)` — and the consumer is the `consumer.lua`
+        `completionsFor(...)` writes into the *project*, which is the second file. *(An earlier
+        revision called these "two-file roots"; the root holds one file, the project holds the
+        other.)* The two library files are given **in full** below, not as bullet lists: an earlier
+        revision listed E1's `---@class`/`---@field` block *after* the declarations, which no fixture
+        in `Comp09GoldenFixture` does and which a weak implementer cannot resolve without inventing.
+
+        > **These are WRITTEN, not re-used.** An earlier revision said "re-use verbatim the five the
+        > aborted Phase 2 already wrote". **They cannot be located**: `d5af3231` is docs-only ("no
+        > production change kept; the tree is byte-identical to `0e182b1c` under `src/`"), so the
+        > tests were reverted with the code and appear in no commit; `Sources.lua` and `Residue.lua`
+        > do not exist in the tree either. What survives is risks-and-gaps' table of the five
+        > *expectations* and their observed failures on today's code, which is the mutation proof —
+        > so the five are reconstructed from that record below and specified in full, with their
+        > fixtures, and DR-21's two `Base` findings added as E6/E7.
+        >
+        > Same correction for the harnesses: `CompNineDr18Test`, `CompNineDr21Test` and
+        > `CompNineDr22Test` — cited for every figure in design §1.10 and §4.8a — were throwaway,
+        > run and reverted (`git log --all --diff-filter=A` finds no add commit for any of them).
+        > **The pasted output in design §1.10 / §4.8a is the evidence; the harnesses are not
+        > re-runnable, and nothing in this plan may instruct re-using them.**
+
+        **E1's library file, verbatim** (`SOURCES`, modelled on `Comp09GoldenFixture.BASE`'s layout —
+        `---@meta`, then the `---@class` + `---@field` block **immediately above** the declaration it
+        annotates, then the members, then `return`):
+
+        ```lua
+        ---@meta
+
+        ---@class Sources
+        ---@field fromFieldTag string
+        Sources = {}
+
+        Sources.assigned = 1
+
+        function Sources.fromFunc() end
+
+        function Sources:fromMethod() end
+
+        return Sources
+        ```
+
+        **E4's library file, verbatim** (`RESIDUE`):
+
+        ```lua
+        ---@meta
+
+        Residue = {}
+
+        local function impl() end
+
+        Residue.aliased = impl
+
+        Residue.direct = function() end
+
+        return Residue
+        ```
+
+        | # | fixture | assertion | today (the recorded red) | after |
+        | :-- | :-- | :-- | :-- | :-- |
+        | E1 | `sources.lua` above | every indexer source reaches `Sources.` | `.` = `{assigned, fromFunc, fromMethod}` — `fromFieldTag` **absent** (the aborted Phase 2's recorded red) | `.` = `{assigned, fromFieldTag, fromFunc, fromMethod}`; `:` = `{fromFunc, fromMethod}`, unchanged — TC 5. **See the derivation note below: `fromMethod` IS in the dot set.** |
+        | E2 | golden | `Derived.` offers `ownField` | `{Show, ownFn}` | `{Show, ownField, ownFn}` — TC 7c |
+        | E3 | golden | `Shapes.` no longer offers `deep` | `{deep, direct, nested, plain}` | `{direct, nested, plain}` — TC 3, BUG-430 |
+        | E4 | `residue.lua` above | an **indirectly** assigned function is `Kind.FIELD` and so vanishes at `:` | `.` = `{aliased, direct}`; `:` = `{aliased, direct}` — `aliased` **offered at `:`** | `.` = `{aliased, direct}`, unchanged; `:` = `{direct}` only — design §4.3's D3 residual, made visible rather than assumed away |
+| E5 | golden | the index arm renders **no type text** | `wxFileExists=fun(filename)` | `wx.`'s elements carry `typeText == null`. Read it off a `LookupElementPresentation`, never off the lookup string. **Two spellings exist and both are real** — use either, but write one of them out rather than naming a bare method: the static factory `LookupElementPresentation.renderElement(element)` (`LookupElementPresentation.java:258`, which is what `LookupImpl.addItem` itself uses) returns a filled presentation; the instance form `element.renderElement(presentation)` (`LookupElement.java:130`) fills one you supply, and is the shape this repo already uses at `LuaRedisCommandCompletionTest.kt:73-74`. Concretely: `val presentation = LookupElementPresentation(); element.renderElement(presentation); assertNull(presentation.typeText)`. Design §4.13; §1.7 measured this as absence rather than cost |
+        | E6 | golden | `Base.` gains its own `@field`s | `{Show, inheritedFn}` | `{Show, inheritedField, inheritedFn, onClose}` — TC 7d, DR-21's finding; §4.5a had declared `Derived` only |
+        | E7 | golden | `Base:` gains `onClose` | `{Show, inheritedFn}` | `{Show, inheritedFn, onClose}` — **TC 7e**; `---@field onClose fun(): nil` indexes `Kind.FUNCTION` (§4.3's `startsWith("fun(")`) and survives the syntactic colon filter. After task 0 the golden *also* carries this as a `Base\|completion:` row; **E7 is still the named gate for TC 7e**, and risks-and-gaps' DR-27 row says so too |
+
+        **Derivation note — the expected sets are read off `emitIndexed`, not off intuition, and E1's
+        was wrong until this revision.** Design §4.13's `emitIndexed` filters on **one** predicate:
+        `if (isColon && member.kind != Kind.FUNCTION) continue`. There is **no separator filter**. So
+        at a `.` caret *nothing* is filtered — a `Separator.COLON` member is emitted — and at a `:`
+        caret the only test is `Kind`. Two independent confirmations that this is today's behaviour
+        too, so the dot set is a preservation rather than a change:
+
+        - the checked-in golden has `Base|completion|Show` (line 78) while `Comp09GoldenFixture.BASE`
+          declares `function Base:Show()` — a colon-declared method offered at the dot caret;
+        - design §1.10.5's armed measurement has `Base.` = `[Show, inheritedField, inheritedFn,
+          onClose]`, `Show` included.
+
+        E1 therefore expects `fromMethod` **in** its dot set. An earlier revision wrote
+        `{assigned, fromFunc, fromFieldTag}`, which is both a regression against today's behaviour and
+        red against a correct implementation of §4.13. Per-member derivation for E1:
+        `assigned` → source 2, RHS `1` → `FIELD/DOT`; `fromFunc` → source 1 → `FUNCTION/DOT`;
+        `fromMethod` → source 1 → `FUNCTION/COLON`; `fromFieldTag` → source 3, type text `string`
+        (does not start `fun(`) → `FIELD/DOT`. Dot keeps all four; colon keeps the two `FUNCTION`s.
+        E2/E3/E6/E7 were re-derived the same way against §1.10.5's pasted armed output and are
+        unchanged; E4's was re-derived against §4.3's D3 rule and gains an explicit today-column for
+        its dot caret, which was previously blank.
+
+        Assert with `assertEquals(expected, found.toSet())`, never `assertTrue(contains)`: half the
+        value here is that nothing *extra* is offered, and a containment assertion cannot see a
+        superset — which is the D2 failure mode this feature has hit three times. **No eighth test is
+        needed for the no-invention guard**: the golden already pins `wx|completion` at exactly
+        `{wxFileExists, wxID_ANY}` and `wxFrame`/`AllColon`/`luassert` at `<none>`, and Phase 2's exit
+        requires those rows to be byte-identical.
+  - [ ] **Write TC 7f and TC 7f-bis — the `@field` superset on the bundled stubs, and its control.**
+        New class
+        `net.internetisalie.lunar.definitions.MemberEnumerationRedisTargetTest : IndexedBasePlatformTestCase()`.
+        Set the target exactly the way `RedisAmbientTypingTest.setRedisTarget` does — **`Target`'s
+        second parameter is a `VersionEntry`, not a `String`**, so
+        `Target(LuaPlatform.REDIS, "7+")` does not compile:
+
+        ```kotlin
+        private fun setTarget(platform: LuaPlatform, label: String) {
+            val version = requireNotNull(PlatformVersionRegistry.findVersion(platform, label))
+            EdtTestUtil.runInEdtAndWait<RuntimeException> {
+                LuaProjectSettings.getInstance(project).setTargetAndNotify(Target(platform, version))
+                PlatformLibraryIndex.reload()
+            }
+        }
+        ```
+
+        **Restore STANDARD 5.4 in `tearDown`** — the light project is shared across the module run
+        and a leaked Redis target breaks the later `lang.indexing`/`lang.types` tests.
+
+        **TC 7f — Redis 7+.** `runtime/redis/redis-7/redis.lua` is `---@class redis` + ten
+        `---@field` constants + a bare `redis = {}` + **thirteen** `function redis.*`, with the ten
+        constants **never assigned**. Measured (design §1.10.8a, `=== PROBE TARGET Redis 7+ ===`):
+        `redis.` today = the thirteen functions; after Phase 2 = those plus `LOG_DEBUG, LOG_NOTICE,
+        LOG_VERBOSE, LOG_WARNING, REDIS_VERSION, REDIS_VERSION_NUM, REPL_ALL, REPL_AOF, REPL_NONE,
+        REPL_REPLICA`. `redis:` **unchanged** at the thirteen — the ten are `Kind.FIELD` (their
+        `@field` type text is `number`/`string`, not `fun(`) and §4.13's syntactic filter drops them.
+
+        **TC 7f-bis — Valkey 8, which is the control.** `runtime/valkey/valkey-8/redis.lua` has the
+        same shape with **twelve** functions and moves the same way. `runtime/valkey/valkey-8/server.lua`
+        carries the **same ten `---@field` declarations** *and* writes `server.LOG_DEBUG = 0`-style
+        assignments for all ten — so `server.` and `server:` are measured **unchanged** (21 and 11
+        members). Assert the non-movement: it is what shows the mechanism is `@field`-**only**
+        declaration rather than `@field` as such, and it is why a reviewer cannot dismiss TC 7f as
+        "any `@class` stub moves".
+
+        Assert every door as an **exact set** (`assertEquals`, never `contains`).
+        ⚠ **Do not write "the thirteen functions" for any other target.** The count is per version —
+        10 / 11 / 13 / 12 / 12 on Redis 5, Redis 6, Redis 7+, Valkey 7.2, Valkey 8 — so the two tests
+        above name their targets and spell their sets. **Blast radius: five `redis` receivers move**
+        (all five Redis/Valkey targets), `server` does not; TC 7f and TC 7f-bis gate the two targets
+        whose function sets differ, which covers the family without one test per version.
+        **This is also why "exactly two tests move" is a STANDARD-target statement**: DR-21/DR-22
+        never set a Redis target, so the armed-suite count says nothing about these.
+  - [ ] **Write TC 10h and TC 10i/10j** — the three Rule S clauses the mutation proof cannot reach.
+        TC 10h goes in `MemberEnumerationRedisTargetTest` (it needs the Redis target): `KEYS.<caret>`
+        and `ARGV.<caret>` offer `[]` at both doors, matching today, which is what pins §4.14's
+        deliberate exclusion of the `seedAmbientGlobals` declare site (`LuaTypesVisitor.kt:1360`) —
+        the one site live on no other target. TC 10i (`name == "self"`) and TC 10j (`:462` type-guard
+        narrowing) go with the other Rule S tests; design §4.14 gives both fixtures.
+  - [ ] **Write the Rule S tests** — TC 10a–10j, one per binding form, each asserting the offered set
+        is identical to today's. The prototype's ten scenarios and their output are in design §1.10.4;
+        `localVarShadow` is `LuaGlobalMemberCompletionTest.aLocalShadowsTheCrossFileGlobal`'s exact
+        fixture and that test must stay green untouched.
+  - [ ] **Mutation-prove Rule S — twice**, because one clause deletion reaches one clause. (a) Delete
+        the `LuaParList` clause from `LuaLocalBindingScan` and TC 10c
+        (`local function f(Shadow) Shadow.<caret> end`) must go red, offering `fromLibrary`.
+        (b) Delete the `name == "self"` early return and TC 10i must go red. A Rule S test suite that
+        survives clause deletion is not testing Rule S; a proof that only ever deletes the same clause
+        is not testing the other six.
+  - [ ] **Replace COMP-09-08 assertion 2 with a count** — design §4.10a-bis. The timing form flips
+        verdict between two runs of the same prototype (1x met / 3x not met), which is DR-08's rule
+        firing. Assert `LuaReceiverMemberWork.entries` instead: `narrowMembers` for the narrow
+        receiver, `wideMembers` for the wide one, neither moving when unrelated indexed content is
+        added. Keep the timings as printed records beside assertion 1.
+  - [ ] Flip `MemberEnumerationLatencyGateTest.BUDGET_ENFORCED` to `true`. It is the phase's exit
+        criterion; the inverted gate is currently the thing that goes red when the budget is met.
+  - [ ] Re-measure cold time-to-first: **five distinct wide receivers, each in its own file**, median
+        of five. A single receiver cannot be re-measured cold and produced 13 783 / 35 416 / 49 403 µs
+        across three runs of the same code (design §1.10.2).
+- **Exit**:
+  - **Task 0 landed in its own commit**, golden diff pure-addition (zero `-` lines), no `src/main`
+    change in it, new hash recorded.
+  - COMP-09-08 assertion 1 **green with `BUDGET_ENFORCED = true`**; assertion 2 green in its count form.
+  - The golden is re-recorded and **every diff line is named in the four-row table above** — or, if a
+    second colon mover appears, in that table extended and justified in writing first; no `global` or
+    `class` row moved.
+  - E1–E7 green in `MemberEnumerationExpectationTest`; TC 7f, TC 7f-bis and TC 10h green in
+    `MemberEnumerationRedisTargetTest`; TC 10a–10j green.
+  - `LuaGlobalMemberCompletionTest` (all six) and `LuaLibraryMemberCompletionTest` green **untouched**.
+  - Both Rule S mutation proofs (the `LuaParList` clause and the `self` clause) are recorded in the
+    commit message.
+  - Full suite `test --rerun --no-build-cache` green.
+  - **Corpus baselines unmoved** — `test -PwithCorpus --rerun --no-build-cache`, all four. The
+    requirement→phase table assigns COMP-09-06 to Phase 2 and this is what discharges it there. It is
+    **not** structurally unnecessary just because §4.13 leaves `forFile` untouched: that argument is
+    about the *checker's* inputs, and it is an argument, whereas COMP-09-06's own acceptance says "if
+    any baseline moves, enumeration has become a type source: **stop**". A phase that changes what
+    completion offers and asserts the checker is unaffected without running the checker is asserting
+    the thing under test. The sweep is opt-in and silent when skipped (engineering contract §5), so
+    verify `LuaCorpusSweepTest` / `LuaTortureCorpusTest` / `LuaInspectionParityTest` appear in
+    `build/test-results/test/` **with fresh timestamps** — `--rerun` does not clear that directory.
 
 ## Phase 3: Materialization consumer
 
-- **Goal**: both `getAllKeys` scans gone; COMP-09-09 goes green.
+> **BUG-430 is open and Phase 3 proceeds anyway.** The both-directions golden diff runs straight into
+> it, so the expected result is stated here rather than discovered: BUG-430 is a **global-door**
+> defect (`a.b.c = v` flattens `c` onto `a`), and Phase 3 changes only the **`@class` door**
+> (`addMethodsOf`). Design §4.4a establishes that the `@class` door is already correct on `Shapes` —
+> `Shapes|class` has no `deep` today — so Phase 3's golden diff must be **empty on the `class` rows**
+> and BUG-430 cannot be triggered by it. The one `Shapes|completion` line that does move was already
+> moved by Phase 2. **If a `class` row moves in Phase 3, that is not BUG-430 and it is not expected:
+> stop.** Gating Phase 3 on BUG-430 would be gating it on an engine-scale change it does not touch.
+
+- **Goal**: both `getAllKeys` scans gone; COMP-09-09's `membersIn` assertions go green.
 - **Tasks**:
   - [ ] Rewrite `addMethodsOf` — design §4.6; drop the `allKeys` parameter.
-  - [ ] Update both call sites — `collectMethodMembers:421,424` and `materializeUnhostedClass:328`.
+  - [ ] Update both call sites — `collectMethodMembers` (`LuaTypeManagerImpl:519,520,523`) and `materializeUnhostedClass` (`:389`, whose `addMethodsOf` call is `:427`).
   - [ ] A test per row of design §4.6's preservation table: `allScope` (BUG-399), first-wins,
         `onlyIn` confinement (BUG-398), nested qualifiers.
   - [ ] **Diff the golden in both directions.** A superset is the failure mode (see the hard gate).
-- **Exit**: COMP-09-09 green; golden byte-identical; **all four corpus baselines unmoved** — if any
-  moves, enumeration has become a type source: stop and revert (COMP-09-06).
+        Expect **zero** movement on `class` rows; anything else stops the phase.
+  - [ ] Use §4.10b assertion 4 as the D2-leak detector, read as *"one candidate in, one file read"* —
+        a count **above** the candidate count is the leak, a count equal to it is not (requirements.md
+        COMP-09-09's acceptance note).
+- **Exit**: COMP-09-09 green on both doors; golden byte-identical to Phase 2's re-record; **all four
+  corpus baselines unmoved** (`test -PwithCorpus --rerun --no-build-cache`) — if any moves,
+  enumeration has become a type source: stop and revert (COMP-09-06).
 
 ## Phase 4: `@class` metamethods (COMP-09-05)
 
@@ -411,22 +727,40 @@ is corrected above rather than argued with; the substantive item is the first.
         offers `[__add, len, x]` and `v:` offers `[len]` on today's code, so design §4.7 was right and
         this plan and the checklist were both wrong to expect `__add` absent. Assert the measured
         behaviour, not the intent `LuaGraphType.kt:50-52` describes.
+  - [ ] **Re-check TC 6a at the Phase 2 site.** `V` in TC 6a is a `@class` on a **global**, so after
+        Phase 2 the `v.`/`v:` carets may route through the index arm, where the `isColon` filter is
+        *syntactic* rather than semantic (design §4.5b's surviving analysis). Assert the offered sets
+        directly; do not assume DR-12's pre-Phase-2 measurement still describes them.
   - [ ] Close BUG-426's limitation section or restate what remains.
-- **Exit**: TC 6 green; corpus baselines unmoved.
+- **Exit**: TC 6 green; TC 6a re-measured post-Phase-2; corpus baselines unmoved.
 
 ## Phase 5: Re-measure and decide the deferrals
 
 - **Goal**: establish what is left, rather than assuming it is done.
 - **Tasks**:
-  - [ ] Re-measure both doors, medians of ≥5, against the 100 ms NFR.
+  - [ ] Re-measure both doors, medians of ≥5, against the 100 ms NFR — **five distinct wide receivers
+        in five files**, never one receiver re-measured.
   - [ ] *(design §4.10 says Phase 4 measures these; it is Phase 5 — this plan is authoritative.)*
-  - [ ] Measure whether COMP-09-02's remaining sites (`catsClassTags:347`,
-        `LuaImplicitFields:76`, `LuaTypesVisitor:1349`) are now under budget or still need work.
+  - [ ] **Settle DR-23** — Rule S's residual cost on the "consumer file binds a name that is also a
+        project-wide global" shape, at 4 000+ lines. Measured at 8–16 ms on the prototype; decide
+        whether it needs the cached bound-name set or stays as-is with the figure recorded.
+  - [ ] **Settle DR-24** — a file whose *only* receivers are opaque still pays one snapshot build.
+        Measure it; it is the one case §4.12's withdrawal does not cover.
+  - [ ] **Settle DR-25** — `LuaReceiverMemberIndex.Indexer.map` makes four separate
+        `findChildrenOfType` passes and is the most expensive of the three whole-project Lua indexers
+        (61 ms vs 20 ms vs 6 ms on the 123 KiB library, DR-18). Decide whether one shared traversal is
+        worth it.
+  - [ ] Measure whether COMP-09-02's remaining sites (`catsClassTags`, `LuaTypeManagerImpl:436`,
+        `LuaImplicitFields:76`, `LuaTypesVisitor:1349`) are now under budget or still need work —
+        this is DR-16's outstanding half.
   - [ ] Re-measure each of the four caches (design §2) and either remove as redundant or record why
         it stays.
-  - [ ] Decide DR-07 (narrowing invalidation) on the numbers.
+  - [ ] Decide DR-07 (narrowing invalidation) on the numbers. **Note it is largely answered**: TYPE-11
+        shipped the invalidation fix, so the post-edit case DR-07 was about is already handled. What is
+        left is whether anything remains after Phases 2–4.
   - [ ] Run [human-verification-checklists.md](human-verification-checklists.md).
-- **Exit**: every acceptance criterion ticked or explicitly deferred with a reason.
+- **Exit**: every acceptance criterion ticked or explicitly deferred with a reason; every DR row in
+  risks-and-gaps is `done` or `deferred with a named owner`.
 
 ## Requirement → phase coverage
 
@@ -437,10 +771,11 @@ is corrected above rather than argued with; the substantive item is the first.
 | COMP-09-03 all sources, dot and colon | 1 |
 | ~~COMP-09-04 / 04b~~ | withdrawn (design §1.7) |
 | COMP-09-05 `@class` metamethods | 4 |
-| COMP-09-06 no new type source | 0 (golden), 3 (gate) |
-| COMP-09-07 behaviour-preserving | 0, 3 |
-| COMP-09-08 latency enforced | 0 (red), 2 (green) |
-| COMP-09-09 work bound enforced | 0 (red), 3 (green) |
+| COMP-09-06 no new type source | 0 (golden), 2 (completion door + corpus gate), 3 (class door + corpus gate) |
+| COMP-09-07 behaviour-preserving | 0, 2, 3 |
+| COMP-09-08 latency enforced | 0 (red), 2 (green — assertion 1 wall-clock, assertion 2 as a count) |
+| COMP-09-09 work bound enforced | 0 (red), 2 (`globalMembership` door), 3 (`membersIn` door) |
+| COMP-09-10 the shadowing rule *(new)* | 2 (TC 10a–10j, both mutation proofs) |
 
 ## Task summary
 
@@ -448,7 +783,7 @@ is corrected above rather than argued with; the substantive item is the first.
 | :-- | :-- | :-- |
 | 0: Golden file and instrument | **done** (2026-08-09) | Must |
 | 1: `LuaReceiverMemberIndex` | **done** (2026-08-09, remediated 2026-08-09) | Must |
-| 2: Completion consumer | **blocked** (2026-08-09 — change site unreachable and downstream of the cost; needs replanning) | Must |
-| 3: Materialization consumer | todo | Must |
-| 4: `@class` metamethods | todo | Should |
-| 5: Re-measure and decide deferrals | todo | Must |
+| 2: The change site — hoist above the snapshot build | **planned** (re-cut 2026-08-12 from a measured prototype; supersedes the aborted "Completion consumer") | Must |
+| 3: Materialization consumer | planned | Must |
+| 4: `@class` metamethods | planned | Should |
+| 5: Re-measure and decide deferrals | planned | Must |

@@ -2,7 +2,7 @@
 id: "COMP-09"
 title: "09: Member Enumeration"
 type: "feature"
-status: "blocked"
+status: "planned"
 priority: "high"
 parent_id: "COMP"
 folders:
@@ -32,9 +32,9 @@ capability rather than a run of bugs. Every row below is a separate workaround a
 | Workaround | Where | What it papers over |
 | :-- | :-- | :-- |
 | Cached `getAllKeys` (§2.5.5) | `GlobalSymbolRankingService:51-72` | "was scanned on every completion invocation (twice per session)" — its own comment |
-| `typeCache` `CachedValue` | `LuaTypeManagerImpl:34` | re-materializing a class, including its full key scan |
-| Two more `CachedValue`s | `LuaTypeManagerImpl:47,59` | further enumeration results |
-| Per-file `CachedValuesManager` (MAINT-30-02) | `LuaTypes:204-215` | rebuilding the per-file type graph |
+| `typeCache` `CachedValue` | `LuaTypeManagerImpl:55` | re-materializing a class, including its full key scan |
+| Two more `CachedValue`s | `LuaTypeManagerImpl:67,79` (`moduleCache`, `globalCache`) | further enumeration results |
+| Per-file `CachedValuesManager` (MAINT-30-02) | `LuaTypes.forFile` (`LuaTypes.kt:237`), deps from `LuaTypes.dependenciesFor` (`:281-289`) | rebuilding the per-file type graph |
 | Receiver keys added to the stub sink | `LuaFuncStubElementType:69-75` | "also index the base 'cjson' to allow basic resolution of the module/table global" — the right direction, added for one case, then not used by the scan that needed it |
 | `resolveGlobal` index-backed | BUG-395 | the *lookup*; its members were left eager |
 | Two-phase project/all scope | BUG-427 | index ordering, not enumeration — but it made the path two queries |
@@ -85,6 +85,7 @@ Four caches, one half-built index direction, and no single answer to the questio
 | COMP-09-07 | **Behaviour-preserving against the `@class` door** | M | Same members, same types, same completions as today on every existing fixture — **except** where the two doors disagree, which DR-09 measured and BUG-430 records. `resolveType` → `materializeClass` is the door preserved; the global door's flattening of `a.b.c = v` is deliberately **not** reproduced. An unqualified "same as today" is unsatisfiable: two goldens exist for one receiver and one of them is a defect. Every golden entry names its door. |
 | COMP-09-08 | **The latency target is enforced** | M | A failing-first test asserts time-to-first-element against the `non-functional.md` budget, and runs in the routine loop — not behind `-PwithPerf`. |
 | COMP-09-09 | **The work bound is enforced** | M | **Entries traversed** per enumeration is instrumented and asserted proportional to matching entries; adding unrelated indexed content must not increase it. (An earlier revision restated this as "bound stub loads" on the strength of a mismeasured `getAllKeys` figure — reverted, design §2.) |
+| COMP-09-10 | **The shadowing rule is stated and gated** | M | **NEW 2026-08-12.** The change site (design §4.13) consults the index *before* the in-file type graph exists, which re-opens in-file-versus-global precedence. That precedence must be a **stated rule** (design §4.14, "Rule S"), derived from `LuaTypesVisitor.visitNameRef`'s `scope.lookup` rather than invented, with a test per binding form and a mutation proof. Inventing it implicitly to make a gate green is the rogue workaround the Phase 2 abort protocol forbids. |
 
 ## Detailed Specifications
 
@@ -97,16 +98,17 @@ Four caches, one half-built index direction, and no single answer to the questio
 
 | Site | Shape |
 | :-- | :-- |
-| `LuaTypeManagerImpl:328` (`materializeUnhostedClass`) | `getAllKeys(LuaGlobalDeclarationIndex)` → `addMethodsOf`; the `@class` path |
-| `LuaTypeManagerImpl:421,424` (`collectMethodMembers`) | same, fetched **per class materialized** |
-| `LuaCompletionContributor:133-139` (`crossFileGlobalMembers`) | `materialize(global).getMembers()` — full graph before the first element |
+| `LuaTypeManagerImpl:389` (`materializeUnhostedClass`, called at `:330`) | `getAllKeys(LuaGlobalDeclarationIndex)` → `addMethodsOf`; the `@class` path |
+| `LuaTypeManagerImpl:514` (`collectMethodMembers`; `getAllKeys` at `:519`, `addMethodsOf` at `:520,:523`) | same, fetched **per class materialized** |
+| ~~`LuaCompletionContributor:133-139` (`crossFileGlobalMembers`)~~ **NOT a site to replace** | `materialize(global).getMembers()` — full graph before the first element. **Struck 2026-08-12**: the premise that this is the completion door is *withdrawn* (design §4.5's correction block). It sits behind `if (type == LuaGraphType.Undefined)`, a guard that never opens for a receiver with members, and Phase 2 was executed against it, measured and aborted. The re-plan leaves it **byte-for-byte unchanged** (design §4.13's rule 3, implementation-plan Phase 2 "Change nothing below the insertion point") and adds a new call **above** `LuaTypesSnapshot.forFile` instead. The row is kept struck rather than deleted because two reviews looked for it |
 
 `LuaGlobalDeclarationIndex` is **already receiver-keyed** (`LuaFuncStubElementType:69-75` sinks both
 the qualified name and `substringBefore('.')`), so the first two are brute-forcing a query the index
 already answers **for the dot form only**. Measured (DR-06): `getElements(KEY, "ColonHost")` returns
 `[ColonHost.staticDot]` — the colon-declared `ColonHost:dotless` and `ColonHost:scale` are absent,
-because `LuaFuncStubElementType:69-75` sinks a receiver key only when the name contains `'.'` while
-`memberNameOf:466` matches both separators. Swapping the scan as-is **drops every colon-declared
+because `LuaFuncStubElementType.indexStub` (`LuaFuncStubElementType.kt:69-75`) sinks a receiver key
+only when the name contains `'.'` while `LuaTypeManagerImpl.memberNameOf`
+(`LuaTypeManagerImpl.kt:562`) matches both separators. Swapping the scan as-is **drops every colon-declared
 method**, and `function C:m()` is the dominant idiomatic form. Worse, the `ColonHost` receiver key
 exists only because one member happens to use the dot form — a wholly colon-declared class has no
 receiver key at all.
@@ -120,7 +122,7 @@ a 10 ms region, so they are a **work-bound** fix (COMP-09-09), not a latency one
 
 | Site | Shape |
 | :-- | :-- |
-| `LuaTypeManagerImpl:347` (`catsClassTags`) | right files via `getContainingFiles`, then `findChildrenOfType(LuaCatsClassTag)` over each |
+| `LuaTypeManagerImpl:436` (`catsClassTags`, called at `:393`) | right files via `getContainingFiles`, then `findChildrenOfType(LuaCatsClassTag)` over each |
 | `LuaMemberFieldNavigation:32` | right files, then `findChildrenOfType(LuaAssignmentStatement)` |
 | `LuaImplicitFields:76` | `findChildrenOfType(LuaAssignmentStatement)` over each supplied file |
 | `LuaTypesVisitor:1349` | `findChildrenOfType(LuaAssignmentStatement)` over every stub `global.lua` |
@@ -138,9 +140,9 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 
 | # | Requirement | Given | When | Then |
 |---|---|---|---|---|
-| 1 | COMP-09-01 | A 230 KiB library root declaring ~3 400 `wx.*` members, receiver **authoritative** (§4.5c) | `wx.<caret>`, measure **time to first element**, median of ≥5 cold | **< 100 ms** (`non-functional.md`, tier 1 — design §4.12). Today: **746 ms** (design §1.9). *(An earlier revision said "the budget set by DR-02"; DR-02 is superseded and set no budget.)* |
+| 1 | COMP-09-01 | Five 123 KiB library files, **one wide receiver each** (3 600 members), all authoritative (§4.5c) | `Wide<i>.<caret>` for `i` in 0..4, measure **time to first element**, cold; report the median of the five | **< 100 ms** (`non-functional.md` — flat, not tiered; §4.12's two-tier amendment is **withdrawn**). Prototype measured **7 414 µs** median armed against **490 995 µs** unarmed, same fixture, same run (design §1.10.2). *Five distinct receivers, not one receiver five times — a cold snapshot is warm the second time, so re-measuring one receiver reports memoization.* |
 | 2 | — | *(withdrawn with COMP-09-04b — the premise it tested was false)* | | |
-| 2a | NFR-1 | A 3-member receiver and a 3 600-member receiver, **each in its own file**, both cold | Compare time-to-first-element | Comparable. Today 41 ms vs 1 641 ms — 40x (design §1.9), which the NFR's independence clause forbids. The narrow-vs-broad *prefix* pair once cited here is withdrawn (design §1.8) |
+| 2a | NFR-1 | A 3-member receiver and a 3 600-member receiver, **each in its own file** | Compare **entries traversed** (`LuaReceiverMemberWork.entries`), not time | `3` and `3600` respectively, and **neither moves** when an unrelated 4 000-member library is added. **Restated as a count 2026-08-12** (design §4.10a-bis): the timing form of this test flips verdict between two runs of the same code — 1x (met) and 3x (not met) against the same derived 2x floor — which is DR-08's standing rule firing. Timings stay as printed records: armed narrow median 6 214 µs, armed wide median 7 414 µs (design §1.10.2) |
 | 3 | COMP-09-07 | Every existing definition/completion fixture, plus the DR-01 golden | Run the suite | Identical member sets and types to today, recorded for **both** `resolveGlobal` and `resolveType` per receiver — `wx` answers differently through each (design §1.4), so a one-door golden would miss a change to the other |
 | 3a | COMP-09-07 | The `AllColon` fixture — a `@class` whose every member is colon-declared | Enumerate | 2 members. Today's scan returns them; the proposed receiver-key swap returns 0 (design §1.3/§1.4). This is the regression guard |
 | 4 | COMP-09-06 | All four corpus members | Re-baseline | `LuaTypeAssignability` / `LuaReturnTypeMismatch` unchanged |
@@ -148,11 +150,27 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 | 5a | COMP-09-03 | A `---@class D` whose members are **all** colon-declared — no dot member anywhere | `D` instance caret | Members enumerate. Today `D` has no receiver key at all, so this is the sharpest form of DR-06 |
 | 6 | COMP-09-05 | `---@class V` declaring `__add`; `local a, b = V(), V()` | `a + b` | No diagnostic (closes COMP-04-DR-01) |
 | 9 | COMP-09-09 | The TC 1 fixture, then the same fixture plus an unrelated 200 KiB library | Instrument entries traversed for `wx.<caret>` in both — the **completion** door, so the counter must cover `membersOfGlobal`, not only `membersIn` (design §4.10b) | The count is unchanged — enumeration must not visit the added library's entries. Fails today: `getAllKeys` visits every key |
-| 8 | COMP-09-08 | The TC 1 fixture, on today's code, on a receiver that takes the **fast** path (§4.5c) | Run the new latency test | It **fails**, reporting **746 ms** time-to-**first** against a 100 ms budget (design §1.9) — mutation-proving the gate before the fix lands. *(An earlier revision said ~12 900 ms; that is time-to-**exhaustive**, which is not what this gate measures.)* |
+| 8 | COMP-09-08 | The TC 1 fixture, on today's code, on a receiver that takes the **fast** path (§4.5c) | Run the latency test with `BUDGET_ENFORCED = true` | It **fails**, reporting hundreds of ms time-to-**first** against a 100 ms budget — mutation-proving the gate before the fix lands. Already discharged: shipped inverted at Phase 0, and the armed prototype flipped it to *"COMP-09-08 is now MET — cold time-to-first for `wx.` was 13 ms against a 100 ms budget"* (design §1.10.2), which is the same proof taken from both directions. *(An earlier revision said ~12 900 ms; that is time-to-**exhaustive**, which is not what this gate measures.)* |
+| 8a | COMP-09-08 | The TC 1 fixture, `Opaque = require("luassert")` in its own file — the receiver §4.12 wanted to exempt | Measure cold time-to-first at the §4.13 site | **Under 100 ms, and recorded rather than exempted.** Prototype: 24 936 / 46 259 / 60 784 µs armed across three runs against 120 962 / 130 080 µs unarmed (design §1.10.3). It improves with **no tier-2-specific work** because the tier-1 receivers around it stop dragging the consumer file's snapshot through the library build. If a future run puts this over 100 ms, file a defect — do not widen the contract |
+| 10a | COMP-09-10 | `shadowed.lua` declares `Shadow = {}` + `function Shadow.fromLibrary()`; consumer is `local Shadow = { fromLocal = 1 }` | `Shadow.<caret>` | `[fromLocal]`, and **not** `fromLibrary`. This is `LuaGlobalMemberCompletionTest.aLocalShadowsTheCrossFileGlobal` verbatim; it must stay green **untouched** |
+| 10b | COMP-09-10 | Same library; consumer is `local function Shadow() end` | `Shadow.<caret>` | `[]` — identical to today |
+| 10c | COMP-09-10 | Same library; consumer is `local function f(Shadow) … end` | `Shadow.<caret>` inside `f` | `[]` — identical to today. **This is the mutation-proof case**: delete `LuaLocalBindingScan`'s `LuaParList` clause and this must go red offering `fromLibrary` |
+| 10d | COMP-09-10 | Same library; consumer is `for Shadow in pairs({}) do … end` and `for Shadow = 1, 2 do … end` | `Shadow.<caret>` inside each | Identical to today for both loop forms |
+| 10e | COMP-09-10 | Same library; the consumer itself writes `Shadow = { fromThisFile = 1 }`, and separately `function Shadow.here() end` | `Shadow.<caret>` | `[fromThisFile]` / `[here]` — the consumer's own binding wins, identical to today |
+| 10f | COMP-09-10 | Same library; consumer binds nothing | `Shadow.<caret>` | `[fromLibrary]` — the index arm, and the only case in 10a–10f that takes it |
+| 10g | COMP-09-10 | A **bundled stdlib** receiver on the default STANDARD 5.4 target, bound by `LuaTypesVisitor.freeGlobalSeed` → `resolveGlobal` off `runtime/standard/lua-5.4/table.lua:27` (`table = {}`), which the consumer file itself does not bind. **CORRECTED 2026-08-12**: an earlier revision said `seedAmbientGlobals` binds it. It does not — that function reads only files *named* `global.lua` (`LuaTypesVisitor.kt:1345`) and no `global.lua` exists under any `runtime/standard` root (design §1.10.8), so on this target the site declares nothing at all | `table.<caret>` | `[concat, insert, move, pack, remove, sort, unpack]` — identical to today, **through the index arm** (measured: the `LuaGlobalAssignmentIndex` candidate is `table.lua`, `found=true authoritative=true`, same seven members). This pins that Rule S asks only about the **consumer** file, for a receiver another file declares. It does **not** exercise `seedAmbientGlobals` — that is TC 10h |
+| 10h | COMP-09-10 | A project on a real **Redis** target. `Target`'s second parameter is a `VersionEntry`, **not a `String`** — `Target(LuaPlatform.REDIS, "7+")` does not compile. Build it the way `RedisAmbientTypingTest.setRedisTarget` does: `Target(LuaPlatform.REDIS, requireNotNull(PlatformVersionRegistry.findVersion(LuaPlatform.REDIS, "7+")))`, then `LuaProjectSettings.getInstance(project).setTargetAndNotify(target)` + `PlatformLibraryIndex.reload()` inside `EdtTestUtil.runInEdtAndWait`. Its bundled `runtime/redis/redis-7/global.lua` declares `KEYS = {}` and `ARGV = {}`. This is the **only** family of targets on which `seedAmbientGlobals`'s `scope.declare` (`LuaTypesVisitor.kt:1360`) fires — Redis 5/6/7 and Valkey 7.2/8 | `KEYS.<caret>`, `ARGV.<caret>`, and the same two at `:` | `[]` for all four — identical to today. **NEW 2026-08-12.** Design §4.14 deliberately leaves `:1360` outside Rule S, and until now that omission had neither a test nor a measurement while being live on a shipped target. Measured (design §1.10.8): today offers `[]` at both doors and the index answers `found=true, authoritative=true, members=[]`, because `KEYS = {}` is an empty table literal — no member from §4.3 source 4, no opacity sentinel from source 5. Restore STANDARD 5.4 in `tearDown` or the shared light project poisons the later `lang.indexing`/`lang.types` tests |
+| 10i | COMP-09-10 | The `Shadow` library; consumer is `function C:m() Shadow.<caret> end` with the receiver renamed to `self` — i.e. a library declaring `self = {}` + `function self.fromLibrary()`, and `self.<caret>` inside a method body | `self.<caret>` | `[]` — identical to today. **NEW 2026-08-12.** Rule S's `name == "self"` clause (design §4.14, `LuaTypesVisitor.kt:1414`) is the one clause with no PSI shape, so the `LuaParList` mutation proof cannot reach it. **Mutation-prove it separately**: delete the `name == "self"` early return and this must go red offering `fromLibrary` |
+| 10j | COMP-09-10 | The `Shadow` library; consumer is `local Shadow = { fromLocal = 1 }` followed by `if type(Shadow) == "table" then Shadow.<caret> end` — the type-guard narrowing that re-declares an already-bound name at `LuaTypesVisitor.kt:462` | `Shadow.<caret>` inside the guard | `[fromLocal]`, and **not** `fromLibrary` — identical to today. **NEW 2026-08-12.** §4.14's table calls `:462` "covered transitively"; this measures that claim instead of asserting it. If it comes back with `fromLibrary`, `:462` is not transitively covered and Rule S needs an eighth clause — a finding, not a failure |
+| 11 | COMP-09-10 | A 4 002-line consumer file whose receiver `t` is a file-local table | `t.<caret>`, instrument whether `LuaLocalBindingScan` ran | It does **not** run — `globalMembership` answers `found = false` and short-circuits it. Ordering is a measured cost decision, not a routing one: the reverse order costs 10 875–21 501 µs per completion here (design §1.10.6) |
 | 7 | COMP-09-02 | The `wx` fixture | Enumerate through `membersIn`, counting `processValues` callbacks | `entriesTraversed >= membersIn(R).size` (and `==` when no name repeats across declaring files — design §4.10b assertion 1) and does not move when 4 000 unrelated keys are added (design §4.10b). **Scoped**: the `catsClassTags` / `LuaImplicitFields` / `LuaTypesVisitor` walks are excluded — they are out of scope because §4.3/§4.6 do not touch them, not because they were measured cheap — the old 22 ms/949 ms justification is retracted, and their cost is DR-16 (design §4.11) |
 | 7a | COMP-09-07 | `wx`, `wxFrame`, `AllColon`, `Shapes` | Enumerate through **both** doors, never `resolveGlobal(r) ?: resolveType(r)` | The golden records each door separately. Two of the four resolve through only one door, so a collapsed golden is silently door-dependent (design §4.4a) |
 | 7b | COMP-09-01 | A `@class` on a **local** (`---@class wxFrame` / `local wxFrame = {}`) | `membersOfGlobal("wxFrame", …)` | `[]` — matching today's `crossFileGlobalMembers`, which returns `emptyMap()` because a local is not a global. The union would return its full member list, inventing members at a call site that offers none (design §4.5) |
-| 7c | COMP-09-03 | `---@class Derived : Base` / `---@field ownField number` / `Derived = {}` | `Derived.<caret>` | `ownField` **is** offered. This is a deliberate new member on the completion path (design §4.5a) — today it is absent — and must be an expectation, not a silent diff |
+| 7c | COMP-09-03 | `---@class Derived : Base` / `---@field ownField number` / `Derived = {}` | `Derived.<caret>` | `[Show, ownField, ownFn]` — `ownField` is a deliberate new member on the completion path (design §4.5a); today `[Show, ownFn]`. Measured armed (design §1.10.5) |
+| 7d | COMP-09-03 | `---@class Base` / `---@field inheritedField string` / `---@field onClose fun(): nil` / `Base = {}` | `Base.<caret>` | `[Show, inheritedField, inheritedFn, onClose]`; today `[Show, inheritedFn]`. **NEW 2026-08-12** — §4.5a declared this superset for `Derived` only; DR-21 found the same mechanism on `Base`, which owns the two `@field`s. `Derived` does *not* gain them, because inherited `@field`s belong to `Base`'s index key — the flat list behaving as §4.5a's B5 paragraph says |
+| 7e | COMP-09-03 | The same `Base` fixture | `Base:<caret>` | `[Show, inheritedFn, onClose]`; today `[Show, inheritedFn]`. **NEW 2026-08-12** — `---@field onClose fun(): nil` indexes as `Kind.FUNCTION` (design §4.3's `startsWith("fun(")` rule) so it survives the *syntactic* colon filter. `Derived:` is unchanged. This is the one place the index arm's syntactic `isColon` filter and the graph arm's semantic one visibly diverge, and it must be an expectation |
+| 7f | COMP-09-03 | A project on a real **Redis 7+** target (build the `Target` as TC 10h specifies — `PlatformVersionRegistry.findVersion`, not a `String`); `runtime/redis/redis-7/redis.lua` is `---@class redis` + ten `---@field` constants + a bare `redis = {}` + **thirteen** `function redis.*`, with the ten constants **never assigned** | `redis.<caret>` and `redis:<caret>` | `redis.` = `[acl_check_cmd, breakpoint, call, debug, error_reply, log, pcall, register_function, replicate_commands, set_repl, setresp, sha1hex, status_reply, LOG_DEBUG, LOG_NOTICE, LOG_VERBOSE, LOG_WARNING, REDIS_VERSION, REDIS_VERSION_NUM, REPL_ALL, REPL_AOF, REPL_NONE, REPL_REPLICA]` — today the thirteen functions only. `redis:` = the same **thirteen functions, unchanged**, because the ten index as `Kind.FIELD` (their `@field` type text is `number`/`string`, not `fun(`) and design §4.13's syntactic `isColon` filter drops them. Assert **both** doors as exact sets. **Evidence: the pasted probe output in design §1.10.8a**, `=== PROBE TARGET Redis 7+ ===` block — `today.dot`, `today.colon`, `indexDot`, `indexColon` are printed there in full and this row restates nothing that is not in it. ⚠ **The function count is per version — 10 / 11 / 13 / 12 / 12 across Redis 5, Redis 6, Redis 7+, Valkey 7.2, Valkey 8** — so "thirteen" binds only to this target and TC 7f may not be reused verbatim on another |
+| 7f-bis | COMP-09-03 | A project on a real **Valkey 8** target. `runtime/valkey/valkey-8/redis.lua` has the same shape as 7f with **twelve** functions; `runtime/valkey/valkey-8/server.lua` has the **same ten `---@field` constants** but *also* writes `server.LOG_DEBUG = 0`-style assignments for all ten | `redis.<caret>`, `redis:<caret>`, `server.<caret>`, `server:<caret>` | `redis.` gains the same ten constants on top of its twelve functions; `redis:` unchanged at twelve. **`server.` and `server:` are BOTH unchanged** — `server.` stays at its 21 members (ten constants + eleven functions) and `server:` at eleven, because the assignments already put the constants in front of today's global door *and* design §4.3's source 2. **NEW 2026-08-12 (DR-28).** This is the control that makes 7f legible: identical `@field` block, no movement, so it is `@field`-**only** declaration that moves rather than `@field` as such. It also pins the full blast radius — five `redis` receivers move (Redis 5/6/7+, Valkey 7.2/8), `server` does not — instead of leaving four of them unnamed. Evidence: design §1.10.8a's `=== PROBE TARGET Valkey 8 ===` block. Restore STANDARD 5.4 in `tearDown` |
 | 6b | COMP-09-05 | `---@class D : Base` where `Base` declares `__add` | `D() + D()` | No diagnostic. `getMembers()` merges supertypes, so no separate supertype walk is needed (design §4.7) |
 
 ## Acceptance Criteria
@@ -162,6 +180,13 @@ and have no cross-file path — only the per-file graph from `setmetatable`.
 per line; the consumers are Phases 2 and 3.
 
 - [ ] COMP-09-01/02 — every site in the two tables above is converted or explicitly justified.
+      **One is justified rather than converted, and the justification is here rather than only in the
+      plan**: `LuaCompletionContributor:133-139` (`crossFileGlobalMembers`) is **not converted and
+      must not be**. Its guard `if (type == LuaGraphType.Undefined)` never opens for a receiver with
+      members and it is downstream of the cost; converting it was executed, measured and aborted
+      (`ABORT_REPLAN`, `d5af3231`). The re-plan's site is a new call **above**
+      `LuaTypesSnapshot.forFile` (design §4.13) and this function stays byte-for-byte unchanged, which
+      is itself an exit check on Phase 2.
 - [ ] COMP-09-03 — TC 5 passes for all four sources. **Sources verified at the index** after Phase 1
       (`LuaReceiverMemberIndexTest`): dotted assignment, `function R.f`/`function R:m` including the
       all-colon receiver (TC 5a), `@field`, and the table literal. TC 5 itself is a completion test
@@ -175,7 +200,18 @@ per line; the consumers are Phases 2 and 3.
       door with exactly the two declared divergences — `Shapes` loses `deep` (BUG-430) and `Derived`
       gains `ownField` (§4.5a). TC 7b and 7c are covered there too.
 - [ ] COMP-09-08 — the latency assertion exists, fails before the fix, passes after, and runs
-      without `-PwithPerf`.
+      without `-PwithPerf`. **Assertion 1 (wall clock, tier 1) is settled by measurement**: the armed
+      prototype flipped the inverted gate, reporting 13 ms against 100 ms, and a five-cold-sample
+      median of 7 414 µs against 490 995 µs unarmed (design §1.10.2). **Assertion 2 is replaced by a
+      count** (design §4.10a-bis) — its timing form flipped verdict between two runs of the same
+      code, so it is re-expressed as `LuaReceiverMemberWork.entries` per receiver, unmoved by
+      unrelated indexed content.
+- [ ] COMP-09-10 — Rule S is stated in design §4.14, TC 10a–10j pass, and **both** mutation proofs
+      are recorded in the commit message: delete the `LuaParList` clause and TC 10c goes red; delete
+      the `name == "self"` early return and TC 10i goes red. One clause deletion proves one clause,
+      and §4.14's table has seven. TC 10h additionally pins the one `LuaScope.declare` site Rule S
+      deliberately excludes (`seedAmbientGlobals`, `LuaTypesVisitor.kt:1360`) on the only target
+      family it fires on.
 - [ ] COMP-09-09 — the work bound is instrumented and asserted (TC 9); adding unrelated indexed
       content does not change entries traversed. **The instrument is complete after Phase 1**: all
       four of design §4.10b's assertions are armed and green in `MemberEnumerationWorkBoundGateTest`
@@ -192,7 +228,12 @@ per line; the consumers are Phases 2 and 3.
 
 ## Non-Functional Requirements
 
-**The target already exists and this feature is 129× outside it.**
+**The target already exists and this feature is orders of magnitude outside it.**
+*(An earlier revision said "129× outside it". That is 12 902 ms / 100 ms, and the 12 902 ms is the
+single-shot **time-to-exhaustive** figure this very section goes on to withdraw — so the ratio is
+retired with its numerator and kept only as a pre-Phase-0 record. The binding comparison is design
+§1.9's cold **time-to-first**, 746 ms against a 100 ms budget, and §1.10.2's re-plan pair, 491 ms
+unarmed against 7.4 ms armed, both medians of five cold samples.)*
 [`non-functional.md`](../../non-functional.md) — amended alongside this feature — sets
 **time-to-first-result under 100 ms, independent of index size**, and deliberately sets *no* budget
 for the exhaustive set, because that scales with **index entries traversed**.
@@ -217,6 +258,14 @@ with no data behind it. DR-02 must therefore build a harness that can observe th
 
 - **NFR-1 — time to first element < 100 ms** against the COMP-09 TC 1 fixture, independent of index
   size. Not a new budget: the amended existing one, applied to the case that breaks it.
+  **It stays FLAT.** Design §4.12 previously proposed amending `non-functional.md` to exempt a
+  "tier 2" receiver — one the index cannot see through — from this budget. That amendment is
+  **withdrawn 2026-08-12** and must not be made: measured at the new change site, the `require`-bound
+  receiver lands at 25–61 ms armed against 121–130 ms unarmed, with no tier-2-specific work, because
+  the cost was never the receiver's opacity — it was the consumer file's whole snapshot build
+  (design §1.10.3, TC 8a). The only amendment `non-functional.md` still needs is the one the "spec
+  hole" section below names: that the budget covers **indexed library content**, not just project
+  lines.
 - **NFR-2 — exhaustive work is proportional to entries matching the receiver, not to index size.**
   Verified by instrumenting entries traversed, not by a clock. This is the target today's code
   violates outright, and the one that does not vary with the machine.
@@ -239,9 +288,10 @@ with no data behind it. DR-02 must therefore build a harness that can observe th
 Every timing assertion in the performance suite is `assertTrue(result.phase1Time > 0, "Benchmark
 should record a time > 0")`, with comments that say so — *"Informational: capture target scale
 data"*. It is an honest benchmark harness, not a gate, and it is excluded from the routine loop
-(`-PwithPerf`). So no stated target has ever been enforceable, and a 129× miss was invisible.
+(`-PwithPerf`). So no stated target has ever been enforceable, and a two-orders-of-magnitude miss was
+invisible.
 
-**Fixing the enumeration without fixing that leaves the next 129× regression equally invisible.**
+**Fixing the enumeration without fixing that leaves the next such regression equally invisible.**
 Hence COMP-09-08 below.
 
 ### The spec hole — name it, do not exploit it
@@ -252,39 +302,60 @@ both catastrophic and technically in-spec. `non-functional.md` must be amended t
 library content**, not only project content. Leaving the qualifier in place and declaring compliance
 would be true and useless.
 
-## PARKED AT PHASE 1 (2026-08-09) — blocked on TYPE-11
+## RE-PLANNED 2026-08-12 — unblocked by TYPE-11, Phases 2–5 re-cut from a prototype
 
-Phases 0 and 1 are complete, reviewed and committed. **Phases 2-5 are not started and should not be
-started as written.**
+Phases 0 and 1 stand: the golden and both gates are checked in, and `LuaReceiverMemberIndex` is
+complete, registered and tested. **Phases 2–5 were re-cut, not resumed** — see
+[implementation-plan.md](implementation-plan.md).
 
-Phase 2 was executed exactly to plan, measured, and aborted (`ABORT_REPLAN`, `d5af3231`, docs only —
-no production change kept). Two measured reasons, either of which is disqualifying:
+**Why the old Phase 2 was aborted.** It was executed exactly to plan, measured, and stopped
+(`ABORT_REPLAN`, `d5af3231`, docs only — no production change kept). `crossFileGlobalMembers` sits
+behind `if (type == LuaGraphType.Undefined)`, a guard that never opens for a receiver with members
+because `LuaTypesVisitor.freeGlobalSeed` already resolves free cross-file globals; and it is
+downstream of `LuaTypesSnapshot.forFile`, which was 88–97 % of cold time-to-first. Full record in
+[risks-and-gaps.md](risks-and-gaps.md), "BLOCKER (Phase 2, 2026-08-09)".
 
-1. **The change site is nearly dead.** `crossFileGlobalMembers` sits behind
-   `if (type == LuaGraphType.Undefined)`, and the in-file snapshot already resolves a cross-file
-   global to a populated `Table`. Across every cross-file completion test in the repo the branch is
-   entered by exactly three receivers — `luassert`, `wxFrame`, `AllColon` — all of which offer
-   nothing. Design §4.5's table is captioned "the door this call site actually serves"; it does not
-   serve that door, and DR-14 validated `membersOfGlobal` against `resolveGlobal` **directly**, never
-   through the contributor, so no de-risking could have caught it.
-2. **It is downstream of the cost.** `LuaTypesSnapshot.forFile(consumerFile)` runs unconditionally
-   above the guard: **1 462 ms of a 1 661 ms** cold completion. `BUDGET_ENFORCED` cannot be flipped
-   at this site however correct the index arm is.
+**What changed.** TYPE-11 shipped `done`. The 334 ms recurring per-keystroke cost DR-20 found is
+gone. What remains — and what COMP-09 now exists to remove — is the **cold `buildSnapshot` of the
+library file: 844–955 ms** for a 123 KiB / 3 600-member library, once per session, ~690 ms of AST
+traversal plus ~170 ms of `checkTypes` (TYPE-11 DR-08). That is the measured target.
 
-DR-20 then established where that cost comes from: **library snapshots are discarded by every
-unrelated keystroke**, because `forFile` depends on project-wide
-`PsiModificationTracker.MODIFICATION_COUNT`. Identical two-line consumer, medians of 5: **9 ms with
-no library, 334 ms with a 123 KiB library**. That is now **TYPE-11**, and it is the prerequisite.
+**What the re-plan is, and what makes it different from the thing that failed.** The abort happened
+because *nothing in the de-risking exercised the real door* — DR-14 validated `membersOfGlobal`
+against `resolveGlobal` directly. So the re-plan was **built and run before it was written**
+(DR-21/DR-22, design §1.10): the new site was implemented in `LuaCompletionContributor`, armed,
+driven through `myFixture.completeBasic()`, run over the whole 2 639-test suite, measured, and
+reverted.
 
-**What stands, and is harmless.** `LuaReceiverMemberIndex` is complete, registered, tested
-(2 543 tests green) and **consumed by nothing**. The golden, the latency gate and the work-bound gate
-are checked in; the two gates remain inverted, asserting today's miss.
+| what the abort owed | answer | evidence |
+| :-- | :-- | :-- |
+| a change site **above** the snapshot build | design §4.13 — one call before `LuaTypesSnapshot.forFile`, early return; nothing below it touched | cold time-to-first **491 ms → 7.4 ms**, medians of five cold samples (§1.10.2) |
+| an **explicit shadowing rule** | design §4.14 "Rule S", derived from `LuaTypesVisitor.visitNameRef`'s `scope.lookup` and the **ten** `LuaScope.declare` sites — plus COMP-09-10 and TC 10a–10j | ten scenarios, all `same=true`, and the whole armed suite (§1.10.4/§1.10.5) |
+| a **restatement of §4.5's premise** | §4.5's caption "the door this call site actually serves" is **withdrawn**; the *selection* rule survives unchanged and was re-taken through the contributor | §4.5's correction block; DR-21's per-receiver table |
+| a **re-derivation of §4.12's two tiers** | **withdrawn.** Tier 2 lands at 25–61 ms armed with no tier-2-specific work; the cost was never the receiver's opacity, it was the consumer file's snapshot | §1.10.3, TC 8a |
+| DR-18 **executed** | done — **61 ms marginal, once**, on the 123 KiB library, against 844–955 ms per session | §4.8a |
 
-**What must be re-planned, not resumed.** Phases 2-4 are premised on a change site that measurement
-has disproved. Resuming them would build on the disproved thing. The re-plan needs TYPE-11's answer
-first, because it decides whether the remaining problem is "the first completion of a session" (an
-index question) or "every completion after an edit" (an invalidation question) — and the DR-20
-numbers say the second is the larger half on this path.
+**Exactly two tests move under the armed prototype**, both declared: the golden (three receivers,
+`completion` door — the `.` caret only, since the golden has no colon door) and the inverted latency
+gate reporting the budget is met. **That count is scoped to the STANDARD 5.4 target**, which is the
+only one DR-21/DR-22 ran on, and it is scoped to the **dot** caret, which is the only one the golden
+records.
+
+**Two things sit outside that count and are named rather than left to Phase 2 to discover:**
+
+- **Redis/Valkey.** DR-28 measured every target the `@field`-only stub shape exists on (design
+  §1.10.8a). **Five receivers move** — `redis.` on Redis 5, Redis 6, Redis 7+, Valkey 7.2 and
+  Valkey 8, each gaining the same ten `@field` constants at the `.` caret and **nothing** at `:`. One
+  receiver that shares the shape is measured **unchanged**: `server` on both Valkey targets, because
+  its constants are also written as assignments. TC 7f and TC 7f-bis. DR-26's earlier statement of
+  this named one file and pasted no `redis` line; DR-28 supersedes it on both counts.
+- **The colon caret.** The golden cannot carry it (`completionRows` uses `.` only), and after Phase 2
+  nothing would pin it for ten of the eleven receivers. **DR-27 is therefore decided: extend the
+  golden to a colon door BEFORE Phase 2**, on today's unarmed code, where the re-record is a pure
+  addition with zero behaviour delta — implementation-plan Phase 2 task 0. That also settles an
+  internal disagreement: DR-21's summary says nine of eleven colon receivers were byte-identical
+  (two movers) while the design declares exactly one (`Base:`), and no colon output is pasted
+  anywhere, so the recorded baseline is what decides it.
 
 ## Status against the planning bar
 
@@ -343,11 +414,47 @@ Refreshed after Phase 0, which closed two of these and moved a third:
   against a 41 ms warm-file `@class` door, candidate C 18 ms) and it makes the old scope-out look
   worse, not better. Still owed: the per-site right-door analysis. The scope decision does not depend
   on the answer.
-- **DR-18 — still `todo` after Phase 1, and now overdue by this document's own words.** A second
-  whole-project index's build cost is asserted nowhere and measured nowhere. Phase 1 did not move it:
-  its task list does not contain it, and the index's *output shape* is unchanged from DR-19's, so the
-  build cost DR-18 would measure is the one that has been in `src/main` since then rather than
-  anything Phase 1 introduced. It belongs in Phase 5's re-measure.
+- **DR-18 — DONE 2026-08-12, and the premise holds.** Design §4.8a. The second whole-project index's
+  **marginal** build cost (PSI already parsed, which is how the platform actually indexes) is
+  **61 ms median of 5** on the 123 KiB library this feature is about, against `LuaMemberFieldIndex`'s
+  20 ms and `LuaGlobalAssignmentIndex`'s 6 ms on identical input; **355 ms** over a 78-file / 207 KiB
+  tree against those two's 230 ms + 80 ms. One-off, written to disk, reused across sessions —
+  against the 844–955 ms cold graph build it removes **every session**. It is the most expensive of
+  the three, which is expected from five sources and four `findChildrenOfType` passes; whether those
+  can share one traversal is **DR-25**, a follow-up rather than a blocker.
+- **DR-21/DR-22 — done 2026-08-12.** The re-planned change site, prototyped end to end through the
+  real completion path and run over the full suite armed. Design §1.10.
+- **DR-23/DR-24/DR-25 — new, all Phase 5.** Rule S's residual cost on a large file that binds a
+  global's name; the all-opaque file that still pays one snapshot build; and whether the indexer's
+  four traversals can be one.
+- **DR-26 — done 2026-08-12, and it corrected two statements in this document.** The one
+  `LuaScope.declare` site Rule S excludes (`seedAmbientGlobals`, `LuaTypesVisitor.kt:1360`) is dead
+  on the default target and live only on Redis/Valkey, where it declares `KEYS`/`ARGV`; measured
+  there, the index arm and today agree at `[]` (TC 10h). `table` is bound by `freeGlobalSeed`, not
+  by ambient seeding — TC 10g's *Given* was wrong and is fixed. It also **reported** a third instance
+  of §4.5a's `@field` superset on the bundled `redis` stub — but pasted no `redis` line into any
+  artifact, so that half was a summary, not evidence, and it is **superseded by DR-28**.
+  Design §1.10.8.
+- **DR-28 — done 2026-08-12, and it supersedes DR-26's third result.** DR-26's `redis` claim lived
+  only in a hand-off summary; §1.10.8's pasted block contains `KEYS`, `ARGV` and `table` and no
+  `redis` line at all. DR-28 re-ran it properly, on **all five** Redis/Valkey targets and at **both**
+  doors, and pasted the output into design §1.10.8a. It confirms the superset, and it corrects the
+  scope twice: the movement is **five receivers**, not one file, and the function count is a
+  **per-version** property (10/11/13/12/12), so "the thirteen functions" binds only to Redis 7+. It
+  also measured the receiver that shares the shape and does **not** move — `server` on both Valkey
+  targets, whose constants are additionally written as assignments — which is the control that shows
+  the mechanism is `@field`-**only** declaration. TC 7f, TC 7f-bis.
+- **DR-27 — DECIDED 2026-08-12: do it, and do it BEFORE Phase 2.** The Phase 5 deferral is
+  withdrawn. The golden has no colon door (`completionRows` uses the `.` caret only,
+  `MemberEnumerationGoldenTest.kt:100`). The deferral weighed "extend during Phase 2" against
+  "extend in Phase 5" and never considered the cheap third option: **extend it first, on today's
+  unarmed code**, where the diff is a pure addition of colon rows with zero movement on any existing
+  line and no production change in the commit. Phase 2's every-line-declared exit criterion is
+  untouched by that, and it closes a gap the deferral did not name — after Phase 2 nothing pins the
+  colon door for ten of the eleven receivers, and Phase 4's "re-check `v:` at the new site" has no
+  baseline to re-check against. It also resolves a live inconsistency: DR-21's row claims nine of
+  eleven colon receivers byte-identical (**two** movers) where the design declares **one** (`Base:`),
+  with no colon output pasted anywhere. Implementation-plan Phase 2 task 0.
 - **Cancellation cannot be gated *by asserting the throw*, and one of its two calls cannot be gated
   at all — both measured, in Phase 1 and its remediation.** §4.9's `ProgressManager.checkCanceled()`
   is present at both `processValues` callbacks. No test can distinguish it *by the throw*: the
@@ -356,7 +463,7 @@ Refreshed after Phase 0, which closed two of these and moved a third:
   callback and a test asserting the throw passes with the line deleted. That candidate test was
   written, measured and deleted.
   What *is* observable is the probe rather than the throw. The platform checks after each callback
-  (`FileBasedIndexEx:424`, `:455`) and the plugin checks before it, so a
+  (`FileBasedIndexEx:424`, `:456`) and the plugin checks before it, so a
   `CoreProgressManager.CheckCanceledHook` sees two probes straddle one `recordVisit`. The **union
   door** is gated on that in
   `LuaReceiverMemberCancellationTest.testTheUnionDoorProbesCancellationBeforeEachCallbackAndNotOnlyAfterIt`
