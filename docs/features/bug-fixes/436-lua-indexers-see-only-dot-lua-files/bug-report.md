@@ -32,7 +32,7 @@ no gate looks.
 | `lang/indexing/LuaMemberFieldIndex.kt` | `:52` | `@field` members declared in those files are missing |
 | `lang/indexing/LuaDescriptionIndex.kt` | `:48` | descriptions missing for the same |
 | `lang/indexing/LuaFileBindingsIndex.kt` | `:87` | ANDs the extension test **on top of** a correct `LuaFileInputFilter` — the file-type check is already there and is then narrowed away |
-| `run/RuntimeLibraryProvider.kt` | `:43` | not an index; filters library files the same way |
+| `platform/target/RuntimeLibraryProvider.kt` | `:43` | not an index; filters library files the same way |
 
 `LuaReceiverMemberIndex` had the same defect and is **already fixed** (`fcce5966`) — it now
 uses `DefaultFileTypeSpecificInputFilter(LuaFileType)`, which is the shape to copy.
