@@ -10,6 +10,10 @@
   `redis.REPL_ALL` ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
 - **A grandchild is no longer offered as a member** (BUG-430): `Shapes.nested.deep = 1` stops
   offering `deep` on `Shapes.`, where it does not exist ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
+- **`---@class` members no longer cost a project-wide scan** (COMP-09): materializing a class read
+  every global-declaration key to find one receiver's methods — 4 145 keys for 50 members on the
+  measured fixture. It is now a receiver-keyed lookup whose work does not grow when unrelated code is
+  indexed, with the offered members unchanged ([b346f6c1](https://github.com/internetisalie/lunar/commit/b346f6c1)).
 - **Library snapshot invalidation** (TYPE-11): library types depend on the dependency generation —
   library roots and language target — instead of every keystroke; 334 ms → ~11 ms per keystroke with
   a 123 KiB definition library ([8d536e87](https://github.com/internetisalie/lunar/commit/8d536e87)).
