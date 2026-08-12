@@ -53,6 +53,14 @@ object LuaTypeSourceRecorder {
             inProgressHits.addAll(other.inProgressHits)
             rescuedGlobals.addAll(other.rescuedGlobals)
         }
+
+        /** Nothing was consumed and nothing was unknown — [absorb]ing this frame cannot change one. */
+        fun isEmpty(): Boolean =
+            urls.isEmpty() &&
+                absences.isEmpty() &&
+                unreplayedWarm.isEmpty() &&
+                inProgressHits.isEmpty() &&
+                rescuedGlobals.isEmpty()
     }
 
     private val openFrames = ThreadLocal.withInitial { ArrayDeque<SourceFrame>() }
@@ -196,8 +204,16 @@ object LuaTypeSourceRecorder {
         openFrames.get().forEach { it.unreplayedWarm.add(sourceUrl) }
     }
 
-    /** Absorbs a stored frame — all five sets — into every open frame (design §3.1 step 6). */
+    /**
+     * Absorbs a stored frame — all five sets — into every open frame (design §3.1 step 6).
+     *
+     * The empty-frame short-circuit is an optimisation and provably nothing else: [SourceFrame.absorb]
+     * is five `addAll`s, and five `addAll`s of empty collections change no receiver. It earns its
+     * place because BUG-434 made every read of a memoized [LuaTypeReference] a replay, and the great
+     * majority of those resolve names that consumed nothing — a primitive, or a type no file declares.
+     */
     fun replay(sourceFrame: SourceFrame) {
+        if (sourceFrame.isEmpty()) return
         openFrames.get().forEach { it.absorb(sourceFrame) }
     }
 

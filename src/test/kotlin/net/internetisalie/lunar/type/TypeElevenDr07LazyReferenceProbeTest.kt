@@ -11,32 +11,31 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypes
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 
 /**
- * TYPE-11 DR-07 — Risk 1.3, **measured reachable. This class reproduces BUG-434 and is not a gate.**
+ * TYPE-11 DR-07 / **BUG-434 — the regression gate for the sixth under-recording channel.**
  *
  * `materializeClass` builds every `@field` member type and every supertype as a
- * `LuaTypeReference(name, decl)` whose `resolved` is `by lazy`, and the enclosing `LuaClassType` is
- * memoized in `typeCache` beside the frame recorded at **its** materialization.
- * `LuaGraphType.fromLuaType` flattens those references during a snapshot build
- * (`LuaGraphType.kt:251`) — but a `by lazy` that was already forced never calls the manager again,
- * so it never reaches `resolveType`, the cache hit that would have replayed the frame never happens,
- * and the frame open at that moment learns nothing about the file the reference resolved into.
+ * `LuaTypeReference(name, decl)` whose answer is memoized, and `LuaGraphType.fromLuaType` flattens
+ * those references during a snapshot build (`LuaGraphType.kt:251`). Before the fix the memoization
+ * carried no frame: a reference already forced at `depth() == 0` — by a hover, a completion,
+ * `LuaOverrideLineMarkerProvider`, a hierarchy walk, an assignability inspection — short-circuited
+ * before `LuaTypeManager.resolveType`, so the cache hit that would have replayed the consumed file
+ * never happened and the frame open at that moment learnt nothing.
  *
- * The arms differ **only** in whether the reference was forced once before the build, and that alone
- * flips the verdict (`main` @ `bf715eb2`):
+ * The four arms differ **only** in whether the reference was forced once before the build. On
+ * `main` @ `6f238e7c`, that alone flipped the verdict:
  *
  * ```
  * arm1 cold       urls=[lib.lua, gadget.lua]  pinnable=false
  * arm2 pre-forced urls=[lib.lua]              pinnable=true
- * arm3 pre-forced before=[spin] after=[spin] sameSnapshot=true    <- stale
+ * arm3 pre-forced before=[spin] after=[spin] sameSnapshot=true    <- a stale type, from a granted pin
  * arm4 cold       before=[spin] after=[spun] sameSnapshot=false
  * ```
  *
- * Attribution proven by mutation: with `LuaTypeReference.resolved`'s `by lazy` replaced by a plain
- * `get()`, every arm reports `urls=[lib.lua, gadget.lua]`, `pinnable=false`, `after=[spun]`.
- *
- * ⚠ **These cases print; they do not assert**, because asserting today's behaviour would lock the
- * defect in. When BUG-434 is fixed, arm 2 must print `pinnable=false` and arm 3 `after=[spun]
- * sameSnapshot=false`, and these prints become assertions.
+ * ⚠ **These cases used to print rather than assert**, deliberately, so that recording the defect
+ * would not cement it. The fix — `LuaTypeReference` memoizing its `SourceFrame` beside its answer and
+ * replaying it on every read — makes arms 1 and 2 agree and arms 3 and 4 agree, so the prints are now
+ * assertions. Arms 1 and 4 are the controls: they were already green with the defect present, and
+ * only arms 2 and 3 go red when the frame is dropped from the memoization.
  */
 class TypeElevenDr07LazyReferenceProbeTest : TypeElevenDefinitionLibraryTestCase() {
     private val libraryText =
@@ -87,6 +86,29 @@ class TypeElevenDr07LazyReferenceProbeTest : TypeElevenDefinitionLibraryTestCase
         snapshot: LuaTypes,
     ): Boolean = runReadAction { LuaTypesSnapshot.isPinnable(psiFileOf(libraryFile), frameOf(snapshot)) }
 
+    /**
+     * The library's build consumed the project file that declares `Gadget`, and is therefore refused
+     * a pin — the verdict a cold build reaches, which is the verdict every build must reach.
+     */
+    private fun assertTheProjectFileReachedTheFrame(
+        label: String,
+        libraryFile: VirtualFile,
+    ) {
+        println(describe(label, libraryFile))
+        val snapshot = snapshotOf(libraryFile)
+        val consumedNames = frameOf(snapshot).urls.map { it.substringAfterLast('/') }
+        assertTrue(
+            "$label: gadget.lua declares the type `Widget.part` names, so building lib.lua's snapshot " +
+                "consumed it; the recorded sources were $consumedNames",
+            "gadget.lua" in consumedNames,
+        )
+        assertFalse(
+            "$label: lib.lua's snapshot depends on a project file, so pinning it to the generation " +
+                "tracker would survive an edit that changes its content",
+            verdictOn(libraryFile, snapshot),
+        )
+    }
+
     /** Forces `Widget.part`'s reference at `depth() == 0`, exactly as a hover or a completion would. */
     private fun forceTheMemberReferenceOutsideAnyFrame(context: PsiFile) {
         runReadAction {
@@ -111,34 +133,46 @@ class TypeElevenDr07LazyReferenceProbeTest : TypeElevenDefinitionLibraryTestCase
             (part as? LuaGraphType.Table)?.getMembers()?.keys.orEmpty()
         }
 
+    /** Renames the project field and asserts the library snapshot followed it rather than being pinned. */
+    private fun assertTheRenameReachesTheLibrarySnapshot(
+        label: String,
+        libraryFile: VirtualFile,
+        projectClass: PsiFile,
+    ) {
+        val before = snapshotOf(libraryFile)
+        println("TYPE11-DR07 $label before=${partFieldsIn(libraryFile)}")
+        rewriteAssertingRootsAreStill(projectClass, rewrittenProjectText)
+        val after = snapshotOf(libraryFile)
+        val fieldsAfter = partFieldsIn(libraryFile)
+        println("TYPE11-DR07 $label after=$fieldsAfter sameSnapshot=${before === after}")
+        assertFalse("$label: the edited project file must not leave the library snapshot in place", before === after)
+        assertEquals("$label: the library snapshot must see the renamed project field", setOf("spun"), fieldsAfter)
+    }
+
     /** Arm 1 — nothing forced the reference first, so the build itself resolves it and records it. */
     fun testTheReferenceIsFlattenedInsideTheFrameWhenNothingForcedItFirst() {
         myFixture.addFileToProject("gadget.lua", projectText)
         val libraryFile = installLibrary()
-        println(describe("arm1 cold", libraryFile))
+        assertTheProjectFileReachedTheFrame("arm1 cold", libraryFile)
     }
 
-    /** Arm 2 — a read at depth 0 forced it first, so the build gets a memoized answer and no report. */
+    /** Arm 2 — a read at depth 0 forced it first; the replayed frame must make that indistinguishable. */
     fun testTheReferenceIsAlreadyForcedWhenSomethingReadItFirst() {
         myFixture.addFileToProject("gadget.lua", projectText)
         val libraryFile = installLibrary()
         val consumer = myFixture.configureByText("consumer.lua", "local pad = 1\n")
         forceTheMemberReferenceOutsideAnyFrame(consumer)
-        println(describe("arm2 pre-forced", libraryFile))
+        assertTheProjectFileReachedTheFrame("arm2 pre-forced", libraryFile)
     }
 
-    /** Arm 3 — the end-to-end consequence: is the wrongly-granted pin a stale type the user reads? */
+    /** Arm 3 — the end-to-end consequence: a pre-forced reference must not buy a stale type. */
     fun testWhetherTheEscapedPinSurvivesAnEditToTheProjectFileItDependsOn() {
         val projectClass = myFixture.addFileToProject("gadget.lua", projectText)
         val libraryFile = installLibrary()
         val consumer = myFixture.configureByText("consumer.lua", "local pad = 1\n")
         forceTheMemberReferenceOutsideAnyFrame(consumer)
         println(describe("arm3 pre-forced", libraryFile))
-        val before = snapshotOf(libraryFile)
-        println("TYPE11-DR07 arm3 before=${partFieldsIn(libraryFile)}")
-        rewriteAssertingRootsAreStill(projectClass, rewrittenProjectText)
-        val after = snapshotOf(libraryFile)
-        println("TYPE11-DR07 arm3 after=${partFieldsIn(libraryFile)} sameSnapshot=${before === after}")
+        assertTheRenameReachesTheLibrarySnapshot("arm3", libraryFile, projectClass)
     }
 
     /** Arm 4 — the control for arm 3, identical but for the pre-force. */
@@ -146,10 +180,6 @@ class TypeElevenDr07LazyReferenceProbeTest : TypeElevenDefinitionLibraryTestCase
         val projectClass = myFixture.addFileToProject("gadget.lua", projectText)
         val libraryFile = installLibrary()
         println(describe("arm4 cold", libraryFile))
-        val before = snapshotOf(libraryFile)
-        println("TYPE11-DR07 arm4 before=${partFieldsIn(libraryFile)}")
-        rewriteAssertingRootsAreStill(projectClass, rewrittenProjectText)
-        val after = snapshotOf(libraryFile)
-        println("TYPE11-DR07 arm4 after=${partFieldsIn(libraryFile)} sameSnapshot=${before === after}")
+        assertTheRenameReachesTheLibrarySnapshot("arm4", libraryFile, projectClass)
     }
 }

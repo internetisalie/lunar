@@ -360,10 +360,48 @@ are already committed and green on `main`. They must stay green at the end of ev
         It is a hot-path production change in a *performance* feature and needs DR-04, the
         `provisioned=11 pinnable=11` count and the sweep re-measured.
         `TypeElevenDr07LazyReferenceProbeTest` is committed **printing only**; asserting today's
-        behaviour would lock the defect in.
+        behaviour would lock the defect in. **Fixed in Phase 4b (2026-08-12)** — and not by the
+        attribution mutation; see below.
 - **Exit criteria**: `risks-and-gaps.md` Gap 2.1 and Risk 1.3 both closed with pasted output, or
   re-filed as bugs with roadmap rows. **Met**: Gap 2.1 closed with output; Risk 1.3 closed as
   confirmed-real and re-filed as BUG-434 with a roadmap row.
+
+### Phase 4b: Close BUG-434, the sixth under-recording channel [Must]
+
+- **Goal**: TYPE-11-06 is a `Must` and Phase 4 left it unsatisfied — it found the sixth channel and
+  deliberately did not fix it, so that recording the defect would not cement it. **DONE
+  (2026-08-12).** This is a phase rather than a follow-up because a `Must` requirement was open.
+- **Tasks**:
+  - [x] Give `LuaTypeReference`'s memoized answer its frame. It memoizes
+        `Pair<LuaType, SourceFrame>` through `LuaTypeSourceRecorder.recording` and replays the frame
+        on every read of `resolved` — the `CachedAnswer` idiom Phase 2 gave the three manager doors,
+        applied to the layer that had none (design §3.1 step 7). **`isPinnable` is unchanged**: the
+        channel is a missing *report*, not a frame state, and no clause reading a clean frame can
+        tell a wrongly clean one from a correct one, so there is no step 8 to add.
+        The roadmap row's candidate (`by lazy` → plain `get()`) was **rejected**: correct, but it
+        deletes the memoization — a synchronized map lookup and a reentrancy round trip per member
+        access — and leaves the frame nobody's property, so the next memoizing consumer re-opens the
+        hole. `LuaTypeSourceRecorder.replay` gained an empty-frame short-circuit, an optimisation and
+        provably nothing else (`absorb` is five `addAll`s; five `addAll`s of empty collections change
+        no receiver).
+  - [x] Convert `TypeElevenDr07LazyReferenceProbeTest` from printing to asserting, and earn the red.
+        Mutation: *drop the replay from `resolved`, change nothing else.* Arms 2 and 3 go red
+        (`arm2 pre-forced: … the recorded sources were [lib.lua]`; `arm3: the edited project file
+        must not leave the library snapshot in place`); arms 1 and 4 — the cold controls, green with
+        the defect present — stay green, which is what makes 2 and 3 evidence.
+  - [x] Re-measure everything the deferral named, because this is the hot path of a performance
+        feature. `TYPE11-COST provisioned=11 pinnable=11` (zero pins lost); routine
+        `ktlintCheck test --rerun --no-build-cache` **2630 / 0 / 1**, matching the `6f238e7c`
+        baseline; `test -PwithCorpus --rerun --no-build-cache` **2638 / 0 / 1**, the `bf715eb2` baseline of 2631
+        plus Phase 4's own 7 new tests;
+        DR-04 arm B `28 234 → 29 839 µs` (+5.7 %) on paired isolated runs whose arm A moved
+        −25 %…+17 % with no mechanism to be affected, and `15 147` / `10 906 µs` in-suite against
+        Phase 3's in-suite reference of `22 859 µs`.
+  - [x] File the BUG-434 report document and close it in the same commit —
+        `docs/features/bug-fixes/434-lazy-type-reference-escapes-the-recording-frame/bug-report.md`.
+- **Exit criteria**: Risk 1.3 closed, TYPE-11-06 satisfied with all six channels named, both gates
+  green with mtimes checked inside their run, the pin count unchanged and DR-04 read rather than
+  assumed. **Met**, all six.
 
 ### Phase 5: The remaining arm-B cost [Could]
 
@@ -382,7 +420,7 @@ are already committed and green on `main`. They must stay green at the end of ev
 | TYPE-11-03 — identification is by provenance | M | Phase 1 — gated by `LuaLibraryProvenanceTest` against the production service, with all five DR-02 mutations **re-earned** there; `TypeElevenDr02ProvenanceTest` mutates a test-local replica and is de-risking, not acceptance. |
 | TYPE-11-04 — no new stale-type defect | M | Phase 2 (recording) + Phase 3 (the condition); gated by **`TypeElevenDr01ResidualTest` alone** — measured (TYPE-11-DR-09): the full suite and all four corpus baselines pass unchanged under the rejected blanket-pin build, so neither is a gate for this requirement. They remain exit criteria for "nothing else moved". |
 | TYPE-11-05 — a dumb-mode build is never cached across the generation | M | Phase 3 (the guard, design §3.4) — gated by `TypeElevenDumbModeDecisionTest` on the **decision** (TC-16), which is mutation-red when §3.3 step 1 is deleted. The **outcome** still does not reproduce (§1.6), so Phase 4 keeps DR-06: is the `modificationStamp` move platform behaviour or a `DumbModeTestUtils` artifact? |
-| TYPE-11-06 — an incomplete recording is never pinned | M | Phase 1 (the `SourceFrame` shape, five sets) + Phase 2 (the absence and rescued-global reports, the whole-frame `sourceCache`) + Phase 3 (§3.3 steps 4–7, the §3.7 replay, the in-progress report); gated by `TypeElevenDr11LateDeclarationTest`, `TypeElevenDr12WarmInnerSnapshotTest`, `TypeElevenDr14InProgressTest` and `TypeElevenDr15LateLibraryAnswerTest` — all four measured red without their guard, all four fixes at zero lost pins |
+| TYPE-11-06 — an incomplete recording is never pinned | M | Phase 1 (the `SourceFrame` shape, five sets) + Phase 2 (the absence and rescued-global reports, the whole-frame `sourceCache`) + Phase 3 (§3.3 steps 4–7, the §3.7 replay, the in-progress report); + **Phase 4b** (the sixth channel, BUG-434: the memoized `LuaTypeReference` answer carries its frame, design §3.1 step 7); gated by `TypeElevenDr11LateDeclarationTest`, `TypeElevenDr12WarmInnerSnapshotTest`, `TypeElevenDr14InProgressTest`, `TypeElevenDr15LateLibraryAnswerTest`, `TypeElevenDr18ModuleAbsenceTest` and `TypeElevenDr07LazyReferenceProbeTest` — every one measured red without its guard, every fix at zero lost pins (`provisioned=11 pinnable=11` re-measured after the sixth). **Satisfied.** |
 
 ## Verification Tasks
 
@@ -432,5 +470,6 @@ are already committed and green on `main`. They must stay green at the end of ev
 | Phase 1: Provenance and the recorder, wired to nothing | done | Must |
 | Phase 2: Report from the type manager | done | Must |
 | Phase 3: Make `forFile` conditional | done | Must |
-| Phase 4: Close the negative de-risking results | todo | Should |
+| Phase 4: Close the negative de-risking results | done | Should |
+| Phase 4b: Close BUG-434, the sixth under-recording channel | done | Must |
 | Phase 5: The remaining arm-B cost | todo | Could |

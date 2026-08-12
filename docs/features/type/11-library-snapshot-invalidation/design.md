@@ -1085,7 +1085,24 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
      whose `require("mymod")` resolves to nothing records an **empty** frame, clears steps 2–7 and is
      pinned. Creating `mymod.lua` afterwards never reaches it.
   6. `replay(frame)` absorbs a stored frame into every open frame — **all five sets**, so an absence
-     or an incompleteness recorded once keeps propagating (§3.6, §3.7).
+     or an incompleteness recorded once keeps propagating (§3.6, §3.7). It short-circuits on an empty
+     frame, which is an optimisation and nothing else: `absorb` is five `addAll`s, and five `addAll`s
+     of empty collections change no receiver.
+  7. **`LuaTypeReference` records and replays like a cache door, because it is one — BUG-434.** Its
+     answer is memoized (`by lazy`), and a memoized cross-file answer that carries no frame is a
+     silent hole in step 3: `materializeClass` builds one of these for every `@field` type, `@class`
+     supertype, parameter, return and alias target (`LuaTypeManagerImpl.kt:356`, `:365`, `:412`,
+     `:424`, `:592`, `:597-598`, `:617`), `LuaGraphType.fromLuaType` flattens them mid-build
+     (`LuaGraphType.kt:251`), and a reference already forced at `depth() == 0` — a hover, a
+     completion, `LuaOverrideLineMarkerProvider`, a hierarchy walk, an assignability inspection —
+     short-circuits before `resolveType` is reached, so neither `recordInto` nor step 6 runs. It now
+     memoizes `Pair<LuaType, SourceFrame>` through `recording` and replays the frame on **every**
+     read of `resolved`, which is the same shape §3.6 gives the three manager doors. The cold path
+     replays too and that costs nothing — step 3 already wrote to every open frame on the way in, so
+     the replay is set-wise idempotent, exactly as §3.7 argues for `forFile`'s cold path.
+     ⚠ The invariant to hold onto, because it is what the fix restores and what any future
+     memoization layer must also satisfy: **a read inside a frame contributes its consumed sources
+     whether or not it was resolved earlier.**
 - **Rules / edge handling**:
   - **Stack-wide reporting is the whole point of step 3.** `forFile(libraryA)` can nest inside
     `forFile(libraryB)` through `resolveGlobal`; if only the innermost frame were filled, `libraryB`
@@ -1184,15 +1201,25 @@ incomplete recording is not pinnable. Both directions of under-recording (§1.8)
     applied to all four steps. The same holds for both module rules (§3.1 step 5d, §3.5's
     `getModuleType` row): `require` is itself a rescued global, so any file that calls it is
     unpinnable before those rules are read.
-  - ⚠ **A sixth channel exists and is NOT closed by these steps — BUG-434 (Phase 4, DR-07).**
-    `LuaTypeReference.resolved` is a `by lazy`, so a reference already forced at `depth() == 0` is
-    consumed by `LuaGraphType.fromLuaType` **inside** a build frame without ever reaching
-    `LuaTypeManager.resolveType` — neither `recordInto` nor the warm-hit `replay` runs, and the
-    consumed file never enters `urls`. Measured: the same library file is `pinnable=false` cold and
-    `pinnable=true` after a depth-0 pre-force, and the pinned instance then survives an edit to the
-    project file it depends on. It is filed rather than fixed here because the repair is a hot-path
-    production change that has to be priced (`risks-and-gaps.md` Risk 1.3, DR-07). Until it lands,
-    the "four channels, one defect" and "five channels" counts below are a floor, not a closed list.
+  - ⚠ **A sixth channel existed, and it is closed upstream of these steps rather than by one of them
+    — BUG-434 (found Phase 4 / DR-07, fixed 2026-08-12).** `LuaTypeReference.resolved` was a `by
+    lazy` over the answer alone, so a reference already forced at `depth() == 0` was consumed by
+    `LuaGraphType.fromLuaType` **inside** a build frame without ever reaching
+    `LuaTypeManager.resolveType` — neither `recordInto` nor the warm-hit `replay` ran, and the
+    consumed file never entered `urls`. Measured: the same library file was `pinnable=false` cold and
+    `pinnable=true` after a depth-0 pre-force, and the pinned instance then survived an edit to the
+    project file it depended on.
+    **Why no step 8 was added.** The other five channels are each a *state* the frame can be left in,
+    so each needs a clause that reads that state. This one is not a state — it is a **missing
+    report**: the frame is genuinely, wrongly clean, and no clause reading a clean frame can tell it
+    from a correct one. The repair therefore belongs at the door that failed to report, and it is the
+    idiom §3.6 already established: `LuaTypeReference` memoizes its `SourceFrame` beside its answer
+    (§3.1 step 7) and replays it on every read, so a pre-forced reference feeds step 3 exactly what a
+    cold one does. `isPinnable` is unchanged. Measured cost: **zero** pins
+    (`provisioned=11 pinnable=11`) and no material DR-04 movement — see
+    `docs/features/bug-fixes/434-lazy-type-reference-escapes-the-recording-frame/bug-report.md`.
+    With it closed, the channel count is **six**, and the counts below say four and five because they
+    were written when that was the tally; they are the history of the same defect, not separate ones.
   - **Steps 4 through 7 are the "sources unknown" half of the invariant, and they are not optional.**
     Step 3 alone is vacuously true for an empty set, which is exactly the state a failed resolution
     (B1), a warm inner snapshot (B4), an in-progress nested snapshot (V1) and a project-scope pass

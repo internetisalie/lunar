@@ -818,6 +818,21 @@ synchronized-map lookup plus a frame replay on every member access, and TYPE-11'
 `TypeElevenPinnableCostTest`'s `provisioned=11 pinnable=11` count and the corpus sweep would all have
 to be re-measured. Filed as **BUG-434** with a roadmap row.
 
+**Phase 5 (2026-08-12) fixed it, and not with that mutation.** The three re-measurements the
+paragraph above demanded were run and all three are clean, but the shipped repair keeps the
+memoization and adds the frame — `LuaTypeReference` memoizes `Pair<LuaType, SourceFrame>` through
+`recording` and replays on every read of `resolved`, so no member access pays a map lookup and the
+frame becomes the property of the layer that owns the answer. `LuaTypeSourceRecorder.replay` gained
+an empty-frame short-circuit, which is an optimisation and provably nothing else (`absorb` is five
+`addAll`s; five `addAll`s of empty collections change no receiver) and which matters because the fix
+turns every read of a memoized reference into a replay while most references resolve names that
+consumed nothing. Measurements: `TYPE11-COST provisioned=11 pinnable=11`; routine `ktlintCheck test
+--rerun --no-build-cache` **2630 / 0 / 1**; `test -PwithCorpus --rerun --no-build-cache`
+**2638 / 0 / 1**; DR-04 arm B `28 234 → 29 839 µs` (+5.7 %) on paired **isolated** runs whose arm A —
+which has no library and no mechanism to be affected — moved −25 %…+17 % across the same runs, and
+`15 147` / `10 906 µs` in-suite against Phase 3's in-suite reference of `22 859 µs`. Full write-up in
+`docs/features/bug-fixes/434-lazy-type-reference-escapes-the-recording-frame/bug-report.md`.
+
 ## Premises examined
 
 | Constraint treated as fixed | Verdict |
@@ -978,8 +993,26 @@ what was closed.
   shape as the three existing caches. Any future change to one cache's invalidation must change all
   four; implementation-plan Phase 1 puts them adjacent in the file so the coupling is visible.
 
-### Risk 1.3: A lazily-resolved `LuaTypeReference` escapes the recording frame — **REAL, and it is not the shape written below (BUG-434)**
+### Risk 1.3: A lazily-resolved `LuaTypeReference` escapes the recording frame — **REAL, not the shape written below, and CLOSED (BUG-434)**
 
+- **Status (Phase 5, 2026-08-12)**: **CLOSED.** `LuaTypeReference` now memoizes
+  `Pair<LuaType, SourceFrame>` through `LuaTypeSourceRecorder.recording` and replays the frame on
+  every read of `resolved`, which is the `CachedAnswer` idiom Phase 2 gave the three manager doors
+  (design §3.1 step 7). The invariant restored: **a reference read inside a frame contributes its
+  consumed sources whether or not it was resolved earlier.** `isPinnable` is unchanged — the channel
+  is a *missing report*, not a frame state, and no clause reading a clean frame can tell a wrongly
+  clean one from a correct one, which is why it is fixed at the door rather than by a step 8.
+  All four arms of `TypeElevenDr07LazyReferenceProbeTest` now assert; arms 2 and 3 are red under
+  "drop the replay, change nothing else" and the cold controls 1 and 4 stay green.
+  Priced, since it is the hot path of a performance feature: `TYPE11-COST provisioned=11
+  pinnable=11`, routine suite **2630 / 0 / 1**, corpus suite **2638 / 0 / 1** (the `bf715eb2` baseline of 2631 plus Phase 4's 7 new tests), DR-04 arm B +5.7 % on
+  paired isolated runs inside a ±20 % harness noise band and below Phase 3's in-suite reference in
+  both in-suite runs. Full evidence:
+  `docs/features/bug-fixes/434-lazy-type-reference-escapes-the-recording-frame/bug-report.md`.
+  ⚠ The candidate the roadmap row proposed — `by lazy` → plain `get()` — was **not** taken. It is
+  correct (it is what the Phase 4 attribution mutation used) but it deletes the memoization, paying a
+  synchronized map lookup and a reentrancy round trip per member access, and it leaves the frame
+  nobody's property so the next memoizing consumer re-opens the hole.
 - **Status (Phase 4, 2026-08-12)**: **reproduced, attributed by mutation, filed as BUG-434.** Output
   and method in "Phase 4 … DR-07" above. It is a **sixth** under-recording channel and it ships a
   stale type: a provisioned library file is judged `pinnable=true` while its snapshot's content came
@@ -1000,8 +1033,9 @@ what was closed.
   is being built. Every `@field` member type, every `@class` supertype, every function parameter and
   return, and every alias target is such a reference (`LuaTypeManagerImpl.kt:356`, `:365`, `:412`,
   `:424`, `:592`, `:597-598`, `:617`).
-- **Not fixed inside TYPE-11.** The one-line repair is a production behaviour change in the hot path
-  of a performance feature and needs its own pricing — see BUG-434 and the Phase 4 section.
+- **Was not fixed inside Phase 4, and is fixed in Phase 5.** The repair is a production behaviour
+  change in the hot path of a performance feature, so it was filed rather than rushed; the pricing it
+  needed is the four measurements in the Status row above. See BUG-434 and the Phase 4 section.
 
 ### Risk 1.4: The win is smaller than the headline suggests
 
@@ -1125,7 +1159,7 @@ The original entry, kept because the question it asked is the one that was answe
 | TYPE-11-DR-04 | Re-measure the 9 ms / 334 ms pair, medians of ≥5 | TYPE-11-01 | **done** — `design.md` §1.5. Direction confirmed; the "near 9 ms" criterion is **not** met (3–5× arm A) |
 | TYPE-11-DR-05 | Build a snapshot under `DumbService.isDumb`, exit, complete again | TYPE-11-05 | **done, negative** — `design.md` §1.6. Nulls are baked in; they do not survive; two mutations failed to make the harness red. Reopened as DR-06. **Its trace nonetheless grounds the gate that replaced it** (§1.9 B5): `libDumb graph type = Undefined` inside the dumb block *is* `resolveGlobal` having returned null, i.e. the empty frame TC-16 asserts on |
 | TYPE-11-DR-06 | Determine whether the `modificationStamp` move at dumb-mode exit is platform behaviour or a `DumbModeTestUtils` artifact. If the former, TYPE-11-05's guard is dead code and should be deleted; if the latter, build a fixture that reproduces the staleness | Gap 2.1, TYPE-11-05 | **DONE, Phase 4 (2026-08-12) — negative, and now explained.** Platform behaviour, not a `DumbModeTestUtils` artifact: `FileManagerImpl`'s constructor subscribes `processFileTypesChanged` to **both** dumb-mode edges, which invalidates all physical PSI and moves every cached file's `modificationStamp` (`0 → 1` on entry, `1 → 2` on exit, `2 → 4` on a second episode; `roots` and the VFS stamp still; a bare event pump moves nothing). The *outcome* therefore cannot occur in a real IDE either, so the guard is **insurance and stays**; Gap 2.1 closes. Method and full output above |
-| TYPE-11-DR-07 | Probe whether a `LuaTypeReference` can be resolved after its recording frame closed, and whether the resulting source can reach a pinned snapshot | Risk 1.3 | **DONE, Phase 4 (2026-08-12) — positive: the defect is real, filed as BUG-434.** Reachable, and by the *opposite* mechanism to the one Risk 1.3 named: the reference is consumed **inside** the frame by `fromLuaType`, and `resolved`'s `by lazy` short-circuits before `resolveType`, so neither `recordInto` nor `replay` runs. `arm2 pre-forced urls=[lib.lua] pinnable=true` against `arm1 cold urls=[lib.lua, gadget.lua] pinnable=false`; end to end `arm3 after=[spin] sameSnapshot=true` against `arm4 after=[spun] sameSnapshot=false`. Attribution proven by replacing the `by lazy` with a `get()` — every arm then reports the cold result. **Sixth under-recording channel. Not fixed here**: the repair is a hot-path production change needing its own pricing |
+| TYPE-11-DR-07 | Probe whether a `LuaTypeReference` can be resolved after its recording frame closed, and whether the resulting source can reach a pinned snapshot | Risk 1.3 | **DONE, Phase 4 (2026-08-12) — positive: the defect is real, filed as BUG-434.** Reachable, and by the *opposite* mechanism to the one Risk 1.3 named: the reference is consumed **inside** the frame by `fromLuaType`, and `resolved`'s `by lazy` short-circuits before `resolveType`, so neither `recordInto` nor `replay` runs. `arm2 pre-forced urls=[lib.lua] pinnable=true` against `arm1 cold urls=[lib.lua, gadget.lua] pinnable=false`; end to end `arm3 after=[spin] sameSnapshot=true` against `arm4 after=[spun] sameSnapshot=false`. Attribution proven by replacing the `by lazy` with a `get()` — every arm then reports the cold result. **Sixth under-recording channel. Fixed in Phase 5 (2026-08-12)**: the memoized answer now carries its `SourceFrame` and replays it on every read (design §3.1 step 7), priced at zero pins (`provisioned=11 pinnable=11`), 2630/0/1 routine, 2638/0/1 corpus and DR-04 arm B inside the harness noise band. Risk 1.3 closed |
 | TYPE-11-DR-08 | Profile the residual arm-B cost (`resolveGlobal` + `graphTypeToLuaType`, fresh `visited` map per call over a 3 600-member table) and decide whether it is a separate feature | Risk 1.4 | todo |
 | TYPE-11-DR-11 | Step 9 blocker B1: does a build whose global resolution answered **nothing** get pinned, and does the declaration written afterwards fail to reach it? | TYPE-11-06, `design.md` §3.3/§3.4 | **done, positive (the defect is real)** — `design.md` §1.8. `expected:<[afterDeclared]> but was:<[]>`. Closed by §3.3 step 4; measured cost **zero** pinned files. |
 | TYPE-11-DR-12 | Step 9 blocker B4: is the interleaving reachable in which a nested `forFile` is served warm, so the outer library file records an incomplete source set and is pinned? | TYPE-11-06, `design.md` §3.6 | **done, positive (the defect is real, and needs no roots tick)** — `design.md` §1.8. `expected:<[afterEdit]> but was:<[beforeEdit]>`. Closed by §3.7 (replay), not by blanket-unpinnable; measured cost **zero** pinned files. |
