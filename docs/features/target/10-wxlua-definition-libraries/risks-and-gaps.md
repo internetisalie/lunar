@@ -351,6 +351,25 @@ only a smaller emitted surface does.
 whatever the resolution. **Phase 4 (publish) is blocked on BUG-429**, because shipping a library
 whose first completion costs 13 s is worse than shipping nothing.
 
+> **UNBLOCKED 2026-08-12.** BUG-429 was superseded into **COMP-09**, which shipped all five phases.
+> The completion door now answers from a receiver-keyed index **above** the type-graph build:
+> cold time-to-first went **491 ms → ~12 ms** (medians of five, five distinct wide receivers in five
+> files), against a 100 ms budget that is now enforced by `MemberEnumerationLatencyGateTest` with
+> `BUDGET_ENFORCED = true`. Phase 4 may proceed on that door.
+>
+> **Two caveats before publishing, both measured, neither a blocker for the generator:**
+> 1. The **`@class` door still misses** the budget — 323 ms end-to-end at 3 600 members
+>    (COMP-09 Phase 5). Tracked as **BUG-438**. A wxLua root that users reach through `@class`
+>    resolution rather than the completion door will still feel slow.
+> 2. The **13 s figure was never re-measured against a real wxLua tree**, because there is no
+>    generated tree yet — only this feature's Phase 0 parser spike. COMP-09's numbers come from a
+>    *generated* 3 600-member fixture. Re-measure against the real emitted tree at Phase 4 rather
+>    than inheriting either figure.
+>
+> Found while attempting COMP-09's live IDE verification, which wanted the wxLua library as its
+> real-world artifact and discovered it does not exist — this feature's headline blocker had been
+> resolved by a feature that cited this feature as its motivating input.
+
 ### DR-08 must sample the enforcement boundary, not just the type map
 
 Handoff from the BUG-423/424/425/426/427 session: contracts are live on arrival, but enforced only
