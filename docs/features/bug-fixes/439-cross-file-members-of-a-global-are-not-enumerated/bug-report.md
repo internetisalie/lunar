@@ -114,6 +114,46 @@ needs COMP-09-08's latency harness re-run, not just the golden.
 behaviour is `perFile.first()`, which shipped with COMP-09 Phase 2 *preserving* `typeOfGlobalIn` —
 the tests above pin it as intended behaviour, so it was never a regression.
 
+
+### Attempt 2 (2026-08-14) — the blocker is REAL, and it is one specific test
+
+Re-ran with the two bug-codifying tests treated as changeable (they are: one asserts the door reads
+*one* file, which is this defect stated as intent). Both BUG-439 fixtures pass. Five of the six
+failures are consequential and fine to update.
+
+**The sixth is not, and it kills the `candidates` widening as written:**
+`LuaReceiverMemberIndexTest.testAFileLocalReceiverIsNotASelectableDeclaringFile`.
+
+```lua
+-- wx.lua         ---@class wx / wx = {} / function wx.real() end
+-- unrelated.lua  local wx = {} / function wx.privateToThisFile() end / wx.alsoPrivate()
+```
+
+`unrelated.lua`'s `wx` is a **file-local**. It is correctly absent from `LuaGlobalAssignmentIndex` —
+which is exactly the rule that saved the old selection — but it **is** present in *this* index under
+key `wx`, because the indexer records members by receiver name without caring how the receiver is
+bound. So adding `getContainingFiles(KEY, receiver, scope)` to `candidates` re-admits it and the
+global `wx` is contaminated with `privateToThisFile` / `alsoPrivate`: **DR-09's measured defect,
+reproduced exactly.**
+
+This is not a test pinning a bug. It is the correctness property, and the fix must satisfy it.
+
+### The remedy this points at
+
+The union needs sibling files that extend a **global** receiver while excluding files where the
+receiver is *file-local*. That distinction exists at index time and nowhere else — by the time
+`candidates` runs, a key is just a name.
+
+So: record a **local-binding sentinel** beside the existing `OPAQUE_BINDING` one. The indexer already
+walks bare bindings for opacity (`forEachBareBinding`); a `local R = …` in the file is the same shape
+and can emit a `LOCAL_BINDING` marker. `candidates` then unions the KEY files *minus* those carrying
+it, and the file-local `wx` is excluded for the right reason rather than as a side effect of which
+index was consulted.
+
+That is a contained change — one sentinel, one indexer branch, one filter — but it is index-format
+work (another `getVersion` bump) and it must be measured against COMP-09-08's latency harness, since
+`candidates` now reads two key spaces on every completion.
+
 ## What a fix has to reckon with
 
 The narrow rule exists for a reason — DR-09's superset was real, and widening naively
