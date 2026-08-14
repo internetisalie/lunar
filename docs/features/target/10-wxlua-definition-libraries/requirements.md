@@ -5,7 +5,7 @@ type: feature
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-10: wxLua (wx / wxstc / wxaui) Definition Libraries"
-status: "planned"
+status: "in_progress"
 priority: "low"
 vf_icon: 🔵
 ---
