@@ -80,6 +80,40 @@ way [[BUG-435]] was settled: build a detached worktree at the **pre-COMP-09** co
 compare the offered set. If it is pre-existing, say so with the output pasted. If COMP-09
 narrowed it, that is a regression against COMP-09-07 and the phase that did it must own the fix.
 
+
+## Attempt 1 (2026-08-14) — REVERTED. The naive union works, and breaks COMP-09's contract.
+
+Two changes made the two new fixtures pass, and the second is the non-obvious one:
+
+- `membershipOver` unions every declaring file instead of `perFile.first()`.
+- **`candidates` must change too, or the union is a no-op.** It asks `LuaGlobalAssignmentIndex`,
+  which lists files that assign the **global**; a file that merely *extends* it
+  (`Probe.otherFileVal = 2`, `love.graphics = {}`) never appears there, so there was only ever one
+  candidate to union. Adding this index's own `getContainingFiles(KEY, receiver, scope)` fixes that.
+
+With both, `testSiblingFileMembersAreOffered` passes and the same-file control still passes.
+
+**The full suite then fails in six places, and they are the design, not incidental coverage:**
+
+| test | what it pins |
+| :-- | :-- |
+| `MemberEnumerationWorkBoundGateTest.testCompletionDoorReadsExactlyOneFile` | COMP-09's **acceptance criterion** — design §4.10b assertion 4. A union reads N files by construction |
+| `LuaReceiverMemberIndexTest.testAFileLocalReceiverIsNotASelectableDeclaringFile` | **DR-09's superset guard** — the exact defect this report predicted a naive widening would re-introduce |
+| `LuaReceiverMemberIndexTest.testTheTwoDoorsDisagreeAboutASecondDeclaringFile` | first-declaring-file, pinned deliberately |
+| `LuaReceiverMemberDoorParityTest` | the two doors' agreed divergence |
+| `MemberEnumerationGoldenTest.testGoldenIsUnchanged` | the golden member set |
+| `LuaReceiverMemberIndexTest.testEveryFileTypeRegistrationIsIndexed` | — |
+
+So the fix is **not** "union the declaring files". Any real fix has to keep the one-file work bound
+(or renegotiate it with a measurement, since it is a latency criterion with a recorded number), and
+must still exclude the unrelated file-local `wx` DR-09 caught. A conditional union — same library
+root, or only when the receiver is a table the first file binds — is the shape to explore, and it
+needs COMP-09-08's latency harness re-run, not just the golden.
+
+**The regression-vs-pre-existing question is now answered as a side effect: pre-existing.** The
+behaviour is `perFile.first()`, which shipped with COMP-09 Phase 2 *preserving* `typeOfGlobalIn` —
+the tests above pin it as intended behaviour, so it was never a regression.
+
 ## What a fix has to reckon with
 
 The narrow rule exists for a reason — DR-09's superset was real, and widening naively
