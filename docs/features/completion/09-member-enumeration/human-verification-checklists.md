@@ -32,7 +32,31 @@ folders:
 - **Fixture measurement for comparison**: the armed prototype gave **7.4 ms** median of five cold
   wide receivers (§1.10.2). A stopwatch cannot resolve that; what this scenario checks is that the
   *pause is gone*, not the microseconds.
-- **Result**: ⬜ Pass / ⬜ Fail — time observed: ______
+- **Result**: **RUN 2026-08-14, live GoLand 2026.1.3 on the builder VM.** ✅ **Pass on intent,
+  ❌ fail on the stated number.** Timed by cropped `scrot` frames at 25–50 ms with ms stamps either
+  side, so each figure is a bracketing window, not a point.
+
+  | Measurement | Observed |
+  | :-- | --: |
+  | `ngx.` — **first completion of the session** | **≈1.1 s** (absent 1069–1114 ms, present 1115–1147 ms) |
+  | `love.` — a second, never-completed wide receiver, same session | **≈130 ms** |
+  | `ngx.` — warm repeat | **≈150 ms** |
+
+  **The 1.1 s is session warmup, not enumeration**, and `love.` is the control that proves it: a
+  genuinely cold, never-touched wide receiver in the same session pops in ~130 ms. Per-receiver
+  enumeration cost would have charged `love.` too. Time-to-first == time-to-complete-list — the
+  first popup frame is byte-identical to every later one.
+
+  Against this scenario **as literally written** (restart the IDE, time the first receiver, expect
+  <100 ms) it **fails at 1.1 s**. Against what the feature owns, the pause is gone: ~130 ms, and
+  indistinguishable cold vs warm — the popup reads as "already there", and typing straight through
+  to filter never outran it. **The 7.4 ms / 12 ms harness medians are not confirmable by stopwatch
+  and are not confirmed here.** The once-per-session warmup is called out separately rather than
+  folded into a pass; it is class-loading/JIT of the completion path and belongs to no phase of this
+  feature. Real material only — `ngx.` (135 declared members) and `love.` (40), both sha256-verified
+  against the shipped catalog. **The ≥200 KiB / large-receiver clause could not be discharged**: no
+  wxLua library exists (TARGET-10 is at Phase 0), and inventing one would have made this a fixture
+  measurement again.
 
 ### Scenario 1.2: The keystroke that used to cost the most
 
@@ -196,7 +220,29 @@ folders:
   type. **Record how it feels.** If it reads as a regression to a user, that is the signal to
   reconsider carrying a type string in the index value, and it is the one judgement no automated test
   can make.
-- **Result**: ⬜ Acceptable / ⬜ Reads as a regression — note: ______
+- **Result**: **RUN 2026-08-14.** ✅ **Acceptable as shipped — with one caveat that is not about
+  the type text.**
+
+  Three things only visible live:
+  1. **The loss is not library-specific.** A cross-file member of a plain *project* global renders
+     with no type text too. It is the whole index arm, exactly as design §4.5 says.
+  2. **The icon carries more than expected.** Rows split visibly into field (`ⓕ`) and method (`ⓜ`).
+     On love2d — where nearly every member is a function — that alone answers what the type text
+     would have, so the row loses almost nothing.
+  3. **The fallback decides it, and it is uneven.** `Ctrl+Q` on a love2d member gives the whole
+     signature (`function love.getVersion() : number, number, number, string`, with per-return
+     docs). `Ctrl+Q` on **every** openresty member tried returns **"No documentation found."** —
+     including `ngx.status` (a real `---@field`) and `ngx.say` (a real `function ngx.say`). The
+     inferred type after insertion is degraded too: `local b = ngx.status` shows `nil | string`,
+     `local z = ngx.say` shows `fun(...)`.
+
+  **Verdict from use, not from the design:** dropping the type string off the row did not read as a
+  regression — name plus field/method icon is enough to pick a member, and one keystroke restores
+  the signature. What should **not** be signed off is the assumption underneath: the trade is only
+  cheap *because Quick Doc is there*, and on an openresty-shaped library it is not. A row reading
+  `status` with a blank right column and nothing behind `Ctrl+Q` leaves the user with a name and
+  nothing else. **That argues for fixing the doc path, not for putting a type back in the index
+  value.**
 
 ### Scenario 2.4: Go-to-declaration and gutter markers still work
 
