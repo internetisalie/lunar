@@ -97,6 +97,17 @@ class LuaFunctionType(
     val params: List<LuaParameter>,
     val returnType: LuaType,
     val typeParameters: List<LuaGenericType> = emptyList(),
+    /**
+     * True when [params] came from something a user wrote — `---@param` tags, a `fun(...)` type
+     * annotation, a stub signature — rather than from the engine reading a bare parameter list
+     * (BUG-419 defect 4). Only a declared signature makes arity a contract; see
+     * [LuaGraphType.Function.declaredSignature].
+     *
+     * Defaults to **false**, which is the safe direction: a signature wrongly marked declared
+     * produces a false ERROR, the class this flag exists to remove. `graphTypeToLuaType` rebuilds a
+     * `LuaFunctionType` from an *inferred* graph function and must keep the default.
+     */
+    val declaredSignature: Boolean = false,
 ) : LuaType {
     override val name: String =
         run {

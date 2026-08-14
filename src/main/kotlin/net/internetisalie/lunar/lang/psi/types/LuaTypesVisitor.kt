@@ -1452,7 +1452,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 LuaTypeGraphBridge.injectReturnAnnotations(cats, returnNodes, graph, element)
             }
 
-            val funcType = LuaGraphType.Function(finalParams, returnNodes)
+            // The bare parameter list declares names, not requirements — Lua fills missing arguments
+            // with nil. Only a `---@param` tag makes this signature's arity a contract (BUG-419).
+            val funcType = LuaGraphType.Function(finalParams, returnNodes, catsParams.isNotEmpty())
             if (funcNode != null) {
                 graph.addEdge(graph.value(element, funcType), funcNode)
             }

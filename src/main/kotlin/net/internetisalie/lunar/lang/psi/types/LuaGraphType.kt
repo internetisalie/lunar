@@ -29,6 +29,22 @@ sealed class LuaGraphType {
     data class Function(
         val params: List<Parameter>,
         val returns: List<VariableNode>,
+        /**
+         * True when [params] describes a signature a user *declared* — `---@param` tags, a `fun(...)`
+         * annotation, a stub — rather than one the engine read off a bare parameter list.
+         *
+         * Lua adjusts arguments to parameters: missing ones become `nil`, extra ones are discarded
+         * (Reference Manual §3.4.10). So `function f(a, b)` does **not** say that `b` is required —
+         * only `---@param b T` (without `?`) does. Treating the bare list as a requirement made the
+         * engine claim what it cannot know, which is BUG-419's thesis; measured, it was **629 of the
+         * 714** emissions the assignability inspection still produced across the four corpus members.
+         * `cfg/tomorrow.lua` alone accounted for 157, every one against a `local function H(c, bg)`
+         * whose own first body line is `local bg = bg and H(bg) or {255, 255, 255}`.
+         *
+         * Consulted by arity checking only. Assignability of the *parameter types* is unaffected —
+         * that already routes through `reportIncompatible`'s `declaredDemand` gate.
+         */
+        val declaredSignature: kotlin.Boolean = false,
     ) : LuaGraphType() {
         data class Parameter(
             val node: VariableNode,
@@ -242,7 +258,7 @@ sealed class LuaGraphType {
                 LuaPrimitiveType.INTEGER -> Number
 
                 is LuaFunctionType -> {
-                    val result = Function(emptyList(), emptyList())
+                    val result = Function(emptyList(), emptyList(), type.declaredSignature)
                     visited[type] = result
 
                     val params =
@@ -251,7 +267,7 @@ sealed class LuaGraphType {
                         }
                     val returnNode = memberNodeFor(type.returnType, graph, visited)
 
-                    val finalFunc = Function(params, listOf(returnNode))
+                    val finalFunc = Function(params, listOf(returnNode), type.declaredSignature)
                     visited[type] = finalFunc
                     finalFunc
                 }

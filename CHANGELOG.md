@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Calling a function with fewer arguments than it names is no longer an error** (BUG-419): Lua fills
+  missing arguments with `nil` and discards extra ones, so `local function H(c, bg)` called as
+  `H('8e908c')` is ordinary Lua, not a defect — and the engine had been contradicting it. Argument
+  counts are now checked only against a signature somebody *wrote*: a `---@param`, a `fun(...)` type,
+  or a stub. A declared contract is still enforced in both directions, and `---@param b? number` is
+  still honoured. Measured across four real projects, this removes **629 of the 714** remaining
+  type-inspection warnings — 88 % — including 157 in a single file. Some warnings from *other*
+  inspections appear for the first time as a result: they were being hidden underneath these.
 - **Member completion answered from an index** (COMP-09): a global's members are offered without
   building the declaring file's type graph first, taking the first completion against a large
   definition library from ~491 ms to ~15 ms ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).

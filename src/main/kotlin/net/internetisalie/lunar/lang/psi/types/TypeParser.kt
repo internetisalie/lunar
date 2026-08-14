@@ -129,7 +129,8 @@ object TypeParser {
                     LuaCatsType::class.java,
                 )
             val returnType = if (returnTypeNode != null) parseType(returnTypeNode, context) else LuaPrimitiveType.VOID
-            return LuaFunctionType(params, returnType)
+            // A `fun(...)` signature is written by hand, so its arity is a contract (BUG-419).
+            return LuaFunctionType(params, returnType, declaredSignature = true)
         }
         return LuaPrimitiveType.UNKNOWN
     }

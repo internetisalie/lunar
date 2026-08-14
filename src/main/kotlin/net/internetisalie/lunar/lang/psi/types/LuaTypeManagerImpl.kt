@@ -615,7 +615,9 @@ class LuaTypeManagerImpl(
                 rawReturn == "self" -> LuaTypeReference(className, decl)
                 else -> LuaTypeReference(rawReturn, decl)
             }
-        return LuaFunctionType(params, returnType)
+        // `params` is built from `---@param` tags only (stub or cats), so a non-empty list means the
+        // user declared this signature and its arity is a contract (BUG-419).
+        return LuaFunctionType(params, returnType, declaredSignature = params.isNotEmpty())
     }
 
     private fun materializeAlias(

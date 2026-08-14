@@ -42,11 +42,16 @@ class LuaTypeHypothesisAnnotator : Annotator {
                 .filter { it.severity == ErrorSeverity.HYPOTHESIS }
 
         for (hypothesis in hypotheses) {
+            // An arity hypothesis (BUG-419 defect 4) carries no inferred value type, and its remedy
+            // is a `---@param` on the *declaration* — not the `---@type` this fix scaffolds at the
+            // call statement. Offering it there would point the user at the wrong element, so the
+            // hypothesis stays silent until a fix that targets the signature exists.
+            val inferredValueType = hypothesis.inferredValueType ?: continue
             val range = hypothesis.element.textRange ?: continue
             holder
                 .newSilentAnnotation(HighlightSeverity.INFORMATION)
                 .range(range)
-                .withFix(LuaAnnotateForTypeCheckingFix(hypothesis.inferredValueType))
+                .withFix(LuaAnnotateForTypeCheckingFix(inferredValueType))
                 .create()
         }
     }

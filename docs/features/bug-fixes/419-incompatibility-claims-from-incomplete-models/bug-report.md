@@ -3,7 +3,7 @@ id: "BUG-419"
 title: "The type engine reports incompatibility it cannot know: unknowns are omitted, not represented, and inferred demands are checked like contracts"
 type: "bug"
 parent_id: "BUG"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -196,7 +196,7 @@ So the shipped rule is materially more conservative than the design implied, and
 violations of Lua's own rules and of user annotations still error; only demands the engine invented
 from usage are demoted.
 
-## Status — defect 3 SHIPPED, the report is NOT closed
+## Status — defects 3 and 4 shipped; 1 and 2 carved out to [[BUG-441]]; CLOSED
 
 Marked `done` on 2026-08-07 and reopened the same day: two of the four verification items below were
 never completed, and later measurement showed the thesis is not met.
@@ -222,6 +222,144 @@ metamethods. So the ERROR tier is still carrying a large class the engine has no
 
 Closing this report now requires only the metamethod question: **BUG-424 landing, or an explicit
 decision that the 655 are acceptable in the ERROR tier.**
+
+> **Both sentences above are wrong, and the paragraph that follows them is the correction.** The
+> thesis was indeed unmet — but not because of LPeg, and the stated closing condition could never
+> have closed anything. See "Defect 4" below, which measured the residual instead of reasoning about
+> it. Left in place rather than edited away: the mistake is the same one this report has now made
+> four times, and deleting the evidence of it is how it keeps recurring.
+
+## Defect 4 — arity is an inferred demand, and it never passed through defect 3's gate
+
+Found 2026-08-14 by dumping the residual rather than characterising it from a previous probe.
+
+### The stated blocker was the wrong number, for four independent reasons
+
+BUG-424 landed (`ef48c172`, status `done`), which by the condition above should have closed this.
+It does not, and the 655 could not have settled it either way:
+
+1. **Graph-level vs inspection-level.** Recorded in this report and in BUG-424's own correction.
+2. **The probe defined "declared" as annotation-only.** Recorded above.
+3. **BUG-424 re-measured its own arm at 27 emissions, not 655.** Recorded there.
+4. **NEW — the 655 are not in the swept file set at all.** zerobrane's corpus roots are
+   `src, interpreters, api, cfg` — 34+13+8+17 = the `files=72` the baseline records. Scintillua's
+   133 LPeg lexers live in `lualibs/lexers`, which is **not swept**. Of the 72 files measured, two
+   mention LPeg and both merely *load* a lexer. So the corpus gate is structurally incapable of
+   observing that class, and no amount of metamethod work was ever going to move it. The class is
+   still real for a user who opens those files; its size is simply not a fact this baseline knows.
+
+### What the residual actually is
+
+Every `LuaTypeAssignability` emission dumped at the inspection level with its file, line, message and
+source line — per-member counts matched the baselines exactly (278/144/201/91), so this is the
+residual itself and not a proxy:
+
+| | count | share |
+| :-- | --: | --: |
+| **Arity** — "Too few/many arguments" | **629** | **88 %** |
+| Assignability | 85 | 12 % |
+
+`string -> number`, the LPeg shape the blocker rests on: **2 emissions.**
+
+### Why arity escaped
+
+`LuaTypeGraph.checkFunctionCompatibility` calls `addError` **directly**, with a hardcoded
+`ErrorSeverity.WARNING`. It never reaches `reportIncompatible`, so defect 3's `declaredDemand`
+gate — the entire subject of this report — was never applied to it, and neither was BUG-417's
+file-wide anchor guard. The inspection skips `HYPOTHESIS` but reports `WARNING`, so all 629 shipped.
+
+And they are claims the engine cannot know, in the strict sense this report means. **Lua adjusts
+arguments to parameters**: missing ones become `nil`, extra ones are discarded (Reference Manual
+§3.4.10). `isOptional` is set only by `---@param x?`, so in un-annotated code every parameter is
+inferred required. `cfg/tomorrow.lua` alone produced **157** of zerobrane's 246, all against:
+
+```lua
+local function H(c, bg) c = c:gsub('#','')
+  local bg = bg and H(bg) or {255, 255, 255}   -- the author handles the nil, on the first line
+```
+
+called as `H'8e908c'` throughout — the engine contradicting, 157 times, a fact the source states.
+
+### The fix
+
+`LuaGraphType.Function.declaredSignature`, set where a signature is genuinely user-written
+(`---@param` tags in `LuaTypesVisitor`, a `fun(...)` literal in `TypeParser`, a stub signature in
+`LuaTypeManagerImpl`) and defaulting **false** everywhere else — the safe direction, since a
+signature wrongly marked declared produces exactly the false ERROR this removes. `graphTypeToLuaType`
+rebuilds a `LuaFunctionType` from an *inferred* graph function and deliberately keeps the default.
+Arity then emits `WARNING` against a declared signature and `HYPOTHESIS` against an inferred one.
+
+Arity hypotheses carry no `inferredValueType` and `LuaTypeHypothesisAnnotator` now skips them: the
+remedy for an arity guess is a `---@param` on the **declaration**, not the `---@type` that fix
+scaffolds at the call statement. Pointing the user at the wrong element is worse than staying silent.
+
+### Measured: 714 → 85 corpus-wide (−88 %)
+
+| member | `LuaTypeAssignability` | `LuaReturnTypeMismatch` |
+| :-- | --: | --: |
+| zerobrane | 278 → **32** | 16 → 9 |
+| luarocks | 144 → **7** | 19 → 6 |
+| luacheck | 201 → **0** | 6 → 0 |
+| penlight | 91 → **46** | 15 → 6 |
+| **total** | **714 → 85** | **56 → 21** |
+
+The 85 is exactly the assignability remainder the dump identified, so the prediction and the
+measurement agree — which is the first time in this report's history that has been true, and only
+because the prediction came from dumping the residual rather than re-deriving it.
+
+**The return-mismatch drop was not predicted.** `TypeErrorClassification.isReturnRelated()` partitions
+the *same* error list between the two inspections, so arity emissions inside a `return` were counted
+in the other bucket — outside the dump, which filtered on `LuaTypeAssignability`. Total arity demoted
+is ~664, not 629. Recorded because it means the dump was not a complete census of the check.
+
+### Three counts ROSE, and that is the BUG-417 effect, not a regression
+
+luarocks `LuaSuspiciousConcatenation` 115→116; zerobrane `LuaShadowingVariable` 218→219 and
+`LuaUndeclaredVariable` 1951→1952. These are other inspections' findings that were **buried inside
+arity ERROR ranges** by the platform's severity precedence; removing the range reveals them. The
+symbol maps show it on named symbols rather than in aggregate — `symbol.LuaUndeclaredVariable.wx`
+1547→1548, `symbol.LuaSuspiciousConcatenation.{ ... }` 63→64 — and `LuaUndeclaredVariable` moves
+*toward* the 1954 BUG-417 measured with the type inspection disabled. Inspection independence
+improved. Baselines re-recorded.
+
+### Verification
+
+`LuaInferredArityTierTest`, 9 fixtures, both tiers in both directions. Mutation-proved — each
+mutation taking exactly the fixtures that should own it red, and nothing else:
+
+| mutation | went red |
+| :-- | :-- |
+| tier → always `WARNING` | the 4 inferred fixtures |
+| tier → always `HYPOTHESIS` | the 3 declared fixtures + the pre-existing `testArityTooFewReported` |
+| `LuaTypesVisitor` flag → `false` | the 3 declared fixtures + `testArityTooFewReported` |
+| `TypeParser` flag → `false` | `testDeclaredFunctionTypeAnnotationStillWarns`, alone |
+
+**Two things are measured as uncovered and recorded rather than described as tested:**
+
+- **`LuaTypeManagerImpl`'s flag** (the stub / `@class` method path). Mutating it to `false` and
+  running the **entire** suite left everything green. It is reasoned, not tested.
+- **`FunctionSignatureMatchingTest`'s two arity tests are not tier coverage**, despite looking like
+  it. They assert on the message and ignore severity, so they stayed green under *both* tier
+  mutations. Anyone reading them as the arity gate would be wrong.
+
+### The BUG-417 parity criterion does not merely survive — it reaches EXACT parity
+
+```
+[parity:zerobrane] files=72 withTypes=1954 withoutTypes=1954 baseline=1952
+[parity:zerobrane] filesAtExactParity=72/72
+```
+
+Against the measurement recorded above for defect 3 — `withTypes=1948 withoutTypes=1954`,
+`filesAtExactParity=70/72` — the type inspection now buries **nothing** on zerobrane.
+
+That closes a residual this report had explained away. It read the leftover 6 as "refs inside narrow,
+correctly-anchored ERROR ranges: the platform's by-design severity precedence". The anchoring was
+indeed correct and the precedence is indeed by design — but the ranges were **arity claims that
+should never have been made**, so the 6 were not a platform limit at all. A true statement about the
+mechanism was doing duty as an explanation for a defect. Worth remembering: "by-design behaviour"
+explains why a symptom *appears*, never why the input to it was justified.
+
+Full suite green; corpus green against the re-recorded baselines; ktlint clean.
 
 ## Verification, completed (2026-08-07)
 
@@ -283,3 +421,23 @@ beyond un-annotated code.
 - The BUG-417 parity criterion re-run: inspection independence must survive the change.
 - A declared-contract violation with certain evidence (`--- @param n number` + literal string)
   still errors — the rule must not swallow real signal.
+
+All four are now met, for defects 3 and 4 together.
+
+## Closing (2026-08-14)
+
+The thesis — *the engine may only claim incompatibility it can know* — is met **for what the corpus
+gate can see**. Across the four members the assignability inspection emits 85 findings where it once
+emitted 2 168, and every survivor reaches the user through the declared-demand gate.
+
+Two limits on that sentence, both deliberate:
+
+- **Criterion 1 of the emission rule is still unimplemented.** Unknowns are omitted rather than
+  represented (defect 1), and a union carrying an `Undefined` arm is not gradual (defect 2). The
+  probe measured their combined corpus exposure at zero, and defect 1 masks defect 2 so they are one
+  change; that deferral has stood since 2026-08-07 and still stands. Carved out as **[[BUG-441]]**
+  rather than left holding this report open — a report that stays open for a measured-zero item is
+  how this one accumulated four wrong closing conditions.
+- **"What the gate can see" is a real qualifier, not a hedge.** The LPeg class lives in files the
+  sweep does not visit, and nothing here establishes its size. That is now a property of the corpus
+  manifest, and belongs to whoever widens it.

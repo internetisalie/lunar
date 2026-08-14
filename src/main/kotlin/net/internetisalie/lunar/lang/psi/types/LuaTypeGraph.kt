@@ -209,7 +209,7 @@ class LuaTypeGraph {
                 }
             }
 
-        return LuaGraphType.Function(instantiatedParams, instantiatedReturns)
+        return LuaGraphType.Function(instantiatedParams, instantiatedReturns, template.declaredSignature)
     }
 
     // ---------------------------------------------------------------------------
@@ -673,12 +673,19 @@ class LuaTypeGraph {
         val maxParams = if (value.params.any { it.isVararg }) Int.MAX_VALUE else value.params.size
         val provided = use.params.size
 
+        // BUG-419 defect 4. Arity reached the user through `addError` directly, so the rule defect 3
+        // installed on `reportIncompatible` never applied to it — and against an *inferred* signature
+        // there is nothing to violate: Lua adjusts arguments to parameters, so under- and
+        // over-application are both legal. Demote those to the hypothesis tier; a signature the user
+        // declared is still a contract, and breaking it is still a diagnostic.
+        val tier = if (value.declaredSignature) ErrorSeverity.WARNING else ErrorSeverity.HYPOTHESIS
+
         if (provided < minParams) {
             addError(
                 ElementError(
                     useElement,
                     "Too few arguments: expected at least $minParams, got $provided",
-                    ErrorSeverity.WARNING,
+                    tier,
                 ),
             )
         } else if (provided > maxParams) {
@@ -686,7 +693,7 @@ class LuaTypeGraph {
                 ElementError(
                     useElement,
                     "Too many arguments: expected at most $maxParams, got $provided",
-                    ErrorSeverity.WARNING,
+                    tier,
                 ),
             )
         }
