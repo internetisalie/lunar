@@ -147,6 +147,34 @@ emission prints `REPORT unknownProvenance=false`. **The diagnostics do not come 
 loop.** They are emitted from `addEdge`'s value→use branch and the `propagate*` helpers, during graph
 *construction*, which call `checkCompatibility` with the parameter defaults.
 
+### Emission path — PARTIALLY grounded, and the two runs disagree
+
+Stack-probed on clean `main` (`c4c958ce`), the defect fixture emits **twelve times, all with an
+identical stack**:
+
+```
+reportIncompatible  <-  LuaTypeGraph:514  <-  checkCompatibility  <-  LuaTypeGraph:333  <-  checkTypes
+```
+
+So on unmodified code the emissions come from **the fixpoint loop**, through
+`checkCompatibility`'s *final unconditional* `reportIncompatible` — not from `addEdge`.
+
+**That contradicts attempt 1's instrumentation**, where the loop printed
+`unknownProvenance=true` for `d` and `n` while every emission printed
+`REPORT unknownProvenance=false`. Both observations are real; they were taken against different code
+states, and they cannot both describe one path. Candidate explanations, none yet tested:
+
+- a second path exists via `addEdge`'s value→use branch (line 135, the one call site attempt 1 did
+  **not** thread), reached from the `addEdge` calls *inside* `checkFunctionCompatibility`, and the two
+  runs happened to be dominated by different ones;
+- the `at '<element>'` in the attempt-1 log is the *use* element, not the variable being iterated, so
+  those lines may not belong to the `var=` line they follow;
+- attempt 1's flag was computed correctly but a pair was first checked — and so recorded in
+  `checkedPairs` — during an iteration when the unknown had not yet propagated into that variable.
+
+**Resolve this before writing any fix.** A stack probe *with the candidate fix applied* answers it in
+one run, and everything below depends on the answer.
+
 ### What that means for the next attempt
 
 The report's framing — "make unknowns viral through the type algebra" — is aimed at the wrong layer.
@@ -175,6 +203,75 @@ and the `low` priority below is now doing double duty — small payoff, *large* 
 - **`Undefined` reaching `resolveRead` is a known trap.** BUG-423/424/426 all hit the shape where a
   demand-side type projected into a read position and changed every inferred hint. The projection
   belongs at the presentation boundary.
+
+## Root cause
+
+Two defects, at two layers. Both are grounded by measurement; the line numbers are against
+`c4c958ce`.
+
+**RC-1 — the unknown is never represented.** `LuaTypesVisitor.collectRhsNodes:230`, the
+last-expression branch, does `result.addAll(nodes)` and so adds **nothing** when the expression
+produced no nodes. Measured: `local a = wx.thing` gives `upSet.size=0`. The non-last branch
+immediately below already does the right thing (`?: result.add(graph.value(expr, Undefined))`) with a
+comment stating the principle — it is simply not applied to the position a single-expression RHS
+always occupies. Two further sites would re-erase an `Undefined` even if one were created:
+`LuaTypeAlgebra.simplify:51` and `VariableElement.resolveWrite`'s `flatten` (`LuaTypeNodes.kt:161`).
+
+**RC-2 — the diagnostic never consults the variable's merged type, so RC-1 is not sufficient.**
+`LuaTypeGraph.checkTypes:326-341` iterates `currentUpSet × currentDownSet` and calls
+`checkCompatibility(valueNode.write, useNode.read, …)` — **each reaching definition against the demand
+on its own**. `checkCompatibility:514` then reports unconditionally. Proven: after RC-1 was fixed, `d`
+inferred `any | string` (asserted, passing) and the error was unchanged.
+
+`certain` is **not** the guard the report originally claimed — it is read at exactly one place, the
+`Nil` branch (`LuaTypeGraph.kt:507`). With RC-1 fixed `d` has two reaching definitions, so `certain`
+is already `false`, and the error still fires.
+
+## Fix strategy
+
+RC-1 alone is not a fix and must not ship alone: it changes inferred types corpus-wide (`local a =
+wx.thing` becomes `any`, `d` becomes `any | string`) while removing no diagnostic. Ship both or
+neither.
+
+1. **Pin the emission path first** (see "Emission path" above) — one stack probe with the candidate
+   fix applied. If a second path via `addEdge:135` exists, it needs the same gate, and attempt 1
+   failed precisely by missing it.
+2. **RC-1**: contribute a node for a node-less last expression. `Any` rather than `Undefined` —
+   `Undefined` is dropped again by `simplify` and `flatten`, restoring the current behaviour and
+   fixing nothing (this is why the report's original "make `Undefined` viral" framing costs three
+   edits to achieve what one buys).
+3. **RC-2**: carry unknown-ness where the emitter can see it. Attempt 1 threaded a parameter from
+   the loop; prefer instead a property of the **value node** — `ValueNode.unknownProvenance`,
+   alongside the existing `declaredOrigin` — so it is available wherever `reportIncompatible` is
+   reached from rather than depending on one caller passing it down.
+4. **Gate inside `reportIncompatible`, not at its call sites.** BUG-416 established that suppression
+   must never *enable* anything; returning earlier would skip member-edge wiring the checks still
+   perform.
+
+**Deliberately out of scope**: `displayName()`. If `any | string` proves noisy in inlays and quick
+doc, project it at the presentation boundary — `LuaTypes.typeOf` and the hint providers — exactly as
+BUG-424 did for traits. Do not solve it by weakening the graph.
+
+## Test strategy
+
+Attempt 1's fixtures were correct and are worth re-creating verbatim; they are not in the tree because
+committing a red test breaks the gate.
+
+| test | asserts |
+| :-- | :-- |
+| `testAnUnknownWriteDefeatsCertainty` | `local d = wx.thing; if c then d = "s" end; count(d)` reports **no** `not assignable to number` |
+| `testTheSameCodeWithoutTheUnknownWriteStillErrors` | **the control** — the identical fixture minus the unknown write **still errors** |
+| `testTheUnknownSurvivesIntoTheInferredType` | `d` is a `Union` containing `Any` |
+| `testAKnownOnlyVariableGainsNoGradualArm` | `c` is exactly `String` |
+| `testAnUnknownOperandKeepsTheExpressionGradual` | `wx.thing or "s"` is not reported against `number` |
+
+**The control carries the weight.** A fix that silences both fixtures has not represented the unknown,
+it has stopped checking — and without the control every other test here still passes. Mutation-proof
+it: the control must go red when the gate is widened to fire unconditionally.
+
+The corpus is the real gate. Expect movement in **inlays and completion**, not only diagnostics, since
+RC-1 changes inferred types; re-baseline once and attribute each movement. Re-run the BUG-417 parity
+criterion — it currently reads exact parity (1954/1954, 72/72) and must not regress.
 
 ## Verification owed
 
