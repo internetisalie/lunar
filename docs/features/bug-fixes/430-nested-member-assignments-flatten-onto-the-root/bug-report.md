@@ -202,7 +202,52 @@ enumeration path is the one place that does not look there.
 carries a `baz` demand, the second half is an enumeration change and this is a plan-bug-sized fix. If
 it does not, the exactness route is back and the `plan-feature` recommendation stands.
 
-## Fix strategy
+## Re-measured 2026-08-14 (implement-bug attempt) — the bug MOVED, and the plan above is stale
+
+Running the parked reproduction as the first step, exactly as the strategy below says, refuted the
+strategy below. **Only two of the four are red, and defect 1 is gone:**
+
+```
+testGrandchildIsNotAMemberOfTheRoot   PASS   <- the hoist is no longer visible in completion
+testRootKeepsItsOwnMembers           PASS
+testAFlatTableKeepsItsMembers        PASS   <- the new control
+testIntermediateTableCarriesItsMembers  FAIL — `Foo.bar.` offered: []
+testPlainTableChainWithNoClassAnnotation FAIL — `Plain.mid.` offered: []
+```
+
+Note the failures are **`[]`, not "missing `baz`"** — a two-segment receiver offers *nothing at all*.
+That is a different defect from "the intermediate table is empty", and COMP-09 is why: its index arm
+now answers `Foo.` and correctly excludes `baz`, so the hoist still exists in the type graph (probed
+above, `Foo` members `[bar, baz, direct]`) but no longer reaches the user. **Defect 1 is now a
+type-graph-only defect with no user-visible symptom**; defect 2 is the whole live bug.
+
+### The live root cause — two gaps, both in COMP-09's path, neither in the type engine
+
+**G-1. The index never records a multi-segment receiver.**
+`LuaReceiverMemberIndex.dottedTarget:368` is `target.varSuffixList.singleOrNull() ?: return null`, so
+`Foo.bar.baz = 1` (suffixes `.bar`, `.baz`) contributes to **no** key — not `Foo`, which is correct,
+and not `Foo.bar`, which is the bug. The KDoc calls this "the nested-qualifier rule, preserved from
+`LuaTypeManagerImpl.memberNameOf`: a member has exactly one separator, so `a.b.c` contributes nothing
+to `a`". True of `a`; false of `a.b`, for which `baz` is exactly a one-separator member.
+
+**G-2. The completion arm only asks about bare names.**
+`LuaCompletionContributor.addIndexedGlobalMembers:181` does `bareNameOf(receiverExpr) ?: return false`,
+which is null for the index expression `Foo.bar`, so the arm declines and the graph arm answers
+empty. Fixing G-1 alone changes nothing user-visible, because nothing would query the new key.
+
+### Why this is not the small fix it looks like
+
+Both gaps are in the enumeration path COMP-09 shipped **yesterday**, and that path carries explicit
+constraints: design §4.5's first-declaring-file rule exists because DR-09 measured a flat
+`membersOf(receiver, allScope)` returning a superset, and COMP-09-06's acceptance is "if any baseline
+moves, stop". Keying the index on multi-segment receivers also grows the key space, which DR-19/§4.2
+sized deliberately. This wants its own measured pass, and it is **the same area as [[BUG-439]]** —
+which is about the sibling-*file* half of the same enumeration rule and is still unsettled. **Fix
+them together or the second will re-open the first.**
+
+Sizing stands at **M**, but the work moved out of the type engine and into COMP-09's index.
+
+## Fix strategy — SUPERSEDED by the section above for defect 2; kept for defect 1
 
 Sequenced so the cheap measurement comes before the expensive commitment.
 

@@ -73,6 +73,28 @@ class LuaNestedMemberAssignmentTest : BasePlatformTestCase() {
         assertTrue("`qux` is a member of Foo.bar — offered: $offered", offered.contains("qux"))
     }
 
+    /**
+     * The control, and the reason the other tests mean anything.
+     *
+     * A fix that stopped populating tables altogether satisfies every assertion above — `baz` would
+     * not be on `Foo`, which is all two of them ask. This is the one that goes red if the members
+     * are removed rather than relocated.
+     */
+    @Test
+    fun testAFlatTableKeepsItsMembers() {
+        myFixture.addFileToProject(
+            "flat.lua",
+            """
+            Flat = {}
+            Flat.only = 1
+            Flat.other = "s"
+            """.trimIndent(),
+        )
+        val offered = completionsFor("Flat.<caret>\n")
+        assertTrue("`only` is a member of Flat — offered: $offered", offered.contains("only"))
+        assertTrue("`other` is a member of Flat — offered: $offered", offered.contains("other"))
+    }
+
     /** The shape with no `---@class` anywhere, so only the flattening door can answer. */
     @Test
     fun testPlainTableChainWithNoClassAnnotation() {
