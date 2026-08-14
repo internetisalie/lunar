@@ -160,3 +160,85 @@ code that has nothing to do with this bug.
 The reproduction is parked beside this report as `LuaNestedMemberAssignmentTest.kt.txt` — four
 completion-level tests, three of which are red on today's code with exactly the output above. It is
 **not** in the test source set, because a red suite is a broken gate for everything else.
+
+## Re-grounded 2026-08-14 — the exactness framing above is probably unnecessary
+
+Probed on `fcd52465` with `Foo = {}; Foo.bar = {}; Foo.bar.baz = 1; Foo.direct = 2`:
+
+```
+indexExpr '.bar'   typeOf={ ... }  members=[]
+Foo  (graph)                       members=[bar, baz, direct]
+Foo  (graphTypeToLuaType)          members=[bar, baz, direct]
+Foo.bar via graphTypeToLuaType = { }  members=[]
+```
+
+Two things follow, and they shrink this report.
+
+**1. `Foo.bar` is empty because nothing ever constrains it — not because a write was lost.**
+`baz` is on **`Foo`** (the hoist), so no `baz` demand was ever recorded against `bar`'s node on
+*either* side. The Layer 3 story — "an exact table literal does not accrete later member writes" —
+describes a mechanism that is real but has not yet been reached: there is no competing member to
+accrete. Layer 1 is upstream of it.
+
+**2. `isExact` has exactly ONE semantic consumer, and it never fires on the corpus.**
+`grep` gives four plumbing sites (propagation of the flag) and one decision:
+`LuaTypeGraph.kt:735`, `val isRequired = use.isExact && !isMethodOnClass`, gating the
+`Missing required field '<key>'` diagnostic. That message is **absent from every corpus baseline**
+(all four members). So the claim above that changing exactness "affects every table in every corpus"
+is wrong: it affects one diagnostic the corpus never produces, plus three unit tests.
+
+### The hypothesis this leaves — UNPROVEN, and it is task 1
+
+Fix the hoist so `.baz` anchors on `bar` rather than on `Foo`, and `baz` becomes a **demand** on
+`bar`'s member node. Enumeration would then still miss it, because `graphTypeToLuaType`
+(`LuaTypes.kt:170`) reads `node.write` per member, while `typeOf` (`LuaTypes.kt:76-85`) already
+merges a table's read-side members into its write-side ones. **That asymmetry is the candidate
+second half of the fix** — and it plausibly explains why the reverted attempt "fixed defect 1 and
+could not fix defect 2": with the hoist corrected, the member exists on the read side and the
+enumeration path is the one place that does not look there.
+
+**Do not build on this paragraph.** It is a reading of two functions plus one probe of the
+*unfixed* state. Prove it by fixing the hoist alone and re-running the probe: if `.bar`'s node then
+carries a `baz` demand, the second half is an enumeration change and this is a plan-bug-sized fix. If
+it does not, the exactness route is back and the `plan-feature` recommendation stands.
+
+## Fix strategy
+
+Sequenced so the cheap measurement comes before the expensive commitment.
+
+1. **Fix the hoist.** `LuaTypesVisitor.visitIndexExpr:1134` computes
+   `firstNode(unwrapExpression(varElement.firstChild))` — the root `nameRef`, for *every* suffix.
+   Anchor each suffix on its predecessor's member node instead. Previously measured to take `Foo.`
+   from `[bar, baz, direct, qux]` to `[bar, direct]`, which is the correct set. The site's own
+   comment already documents the hazard for the declaration-typed branch; the graph path was left
+   with it.
+2. **Re-run the probe** (task 1 above). This decides the rest of the strategy and costs one run.
+3. **If `baz` lands as a demand on `bar`**: make member enumeration consult the read side, i.e. give
+   `graphTypeToLuaType`'s per-member lookup the same write+read merge `typeOf` already performs.
+   Scope it to the member-enumeration path; do **not** change `typeOf`, which is already correct.
+4. **Only if it does not**: return to the exactness route — and note it is far cheaper than this
+   report assumed, because `isExact` gates one diagnostic that no corpus member produces.
+
+**Out of scope**: the dot/colon and cross-file selection rules ([[BUG-439]]), and any widening of
+`membersOf(receiver, allScope)` — DR-09 measured that returning a superset, and COMP-09-06 forbids it.
+
+## Test strategy
+
+`LuaNestedMemberAssignmentTest.kt.txt` is parked beside this report: four completion-level tests,
+three red on today's code. Move it into the source set as the first step of the fix, not the last —
+it is already written and already proven to fail for the stated reason.
+
+Add, because the parked set predates the re-grounding:
+
+| test | asserts |
+| :-- | :-- |
+| `Foo.` offers `[bar, direct]` | the hoist is gone — `baz` must **not** appear on the root |
+| `Foo.bar.` offers `[baz]` | the intermediate is populated — the half the reverted attempt could not deliver |
+| a **control**: `Bar = {}; Bar.only = 1` still offers `[only]` | a fix that empties every table passes both tests above |
+
+Mutation-proof each: reverting the hoist anchor must take the first red, and reverting the
+enumeration change must take the second red **without** taking the first.
+
+The corpus is the gate. Expect movement in completion and inlays as well as diagnostics; re-baseline
+once and attribute each movement. `Missing required field` is absent from all four baselines today —
+if it appears, the exactness route was touched inadvertently.
