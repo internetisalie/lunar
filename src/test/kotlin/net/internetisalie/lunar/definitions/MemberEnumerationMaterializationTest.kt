@@ -343,8 +343,13 @@ class MemberEnumerationMaterializationTest : LibraryRootTestCase() {
         )
         assertEquals("and it must not have widened its file set either", quiet.files, noisy.files)
         assertEquals(
-            "the bound is the receiver's OWN declared members, not the size of the key space",
-            METHOD_COUNT,
+            "the bound is the receiver's OWN declared members, not the size of the key space. The " +
+                "`+ 1` is BUG-439's file-local sentinel: `Widget` is bound by `local Widget = {}`, " +
+                "so the indexer marks it, and the counter counts raw index entries rather than " +
+                "offerable members. One bookkeeping entry per (file, receiver) is the sentinel's " +
+                "whole cost, and it is why the mark is emitted only for names the file already " +
+                "declares members for — the alternative was a key per local variable in the project",
+            METHOD_COUNT + 1,
             quiet.entries,
         )
         assertEquals(

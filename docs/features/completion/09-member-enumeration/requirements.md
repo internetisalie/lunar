@@ -332,12 +332,16 @@ per line; the consumers are Phases 2 and 3.
       — assertion 4, the *completion* door, was red until `LuaReceiverMemberWork` reached
       `membersInFile` (BL-5). That left the *materialization* door outstanding until Phase 3, and
       Phase 3 supplied it — see the measurement above.
-      **Assertion 4 holds `filesVisited == 1` for its fixture, not by construction.** DR-19c makes
-      `membershipOver` read every candidate to decide opacity, so a receiver bare-bound in two files
-      in the chosen scope visits two on a *correct* implementation; `quietFixture()` yields exactly
-      one candidate, which is what pins the 1. Phase 3 used assertion 4 as its D2-leak detector,
-      read as "one candidate in, one file read" — a count above the candidate count is the leak, a
-      count equal to it is not — and measured a count equal to it.
+      **Assertion 4 held `filesVisited == 1` for its fixture, not by construction — and BUG-439
+      showed that was the whole problem.** DR-19c already made `membershipOver` read every candidate
+      to decide opacity, so two candidates meant two files on a correct implementation;
+      `quietFixture()` yielded exactly one, which is what pinned the 1. That 1 was a property of
+      `LuaGlobalAssignmentIndex` being the only source of candidates, which is precisely the defect
+      BUG-439 reports: a sibling file extending a global was not a candidate, so its members were
+      never offered. The assertion is now the declaring-file count **plus** invariance under noise —
+      a fixture-specific constant cannot tell a key-space scan from a lookup, which is the thing the
+      criterion exists to catch. Phase 3 used assertion 4 as its D2-leak detector, read as "one
+      candidate in, one file read"; that reading survives, with the candidate set corrected.
 - [x] Each cache in the "Why this is a capability" table is re-measured and either removed as
       redundant or kept with a stated reason. **MET 2026-08-12 (Phase 5, design §1.11.6).** All four
       are measured and **all four stay**, each with a figure and a reason:

@@ -3,7 +3,7 @@ id: "BUG-439"
 title: "A global's members declared in a *sibling* file are never offered — love2d's whole submodule API is unreachable"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -153,6 +153,93 @@ index was consulted.
 That is a contained change — one sentinel, one indexer branch, one filter — but it is index-format
 work (another `getVersion` bump) and it must be measured against COMP-09-08's latency harness, since
 `candidates` now reads two key spaces on every completion.
+
+## Attempt 3 (2026-08-15) — FIXED. The sentinel, and what it cost.
+
+`LuaReceiverMember.LOCAL_BINDING`, exactly as attempt 2's remedy named it, plus the two-tier
+`candidates` it exists to make safe:
+
+- **Tier 1** — files that assign the global, from `LuaGlobalAssignmentIndex`. Unchanged, and it is
+  the whole of what the door ever consulted.
+- **Tier 2** — files that *extend* it, from `LuaReceiverMemberIndex`'s own key space, **minus** any
+  file carrying the sentinel. Tier 1 is exempt from the filter: a file that assigns the global
+  declares it however many same-named locals it also contains.
+- `membershipOver` unions the candidates' members instead of taking the first file's.
+- `getVersion` 2 → 3. Without it a persisted index reads back with no marks — which makes every
+  file-local receiver look global at the widened door, i.e. DR-09's contamination, silently, on
+  exactly the machines that had indexed before.
+
+**The sentinel is emitted only for a receiver name the file already declares members for.** Marking
+every `local` would mint an index key per local variable in the project to answer a question about a
+handful of names; this way the key space is unchanged and the cost is one bookkeeping entry per
+(file, receiver) that is locally bound. `local R = …` and `local function R() end` are both marked;
+a `for`-bound or parameter-bound receiver is not, which is a deliberate under-approximation — a
+missed mark costs one spurious candidate file, a wrong mark drops a real declaring file.
+
+### The four tests that had to change, and one that did not
+
+`testAFileLocalReceiverIsNotASelectableDeclaringFile` — attempt 2's blocker, DR-09's superset guard
+— **stayed green untouched**, which is the point of the whole exercise. So did
+`MemberEnumerationGoldenTest` and `LuaReceiverMemberDoorParityTest`, both of which attempt 1 broke.
+
+| test | what changed |
+| :-- | :-- |
+| `MemberEnumerationWorkBoundGateTest.testCompletionDoorReadsExactlyOneFile` | renamed `…ReadsOnlyTheDeclaringFiles`. The `== 1` was never the bound it looked like: `Target` is bare-assigned in one file, so the count was a property of the *fixture* that happened to also be the acceptance criterion. Now pinned at the receiver's declaring-file count (2) **and** against noise — the second assertion is what a key-space scan actually fails, and the constant 1 made it untestable |
+| `LuaReceiverMemberIndexTest.testTheTwoDoorsDisagreeAboutASecondDeclaringFile` | renamed `testBothDoorsSeeASecondDeclaringFile` and inverted. Its reasoning described the mechanism correctly and drew the wrong conclusion from it |
+| `LuaReceiverMemberIndexTest.testEveryFileTypeRegistrationIsIndexed` | the completion door now sees all four `LuaFileType` registrations, not just `.lua` — **[[BUG-436]]'s residual closes as a side effect**, because tier 2 reads an index whose filter is file-type-derived. That method pinned the residual "so that closing it elsewhere is a deliberate, visible move"; this is that move |
+| `MemberEnumerationMaterializationTest.…WorkDoesNotMoveWhenUnrelatedContentIsAdded` | `METHOD_COUNT` → `METHOD_COUNT + 1`. Its `local Widget = {}` is now marked, and the counter counts raw index entries rather than offerable members |
+
+### A second defect the fix introduced, and a third it nearly shipped
+
+Neither was anticipated; both came out of runs.
+
+**`scopeChain`.** The chain was `projectScope` then `allScope`, which was only safe while a project
+file entered the candidate set by *bare-assigning* the global — a non-empty project tier meant a
+project declaration. Admitting extenders breaks that implication: one `Lib.myHelper = 1` in your own
+code makes the project tier non-empty, `allScope` is never consulted, and the library's members
+disappear behind your one addition. That is strictly worse than the reported bug, because it takes
+members away from a case that already worked. `scopeChain` now asks `LuaGlobalAssignmentIndex`
+directly whether the *project* declares the receiver.
+
+**A logged IDE error on malformed source.** `localNamesIn` read `decl.nameRef.text`. Grammar-Kit
+generates required children as `findNotNullChildByClass`, and `notNullChild` does **not** return null
+when the child is missing — `PsiElementBase:293` calls `LOG.error`, i.e. a reported exception in
+production and a hard failure under `TestLoggerFactory`. An indexer sees every file in the project
+and a file being typed into is malformed most of the time, so this is the normal case, not the edge.
+
+It was caught by `TestLuaTypeEnginePhase1.testComplexPhase1File` — a test in an unrelated package,
+whose fixture writes `local function repeat(count)`, and `repeat` is a keyword, so the parser yields
+a `LuaLocalFuncDecl` with no name node at all. **Every test of this index stayed green**, so a
+targeted `--tests '*ReceiverMember*'` run would have shipped it. Settled as caused-by-this-change,
+not pre-existing, by running the identical suite against HEAD: 2 677 green, versus 2 682 with one
+failure here (the +5 being the new test class).
+
+### Mutation proof — 4/4 CAUGHT
+
+Each mutation was checked to compile, and each landed on exactly its intended test:
+
+| mutation | red |
+| :-- | :-- |
+| `candidates` tier 2 → `emptyList()` | 6 tests, incl. both cross-file cases and `testCompletionDoorReadsOnlyTheDeclaringFiles` |
+| local-binding filter → `.filter { true }` | `testAFileLocalReceiverIsNotASelectableDeclaringFile` |
+| `nameOf(decl)` → `decl.nameRef.text` | `testAMalformedLocalDeclarationDoesNotLogAnError` |
+| `scopeChain` → unconditional `[project, all]` | `testExtendingALibraryGlobalDoesNotHideTheLibrarysMembers` |
+
+The first is the check on the renegotiated acceptance criterion: widening `filesVisited == 1` to a
+declaring-file count plus noise-invariance did **not** defang it — it still fails when the door stops
+reading the files it should.
+
+### Gates
+
+`test --rerun --no-build-cache`: **2 683 green**. With `-PwithCorpus`: **2 691 green**, baselines
+unmoved (27 min). `ktlintCheck` green, `lint_docs` 0 errors, `lint_planning` 0 errors.
+
+### Regression coverage
+
+`LuaCrossFileMemberEnumerationTest` — the report's own two-file reproduction, the same-file control,
+an opaque-sibling authority case, and one that asserts `LuaGlobalAssignmentIndex` does **not** list a
+purely-extending sibling. That last one exists because the tier-2 half is the easy half to omit and
+the union is a silent no-op without it, which is how attempt 1 nearly shipped as "the union works".
 
 ## What a fix has to reckon with
 

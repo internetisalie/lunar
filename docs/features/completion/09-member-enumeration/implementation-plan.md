@@ -275,7 +275,8 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
   caller; design §4.5's table names exactly two entry points, so leaving a third reachable would
   re-create the hazard `membersOf`'s retirement exists to prevent. D2's case is re-homed as **two**
   assertions: `LuaReceiverMemberIndexTest.testTheTwoDoorsDisagreeAboutASecondDeclaringFile` for the
-  two-global-declaring-files shape, and
+  two-global-declaring-files shape (renamed `testBothDoorsSeeASecondDeclaringFile` and inverted by
+  BUG-439 — that shape is the *bug*; the file-local one below is where D2 actually lives), and
   `LuaReceiverMemberIndexTest.testAFileLocalReceiverIsNotASelectableDeclaringFile` for the
   file-local contamination shape — Risk 1.1's measured firing shape, `[real]` from the completion
   door against `[alsoPrivate, privateToThisFile, real]` from the union.
@@ -286,14 +287,16 @@ moment Phase 1 and Phase 2 start, so they were closed before either did. No Phas
   `testDr09d2UnionVersusFirstDeclaringFile` asserted nothing either; but the claim was the evidence
   offered for “delete them once their cases are covered by real tests”, in the same commit whose text
   says printing is not a gate. The assertion now exists and is mutation-proved.)*
-- **`membersIn` filters the sentinel too.** §4.5c only requires it of `globalMembership`, but the
-  marker is index-internal and Phase 3 materializes `membersIn`'s names directly, so leaving it in
+- **`membersIn` filters the sentinel too** (both of them, since BUG-439 added `LOCAL_BINDING`).
+  §4.5c only requires it of `globalMembership`, but the marker is index-internal and Phase 3 materializes `membersIn`'s names directly, so leaving it in
   would offer a member whose name is a NUL byte. Gated by
   `LuaReceiverMemberBindingShapeTest.testTheUnionDoorDoesNotLeakTheOpacitySentinelEither`.
 - **`membershipOver` read the first candidate file twice** — once inside the opacity `any`, once for
   membership. Harmless until the counter reached that door, at which point §4.10b's assertion 4 reads
-  **2**, not 1. Each candidate is now read once. Mutation-proved: restoring the double read gives
-  `the completion door reads exactly one declaring file expected:<1> but was:<2>`.
+  **2**, not 1. Each candidate is now read once. Mutation-proved: restoring the double read gave
+  `the completion door reads exactly one declaring file expected:<1> but was:<2>`. BUG-439 renamed
+  that assertion `testCompletionDoorReadsOnlyTheDeclaringFiles` and made the count the receiver's
+  declaring-file count; the double read still doubles it.
 - **`ProgressManager.checkCanceled()` cannot be gated *by asserting the throw*.** It is in both
   callbacks as §4.9 requires, but a test asserting the throw **passes with the line deleted**: probed
   on gce-builder, `FileBasedIndex.processValues` under a cancelled indicator throws

@@ -4,6 +4,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
@@ -23,6 +24,9 @@ import net.internetisalie.lunar.lang.psi.LuaExpr
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFuncDef
+import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
@@ -106,6 +110,26 @@ data class LuaReceiverMember(
          * five's BLOCKER 2 surviving its own first remedy.
          */
         const val OPAQUE_BINDING: String = "\u0000opaque"
+
+        /**
+         * BUG-439: the sentinel that says "in *this* file the receiver is a **file-local**, not the
+         * global of the same name". A local `wx` and a global `wx` are one key here, because the
+         * indexer records members by receiver *name* without caring how the receiver is bound.
+         *
+         * That was harmless while the completion door picked its declaring files from
+         * `LuaGlobalAssignmentIndex`, which lists only bare top-level *global* assignments — the
+         * file-local was excluded as a side effect of which index was consulted, and that side
+         * effect is the only reason DR-09's superset guard passed. Enumerating sibling files
+         * requires consulting this index's own key space, where the distinction does not exist, so
+         * it has to be recorded at index time: it is unrecoverable afterwards.
+         *
+         * Emitted only for a name the file already declares members for, so the key space is
+         * unchanged — this marks existing keys rather than adding one per local variable.
+         */
+        const val LOCAL_BINDING: String = "\u0000local"
+
+        /** Both sentinels are bookkeeping, and neither is ever an offerable member. */
+        internal val SENTINELS: Set<String> = setOf(OPAQUE_BINDING, LOCAL_BINDING)
     }
 }
 
@@ -121,8 +145,9 @@ data class LuaReceiverMember(
  * Collection-valued precedent is [LuaFileBindingsIndex].
  *
  * **Two entry points, two selection rules, and no third** (design §4.5). [membersOfGlobal] /
- * [globalMembership] serve completion — scope precedence, first declaring file, context excluded —
- * and [membersIn] serves materialization with the union over a scope. Collapsing them into one
+ * [globalMembership] serve completion — scope precedence, declaring files only, file-locals and the
+ * context file excluded — and [membersIn] serves materialization with the union over a scope, which
+ * is scope-blind and excludes neither. Collapsing them into one
  * `membersOf` is how review defects D1, D2 and B2 all happened, so that name deliberately does not
  * exist: each door is verified against the door it actually serves.
  */
@@ -142,8 +167,13 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
      * 1 → 2: the input filter widened from `extension == "lua"` to every registration `LuaFileType`
      * carries, so the index's **content** changed. Without the bump a persisted index keeps the
      * `.lua`-only entries and the fix is invisible on any machine that has indexed before it.
+     *
+     * 2 → 3: BUG-439's [LuaReceiverMember.LOCAL_BINDING] sentinel is a new value in the same wire
+     * format, so a persisted index reads back fine and simply carries no marks — which would make
+     * every file-local receiver look like a global one at the widened completion door. That is
+     * DR-09's contamination, silently, on exactly the machines that had indexed before.
      */
-    override fun getVersion(): Int = 2
+    override fun getVersion(): Int = 3
 
     override fun dependsOnFileContent(): Boolean = true
 
@@ -231,6 +261,7 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
             indexTableLiteralFields(psiFile, byReceiver)
             indexOpaqueBindings(psiFile, byReceiver)
             indexClassFields(psiFile, byReceiver)
+            markLocalBindings(psiFile, byReceiver)
             return byReceiver
         }
 
@@ -313,6 +344,63 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
                 )
             }
         }
+
+        /**
+         * BUG-439 — mark the receivers this file declares members for that are **file-locals** here,
+         * so the completion door can union sibling files without re-admitting DR-09's unrelated
+         * `local wx = {}`.
+         *
+         * **Runs last, and only over names already recorded**, which is what keeps the key space the
+         * size it was: a file's locals are overwhelmingly not receivers, and minting a key for every
+         * one of them would grow the index by roughly the count of local variables in the project to
+         * answer a question about a handful of names.
+         *
+         * `local R = …` and `local function R() end` both bind the name; the attribute list is the
+         * multi-binding form (`local a, b = …`). A `for`-bound or parameter-bound receiver is not
+         * marked, and that is a deliberate under-approximation — a missed mark costs one spurious
+         * candidate file, where a wrong mark drops a real declaring file.
+         */
+        private fun markLocalBindings(
+            psiFile: LuaFile,
+            byReceiver: MemberSink,
+        ) {
+            localNamesIn(psiFile).forEach { name ->
+                byReceiver[name]?.add(
+                    LuaReceiverMember(
+                        LuaReceiverMember.LOCAL_BINDING,
+                        LuaReceiverMember.Kind.FIELD,
+                        LuaReceiverMember.Separator.DOT,
+                    ),
+                )
+            }
+        }
+
+        /**
+         * **Never call a generated `@NotNull` child getter here.** `LuaLocalFuncDecl.getNameRef()` and
+         * `LuaAttName.getNameRef()` are both `findNotNullChildByClass`, and `notNullChild` does not
+         * return null on a missing child — it calls `LOG.error`, which is a *reported IDE exception*
+         * in production and a hard failure under `TestLoggerFactory`. An indexer runs over every file
+         * in the project, and a Lua file being edited is malformed most of the time.
+         *
+         * Measured, not anticipated: `local function repeat(count)` — `repeat` is a keyword, so the
+         * parser yields a `LuaLocalFuncDecl` with no name at all — turned
+         * `TestLuaTypeEnginePhase1.testComplexPhase1File` red across the whole suite while every test
+         * of this index stayed green. `indexFunctionDeclarations` had the right shape already
+         * (`node.findChildByType(...)?.text`); this follows it.
+         */
+        private fun localNamesIn(psiFile: LuaFile): Set<String> {
+            val names = mutableSetOf<String>()
+            PsiTreeUtil.findChildrenOfType(psiFile, LuaLocalVarDecl::class.java).forEach { decl ->
+                decl.attNameList.forEach { attName -> nameOf(attName)?.let { names.add(it) } }
+            }
+            PsiTreeUtil.findChildrenOfType(psiFile, LuaLocalFuncDecl::class.java).forEach { decl ->
+                nameOf(decl)?.let { names.add(it) }
+            }
+            return names
+        }
+
+        private fun nameOf(element: PsiElement): String? =
+            PsiTreeUtil.getChildOfType(element, LuaNameRef::class.java)?.text
 
         /** Source 3 — `---@field` on a `---@class R` comment. */
         private fun indexClassFields(
@@ -432,7 +520,7 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
                 members.forEach { seen.putIfAbsent(it.name, it) }
                 true
             }, scope)
-            return seen.values.filterNot { it.name == LuaReceiverMember.OPAQUE_BINDING }
+            return seen.values.filterNot { it.name in LuaReceiverMember.SENTINELS }
         }
 
         /**
@@ -440,12 +528,17 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
          * authority flag. Callers that must decide between the index and the type graph want
          * [globalMembership] instead; this is for callers that only want the names.
          *
-         * It does not invent its own file selection. `typeOfGlobalIn` picks the declaring file from
+         * It was written to mirror `typeOfGlobalIn`, which picks the declaring file from
          * `LuaGlobalAssignmentIndex` (bare top-level globals only — a *different* candidate set from
-         * this index's keys), excludes the context file, and takes the first that yields a type.
-         * This mirrors the first three of those and deliberately cannot mirror the fourth: skipping a
-         * file whose global has no useful type requires the graph build the whole feature exists to
+         * this index's keys), excludes the context file, and takes the first that yields a type. It
+         * mirrored the first three and deliberately could not mirror the fourth: skipping a file
+         * whose global has no useful type requires the graph build the whole feature exists to
          * avoid. DR-14 measured that residual at nothing on the golden receivers.
+         *
+         * **BUG-439 broke the mirror on the second of those, and had to.** Taking *the first*
+         * declaring file is why `love.` offered 40 members and none of its 19 submodules: each is
+         * assigned in a sibling file, which `LuaGlobalAssignmentIndex` does not even list. See
+         * [candidates] for the rule that replaced it and for what it still excludes.
          *
          * [exclude] must be `context.containingFile?.originalFile` and not `containingFile`
          * (design §4.5, BL-8): during completion the PSI file is a **copy** with its own
@@ -476,13 +569,42 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
         ): Membership {
             LuaReceiverMemberWork.reset()
             if (DumbService.isDumb(project)) return Membership(emptyList(), authoritative = true, found = false)
-            candidates(receiver, project, GlobalSearchScope.projectScope(project), exclude)
-                .takeIf { it.isNotEmpty() }
-                ?.let { return membershipOver(receiver, project, it) }
-            candidates(receiver, project, GlobalSearchScope.allScope(project), exclude)
-                .takeIf { it.isNotEmpty() }
-                ?.let { return membershipOver(receiver, project, it) }
+            scopeChain(receiver, project).forEach { scope ->
+                candidates(receiver, project, scope, exclude)
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { return membershipOver(it) }
+            }
             return Membership(emptyList(), authoritative = false, found = false)
+        }
+
+        /**
+         * **`projectScope` is only worth trying when the project *declares* the receiver** — BUG-427's
+         * precedence, narrowed by BUG-439 to the question it was always asking.
+         *
+         * The chain used to be `projectScope` then `allScope` unconditionally, which was safe while
+         * [candidates] answered from `LuaGlobalAssignmentIndex` alone: a project file entered that
+         * index only by bare-assigning the global, so a non-empty project tier *was* a project
+         * declaration. Once [candidates] also admits files that merely extend the receiver, that stops
+         * holding — one `love.myHelper = f` in your own code makes the project tier non-empty and, on
+         * the old chain, `allScope` is never consulted and the library's 900 members vanish behind
+         * your one. Gated by
+         * `LuaCrossFileMemberEnumerationTest.testExtendingALibraryGlobalDoesNotHideTheLibrarysMembers`.
+         *
+         * Both scopes stay in the chain when the project does declare it: `projectScope` can still
+         * come back empty after [exclude] removes the context file, and `allScope` is the answer then.
+         */
+        private fun scopeChain(
+            receiver: String,
+            project: Project,
+        ): List<GlobalSearchScope> {
+            val inProject = GlobalSearchScope.projectScope(project)
+            val declaredInProject =
+                FileBasedIndex
+                    .getInstance()
+                    .getContainingFiles(LuaGlobalAssignmentIndex.KEY, receiver, inProject)
+                    .isNotEmpty()
+            val everywhere = GlobalSearchScope.allScope(project)
+            return if (declaredInProject) listOf(inProject, everywhere) else listOf(everywhere)
         }
 
         /**
@@ -496,34 +618,71 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
          * *reports authority* must not inherit it — a wrong `authoritative = true` silently drops
          * members, where a wrong `false` only costs latency.
          *
-         * Membership still comes from the first candidate, preserving `typeOfGlobalIn`'s behaviour.
+         * **Membership is now the union over every candidate** (BUG-439). It was the first candidate
+         * alone, preserving `typeOfGlobalIn`'s behaviour — and that is precisely the defect: a global
+         * declared in one file and extended in nineteen siblings offered only the first file's
+         * members, so love2d's whole submodule API was unreachable from completion. The narrowing
+         * that made DR-09's superset safe lives in [candidates] now, where it can name its reason.
          *
-         * Each candidate is read **once** and the per-file lists are reused for both questions. The
-         * earlier shape asked `membersInFile` for the first file twice — once inside the opacity
-         * `any`, once for membership — which double-counted that file in `LuaReceiverMemberWork` the
-         * moment the counter reached this door, and design §4.10b's assertion 4 pins it at one.
+         * Each candidate is read **once**, in [candidates], and its list is reused for both
+         * questions here. The shape before that asked `membersInFile` for the first file twice —
+         * once inside the opacity `any`, once for membership — which double-counted that file in
+         * `LuaReceiverMemberWork`.
          */
-        private fun membershipOver(
-            receiver: String,
-            project: Project,
-            files: List<VirtualFile>,
-        ): Membership {
-            val perFile = files.map { membersInFile(receiver, project, it) }
-            val opaque = perFile.any { declared -> declared.any { it.name == LuaReceiverMember.OPAQUE_BINDING } }
-            val members = perFile.first().filterNot { it.name == LuaReceiverMember.OPAQUE_BINDING }
+        private fun membershipOver(declaring: List<Declaring>): Membership {
+            val opaque =
+                declaring.any { file -> file.members.any { it.name == LuaReceiverMember.OPAQUE_BINDING } }
+            val seen = LinkedHashMap<String, LuaReceiverMember>()
+            declaring.forEach { file -> file.members.forEach { seen.putIfAbsent(it.name, it) } }
+            val members = seen.values.filterNot { it.name in LuaReceiverMember.SENTINELS }
             return Membership(members, authoritative = !opaque, found = true)
         }
 
+        /** A file that declares members for the receiver, and the members it declares. */
+        private data class Declaring(
+            val file: VirtualFile,
+            val members: List<LuaReceiverMember>,
+        )
+
+        /**
+         * The declaring files, in two tiers (BUG-439).
+         *
+         * **Tier 1 — files that assign the global**, from `LuaGlobalAssignmentIndex`. This is the
+         * whole of what `typeOfGlobalIn` and COMP-09 Phase 2 ever consulted, and it is why a sibling
+         * file that merely *extends* a global — `love.graphics = {}`, `Probe.otherFileVal = 2` — was
+         * never a candidate: it assigns a member, not the global, so it is not in that index at all.
+         * Unioning declaring files without this second tier is a **no-op**; there was only ever one.
+         *
+         * **Tier 2 — files that extend it**, from this index's own key space, minus any file where
+         * [LuaReceiverMember.LOCAL_BINDING] says the receiver is a file-local. That subtraction is
+         * the load-bearing part: keys here are receiver *names*, so DR-09's unrelated
+         * `local wx = {} / function wx.privateToThisFile() end` is under key `wx` exactly as the
+         * global `wx` is, and admitting it reproduces DR-09's measured superset. Tier 1 is not
+         * subject to the filter — a file that assigns the global declares it however many
+         * same-named locals it also happens to contain.
+         *
+         * Members come back with the files because the sentinel test has to read them anyway; the
+         * previous shape's separate `membersInFile` pass would double every file's traversal count.
+         * Order is assigning-files-first, then extenders **by path**: both `getContainingFiles`
+         * calls are unordered, which DR-19c caught flipping an answer between two runs, and the
+         * union only removes that non-determinism for the member *set*, not for which file's kind
+         * and separator win a duplicate name.
+         */
         private fun candidates(
             receiver: String,
             project: Project,
             scope: GlobalSearchScope,
             exclude: PsiFile?,
-        ): List<VirtualFile> =
-            FileBasedIndex
-                .getInstance()
-                .getContainingFiles(LuaGlobalAssignmentIndex.KEY, receiver, scope)
-                .filter { vf -> exclude?.virtualFile != vf }
+        ): List<Declaring> {
+            val index = FileBasedIndex.getInstance()
+            val assigning = index.getContainingFiles(LuaGlobalAssignmentIndex.KEY, receiver, scope)
+            val extending =
+                index.getContainingFiles(KEY, receiver, scope).sortedBy { it.path } - assigning
+            val ordered = (assigning.sortedBy { it.path } + extending).filter { exclude?.virtualFile != it }
+            return ordered
+                .map { Declaring(it, membersInFile(receiver, project, it)) }
+                .filter { it.file in assigning || it.members.none { m -> m.name == LuaReceiverMember.LOCAL_BINDING } }
+        }
 
         private fun membersInFile(
             receiver: String,

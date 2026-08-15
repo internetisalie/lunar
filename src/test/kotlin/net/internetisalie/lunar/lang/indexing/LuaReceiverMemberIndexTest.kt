@@ -22,7 +22,7 @@ import java.io.DataOutputStream
  * These cases replace `CompNineDr09Test`/`CompNineDr09bTest`, the DR-09 harnesses, which printed
  * their findings rather than asserting them. Every case they covered is re-homed: the externalizer
  * round-trip and the four golden receivers here, DR-09's D2 union-versus-first-file question in
- * [testTheTwoDoorsDisagreeAboutASecondDeclaringFile], its file-local contamination half — Risk 1.1's
+ * [testBothDoorsSeeASecondDeclaringFile], its file-local contamination half — Risk 1.1's
  * measured firing shape — in [testAFileLocalReceiverIsNotASelectableDeclaringFile], and DR-09b's
  * `deep` finding in [testANestedQualifierContributesNoEntry], whose conclusion design §4.4a already
  * records as BUG-430.
@@ -135,12 +135,14 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
      * `[fromBusted, fromLua, fromLuacheckrc, fromRockspec, same]` — the stub builder runs for the
      * *file type*, so the scan saw all four registrations and the index saw one.
      *
-     * **Both doors, and they legitimately disagree.** The union door reads the index across the whole
-     * scope and must now see all four. The completion door must **not**, and that is not this defect:
-     * it selects its declaring file through `LuaGlobalAssignmentIndex`, whose own filter is still
-     * `extension == "lua"`, so only `multi.lua` is ever a candidate. That filter is pre-existing and
-     * out of COMP-09's scope; this asserts today's completion behaviour so that closing it elsewhere
-     * is a deliberate, visible move rather than a side effect.
+     * **Both doors, and since BUG-439 they agree here.** The union door reads the index across the
+     * whole scope and sees all four. The completion door used to see only `multi.lua`, because it
+     * selected its declaring file through `LuaGlobalAssignmentIndex`, whose own filter is still
+     * `extension == "lua"` — the residual this method pinned "so that closing it elsewhere is a
+     * deliberate, visible move rather than a side effect". BUG-439 is that move: the sibling tier of
+     * `candidates` comes from *this* index, so the three non-`.lua` registrations are now reachable
+     * from completion too. `LuaGlobalAssignmentIndex`'s filter is unchanged and still `.lua`-only;
+     * it just no longer decides what the door can see.
      */
     fun testEveryFileTypeRegistrationIsIndexed() {
         registerLibraryRoot(
@@ -158,10 +160,12 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
             namesOf("Multi"),
         )
         assertEquals(
-            "the completion door picks ONE declaring file and gets its candidates from " +
-                "LuaGlobalAssignmentIndex, which is still `.lua`-only — pre-existing, out of scope, " +
-                "and pinned here so that changing it is deliberate",
-            listOf("fromLua"),
+            "and so must the completion door, since BUG-439: it no longer takes its candidates from " +
+                "LuaGlobalAssignmentIndex alone — the sibling tier comes from THIS index, whose " +
+                "filter is derived from the file type. The `.lua`-only half is still there and still " +
+                "pre-existing, but it now only decides which files are exempt from the file-local " +
+                "check, so the three non-`.lua` registrations are reachable either way",
+            listOf("fromBusted", "fromLua", "fromLuacheckrc", "fromRockspec"),
             globalNamesOf("Multi"),
         )
     }
@@ -188,13 +192,18 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
     // ------------------------------------------------------------------ the two doors
 
     /**
-     * DR-09's D2, as an assertion rather than a printout. The completion door takes the **first
-     * declaring file** — the `LuaGlobalAssignmentIndex` candidate, which `two-b.lua` is not, because
-     * it declares no bare `R` — and materialization takes the union.
+     * **Inverted by BUG-439, deliberately.** This asserted that the completion door read `two-a.lua`
+     * alone and offered `[fromA]`, on the reasoning that `two-b.lua` is not a
+     * `LuaGlobalAssignmentIndex` candidate because it declares no bare `R`. That reasoning describes
+     * the mechanism correctly and draws the wrong conclusion from it: `two-b.lua` extending `R` is
+     * the *normal* way a Lua library is laid out, and every member it declares was unreachable.
      *
-     * Collapsing the two is defect D2: at the completion call site the union invents members.
+     * The doors still differ — [testAFileLocalReceiverIsNotASelectableDeclaringFile] and
+     * [testTheCompletionDoorPrefersAProjectDeclarationOverALibraryOne] are where DR-09's D2 actually
+     * lives, and they are the two cases that make collapsing them a defect. This case is not one of
+     * them: here the union is simply right, and the doors agree.
      */
-    fun testTheTwoDoorsDisagreeAboutASecondDeclaringFile() {
+    fun testBothDoorsSeeASecondDeclaringFile() {
         registerLibraryRoot(
             mapOf(
                 "two-a.lua" to "---@meta\n\nR = {}\n\nfunction R.fromA() end\n\nreturn R\n",
@@ -202,7 +211,11 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
             ),
         )
         myFixture.configureByText("consumer.lua", "local x = 1\n")
-        assertEquals("the completion door reads the first declaring file only", listOf("fromA"), globalNamesOf("R"))
+        assertEquals(
+            "the completion door reads every declaring file — offering `fromA` alone is BUG-439",
+            listOf("fromA", "fromB"),
+            globalNamesOf("R"),
+        )
         assertEquals("materialization wants every declaring file — BUG-399", listOf("fromA", "fromB"), namesOf("R"))
     }
 
@@ -211,15 +224,18 @@ class LuaReceiverMemberIndexTest : LibraryRootTestCase() {
      * flat `membersOf(receiver, allScope)` union returned `[alsoPrivate, privateToThisFile, real]`
      * against a golden of `[real]` — "the extras came from an unrelated file-local `wx`". That is the
      * defect the whole of design §4.5 was rewritten around, and until this method existed it was
-     * asserted nowhere: [testTheTwoDoorsDisagreeAboutASecondDeclaringFile] uses two files that both
-     * declare a **global**, and `CompNineDr14Test.testDr14LocalReceiverIsNotSelectable` — cited as
-     * holding this half — contains no assertion at all.
+     * asserted nowhere: [testBothDoorsSeeASecondDeclaringFile] uses two files that both declare a
+     * **global**, and `CompNineDr14Test.testDr14LocalReceiverIsNotSelectable` — cited as holding
+     * this half — contains no assertion at all.
      *
-     * The rule that saves it: selection comes from `LuaGlobalAssignmentIndex`, and a file-local
-     * `local wx = {}` never enters that index, so `unrelated.lua` is not a **selectable declaring
-     * file** however many `wx` members it contributes to *this* index. The union is not merely a
-     * superset here — take the wrong door and the answer is contaminated by a receiver that is a
-     * different object.
+     * **The rule that saves it changed under BUG-439, and this method is why that was hard.** It
+     * used to be a side effect: selection came from `LuaGlobalAssignmentIndex`, which a file-local
+     * `local wx = {}` never enters, so `unrelated.lua` was not a selectable declaring file however
+     * many `wx` members it contributed to *this* index. Enumerating sibling files means consulting
+     * this index's key space, where a local `wx` and the global `wx` are one key — so the exclusion
+     * had to be made explicit, as the `LOCAL_BINDING` sentinel the indexer records. This method is
+     * the gate on that, and it is the reason BUG-439's first two attempts were reverted rather than
+     * shipped: the union is not merely a superset here, it answers about a different object.
      */
     fun testAFileLocalReceiverIsNotASelectableDeclaringFile() {
         registerLibraryRoot(

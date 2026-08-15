@@ -51,6 +51,16 @@ folders:
   CLOSED.** `LuaTypeManagerImpl` contains zero `getAllKeys` calls, the golden is unmoved
   (`38c7586ecfddd17bdb79785b3b3a9f31`) and the corpus baselines were re-run with no movement. The
   superset failure mode did not fire at either consumer.
+- **STATUS (BUG-439, 2026-08-15): the mitigation itself was a subset defect, and the fix keeps this
+  risk closed by naming its reason instead of inheriting it.** "First-declaring-file-only" excluded
+  DR-09's file-local `wx` as a *side effect* of consulting `LuaGlobalAssignmentIndex`, which a
+  `local wx = {}` never enters — and the same rule excluded every sibling file that legitimately
+  extends a global, costing love2d all 19 of its submodules. Candidates now come from two tiers, and
+  the exclusion is explicit: a `LOCAL_BINDING` sentinel recorded at index time, where the
+  local-versus-global distinction still exists (by the time `candidates` runs, a key is just a name).
+  `LuaReceiverMemberIndexTest.testAFileLocalReceiverIsNotASelectableDeclaringFile` — this risk's
+  measured firing shape, asserted — is unchanged and green, which is the point: the guard was not
+  relaxed to let the fix through. Two earlier attempts that did relax it were reverted.
 - **STATUS (Phase 3 remediation, 2026-08-12): the failure that DID ship was the OPPOSITE one, and
   every gate this risk built was structurally blind to it.** `LuaReceiverMemberIndex`'s input filter
   read `file.extension == "lua"` while `LuaFileType` is registered for `lua;rockspec` plus the file

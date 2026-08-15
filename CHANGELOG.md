@@ -10,6 +10,12 @@
   still honoured. Measured across four real projects, this removes **629 of the 714** remaining
   type-inspection warnings — 88 % — including 157 in a single file. Some warnings from *other*
   inspections appear for the first time as a result: they were being hidden underneath these.
+- **A global's members declared in a sibling file are offered** (BUG-439): completion showed only the
+  members declared in the same file that assigned the global, so `love.` offered its 40 direct members
+  and **none of its 19 submodules** — `love.graphics`, `love.audio`, `love.filesystem` and the rest
+  are each assigned in a file of their own, putting love2d's whole 100-function graphics API out of
+  reach. Every declaring file is now read. A same-named `local` in an unrelated file is still not one
+  of them, which is what took three attempts.
 - **Member completion answered from an index** (COMP-09): a global's members are offered without
   building the declaring file's type graph first, taking the first completion against a large
   definition library from ~491 ms to ~15 ms ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).

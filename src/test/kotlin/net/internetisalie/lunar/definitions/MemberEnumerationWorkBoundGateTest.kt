@@ -31,7 +31,7 @@ import net.internetisalie.lunar.lang.indexing.LuaReceiverMemberWork
  * | 1 | `entriesTraversed >= members.size`, `==` when no name repeats | union | green |
  * | 2 | `entriesTraversed` unchanged between a quiet and a noisy project | union | green |
  * | 3 | `filesVisited ==` the declaring-file count, checked at **1 and at 2** | union | green |
- * | 4 | `filesVisited == 1` when a declaring file was found | `globalMembership` | green since Phase 1 |
+ * | 4 | `filesVisited ==` the declaring-file count, and unmoved by noise | `globalMembership` | green; restated by BUG-439 |
  *
  * 1–3 pass because the DR-09 prototype is already index-backed; they are the assertions that go red
  * if anyone reintroduces a scan, which is what COMP-09-01 exists to remove and what an earlier
@@ -110,11 +110,18 @@ class MemberEnumerationWorkBoundGateTest : LibraryRootTestCase() {
     /**
      * Assertion 4 — the **completion** door, which is the door TC 9 measures.
      *
-     * `globalMembership` reads exactly one declaring file here, so more than one means the selection
-     * rule leaked: `Target` is bare-assigned in `target-a.lua` only, so `LuaGlobalAssignmentIndex`
-     * offers exactly one candidate and `membershipOver` reads it once — once, not twice, which is
-     * why Phase 1 also stopped that method asking `membersInFile` for the same file for opacity and
-     * again for membership.
+     * **Renegotiated by BUG-439, with the measurement design §4.10b asked for.** It read
+     * `filesVisited == 1`, and that number was never the bound it looked like: `Target` is
+     * bare-assigned in `target-a.lua` only, so `LuaGlobalAssignmentIndex` offered exactly one
+     * candidate whatever the receiver's real extent, and the 1 was a property of the *fixture* that
+     * happened to also be the acceptance criterion. `target-b.lua` declares 20 of this receiver's 50
+     * members and the door could not see any of them — on love2d that same rule cost `love.` all 19
+     * of its submodules.
+     *
+     * So the count is now the receiver's declaring-file count, pinned absolutely, **plus** the
+     * invariance under noise that the constant 1 made untestable. A key-space scan fails the second
+     * assertion, which is what the criterion was for; the first stops the file set widening to the
+     * scope. Latency re-measured alongside this — COMP-09-08's harness, BUG-439's report.
      *
      * **The counter is captured inside the read action, not after it.** `LuaReceiverMemberWork` is a
      * `ThreadLocal` (design §4.10b), so it is only readable on the thread that recorded into it.
@@ -123,34 +130,47 @@ class MemberEnumerationWorkBoundGateTest : LibraryRootTestCase() {
      * 0 forever and **silently** — 0 being exactly the value the un-instrumented branch below
      * asserts, so the gate would go on passing while measuring a different thread.
      */
-    fun testCompletionDoorReadsExactlyOneFile() {
+    fun testCompletionDoorReadsOnlyTheDeclaringFiles() {
         registerLibraryRoot(quietFixture())
         myFixture.configureByText("consumer.lua", "local x = 1\n")
-        val measured =
-            runReadAction {
-                LuaReceiverMemberWork.reset()
-                val found = LuaReceiverMemberIndex.globalMembership(RECEIVER, project, myFixture.file)
-                found to LuaReceiverMemberWork.files
-            }
-        val membership = measured.first
-        val filesVisited = measured.second
-        println(
-            "COMP-09-09 completion door: found=${membership.found} " +
-                "members=${membership.members.size} filesVisited=$filesVisited",
-        )
-        assertTrue("the fixture must give the completion door a declaring file to find", membership.found)
-        if (COMPLETION_DOOR_INSTRUMENTED) {
-            assertEquals("the completion door reads exactly one declaring file", 1, filesVisited)
-        } else {
+        val quiet = measureCompletionDoor()
+        registerLibraryRoot(noiseFixture())
+        val noisy = measureCompletionDoor()
+        println("COMP-09-09 completion door: quiet=$quiet noisy=$noisy")
+        assertTrue("the fixture must give the completion door a declaring file to find", quiet.members > 0)
+        if (!COMPLETION_DOOR_INSTRUMENTED) {
             assertEquals(
-                "the completion door is now instrumented (filesVisited=$filesVisited) — flip " +
+                "the completion door is now instrumented (filesVisited=${quiet.files}) — flip " +
                     "COMPLETION_DOOR_INSTRUMENTED to true; that is Phase 1's `extend the counter to " +
                     "both entry points` task, not an incidental edit",
                 0,
-                filesVisited,
+                quiet.files,
             )
+            return
         }
+        assertEquals(
+            "the completion door reads the receiver's declaring files — `$RECEIVER` has two, and " +
+                "reading one of them is BUG-439: the members of the other are simply never offered",
+            2,
+            quiet.files,
+        )
+        assertEquals(
+            "adding ${NOISE_RECEIVERS * NOISE_MEMBERS} unrelated indexed members changed how much " +
+                "work the completion door does — this is the assertion that actually carries the " +
+                "bound now that the count is not the constant 1, and it is the one a key-space scan " +
+                "would fail",
+            quiet.files,
+            noisy.files,
+        )
+        assertEquals("nor may the entries traversed move with the key space", quiet.entries, noisy.entries)
     }
+
+    private fun measureCompletionDoor(): Traversal =
+        runReadAction {
+            LuaReceiverMemberWork.reset()
+            val found = LuaReceiverMemberIndex.globalMembership(RECEIVER, project, myFixture.file)
+            Traversal(found.members.size, LuaReceiverMemberWork.entries, LuaReceiverMemberWork.files)
+        }
 
     private data class Traversal(
         val members: Int,
