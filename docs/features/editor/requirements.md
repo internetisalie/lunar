@@ -2,7 +2,7 @@
 id: "EDITOR"
 title: "EDITOR: Editor Ergonomics & Structural Editing"
 type: "epic"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features]]"

@@ -264,7 +264,7 @@ title: "Implementation Plan"
 
 | Phase | Status | Priority |
 |---|---|---|
-| Phase 0: De-risking | todo | Must |
+| Phase 0: De-risking | **done** | Must |  *(landed on main in `e5b802a0` — `tooling/definitions/wxlua/wxi_parser.py` + `TargetTenDrSpikeTest`; the DR verdicts are in risks-and-gaps. This row read `todo` while the work was committed, which is what made the feature look un-started; `df1727dc` had already corrected the front-matter to `in_progress` for exactly this reason.)* |
 | Phase 1: Parser | todo | Must |
 | Phase 2: Emitter | todo | Must |
 | Phase 3: Driver, determinism and coverage | todo | Must |

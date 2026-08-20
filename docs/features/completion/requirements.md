@@ -2,8 +2,8 @@
 id: "COMP"
 title: "COMP: Code Completion"
 type: "epic"
-status: "in_progress"
-vf_icon: 🔵
+status: "done"
+vf_icon: ✅
 priority: "high"
 folders:
   - "[[features]]"
