@@ -177,11 +177,13 @@ class LuaCompletionContributor : CompletionContributor() {
             isColon: Boolean,
             result: CompletionResultSet,
         ): Boolean {
-            val nameRef = bareNameOf(receiverExpr) ?: return false
+            val (receiverName, rootRef) = dottedReceiverOf(receiverExpr) ?: return false
             val membership =
-                LuaReceiverMemberIndex.globalMembership(nameRef.text, nameRef.project, parameters.originalFile)
+                LuaReceiverMemberIndex.globalMembership(receiverName, rootRef.project, parameters.originalFile)
             if (!membership.found || !membership.authoritative) return false
-            if (LuaLocalBindingScan.binds(receiverExpr.containingFile, nameRef.text)) return false
+            // The shadowing test is on the ROOT name, not the dotted key: `local Foo` shadows
+            // `Foo.bar` too, and there is no such thing as a local named `Foo.bar`.
+            if (LuaLocalBindingScan.binds(receiverExpr.containingFile, rootRef.text)) return false
             emitIndexed(membership.members, isColon, result)
             return true
         }
@@ -212,6 +214,54 @@ class LuaCompletionContributor : CompletionContributor() {
          * text range keeps the wrapper case working while still rejecting a qualified receiver — only
          * a bare name can be a global.
          */
+        /**
+         * BUG-430 (G-2): the dotted key for a receiver, plus its root reference.
+         *
+         * `Foo` gives `("Foo", Foo)`; `Foo.bar` gives `("Foo.bar", Foo)`. Null for anything with a
+         * call or a bracket suffix, which have no dotted name — mirroring the indexer's own
+         * [LuaReceiverMemberIndex] rule so the two cannot drift apart.
+         *
+         * The arm previously asked [bareNameOf], which is null for an index expression, so it
+         * declined for every multi-segment receiver and the graph arm answered empty. Fixing the
+         * indexer alone changes nothing user-visible, because nothing would query the new key.
+         */
+        private fun dottedReceiverOf(receiver: PsiElement): Pair<String, LuaNameRef>? {
+            val nameRef = bareNameOf(receiver) ?: return null
+            return qualifiedPrefixOf(nameRef) ?: (nameRef.text to nameRef)
+        }
+
+        /**
+         * `Foo.bar` for the `bar` in `Foo.bar.<caret>`, or null when [nameRef] is not a suffix index.
+         *
+         * **The receiver element at a nested caret is the LAST segment only.** `findReceiverExpr`
+         * returns a bare `LuaNameRef` reading `bar` — measured, not assumed — so there is no `LuaVar`
+         * to read a suffix list off and the prefix has to be rebuilt by walking up to the enclosing
+         * var and back down its suffixes. Asking the index for `bar` is what made `Foo.bar.` decline
+         * to the graph arm, which answers empty.
+         *
+         * Suffixes are taken up to and including the one holding [nameRef], so the completion's own
+         * dummy-identifier suffix is excluded by construction rather than by name.
+         */
+        private fun qualifiedPrefixOf(nameRef: LuaNameRef): Pair<String, LuaNameRef>? {
+            val target = PsiTreeUtil.getParentOfType(nameRef, LuaVar::class.java) ?: return null
+            val rootRef = target.nameRef ?: return null
+            if (rootRef === nameRef) return null
+            val end = nameRef.textRange.endOffset
+            val names = mutableListOf(rootRef.text)
+            var reached = false
+            for (suffix in target.varSuffixList) {
+                if (suffix.nameAndArgsList.isNotEmpty()) return null
+                val name = suffix.indexExpr.nameRef ?: return null
+                names.add(name.text)
+                if (name.textRange.endOffset >= end) {
+                    reached = true
+                    break
+                }
+            }
+            if (!reached) return null
+            return names.joinToString(".") to rootRef
+        }
+
         private fun bareNameOf(receiver: PsiElement): LuaNameRef? =
             receiver as? LuaNameRef
                 ?: PsiTreeUtil

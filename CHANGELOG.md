@@ -28,6 +28,11 @@
   Completion could not see a global declared in a rockspec at all, and a bare `---@class` there was
   invisible to Go to Class. Measured on the luacheck project, this also removes seven false
   "undeclared variable" warnings for globals its `.luacheckrc` declares.
+- **A nested table's members complete** (BUG-430): `Config.db.host = …` is ordinary Lua, but
+  `Config.db.` offered **nothing at all** — a table with members completing as empty. Members written
+  through a two-segment receiver were recorded under no receiver at all, and completion only ever
+  asked about the trailing segment. Both halves are fixed; `Config.` is unchanged and still does not
+  offer `host`, which belongs one level down.
 - **A global's members declared in a sibling file are offered** (BUG-439): completion showed only the
   members declared in the same file that assigned the global, so `love.` offered its 40 direct members
   and **none of its 19 submodules** — `love.graphics`, `love.audio`, `love.filesystem` and the rest

@@ -172,8 +172,12 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
      * format, so a persisted index reads back fine and simply carries no marks — which would make
      * every file-local receiver look like a global one at the widened completion door. That is
      * DR-09's contamination, silently, on exactly the machines that had indexed before.
+     *
+     * 3 → 4 (BUG-430): `dottedTarget` now keys a nested assignment under its real receiver, so
+     * `Foo.bar.baz = 1` adds a `Foo.bar` key where it previously reached none. New keys are new
+     * content; a persisted index would keep answering `Foo.bar.` with nothing.
      */
-    override fun getVersion(): Int = 3
+    override fun getVersion(): Int = 4
 
     override fun dependsOnFileContent(): Boolean = true
 
@@ -452,11 +456,23 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
 
         /** `R.f` → the receiver and member; null for a keyed or call suffix, or a nested qualifier. */
         private fun dottedTarget(target: LuaVar): Pair<String, String>? {
-            val receiver = target.nameRef?.text ?: return null
-            val suffix = target.varSuffixList.singleOrNull() ?: return null
-            if (suffix.nameAndArgsList.isNotEmpty()) return null
-            val name = suffix.indexExpr.nameRef?.text ?: return null
-            return receiver to name
+            val root = target.nameRef?.text ?: return null
+            val suffixes = target.varSuffixList
+            if (suffixes.isEmpty()) return null
+            val names = suffixes.map { suffix ->
+                if (suffix.nameAndArgsList.isNotEmpty()) return null
+                suffix.indexExpr.nameRef?.text ?: return null
+            }
+            // BUG-430 (G-1): the receiver is every segment BUT the last, so `Foo.bar.baz = 1` keys
+            // `baz` under `Foo.bar` — where it actually lives — and contributes nothing to `Foo`.
+            //
+            // The rule this replaces was `varSuffixList.singleOrNull()`, whose KDoc read "a member
+            // has exactly one separator, so `a.b.c` contributes nothing to `a`". That is true of `a`
+            // and is preserved here; it is false of `a.b`, for which `baz` is exactly a
+            // one-separator member. Under the old rule a nested assignment reached NO key at all,
+            // and `Foo.bar.` completed empty — a table with two members offering nothing.
+            val receiver = (listOf(root) + names.dropLast(1)).joinToString(".")
+            return receiver to names.last()
         }
 
         /**

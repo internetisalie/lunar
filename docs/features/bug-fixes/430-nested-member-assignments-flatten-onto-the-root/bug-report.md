@@ -3,7 +3,7 @@ id: "BUG-430"
 title: "`a.b.c = v` makes `c` a member of `a` and leaves `a.b` empty, and only on the global door"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -246,6 +246,61 @@ which is about the sibling-*file* half of the same enumeration rule and is still
 them together or the second will re-open the first.**
 
 Sizing stands at **M**, but the work moved out of the type engine and into COMP-09's index.
+
+## FIXED 2026-08-20 — G-1 and G-2, and the PSI was not what G-2 assumed
+
+The parked reproduction went into the source set first, as the strategy says, and reproduced the
+re-measured state exactly: **2 of 5 red**, `Foo.bar.` and `Plain.mid.` both offering `[]`.
+
+**[[BUG-439]] landing first is what made this safe.** This report says "the same area as BUG-439 …
+Fix them together or the second will re-open the first". BUG-439 shipped the same morning
+(`dc712238`), so the constraint was satisfiable rather than blocking, and all 35 `ReceiverMember` /
+`CrossFileMemberEnumeration` / `MemberEnumeration` tests stayed green through this change.
+
+- **G-1** — `dottedTarget` now keys a nested assignment under its real receiver: `Foo.bar.baz = 1`
+  contributes `baz` to `Foo.bar` and, still, nothing to `Foo`. The rule it replaces was defended as
+  "a member has exactly one separator, so `a.b.c` contributes nothing to `a`" — true of `a`, false of
+  `a.b`. `getVersion` 3 → 4: new keys are new content.
+- **G-2** — the completion arm reconstructs the dotted receiver. **The first cut of this was wrong,
+  and only a probe found it.** It assumed `receiverExpr` at `Foo.bar.<caret>` was a `LuaVar` spanning
+  `Foo.bar`; it is a bare `LuaNameRef` holding **only the trailing segment**:
+
+  ```
+  B430-PROBE receiverExpr=LuaNameRefImpl text='bar' dotted=bar
+  B430-PROBE asking index for 'bar'   found=false
+  ```
+
+  So the arm was querying the index for `bar`, finding nothing, and declining to the graph arm —
+  which answers empty. `qualifiedPrefixOf` walks up to the enclosing var and back down its suffixes,
+  stopping at the one holding that name ref, which also excludes completion's dummy-identifier
+  suffix by construction rather than by name.
+
+### Corpus: no movement, and that is the expected answer here
+
+4/4 green, **zero `IMPROVED` lines**. This fix adds keys without changing what any existing receiver
+offers, so no inspection count can move. The key-space growth DR-19/§4.2 sized deliberately did not
+disturb a measured figure. (`CorpusMetrics.kt:283-284`: MORE hits is the regression — read the
+`IMPROVED` lines, a green ratchet means "nothing got worse".)
+
+### Mutation proof — 2/2 CAUGHT, each without taking the control
+
+| mutation | red |
+| :-- | :-- |
+| G-1 → restore `singleOrNull` | `testIntermediateTableCarriesItsMembers`, `testPlainTableChainWithNoClassAnnotation` |
+| G-2 → stop reconstructing the prefix | the same two |
+
+Both leave `testAFlatTableKeepsItsMembers` (the control) and `testGrandchildIsNotAMemberOfTheRoot`
+green, which is what this report requires: a fix that emptied every table would pass the first two
+assertions and fail the control. **Neither gap is sufficient alone** — each mutation alone restores
+the whole defect, confirming the report's "fixing G-1 alone changes nothing user-visible".
+
+### Still open: defect 1 in the type graph
+
+The hoist is *not* fixed. `Foo` still carries `baz` in the type graph (probed at re-grounding), it
+simply no longer reaches the user because COMP-09's index arm answers `Foo.` and correctly excludes
+it. That is a type-graph-only defect with no user-visible symptom, and it is deliberately left: the
+strategy's step 1 targets `LuaTypesVisitor.visitIndexExpr`, which this fix does not touch. Re-file it
+if a consumer of the graph door starts to care.
 
 ## Fix strategy — SUPERSEDED by the section above for defect 2; kept for defect 1
 
