@@ -90,6 +90,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | TARGET-07 | Lua 5.5 standard-library stubs | planned | C | SYNTAX-09 *(Lua 5.5, done)* | — | ✓ |
+| ANALYSIS-07 | Value constraints over the CFG — the type engine and the control-flow graph are two flow analyses that never speak | todo | **L** | ANALYSIS-06 *(CFG, done)*, TYPE-08 *(flow-sensitive, done)* | BUG-435, BUG-428 residual · **filed 2026-08-20 from three measured defects sharing one shape**, not from a reading. BUG-441's `unknownProvenance` gate is a reaching-definitions query answered over the constraint graph's `upSet` because the CFG — which already models every read and write (ANALYSIS-06-02) — was never asked. BUG-435 is a constraint on a subgraph; BUG-428's 2 surviving sites are call-site insensitivity. **Needs a full `plan-feature` pass**; TYPE-08 §9 rejected CFG integration as "a much larger refactor", an estimate that is unmeasured and is task 1. Do NOT add a third analysis| — |
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
 | TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog | **in_progress** | C | — | MAINT-37 *(zerobrane member scope)* | ✓ |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | — | — | ✓ |
