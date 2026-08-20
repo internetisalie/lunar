@@ -3,7 +3,7 @@ id: "BUG-438"
 title: "The `@class` completion door misses the 100 ms time-to-first budget — 323 ms at 3 600 members"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -121,6 +121,95 @@ stub-based path — so the question for `plan-bug` is what forces the de-stub an
 *types* this door needs can come from stubs alone. `collectMethodMembers` at ~29 % is worth its own
 look and is a smaller, more self-contained target. Neither is a change to make from this report as it
 stands.
+
+## 6. Root cause — GROUNDED 2026-08-20
+
+§5a's caveat said the `parse=` bucket was instrument-influenced and told the next attempt to prove
+the un-instrumented path de-stubs before building on it. Done, with `PsiFileImpl.isContentsLoaded`,
+which observes without forcing. Staged through `materializeClass`:
+
+```
+B438-DESTUB K0 00entry                 =[false]
+B438-DESTUB K0 01afterReportFile       =[false]
+B438-DESTUB K0 02afterFirstHostedParts =[false]
+B438-DESTUB K0 03afterAllHostedParts   =[false]   <- stub-only to here
+B438-DESTUB K0 04afterImplicitFields   =[true]    <- the AST is forced HERE
+B438-DESTUB K0 05afterMethods          =[true]
+```
+
+**`LuaImplicitFields.collect` is what de-stubs**, at `LuaImplicitFields.kt:75`:
+
+```kotlin
+val assignments = PsiTreeUtil.findChildrenOfType(file, LuaAssignmentStatement::class.java)
+```
+
+`findChildrenOfType` over a `PsiFile` loads the AST and then visits every node in it. `hostedParts`
+reads the stub and never parses; `collectMethodMembers` runs after the file is already loaded.
+
+### This corrects §5a's own attribution
+
+§5a reported `parse=92 635 µs` and `implicit=11 332 µs` as separate buckets. They are not separable
+that way: the ~92 ms it attributed to "parse" **is `LuaImplicitFields`' de-stub**, paid early because
+the instrumentation forced `.node` at the top. The honest split is:
+
+| | median | share |
+| :-- | --: | --: |
+| `LuaImplicitFields.collect`, including the de-stub it forces | ~104 ms | **~63 %** |
+| `collectMethodMembers` / `funcTypeFromStub` | ~47 ms | ~29 % |
+| `hostedParts` member loop (stub-only) | ~12 ms | ~7 % |
+
+"The parse dominates" and "`LuaImplicitFields` dominates because it parses" are different claims with
+different fixes. The second is the true one.
+
+## 7. Fix strategy
+
+**Guard the walk; do not replace it.** `LuaImplicitFields` needs the RHS *type* (`lightInferType`),
+and `LuaReceiverMemberIndex` deliberately stores no type (COMP-09 §4.13, sized in DR-19/§4.2), so it
+cannot serve this collection outright. What the index *can* answer without parsing is the cheaper
+question: **does this file assign any implicit field to these receivers at all?** When it does not,
+the walk has nothing to find and the de-stub is pure waste.
+
+1. **Ask the index first.** For each declaring file and the receiver set, consult
+   `LuaReceiverMemberIndex` for a `FIELD`-kind member. If none, skip that file — no AST, no walk.
+2. **Otherwise walk exactly as today.** Behaviour must be byte-identical when implicit fields exist;
+   this is a skip, not a reimplementation.
+3. **Re-bucket** with the staged `isContentsLoaded` probe above, on §5a's five-receiver shape, to
+   confirm `04afterImplicitFields` stays `[false]` for a file with no implicit assignments.
+
+### The measurement that must come FIRST, because it may kill this
+
+**The win is shape-dependent, and the two libraries measured differ completely:**
+
+| file | implicit `R.x = …` assignments | `---@field` |
+| :-- | --: | --: |
+| love2d `love.lua` | **0** | 10 |
+| openresty `ngx.lua` | **78** | 28 |
+
+So love2d-shaped libraries skip the parse entirely and openresty-shaped ones do not skip it at all.
+**Measure the shipped catalog before committing to this**: if most entries look like openresty, step
+1 buys nothing on real material and the effort belongs on `collectMethodMembers` (~29 %) or on a
+different approach to the walk itself. `n=2` is not a basis — the same error [[BUG-440]] made.
+
+### Explicitly not proposed
+
+- Putting a type into `LuaReceiverMemberIndex`'s value. COMP-09 §4.13 declared its absence and
+  DR-19/§4.2 sized the value deliberately; reopening that is a COMP-09 change, not a bug fix.
+- Caching. The cost is a *first* build (§3, DR-07), so invalidation cannot touch it.
+
+## 8. Test strategy
+
+| test | asserts |
+| :-- | :-- |
+| a file with `---@field` only and no `R.x = …` leaves `isContentsLoaded` **false** after materialization | the guard fires — the observable is the de-stub, not a duration |
+| a file WITH `R.x = …` still yields the same member set and types as today | the skip is a skip, not a behaviour change |
+| **control**: a class whose implicit field shadows an `@field` keeps today's precedence | a guard that skipped too eagerly would silently drop members |
+
+Prefer the `isContentsLoaded` assertion to a timing threshold — it is a state, not a duration, and
+COMP-09's standing rule prefers a count gate to a timing one wherever a count will do. Mutation-prove
+by removing the guard: the first test must go red and the second must not.
+
+The corpus is the gate for the member sets. `Missing required field` is absent from all four
+baselines; if it appears, exactness was touched inadvertently.
 
 ## 5. What a fix has to establish first
 
