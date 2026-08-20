@@ -3,7 +3,7 @@ id: "BUG-437"
 title: "`LuaReceiverMemberIndex.Indexer.map` walks the file five times where one walk would do"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -69,3 +69,45 @@ One `PsiTreeUtil.processElements` walk dispatching on `LuaFuncDecl` / `LuaAssign
 `LuaCatsClassTag`, feeding the same five recorders. Gate: the index's emitted map must be
 **byte-identical** to today's on the COMP-09 fixtures and the corpus sweep, plus a `getVersion()`
 bump if it is not.
+
+
+## FIXED 2026-08-20 — seven traversals, not five, and now one
+
+**The count had grown since this report was written.** §1 lists five walks over three element types;
+[[BUG-439]]'s local-binding marker added two more (`LuaLocalVarDecl`, `LuaLocalFuncDecl`), and
+`forEachAssignedTarget` is called *three* times — from `indexMemberAssignments` and twice through
+`forEachBareBinding`. Measured on the tree as it stood: **7 traversals over 5 element types**.
+
+`walkOnce` replaces them with one `PsiTreeUtil.processElements` dispatching on all five, feeding the
+same recorders. Locals reduce to names in the walk, since `markLocalBindings` only ever asked whether
+a name is bound locally — and BUG-436's null-safe `nameOf` read moved with it, because a generated
+`@NotNull` getter calls `LOG.error` on malformed source.
+
+### Why the order argument is the correctness claim
+
+`processElements` visits depth-first in document order, which is the order `findChildrenOfType`
+returns. Each per-type list therefore arrives exactly as its old walk produced it, so `record`'s
+append order is unchanged — which matters, because the wire format is positional and
+`membershipOver` resolves duplicates with `putIfAbsent`.
+
+### The gate this report asked for, met
+
+Byte-identity, not timing: **corpus 4/4 green with zero `IMPROVED` lines** and
+`MemberEnumerationGoldenTest` unmoved. **No `getVersion` bump**, and that is the evidence rather than
+an omission — §5 requires one only "if it is not" byte-identical, and it is.
+
+A **characterization** test was written *before* the change and run green, rather than a
+red-then-green one: `LuaReceiverMemberIndexerWalkTest` pins the emitted map across all five sources
+plus BUG-439's two. A test that only passed afterwards would prove nothing about a refactor whose
+whole contract is "nothing changes".
+
+### Mutation proof — 3/3 CAUGHT
+
+| the merged walk stops collecting | red |
+| :-- | :-- |
+| `LuaCatsClassTag` | 6 tests — golden, both door-parity cases, `testClassFieldsAreIndexed…`, the characterization test |
+| `LuaAssignmentStatement` | **14** tests |
+| locals | golden, door parity, and `testAFileLocalReceiverIsNotASelectableDeclaringFile` — DR-09's superset guard, i.e. BUG-439's correctness property |
+
+Dropping a source is the failure mode a merged walk actually has, and each one is caught by the
+golden plus at least one behavioural test.

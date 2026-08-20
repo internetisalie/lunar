@@ -260,13 +260,58 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
             val psiFile = inputData.psiFile
             if (psiFile !is LuaFile) return emptyMap()
             val byReceiver = mutableMapOf<String, MutableList<LuaReceiverMember>>()
-            indexFunctionDeclarations(psiFile, byReceiver)
-            indexMemberAssignments(psiFile, byReceiver)
-            indexTableLiteralFields(psiFile, byReceiver)
-            indexOpaqueBindings(psiFile, byReceiver)
-            indexClassFields(psiFile, byReceiver)
-            markLocalBindings(psiFile, byReceiver)
+            val walked = walkOnce(psiFile)
+            indexFunctionDeclarations(walked.funcDecls, byReceiver)
+            indexMemberAssignments(walked.assignments, byReceiver)
+            indexTableLiteralFields(walked.assignments, byReceiver)
+            indexOpaqueBindings(walked.assignments, byReceiver)
+            indexClassFields(walked.classTags, byReceiver)
+            markLocalBindings(walked.localNames, byReceiver)
             return byReceiver
+        }
+
+        /** Everything the five sources need, gathered in one pass. */
+        private class Walked(
+            val funcDecls: List<LuaFuncDecl>,
+            val assignments: List<LuaAssignmentStatement>,
+            val classTags: List<LuaCatsClassTag>,
+            val localNames: Set<String>,
+        )
+
+        /**
+         * BUG-437 — **one traversal, not seven.** The five sources of design §4.3 each walked the file
+         * themselves, and three of them walked the *same* `LuaAssignmentStatement` set
+         * (`indexMemberAssignments` plus `forEachBareBinding` twice); BUG-439's local-binding marker
+         * then added two more. DR-25 measured a shared walk at the cost of ONE `findChildrenOfType`
+         * — 10 016 µs against 10 767 µs — so the redundant passes were ~40 ms of a 67 ms per-file
+         * index build, about 60 %.
+         *
+         * `processElements` visits in the same depth-first document order `findChildrenOfType`
+         * returns, so each per-type list is ordered exactly as its old walk produced it and the
+         * emitted map is unchanged. That is the gate, not the timing:
+         * [LuaReceiverMemberIndexerWalkTest] pins the map and was written before this change.
+         *
+         * Locals are reduced to names here rather than kept as elements — `markLocalBindings` only
+         * ever asked whether a name is bound locally, and the null-safe read stays where BUG-436 put
+         * it, since a generated `@NotNull` getter calls `LOG.error` on malformed source.
+         */
+        private fun walkOnce(psiFile: LuaFile): Walked {
+            val funcDecls = mutableListOf<LuaFuncDecl>()
+            val assignments = mutableListOf<LuaAssignmentStatement>()
+            val classTags = mutableListOf<LuaCatsClassTag>()
+            val localNames = mutableSetOf<String>()
+            PsiTreeUtil.processElements(psiFile) { element ->
+                when (element) {
+                    is LuaFuncDecl -> funcDecls.add(element)
+                    is LuaAssignmentStatement -> assignments.add(element)
+                    is LuaCatsClassTag -> classTags.add(element)
+                    is LuaLocalVarDecl ->
+                        element.attNameList.forEach { attName -> nameOf(attName)?.let { localNames.add(it) } }
+                    is LuaLocalFuncDecl -> nameOf(element)?.let { localNames.add(it) }
+                }
+                true
+            }
+            return Walked(funcDecls, assignments, classTags, localNames)
         }
 
         /**
@@ -274,10 +319,10 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
          * `LuaFuncStubElementType.createStub` uses, so the two agree by construction.
          */
         private fun indexFunctionDeclarations(
-            psiFile: LuaFile,
+            decls: List<LuaFuncDecl>,
             byReceiver: MemberSink,
         ) {
-            PsiTreeUtil.findChildrenOfType(psiFile, LuaFuncDecl::class.java).forEach { decl ->
+            decls.forEach { decl ->
                 val qualified = decl.node.findChildByType(LuaElementTypes.FUNC_NAME)?.text ?: return@forEach
                 split(qualified)?.let { (receiver, name, separator) ->
                     byReceiver.record(receiver, LuaReceiverMember(name, LuaReceiverMember.Kind.FUNCTION, separator))
@@ -295,10 +340,10 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
          * golden diff measures how much that costs.
          */
         private fun indexMemberAssignments(
-            psiFile: LuaFile,
+            assignments: List<LuaAssignmentStatement>,
             byReceiver: MemberSink,
         ) {
-            forEachAssignedTarget(psiFile) { target, assigned ->
+            forEachAssignedTarget(assignments) { target, assigned ->
                 val (receiver, name) = dottedTarget(target) ?: return@forEachAssignedTarget
                 byReceiver.record(receiver, LuaReceiverMember(name, kindOf(assigned), LuaReceiverMember.Separator.DOT))
             }
@@ -311,10 +356,10 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
          * so an "empty means fall back" rule never fires and VERSION is silently lost.
          */
         private fun indexTableLiteralFields(
-            psiFile: LuaFile,
+            assignments: List<LuaAssignmentStatement>,
             byReceiver: MemberSink,
         ) {
-            forEachBareBinding(psiFile) { receiver, bound ->
+            forEachBareBinding(assignments) { receiver, bound ->
                 val literal = bound as? LuaTableConstructor ?: return@forEachBareBinding
                 literal.fieldList?.fieldList?.forEach { field ->
                     val name = field.identifier?.text ?: return@forEach
@@ -333,10 +378,10 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
          * only costs latency.
          */
         private fun indexOpaqueBindings(
-            psiFile: LuaFile,
+            assignments: List<LuaAssignmentStatement>,
             byReceiver: MemberSink,
         ) {
-            forEachBareBinding(psiFile) { receiver, bound ->
+            forEachBareBinding(assignments) { receiver, bound ->
                 if (bound is LuaTableConstructor) return@forEachBareBinding
                 byReceiver.record(
                     receiver,
@@ -365,10 +410,10 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
          * candidate file, where a wrong mark drops a real declaring file.
          */
         private fun markLocalBindings(
-            psiFile: LuaFile,
+            localNames: Set<String>,
             byReceiver: MemberSink,
         ) {
-            localNamesIn(psiFile).forEach { name ->
+            localNames.forEach { name ->
                 byReceiver[name]?.add(
                     LuaReceiverMember(
                         LuaReceiverMember.LOCAL_BINDING,
@@ -379,39 +424,15 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
             }
         }
 
-        /**
-         * **Never call a generated `@NotNull` child getter here.** `LuaLocalFuncDecl.getNameRef()` and
-         * `LuaAttName.getNameRef()` are both `findNotNullChildByClass`, and `notNullChild` does not
-         * return null on a missing child — it calls `LOG.error`, which is a *reported IDE exception*
-         * in production and a hard failure under `TestLoggerFactory`. An indexer runs over every file
-         * in the project, and a Lua file being edited is malformed most of the time.
-         *
-         * Measured, not anticipated: `local function repeat(count)` — `repeat` is a keyword, so the
-         * parser yields a `LuaLocalFuncDecl` with no name at all — turned
-         * `TestLuaTypeEnginePhase1.testComplexPhase1File` red across the whole suite while every test
-         * of this index stayed green. `indexFunctionDeclarations` had the right shape already
-         * (`node.findChildByType(...)?.text`); this follows it.
-         */
-        private fun localNamesIn(psiFile: LuaFile): Set<String> {
-            val names = mutableSetOf<String>()
-            PsiTreeUtil.findChildrenOfType(psiFile, LuaLocalVarDecl::class.java).forEach { decl ->
-                decl.attNameList.forEach { attName -> nameOf(attName)?.let { names.add(it) } }
-            }
-            PsiTreeUtil.findChildrenOfType(psiFile, LuaLocalFuncDecl::class.java).forEach { decl ->
-                nameOf(decl)?.let { names.add(it) }
-            }
-            return names
-        }
-
         private fun nameOf(element: PsiElement): String? =
             PsiTreeUtil.getChildOfType(element, LuaNameRef::class.java)?.text
 
         /** Source 3 — `---@field` on a `---@class R` comment. */
         private fun indexClassFields(
-            psiFile: LuaFile,
+            tags: List<LuaCatsClassTag>,
             byReceiver: MemberSink,
         ) {
-            PsiTreeUtil.findChildrenOfType(psiFile, LuaCatsClassTag::class.java).forEach { tag ->
+            tags.forEach { tag ->
                 // Nullable in practice on a partial `---@class` even though the generated getter is
                 // not annotated — LuaTypeManagerImpl:348 reads the same accessor as `argType?.text`.
                 val receiver = tag.argType?.text?.trim() ?: return@forEach
@@ -430,10 +451,10 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
 
         /** Every assignment target in the file, paired with the expression positionally bound to it. */
         private fun forEachAssignedTarget(
-            psiFile: LuaFile,
+            assignments: List<LuaAssignmentStatement>,
             visit: (LuaVar, LuaExpr?) -> Unit,
         ) {
-            PsiTreeUtil.findChildrenOfType(psiFile, LuaAssignmentStatement::class.java).forEach { stmt ->
+            assignments.forEach { stmt ->
                 val exprs = stmt.exprList.exprList
                 stmt.varList.varList.forEachIndexed { i, target -> visit(target, exprs.getOrNull(i)) }
             }
@@ -441,10 +462,10 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
 
         /** As [forEachAssignedTarget], restricted to a suffix-free `R = <expr>` — a whole-receiver bind. */
         private fun forEachBareBinding(
-            psiFile: LuaFile,
+            assignments: List<LuaAssignmentStatement>,
             visit: (String, LuaExpr?) -> Unit,
         ) {
-            forEachAssignedTarget(psiFile) { target, assigned ->
+            forEachAssignedTarget(assignments) { target, assigned ->
                 if (target.varSuffixList.isNotEmpty()) return@forEachAssignedTarget
                 val receiver = target.nameRef?.text ?: return@forEachAssignedTarget
                 visit(receiver, assigned)

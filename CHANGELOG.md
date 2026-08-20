@@ -33,6 +33,10 @@
   returned "No documentation found". It now shows the field's declared type and its description.
   Members declared as `function X.y()` were never affected, which is why this looked like a
   library-specific fault rather than a general one.
+- **Indexing a large Lua file does less work** (BUG-437): the receiver-member index read each file
+  seven times to collect five kinds of declaration; it now reads it once. Measured at roughly 40 ms of
+  a 67 ms per-file cost on a 126 KiB library. Nothing it records has changed — the emitted index is
+  byte-identical, which is what the change was gated on.
 - **A `type(x) == "table"` guard no longer hides the value's members** (BUG-435): inside the
   idiomatic guard, `x.` offered nothing at all — narrowing a value to `table` removed every member it
   had, so completion was worse inside the check than outside it. The guard asserts the value *is* a
