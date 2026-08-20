@@ -3,7 +3,7 @@ id: "BUG-440"
 title: "Quick Doc returns \"No documentation found\" for openresty library members, while love2d works"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "planned"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -97,6 +97,73 @@ its type is good. Probe that directly against both libraries before looking at a
 Note the declaration-form counts differ sharply between the two files (openresty `ngx.lua`: 28
 `---@field`, 83 `function ngx.X`, 78 `ngx.X =`), so establish which form fails rather than assuming
 all three do — `ngx.say` is the second form and is the cleanest single case to pin.
+
+## PLANNED 2026-08-20 — it is not openresty, it is `---@field`
+
+The measurement section above narrowed this to "does `ngx.say` resolve". It does. Probed with the
+**real** catalog files (`ngx.lua`, `love.lua`) registered as a library root, driving
+`LuaDocumentationTargetProvider.documentationTargets` at the member's own offset:
+
+| case | `reference.resolve()` | doc targets |
+| :-- | :-- | --: |
+| `ngx.say` — `function ngx.say(...) end` | `LuaFuncDeclImpl` | **1**, with HTML |
+| `love.getVersion` — `function love.getVersion() end` | `LuaFuncDeclImpl` | **1**, with HTML |
+| `ngx.status` — `---@field status …` | **null** | **0** |
+| `LoveConfig.identity` — `---@field identity string` | **null** | **0** |
+
+**The last row is the one that matters.** A love2d `---@field` fails exactly as an openresty one
+does, so the library split this report was built on is a red herring: the live checklist happened to
+test a **function** on love2d and a **field** on openresty. Every framing above — "love2d is the
+control: same mechanism, same catalog, same session — it works", "Blast radius: unmeasured … measure
+the catalog rather than generalising from n=2" — is answered: the blast radius is **every `---@field`
+member of every library**, and it has nothing to do with which library.
+
+### Root cause
+
+`LuaDocumentationTargetProvider.resolveDocumentationTarget` (`:108-126`) obtains its target through
+`reference.resolve()`. A `---@field` member **has no declaration PSI to resolve to** — the field
+exists only as a tag inside a LuaCATS comment — so `resolve()` returns null, no target is produced,
+and Quick Doc renders "No documentation found".
+
+This is the documented invariant in `AGENTS.md`: *"LuaCATS tags are NOT stubbed — they ride a host
+declaration's stub"*, and *"a tag with no host decl is never stub-indexed"*. The same shape already
+bit Go to Class for a bare `---@class`, and the fix there was **not** to make resolution work but to
+target the **tag's own identifier**: `LuaCatsTypeNameIndex` reads `LuaCatsClassTag.argType` directly
+and `LuaCatsTypeNavigation` navigates to the comment identifier. `@field` needs the analogous move.
+
+### Fix strategy
+
+1. **Add a `---@field` branch to `resolveDocumentationTarget`.** When the resolved target is null and
+   the element is a member access whose receiver types to a class, look the member up through
+   `LuaClassType.resolveMember(name)` — which already returns a `LuaTypeMember` carrying
+   `sourceElement`, the tag itself (`LuaTypeManagerImpl.materializeClass` sets
+   `sourceElement = member.tag ?: decl`). Document **that** element.
+2. **Render from the tag's own comment.** The prose above a `---@field` is the doc text; the type is
+   `field.typeName`. No new extraction is needed — `LuaCatsDeclarations.fieldMembers` already parses
+   both.
+3. Do **not** try to make `reference.resolve()` succeed for a field. That would mint a fake
+   declaration and reaches Find Usages, Rename and the type engine; the precedent (`LuaCatsTypeNavigation`)
+   deliberately did not go that way.
+
+### The one thing still unexplained — do not drop it
+
+**This report states `ngx.say` failed live, and it does NOT reproduce headlessly.** Quick Doc returns
+a target with HTML for it. Either the live observation conflated the two members, or the definitions
+mechanism loads libraries differently from `registerLibraryRoot` in a way that breaks the function
+case too. **Re-check `ngx.say` in the running IDE (`verify-in-ide`) before closing this**, and treat a
+headless green as insufficient for that half. The `---@field` half is settled and reproducible; the
+function half is not, in either direction.
+
+### Test strategy
+
+| test | asserts |
+| :-- | :-- |
+| a `---@field` member yields **one** documentation target with HTML | the defect, red today |
+| the rendered doc contains the field's declared type and its prose | it documents the tag, not just anything |
+| **control**: `function X.y()` still yields one target | a fix that changed the function path would be caught |
+| **control**: an unknown member yields **zero** targets | a fix that returns a target for anything would pass the first three |
+
+Mutation-prove by removing the new branch: the first must go red and both controls must stay green.
 
 ## Why it matters beyond one library
 
