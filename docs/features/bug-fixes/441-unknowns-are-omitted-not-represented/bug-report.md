@@ -228,10 +228,26 @@ synthetic bridge and a parameter added there is easy to thread into the wrong ar
 ### Corpus — CORRECTED 2026-08-20. It moved a great deal, and the first landing note was wrong.
 
 The landing note said "no movement to attribute". That was false, and the reason it was believed is
-worth recording: **the ratchet is one-directional.** `CorpusGuards` asserts only
+worth recording: **the ratchet is one-directional.** `CorpusGuards.kt:49-55` asserts only
 `regressions.isEmpty()`; improvements are `println`'d as `[corpus] IMPROVED (...) — re-record with
 -PrecordCorpusBaseline` and fail nothing. A green ratchet means "nothing got worse", not "nothing
 changed", and the seven IMPROVED lines went unread.
+
+The direction is set in `CorpusMetrics.kt:283-284`, over `Triple(key, baseline, observed)` — and it
+is worth quoting rather than paraphrasing, because "improvement" means something counter-intuitive
+here:
+
+```kotlin
+regressions  = gated.filter { it.third > it.second }   // MORE hits  -> hard fail
+improvements = gated.filter { it.third < it.second }   // FEWER hits -> printed only
+```
+
+So a future fix that deliberately *restores* diagnostics this one suppressed is a **regression** to
+this comparator and cannot be validated by a green run at all; it needs a deliberate re-record with
+each restored site attributed. Cite the comparator and not just the guard when briefing anyone on
+this: the guard shows *that* improvements print, only the comparator shows which direction is which.
+An ANALYSIS-07 planning round, briefed with the guard alone, wrote an exit criterion that was
+unsatisfiable precisely when its feature worked.
 
 Measured properly, by reverting only this fix's two source files to `dc712238` and re-sweeping:
 

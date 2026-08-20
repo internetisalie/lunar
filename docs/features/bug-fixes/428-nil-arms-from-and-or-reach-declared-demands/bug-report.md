@@ -76,7 +76,7 @@ This report guessed the collapse happened at `Union.create` dropping `Undefined`
 explicitly as an untested suspicion. That was close: BUG-441 found the unknown was never
 *represented* in the first place, and gated the emission on whether the value's provenance is
 accountable at all. Read in the corpus source, the suppressed sites are exactly that shape —
-`penlight/lua/pl/config.lua:131` is `local val = cnfg[var]`, an index into an unmodellable table
+`penlight/lua/pl/config.lua:132` is `local val = cnfg[var]`, an index into an unmodellable table
 whose result unions every call site's `def`, so `list_delim` typed as `boolean | string` where the
 value is plainly a string; `stringx.lua:233` is `last = last or #s` over an unannotated parameter,
 with `falsyPart` keeping `boolean` — this report's second family verbatim.
@@ -84,6 +84,8 @@ with `falsyPart` keeping `boolean` — this report's second family verbatim.
 ### Residual — 2 sites, and the family is NOT completely gone
 
 `config.lua:131` and `stringx.lua:231` still emit, anchored on the **function-declaration line**
+(`local function check_cnfg (var,def)` and `local function _find_all(...)`; the reads they are about
+are on the following lines, 132 and 233)
 rather than the use site: `boolean is not assignable to string` / `... to number`, the same
 call-site-union imprecision reported against the parameter itself. Small, and worth a follow-up only
 if it recurs; recorded here rather than left for someone to rediscover.
