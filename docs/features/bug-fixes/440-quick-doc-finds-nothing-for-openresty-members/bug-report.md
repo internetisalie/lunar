@@ -51,6 +51,53 @@ flattens onto the root) and [[BUG-439]] (sibling-file members never enumerated) 
 `ngx.lua` mixes all three declaration forms: 28 `---@field`, 44 `function ngx.X`, 78 `ngx.X =`.
 Establish which form fails before assuming all of them do.
 
+## MEASURED 2026-08-20 — two of the three symptoms are not Lunar defects
+
+Taken before any fix, as this report demands. The `/implement-bug` pre-requisite is **not met**:
+there is no Root Cause and no Fix Strategy here, so this stays a `plan-bug` input. What follows
+narrows it.
+
+### 1. The `---@class ngx : table` lead — REFUTED by probe
+
+The obvious structural difference from love2d is that openresty parents its classes on **builtins**
+(`ngx : table`, `ngx.thread : thread`, and 5 more), where `love.lua`'s `---@class love` has no parent
+and its only parented class inherits a class declared beside it. A light fixture says that is not it:
+
+```
+B440-PROBE NoParent         -> LuaClassType supers=[]         all=[say, status]
+B440-PROBE WithClassParent  -> LuaClassType supers=[NoParent] all=[extra, say, status]
+B440-PROBE WithTableParent  -> LuaClassType supers=[table]    all=[say, status]
+B440-PROBE WithThreadParent -> LuaClassType supers=[thread]   all=[status]
+```
+
+A builtin parent materializes normally. Recorded so the next attempt does not re-derive it.
+
+### 2. `ngx.status`'s degraded inlay is an OPENRESTY defect, not ours
+
+`---@field status ngx.http.status_code` names a type that **is not declared anywhere in the shipped
+library** — `grep -rn "status_code"` over the whole checkout finds only three unrelated hits, in
+`ngx/balancer.lua` and `resty/websocket/protocol.lua`, none of them a declaration. Falling back to
+`nil | string` for an undefined type name is correct behaviour.
+
+### 3. `ngx.say`'s `fun(...)` inlay is CORRECT
+
+The declaration is literally `function ngx.say(...) end` (`ngx.lua:4219`) — a vararg function. `fun(...)`
+is the right rendering, not a degradation.
+
+**So this report's "corroborating symptom, which points at the layer" does not corroborate anything.**
+Both inlay observations are explained without a Lunar defect, and the inference drawn from them —
+that the target is not resolving — loses its evidence. The Quick Doc failure is still real and still
+unexplained; it simply no longer has a second symptom pointing at a layer.
+
+### Where the next attempt should start
+
+`LuaDocumentationTargetProvider.resolveDocumentationTarget` (`:108-126`) resolves through
+`reference.resolve()`, so the question is narrowly **whether `ngx.say` resolves at all** — not whether
+its type is good. Probe that directly against both libraries before looking at any doc rendering.
+Note the declaration-form counts differ sharply between the two files (openresty `ngx.lua`: 28
+`---@field`, 83 `function ngx.X`, 78 `ngx.X =`), so establish which form fails rather than assuming
+all three do — `ngx.say` is the second form and is the cleanest single case to pin.
+
 ## Why it matters beyond one library
 
 COMP-09 deliberately serves index-arm members with **no type text** (design §4.13, declared in
