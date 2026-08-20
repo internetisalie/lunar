@@ -3,7 +3,7 @@ id: "BUG-440"
 title: "Quick Doc returns \"No documentation found\" for openresty library members, while love2d works"
 type: "bug"
 parent_id: "BUG"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -132,6 +132,33 @@ the content assertion caught it, which is why this report's test strategy asks f
 The second mutation's **first** attempt reported SURVIVED and was discarded rather than recorded: it
 searched `element.containingFile` for a field tag, and the consumer file has none — the tags are in
 the library file — so the edit was inert. An inert mutation is INVALID, not evidence of a weak test.
+
+### VNC-VERIFIED 2026-08-20 — and the caret is a trap worth knowing
+
+Sandbox GoLand on the builder VM, plugin load line confirmed **fresh** (`2026-08-20 22:17:55`) and
+`LuaCatsFieldDocumentationTarget.class` present in the sandbox build, one class carrying both forms:
+
+| caret on | rendered |
+| :-- | :-- |
+| `Cfg440.identity` (`---@field`) | `Cfg440.identity : string` + *The save directory used by the game.* |
+| `Cfg440.save` (`function`) | `function Cfg440.save() : boolean` + prose + `Returns: boolean ok` |
+
+The fix renders and the control is unregressed.
+
+**The trap: `Ctrl+Q` with the caret at END OF LINE — one character past the identifier — produces
+"No documentation found." verbatim**, on the very member that documents correctly one character to
+the left. The first VNC attempt did exactly that and looked like the fix had failed in the IDE while
+passing headlessly. Two checks separated it from a real defect: the compiled class was present in the
+sandbox, and moving the caret inside the name rendered the doc immediately.
+
+That matters beyond this fix, because it is also the reported symptom of [[BUG-443]] — see there.
+
+### The `ngx.say` half is carved out as [[BUG-443]], not left holding this open
+
+It never reproduced: the function form renders through every route tried, including this live
+session. The one variable never exercised is the **shipped-catalog** loading path, and the caret
+above is a cheaper explanation that has to be eliminated first. Tracking it here would keep a fixed
+defect open on an unreproduced observation about a different mechanism.
 
 ### Why this is `in_progress` and not `done`
 
