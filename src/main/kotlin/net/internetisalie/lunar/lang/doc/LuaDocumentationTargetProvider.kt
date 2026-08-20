@@ -26,6 +26,8 @@ import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.indexing.dottedMemberName
 import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.lang.psi.*
+import net.internetisalie.lunar.lang.psi.types.LuaClassType
+import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgName
@@ -33,7 +35,9 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgType
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsElementTypes
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsFieldTag
 
 class LuaDocumentationTargetProvider : DocumentationTargetProvider {
     override fun documentationTargets(
@@ -48,6 +52,8 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         ) {
             // NAV-12-03: a dotted member field documents its `receiver.field = value` declaration.
             memberFieldDocumentationTarget(element)?.let { return listOf(it) }
+            // BUG-440: and a member declared as `---@field` documents its TAG.
+            catsFieldDocumentationTarget(element)?.let { return listOf(it) }
 
             val isMemberSegment = element.parent?.parent is LuaIndexExpr
             if (!isMemberSegment) {
@@ -97,6 +103,36 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
             return LuaFieldDocumentationTarget(field, comment, qualifiedName)
         }
         return null
+    }
+
+    /**
+     * BUG-440 — a member declared `---@field` on a `---@class`, which has **no declaration PSI**.
+     *
+     * `resolveDocumentationTarget` obtains its target through `reference.resolve()`, and a field
+     * exists only as a tag inside a LuaCATS comment (the `AGENTS.md` invariant: LuaCATS tags are not
+     * stubbed, they ride a host declaration's stub). So `resolve()` returned null, no target was
+     * produced, and Quick Doc rendered "No documentation found" — for **every** `---@field` member of
+     * **every** library. The bug was reported as "openresty fails, love2d works"; measured against
+     * the real catalog files, a love2d field fails identically. The variable was the declaration
+     * form, never the library.
+     *
+     * Resolution is deliberately NOT made to succeed for a field. That would mint a declaration that
+     * does not exist and reach Find Usages, Rename and the type engine; `LuaCatsTypeNavigation` set
+     * the precedent for a bare `---@class` by targeting the tag instead, and this follows it.
+     *
+     * The member is looked up through the resolved class rather than by name, so an undeclared member
+     * still yields nothing — showing an arbitrary same-named symbol would be worse than showing
+     * nothing, which is the rule `memberFieldDocumentationTarget` already states above.
+     */
+    private fun catsFieldDocumentationTarget(element: PsiElement): DocumentationTarget? {
+        if (element.parent?.parent !is LuaIndexExpr) return null
+        val container = PsiTreeUtil.getParentOfType(element, LuaVar::class.java) ?: return null
+        val receiver = container.nameRef?.text ?: return null
+        val memberName = element.text ?: return null
+        val resolved = LuaTypeManager.getInstance(element.project).resolveType(receiver, element)
+        val member = (resolved as? LuaClassType)?.resolveMember(memberName) ?: return null
+        val tag = member.sourceElement as? LuaCatsFieldTag ?: return null
+        return LuaCatsFieldDocumentationTarget(tag, "$receiver.$memberName")
     }
 
     private fun precedingCatsComment(statement: PsiElement): LuaCatsComment? {
@@ -292,6 +328,78 @@ internal class LuaCatsDocumentationTarget(
  * rides its assignment statement (not a [LuaCommentOwner]), so it is rendered directly from the
  * preceding [LuaCatsComment] and anchored on the field identifier for presentation/navigation.
  */
+/**
+ * BUG-440 — renders a `---@field` from the **tag**, not from its comment.
+ *
+ * [LuaFieldDocumentationTarget] cannot serve this: it reads a `---@type` tag off the comment and the
+ * comment's own summary, which for a `---@class` block describe the CLASS, not the field. Pointed at
+ * a field tag it produced null — a target with no documentation, which renders exactly as the
+ * missing target did. The type and the prose both belong to the tag, and
+ * `LuaCatsDeclarations.fieldMember` already parses the first.
+ */
+internal class LuaCatsFieldDocumentationTarget(
+    private val tag: LuaCatsFieldTag,
+    private val qualifiedName: String,
+) : DocumentationTarget {
+    override fun createPointer(): Pointer<out DocumentationTarget> {
+        val tagPtr = tag.createSmartPointer()
+        val name = qualifiedName
+        return Pointer {
+            val restored = tagPtr.dereference() ?: return@Pointer null
+            LuaCatsFieldDocumentationTarget(restored, name)
+        }
+    }
+
+    override val navigatable: Navigatable?
+        get() = tag as? Navigatable
+
+    override fun computePresentation(): TargetPresentation = TargetPresentation.builder(qualifiedName).presentation()
+
+    override fun computeDocumentation(): DocumentationResult {
+        val typeText = LuaCatsDeclarations.fieldMember(tag).typeName.trim()
+        val body =
+            buildString {
+                append("<div class='definition'><pre>")
+                append(qualifiedName)
+                if (typeText.isNotEmpty()) {
+                    append(" : ")
+                    append(typeText)
+                }
+                append("</pre></div>")
+                val prose = fieldProse()
+                if (prose.isNotEmpty()) {
+                    append("<div class='content'>")
+                    append(LuaDocumentationRenderer.markdownDescription(prose))
+                    append("</div>")
+                }
+            }
+        return DocumentationResult.documentation(
+            LuaDocumentationRenderer.DOC_COMMENT_HEADER + body + LuaDocumentationRenderer.DOC_COMMENT_FOOTER,
+        )
+    }
+
+    /**
+     * The `---` prose immediately above this tag, stopping at the previous tag.
+     *
+     * A `---@class` block documents each of its fields in turn, so the comment's own summary is the
+     * class's and the lines between two tags belong to the second of them.
+     */
+    private fun fieldProse(): String {
+        val lines = mutableListOf<String>()
+        var prev = tag.prevSibling
+        while (prev != null) {
+            if (prev is LuaCatsFieldTag || prev is LuaCatsClassTag) break
+            val text = prev.text
+            if (text != null && text.isNotBlank()) {
+                val stripped = text.trimStart().removePrefix("---").trim()
+                if (stripped.isNotEmpty()) lines.add(stripped)
+            }
+            prev = prev.prevSibling
+        }
+        return lines.reversed().joinToString(" ").trim()
+    }
+}
+
 internal class LuaFieldDocumentationTarget(
     val anchor: PsiElement,
     val comment: LuaCatsComment,

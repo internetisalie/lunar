@@ -28,6 +28,11 @@
   Completion could not see a global declared in a rockspec at all, and a bare `---@class` there was
   invisible to Go to Class. Measured on the luacheck project, this also removes seven false
   "undeclared variable" warnings for globals its `.luacheckrc` declares.
+- **Quick Documentation works for a `---@field` member** (BUG-440): pressing Ctrl+Q on a member
+  declared with `---@field` — as most definition libraries declare their constants and settings —
+  returned "No documentation found". It now shows the field's declared type and its description.
+  Members declared as `function X.y()` were never affected, which is why this looked like a
+  library-specific fault rather than a general one.
 - **A nested table's members complete** (BUG-430): `Config.db.host = …` is ordinary Lua, but
   `Config.db.` offered **nothing at all** — a table with members completing as empty. Members written
   through a two-segment receiver were recorded under no receiver at all, and completion only ever

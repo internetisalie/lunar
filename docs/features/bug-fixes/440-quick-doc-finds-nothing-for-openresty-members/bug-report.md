@@ -3,7 +3,7 @@ id: "BUG-440"
 title: "Quick Doc returns \"No documentation found\" for openresty library members, while love2d works"
 type: "bug"
 parent_id: "BUG"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -97,6 +97,52 @@ its type is good. Probe that directly against both libraries before looking at a
 Note the declaration-form counts differ sharply between the two files (openresty `ngx.lua`: 28
 `---@field`, 83 `function ngx.X`, 78 `ngx.X =`), so establish which form fails rather than assuming
 all three do — `ngx.say` is the second form and is the cleanest single case to pin.
+
+## `---@field` HALF FIXED 2026-08-20 — VNC verification still OWED, so this is NOT closed
+
+`catsFieldDocumentationTarget` resolves the receiver's class, looks the member up through
+`LuaClassType.resolveMember`, and documents the tag `materializeClass` already recorded as its
+`sourceElement`. Resolution is deliberately not made to succeed for a field.
+
+Gates: full suite **green with `-PwithCorpus`**, zero `IMPROVED` lines (correct — a doc-layer change
+moves no inspection count). 50/50 in the documentation suite, no regression. Mutation-proved **2/2**.
+
+### Two wrong turns, both worth recording
+
+**1. The first reproduction fixture was wrong, not the code.** It reached the member through a typed
+local (`---@type Cfg; local c; c.identity`), which turned the *function control* red too and looked
+like a far larger bug. The reported scenario is a **direct global** member access (`ngx.say`), and
+with that shape the control is green. **That miss surfaced a separate, unreported defect**: a member
+reached through a typed local documents nothing, whichever form declares it. Out of scope here; file
+it if it matters.
+
+**2. Reusing `LuaFieldDocumentationTarget` produced a target that rendered nothing.** It reads a
+`---@type` tag off the comment plus the comment's own summary — on a `---@class` block both describe
+the *class*, not the field — so `computeDocumentation()` returned null, which renders exactly as the
+missing target did. `targets == 1` went green while the user-visible behaviour was unchanged. Only
+the content assertion caught it, which is why this report's test strategy asks for both.
+
+### Mutation proof, and one discarded result
+
+| mutation | red |
+| :-- | :-- |
+| remove the `catsFieldDocumentationTarget` branch | both `---@field` tests; both controls stay green |
+| return a target for **any** member of the class | `testAnUnknownMemberStillHasNoTarget`, and only it |
+
+The second mutation's **first** attempt reported SURVIVED and was discarded rather than recorded: it
+searched `element.containingFile` for a field tag, and the consumer file has none — the tags are in
+the library file — so the edit was inert. An inert mutation is INVALID, not evidence of a weak test.
+
+### Why this is `in_progress` and not `done`
+
+**Quick Doc is a user-visible surface and `verify-in-ide` has not been run.** The tests drive the real
+provider and assert on produced HTML, which is stronger than a typical unit test, but they do not
+prove the platform invokes this provider on Ctrl+Q or that the result renders legibly. Two things are
+owed in one VNC session:
+
+1. **The `---@field` fix renders** — `ngx.status` shows its type and prose.
+2. **The unresolved `ngx.say` question below.** That half still does not reproduce headlessly and a
+   headless green cannot settle it in either direction.
 
 ## PLANNED 2026-08-20 — it is not openresty, it is `---@field`
 
