@@ -124,20 +124,23 @@ class MemberEnumerationShadowingTest : LibraryRootTestCase() {
      * name the `LuaLocalVarDecl` clause already bound, Rule S sees it, the arm declines, and no eighth
      * clause is needed.
      *
-     * **Measured, and the requirement's `Then` column was wrong about the other half.** TC 10j predicted
-     * `[fromLocal]`; the observed set is `[else, elseif, end]` — the three keywords an open `if` block
-     * offers, with no member at all. That is a **pre-existing** property of the type-guard narrowing
-     * path, not something Phase 2 caused: the narrowed variable node carries the guard's type rather
-     * than the table literal's members, and this arm never runs (TC 10f shows an arm that *does* run
-     * offering `fromLibrary`, and that is exactly what is missing here). Everything below the insertion
-     * point is byte-for-byte unchanged, so this set is today's. Recorded as a finding in
-     * risks-and-gaps.md; it is out of COMP-09's scope.
+     * **The other half was a finding, and [[BUG-435]] has since fixed it.** This method used to pin
+     * `[else, elseif, end]` — the three keywords an open `if` block offers, with no member at all —
+     * against TC 10j's own prediction of `[fromLocal]`. That set was the *defect*, recorded here and
+     * in risks-and-gaps.md as out of COMP-09's scope: the narrowed variable node carried the guard's
+     * bare `Table(localMembers={})` instead of the literal's `Table(localMembers={fromLocal=…})`, so
+     * narrowing to `table` removed every member. Confirmed by reading the node, not inferred.
+     *
+     * The set is now `[fromLocal, else, elseif, end]` — TC 10j's original prediction plus the
+     * keywords. **The verdict is untouched**: `fromLibrary` is still absent, Rule S still sees the
+     * `LuaLocalVarDecl` binding, the arm still declines, and no eighth clause is needed. Only the
+     * half this method recorded as broken has changed, which is what makes it safe to update.
      */
     fun testTypeGuardNarrowingIsCoveredTransitively() {
         seedShadowLibrary()
         assertOffered(
             "local Shadow = { fromLocal = 1 }\nif type(Shadow) == \"table\" then\n    Shadow.<caret>\nend\n",
-            setOf("else", "elseif", "end"),
+            setOf("fromLocal", "else", "elseif", "end"),
         )
     }
 

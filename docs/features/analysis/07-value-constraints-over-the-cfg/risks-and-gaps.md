@@ -281,3 +281,31 @@ shows *which direction is which*). Round 1's TC-4a line error was inherited from
 written by the same supervisor hours earlier. In both cases the planner had no way to get it right.
 **Cite the comparator, not the guard**, and treat an upstream bug report as a source to re-verify
 rather than to quote.
+
+## DR-10 — RESOLVED EARLY 2026-08-20, and it cancels `ANALYSIS-07-03`
+
+DR-10 asked whether [[BUG-435]] is a wrong node at `LuaTypesVisitor.injectNarrowedBinding`
+(`:464-478`) rather than a missing subgraph-constraint capability. **It is.** Probed inside that
+method, on the report's own fixture:
+
+```
+originalWrite = Table(className=null, localMembers={fromLocal=…}, isExact=false)
+guardNarrowed = Table(className=null, localMembers={},            isExact=false)
+chosen        = Table(className=null, localMembers={},            isExact=false)
+```
+
+That is the `NODE_REPLACED_BY_MEMBERLESS_TABLE` verdict, which `implementation-plan.md` Phase 2
+states in advance means **"this phase does not exist"** — the work being a one-site fix at exactly
+that range, refiled as a bug, with the requirement `cancelled` and the dump quoted. All three
+conditions are met: the fix is one site in that range, it shipped as BUG-435, and the dump is above.
+
+Phase 2's own exit criterion TC-3a — *"`Shadow.` inside `if type(Shadow) == "table" then` offers
+`fromLocal`, measured through `myFixture.completeBasic()` and not through a direct type query"* — is
+satisfied by `LuaGuardNarrowingMembersTest.testMembersSurviveATypeTableGuard`, which drives
+`completeBasic()` exactly as specified.
+
+**Consequence:** `ANALYSIS-07-03` is `cancelled` and Phase 2 has no tasks. **Phase 2 keeps its
+number**: `cancelled` is a terminal state this repo keeps visible, and renumbering would churn
+cross-references across four artifacts and the roadmap on a plan that took three Step 9 rounds.
+Phases 0, 1, 3 and 4 are unaffected — DR-10 was scoped to `-03` alone and decides nothing about the
+direction, which is still Phase 0's job.

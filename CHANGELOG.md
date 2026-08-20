@@ -33,6 +33,10 @@
   returned "No documentation found". It now shows the field's declared type and its description.
   Members declared as `function X.y()` were never affected, which is why this looked like a
   library-specific fault rather than a general one.
+- **A `type(x) == "table"` guard no longer hides the value's members** (BUG-435): inside the
+  idiomatic guard, `x.` offered nothing at all — narrowing a value to `table` removed every member it
+  had, so completion was worse inside the check than outside it. The guard asserts the value *is* a
+  table, so it can now only ever add information, never take it away.
 - **A nested table's members complete** (BUG-430): `Config.db.host = …` is ordinary Lua, but
   `Config.db.` offered **nothing at all** — a table with members completing as empty. Members written
   through a two-segment receiver were recorded under no receiver at all, and completion only ever

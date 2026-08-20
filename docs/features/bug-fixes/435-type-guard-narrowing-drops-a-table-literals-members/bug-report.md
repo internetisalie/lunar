@@ -3,7 +3,7 @@ id: "BUG-435"
 title: "Inside `if type(x) == \"table\"`, the narrowed variable offers no members at all"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -73,6 +73,55 @@ populated node with an empty one.
 
 Anyone taking this should confirm that by reading the node the guard installs, not by assuming this
 paragraph — that is the failure mode COMP-09 spent three review rounds on.
+
+## FIXED 2026-08-20 — the hypothesis was right, and it was confirmed by reading the node
+
+This report said the cause was a hypothesis and told the next reader to *"confirm that by reading the
+node the guard installs, not by assuming this paragraph"*. Done, with a probe inside
+`injectNarrowedBinding`:
+
+```
+B435-NODE var=Shadow matchBranch=true
+  originalWrite = Table(className=null, localMembers={fromLocal=…}, isExact=false)
+  guardNarrowed = Table(className=null, localMembers={},            isExact=false)
+  chosen        = Table(className=null, localMembers={},            isExact=false)
+```
+
+The match branch took `guard.narrowedType` **wholesale**, so a populated table was replaced by the
+guard's bare one and every member vanished.
+
+### The fix
+
+`narrowType(original, to)` — when `original` is already of the narrowed kind, keep it. Inside
+`if type(Shadow) == "table"` the value **is** a table, so a guard that only restates what the type
+already says adds nothing and must not subtract. A guard that genuinely contradicts or refines the
+type still wins, and the else branch's `subtractType` is untouched.
+
+### Mutation proof — 2/2, and the second is the load-bearing one
+
+| mutation | red |
+| :-- | :-- |
+| revert to `guard.narrowedType` wholesale | both BUG-435 tests |
+| make `narrowType` always keep the original (never narrow) | **5 `TestFlowSensitiveType` tests** — typeof-equality→string, nil equality, nil inequality, elseif chains |
+
+The second is what shows the fix does not simply *disable* narrowing. TYPE-08's own pre-existing
+tests guard that direction, and they fire when the rule is made too permissive — so the implemented
+rule sits between the two failure modes rather than at one end.
+
+### COMP-09's TC 10j moved, and its own KDoc said which half to trust
+
+`MemberEnumerationShadowingTest.testTypeGuardNarrowingIsCoveredTransitively` pinned
+`[else, elseif, end]`. Its **verdict** is `fromLibrary`'s *absence* (is the site transitively covered
+by Rule S?); the set was explicitly recorded there as the defect, against TC 10j's own prediction of
+`[fromLocal]`. Measured after the fix: **`[fromLocal, else, elseif, end]`** — `fromLocal` gained,
+`fromLibrary` still absent. The verdict is intact and only the half that method recorded as broken
+moved, which is what made it safe to update.
+
+### Gates
+
+`test --rerun --no-build-cache -PwithCorpus`: **green, zero `IMPROVED` lines**. A narrowing that only
+*adds* members inside a guard moves no inspection count, which is the expected result rather than a
+lucky one.
 
 ## Scope note
 

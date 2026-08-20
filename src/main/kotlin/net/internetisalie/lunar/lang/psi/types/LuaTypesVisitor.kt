@@ -468,7 +468,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val originalNode = scope.lookup(guard.variableName) ?: return
         val narrowedType =
             if (matchBranch == guard.isEquality) {
-                guard.narrowedType
+                narrowType(originalNode.write, guard.narrowedType)
             } else {
                 subtractType(originalNode.write, guard.narrowedType)
             }
@@ -477,6 +477,30 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         graph.addEdge(narrowedValue, narrowedVar)
         scope.declare(guard.variableName, narrowedVar)
     }
+
+    /**
+     * BUG-435 — narrowing must never yield *less* than the type it narrows.
+     *
+     * The match branch took `guard.narrowedType` wholesale, so `if type(Shadow) == "table"` replaced
+     * the local's real `Table(localMembers={fromLocal=…})` with the guard's bare
+     * `Table(localMembers={})`. Read off the node rather than inferred:
+     *
+     * ```
+     * originalWrite = Table(className=null, localMembers={fromLocal=…}, isExact=false)
+     * guardNarrowed = Table(className=null, localMembers={},           isExact=false)
+     * chosen        = Table(className=null, localMembers={},           isExact=false)   <- the bare one won
+     * ```
+     *
+     * Inside the guard the value **is** a table, so a guard that only restates what the type already
+     * says adds nothing and must not subtract: when [original] is already of the narrowed kind it is
+     * kept, being at least as specific. Anything else — a union, or a type the guard genuinely
+     * contradicts — is unchanged from before, so a narrowing that really does say something new
+     * still wins.
+     */
+    private fun narrowType(
+        original: LuaGraphType,
+        to: LuaGraphType,
+    ): LuaGraphType = if (original::class == to::class) original else to
 
     /** Removes [remove] from [original], delegating union subtraction to [LuaTypeAlgebra]. */
     private fun subtractType(
