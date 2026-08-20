@@ -243,12 +243,24 @@ class LuaTypeGraph {
      * a real element, else the value site, else nowhere — see [addError] for why a file-wide error
      * is worse than no error.
      */
+    /**
+     * BUG-441: the engine cannot account for this value. Either spelling counts — `Undefined` is what
+     * an unmodellable expression yields directly, `Any` is what [LuaTypesVisitor.collectRhsNodes]
+     * contributes for one that yields no node at all, and a union carrying either arm is gradual for
+     * the same reason.
+     */
+    private fun isUnknown(type: LuaGraphType): Boolean =
+        type == LuaGraphType.Any ||
+            type == LuaGraphType.Undefined ||
+            (type is LuaGraphType.Union && type.types.any { it == LuaGraphType.Any || it == LuaGraphType.Undefined })
+
     private fun reportIncompatible(
         useElement: PsiElement,
         valueElement: PsiElement,
         message: String,
         declaredDemand: Boolean = false,
         inferredValueType: String? = null,
+        unknownProvenance: Boolean = false,
     ) {
         val anchor =
             when {
@@ -260,7 +272,15 @@ class LuaTypeGraph {
         // wrote. Against a demand the engine synthesized from usage, both sides are its own
         // inferences and the conflict is evidence the model is incomplete — measured at 7 430 of
         // 7 433 emissions across four corpus members.
-        val tier = if (declaredDemand) ErrorSeverity.ERROR else ErrorSeverity.HYPOTHESIS
+        // BUG-441: criterion 1 of the same rule — *unknown-free provenance*. A declared demand
+        // licenses the engine to speak only about a value it can actually account for. When a
+        // sibling reaching definition is unknown (`local d = wx.thing; if c then d = "s" end`), the
+        // string write is real but it is not the whole story, and reporting it as an ERROR asserts
+        // more than the model knows. Downgraded rather than dropped: BUG-416 requires that
+        // suppression never ENABLE anything, and returning here would skip the member-edge wiring
+        // the surrounding checks still perform.
+        val tier =
+            if (declaredDemand && !unknownProvenance) ErrorSeverity.ERROR else ErrorSeverity.HYPOTHESIS
         addError(ElementError(anchor, message, tier, inferredValueType.takeIf { tier == ErrorSeverity.HYPOTHESIS }))
     }
 
@@ -323,6 +343,14 @@ class LuaTypeGraph {
                     // member. With exactly one, the variable can hold nothing else, and a Nil is
                     // certain (`local nothing = nil; count(nothing)` stays an error).
                     val certain = currentUpSet.count { it is ValueNode && !it.declaredOrigin } == 1
+                    // BUG-441 (RC-2): this loop checks each reaching definition against the demand
+                    // ON ITS OWN — the variable's merged type is never the thing being checked, which
+                    // is why every "make the union gradual" design aimed at the type algebra failed.
+                    // Unknown-ness is therefore a property of the upSet as a whole and can only be
+                    // computed here: the string write in `local d = wx.thing; if c then d = "s" end`
+                    // is itself perfectly known, and what makes it unreportable is a SIBLING.
+                    val unknownProvenance =
+                        currentUpSet.any { it is ValueNode && isUnknown(it.write) }
                     for (useNode in currentDownSet) {
                         if (useNode !is UseNode) continue
                         for (valueNode in currentUpSet) {
@@ -337,6 +365,7 @@ class LuaTypeGraph {
                                     useNode.element,
                                     certain = certain,
                                     declaredDemand = useNode.declaredDemand,
+                                    unknownProvenance = unknownProvenance,
                                 )
                             }
                         }
@@ -363,6 +392,7 @@ class LuaTypeGraph {
         visited: MutableSet<Pair<LuaGraphType, LuaGraphType>> = mutableSetOf(),
         certain: Boolean = false,
         declaredDemand: Boolean = false,
+        unknownProvenance: Boolean = false,
     ) {
         if (valueType == LuaGraphType.Any || useType == LuaGraphType.Any) return
         if (valueType == LuaGraphType.Undefined || useType == LuaGraphType.Undefined) return
@@ -399,6 +429,7 @@ class LuaTypeGraph {
                     "${valueType.displayName()} is not assignable to ${useType.displayName()}",
                     declaredDemand,
                     valueType.displayName(),
+                    unknownProvenance,
                 )
                 return
             }
@@ -415,7 +446,7 @@ class LuaTypeGraph {
             for (member in valueType.types) {
                 if (member is LuaGraphType.Table || member is LuaGraphType.Function || member is LuaGraphType.Union) {
                     if (gradual && !isCompatible(member, useType, CompatContext())) continue
-                    checkCompatibility(member, useType, valueElement, useElement, visited, certain, declaredDemand)
+                    checkCompatibility(member, useType, valueElement, useElement, visited, certain, declaredDemand, unknownProvenance)
                 }
             }
             return
@@ -445,6 +476,7 @@ class LuaTypeGraph {
                                 visited,
                                 certain,
                                 declaredDemand,
+                                unknownProvenance,
                             )
                         }
                     }
@@ -459,7 +491,14 @@ class LuaTypeGraph {
                 } else {
                     "${valueType.displayName()} is not assignable to union ${useType.displayName()}"
                 }
-            reportIncompatible(useElement, valueElement, message, declaredDemand, valueType.displayName())
+            reportIncompatible(
+                useElement,
+                valueElement,
+                message,
+                declaredDemand,
+                valueType.displayName(),
+                unknownProvenance,
+            )
             return
         }
 
@@ -506,7 +545,14 @@ class LuaTypeGraph {
             // it flagged a shipped IDE 959 times.
             if (certain) {
                 val message = "nil value is not assignable to ${useType.displayName()}"
-                reportIncompatible(useElement, valueElement, message, declaredDemand, valueType.displayName())
+                reportIncompatible(
+                useElement,
+                valueElement,
+                message,
+                declaredDemand,
+                valueType.displayName(),
+                unknownProvenance,
+            )
             }
             return
         }
@@ -517,6 +563,7 @@ class LuaTypeGraph {
             "${valueType.displayName()} is not assignable to ${useType.displayName()}",
             declaredDemand,
             valueType.displayName(),
+            unknownProvenance,
         )
     }
 

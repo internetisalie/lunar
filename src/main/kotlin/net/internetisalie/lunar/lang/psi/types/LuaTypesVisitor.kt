@@ -228,7 +228,23 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             val unwrapped = unwrapExpression(expr)
             val nodes = getNodes(unwrapped)
             if (i == exprs.size - 1) {
-                result.addAll(nodes)
+                // BUG-441 (RC-1): an expression the engine cannot model contributes NO node, so the
+                // unknown vanishes instead of widening the reaching-definition set — measured,
+                // `local d = wx.thing` gives `upSet.size=0`, making `d` byte-identical to a `d` that
+                // was never assigned it. Absence is stronger erasure than a type: it is identical for
+                // direct absorption but invisible to union formation and to the per-definition checks
+                // in `checkTypes`. The branch below already does this for a non-last expression, with
+                // a comment stating the principle; it was simply never applied to the position a
+                // single-expression RHS always occupies.
+                //
+                // `Any`, not `Undefined`: `LuaTypeAlgebra.simplify` and `resolveWrite`'s `flatten`
+                // both drop `Undefined` from a union, which would restore exactly today's behaviour
+                // and fix nothing. `Any` already survives both and already makes a union gradual.
+                if (nodes.isEmpty()) {
+                    result.add(graph.value(expr, LuaGraphType.Any))
+                } else {
+                    result.addAll(nodes)
+                }
             } else {
                 nodes.firstOrNull()?.let { result.add(it) }
                     // Undefined, not nil: an RHS the engine cannot model is unknown, and a
@@ -625,7 +641,15 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                     // surviving arm is the left's falsy part alone, so `value and f(...)` with an
                     // un-inferable `f` collapsed to a bare `nil` and every use of the result was
                     // reported — 40 corpus false positives, worse than the imprecision being fixed.
-                    val carried = if (op == "and") falsyPart(leftType) else truthyPart(leftType)
+                    // BUG-441: `Any`, not `Undefined`, when the LEFT operand is unmodellable.
+                    // `Union.create` canonicalizes an `Undefined` arm away (`LuaTypeAlgebra.simplify`
+                    // filters it, and `truthyPart`'s own KDoc says so), so `wx.thing or "s"` collapsed
+                    // to a bare `string` and the unknown half of the expression was gone by the time
+                    // anything could act on it. `Any` survives the same canonicalization and already
+                    // makes a union gradual, so the arm reaches `checkTypes` where it belongs.
+                    val carriedPart = if (op == "and") falsyPart(leftType) else truthyPart(leftType)
+                    val carried =
+                        if (carriedPart == LuaGraphType.Undefined) LuaGraphType.Any else carriedPart
                     if (rightType == LuaGraphType.Undefined) {
                         LuaGraphType.Undefined
                     } else {

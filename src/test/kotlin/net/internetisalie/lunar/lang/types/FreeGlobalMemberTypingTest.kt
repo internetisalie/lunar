@@ -221,16 +221,28 @@ class FreeGlobalMemberTypingTest : IndexedBasePlatformTestCase() {
             val refs = PsiTreeUtil.collectElementsOfType(myFixture.file, LuaNameRef::class.java)
             val v = refs.first { it.text == "v" }
             val w = refs.first { it.text == "w" }
-            assertEquals(
-                "F2: a write through Config.db must not leak into Config.sub's read",
-                LuaGraphType.Undefined,
-                snapshot.getValueType(v),
+            // BUG-441 changed the SPELLING of "the engine does not know", not this property. An
+            // unmodellable RHS used to contribute no node at all, so the variable was left at
+            // `Undefined`; it now contributes an explicit `Any`, because a vanished write is
+            // invisible to union formation and to `checkTypes`' per-definition checks, which is the
+            // whole of that bug. Both spellings mean unknown and both absorb every check.
+            //
+            // Asserted as the property rather than the spelling, and **more** strictly than before
+            // on the half that matters: the leak these guards exist for would make these `string`,
+            // and that is now named outright instead of being implied by an equality that also
+            // happened to pin how the unknown was written down.
+            assertTrue(
+                "F2: a write through Config.db must not leak into Config.sub's read, got " +
+                    snapshot.getValueType(v),
+                snapshot.getValueType(v).let { it == LuaGraphType.Undefined || it == LuaGraphType.Any },
             )
-            assertEquals(
-                "F1 read form: an undeclared chain member must stay untyped, not inherit the global's",
-                LuaGraphType.Undefined,
-                snapshot.getValueType(w),
+            assertNotSame("F2: `v` must never acquire the written string's type", LuaGraphType.String, snapshot.getValueType(v))
+            assertTrue(
+                "F1 read form: an undeclared chain member must stay untyped, not inherit the " +
+                    "global's, got " + snapshot.getValueType(w),
+                snapshot.getValueType(w).let { it == LuaGraphType.Undefined || it == LuaGraphType.Any },
             )
+            assertNotSame("F1: `w` must not inherit the written string's type", LuaGraphType.String, snapshot.getValueType(w))
         }
     }
 

@@ -3,7 +3,7 @@ id: "BUG-441"
 title: "An unknown write vanishes instead of widening, so the model lies about its own completeness"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 size: "L"
 folders:
@@ -190,6 +190,98 @@ diagnostics are emitted per-edge at construction time and never see it. A fix mu
 Either is engine surgery with the corpus as the only real gate. **This is not a bug fix; it wants
 the `plan-feature` pass BUG-430 was given.** Sizing it as a small carve-out from BUG-419 was wrong,
 and the `low` priority below is now doing double duty — small payoff, *large* change.
+
+## Attempt 2 (2026-08-20) — FIXED. The emission path is pinned, and it settles the contradiction.
+
+### The probe the report demanded, run first
+
+A stack probe **with the candidate fix applied** (the report's step 1). Every emission, without
+exception, had one identical stack:
+
+```
+checkTypes:276  ->  checkTypes:333  ->  checkCompatibility$default  ->  checkCompatibility:514  ->  reportIncompatible
+```
+
+**Nothing came from `addEdge`.** The suspected second path via `addEdge:135` does not exist for this
+shape: that branch handles a direct value->use edge (`nil .. "x"`), which has no variable and so no
+upSet to be unknown about. The `$default` frame is the likely explanation for attempt 1's
+contradictory instrumentation — the call at 333 defaults `visited`, so it routes through Kotlin's
+synthetic bridge and a parameter added there is easy to thread into the wrong arity.
+
+### The fix
+
+- **RC-1** — `collectRhsNodes` contributes `graph.value(expr, Any)` for a node-less last expression.
+  `Any` and not `Undefined`, because `simplify` and `flatten` both drop an `Undefined` union arm and
+  would restore today's behaviour exactly.
+- **RC-2** — the loop checks each reaching definition **on its own**, so the merged union is never
+  consulted; this is why every design aimed at the type algebra failed. Unknown-ness is a property of
+  the **upSet as a whole** — the string write in `local d = wx.thing; if c then d = "s" end` is itself
+  perfectly known, and what makes it unreportable is a *sibling*. Computed in `checkTypes`, threaded
+  through `checkCompatibility`, gated in `reportIncompatible`.
+- **Downgraded to `HYPOTHESIS`, not suppressed.** BUG-416 requires that suppression never ENABLE
+  anything, and returning early would skip member-edge wiring the surrounding checks still perform.
+  It is also the honest tier: the conflict is evidence the model is incomplete.
+- **Defect 2** needed the same substitution one layer up: `visitBinOpExpr`'s carried arm was
+  `Undefined`, which `Union.create` canonicalizes away, so `wx.thing or "s"` collapsed to bare
+  `string`.
+
+### Corpus: no movement, and that is not luck
+
+The report predicted movement in inlays and completion and asked for each to be attributed. There was
+**none to attribute** — `BaselineRatchetTest` 35/35, `LuaInspectionParityTest` 1/1 (BUG-417 parity
+holds), sweep/torture/oracle/lexer all green. The reason is structural: `checkCompatibility` absorbs
+both `Any` and `Undefined` at its first two lines, so substituting one for the other is invisible to
+every diagnostic-level baseline. The only place it shows is where a variable's *other* definitions
+were being reported, which is the bug.
+
+### One test moved, and it pinned a spelling
+
+`FreeGlobalMemberTypingTest.testChainedReadsStayIsolatedAndUntyped` asserted
+`getValueType(v) == Undefined`. An unmodellable RHS used to contribute no node at all, leaving the
+variable at its initial `Undefined`; it now contributes an explicit `Any`. The property that method
+guards — a write through `Config.db` must not leak into `Config.sub`'s read — is untouched, since the
+leak would make `v` a `string`. Rewritten to assert the property and **more strictly** on the half
+that matters: the leaked `string` is now named outright with `assertNotSame`, rather than implied by
+an equality that also happened to pin how "unknown" was written down.
+
+### Mutation proof — 6/6 CAUGHT, including the control
+
+| mutation | red |
+| :-- | :-- |
+| RC-1's `Any` node removed | `testAnUnknownWriteDefeatsCertainty` |
+| tier gate -> `declaredDemand` alone | `testAnUnknownWriteDefeatsCertainty` |
+| sibling computation -> `false` | `testAnUnknownWriteDefeatsCertainty` |
+| `carried` arm -> `carriedPart` | `testAnUnknownOperandKeepsTheExpressionGradual` |
+| **tier forced to `HYPOTHESIS` unconditionally** | **`testTheSameCodeWithoutTheUnknownWriteStillErrors`** |
+| RC-1's `Any` node removed (presentation) | `testAVariableBoundToAnUnmodellableRhsDisplaysAsGradual` |
+
+The last row is the one this report insisted on: widening the gate to fire unconditionally turns the
+**control** red, so the fix represents the unknown rather than having stopped checking.
+
+### `displayName()` — scoped out by the report, and it was NOT uncovered in the way first claimed
+
+The landing note originally said no test covers the presentation change. That is wrong, and the
+correction is the useful part: `displayName()` **is** asserted in several places —
+`ArraySubscriptTypeTest`, `LambdaParamInferenceTest`, `StubGlobalSeedTypeTest` — and every one of
+them asserts on a **sub-expression**: the subscript node, the lambda parameter, the `KEYS` reference
+itself. RC-1 changes `collectRhsNodes`, which feeds the **variable on the left**, and nothing
+asserted there. `StubGlobalSeedTypeTest` is the sharpest illustration: its fixture is
+`local x = KEYS` — exactly a node-less-RHS binding — and it pins `KEYS`, never `x`.
+
+So the surface was covered and the *position* was not, which is why a green suite said nothing about
+it. Closed by `testAVariableBoundToAnUnmodellableRhsDisplaysAsGradual`, measured rather than assumed:
+`local a = wx.thing` displays **`any`**. It is a characterization test, not a preference — if that
+wording proves noisy in inlays and quick doc, the report's answer is a presentation-boundary
+projection (BUG-424's precedent), and this is the test that would go red when it lands.
+Mutation-proved: reverting RC-1 turns it red alongside `testAnUnknownWriteDefeatsCertainty`.
+
+### Gates
+
+`test --rerun --no-build-cache -PwithCorpus`: **2 694 tests, 1 failure** — `LuaInterpreterCommand-
+LinesTest.testForProjectResolvesRuntimeAndAppliesEnvironment`, `expected the runtime dir prepended to
+PATH`, which is [[BUG-422]] verbatim. Confirmed by measurement rather than by pattern-matching: it
+passes in isolation and fails only under the full suite, the exact signature that report records.
+`ktlintCheck` green.
 
 ## What a fix has to reckon with
 

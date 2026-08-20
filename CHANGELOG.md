@@ -10,6 +10,13 @@
   still honoured. Measured across four real projects, this removes **629 of the 714** remaining
   type-inspection warnings — 88 % — including 157 in a single file. Some warnings from *other*
   inspections appear for the first time as a result: they were being hidden underneath these.
+- **A variable the engine cannot fully account for is no longer reported as an error** (BUG-441):
+  `local d = wx.thing` contributed nothing at all to what the engine knew about `d`, so a later
+  `d = "s"` looked like the whole story and using `d` where a `---@param` declared a number was
+  reported as a definite error. The unknown now widens what `d` may hold instead of vanishing from
+  it, and the conflict is reported as a hypothesis — the model saying it is incomplete — rather than
+  as a mistake in your code. The same applies to `wx.thing or "s"`. Code with no unknown in it is
+  still checked exactly as before.
 - **A global's members declared in a sibling file are offered** (BUG-439): completion showed only the
   members declared in the same file that assigned the global, so `love.` offered its 40 direct members
   and **none of its 19 submodules** — `love.graphics`, `love.audio`, `love.filesystem` and the rest
