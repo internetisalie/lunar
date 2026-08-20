@@ -10,6 +10,11 @@
   still honoured. Measured across four real projects, this removes **629 of the 714** remaining
   type-inspection warnings — 88 % — including 157 in a single file. Some warnings from *other*
   inspections appear for the first time as a result: they were being hidden underneath these.
+- **`x and f()` / `x or default` no longer report their unused branch as a type error** (BUG-428,
+  fixed by BUG-441): the `nil` or `boolean` arm of an `and`/`or` — the branch that did not run — was
+  reported against a declared type at the use site. Measured across four real projects, **89 of 100**
+  remaining type-assignability and return-type warnings were this, including every one in ZeroBrane
+  Studio. Diagnostics from other causes are unaffected.
 - **A variable the engine cannot fully account for is no longer reported as an error** (BUG-441):
   `local d = wx.thing` contributed nothing at all to what the engine knew about `d`, so a later
   `d = "s"` looked like the whole story and using `d` where a `---@param` declared a number was

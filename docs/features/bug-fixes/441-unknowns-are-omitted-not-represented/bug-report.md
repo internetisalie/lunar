@@ -225,14 +225,32 @@ synthetic bridge and a parameter added there is easy to thread into the wrong ar
   `Undefined`, which `Union.create` canonicalizes away, so `wx.thing or "s"` collapsed to bare
   `string`.
 
-### Corpus: no movement, and that is not luck
+### Corpus — CORRECTED 2026-08-20. It moved a great deal, and the first landing note was wrong.
 
-The report predicted movement in inlays and completion and asked for each to be attributed. There was
-**none to attribute** — `BaselineRatchetTest` 35/35, `LuaInspectionParityTest` 1/1 (BUG-417 parity
-holds), sweep/torture/oracle/lexer all green. The reason is structural: `checkCompatibility` absorbs
-both `Any` and `Undefined` at its first two lines, so substituting one for the other is invisible to
-every diagnostic-level baseline. The only place it shows is where a variable's *other* definitions
-were being reported, which is the bug.
+The landing note said "no movement to attribute". That was false, and the reason it was believed is
+worth recording: **the ratchet is one-directional.** `CorpusGuards` asserts only
+`regressions.isEmpty()`; improvements are `println`'d as `[corpus] IMPROVED (...) — re-record with
+-PrecordCorpusBaseline` and fail nothing. A green ratchet means "nothing got worse", not "nothing
+changed", and the seven IMPROVED lines went unread.
+
+Measured properly, by reverting only this fix's two source files to `dc712238` and re-sweeping:
+
+| corpus | `LuaTypeAssignability` | `LuaReturnTypeMismatch` | `LuaSuspiciousConcatenation` |
+| :-- | --: | --: | --: |
+| luacheck | 0 → 0 | — | — |
+| luarocks | 7 → 5 | — | 116 → 115 |
+| penlight | **46 → 5** | **6 → 1** | — |
+| zerobrane | **32 → 0** | **9 → 0** | 25 → 21 |
+| **total** | **85 → 10** | **15 → 1** | |
+
+Pre-change matched the committed baseline exactly (zero IMPROVED lines), so the movement is cleanly
+attributable here. **89 of 100 emission sites removed** — against this report's own prediction of
+"only 3 emissions corpus-wide". A whole inspection zeroing on a 72-file corpus is the "stopped
+checking" shape, so it was sampled rather than accepted: see [[BUG-428]], which the sample closes.
+Every removed site read was a genuine unaccountable value; the 11 survivors are a *different* family
+(operator metamethods on LPeg patterns and `__mod`), which is what shows checking still works.
+
+Baselines re-recorded in the same commit. `LuaInspectionParityTest` 1/1 (BUG-417 parity holds).
 
 ### One test moved, and it pinned a spelling
 
