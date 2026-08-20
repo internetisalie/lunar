@@ -3,6 +3,7 @@ package net.internetisalie.lunar.platform.target
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
+import net.internetisalie.lunar.lang.LuaFileType
 
 /**
  * Provides access to platform-specific Lua library definitions from the unified `runtime/` resource tree.
@@ -40,6 +41,10 @@ class RuntimeLibraryProvider(
     fun getLibraryFiles(target: Target): List<VirtualFile> =
         getLibraryRoot(target)
             ?.children
-            ?.filter { it.extension == "lua" }
+            // BUG-436: the file TYPE, not the extension. `LuaFileType` is registered for
+            // `lua;rockspec` plus `.luacheckrc`/`.busted`, and a bundled library that shipped any of
+            // the other three was silently dropped here — the same defect as the five indexes, in a
+            // provider rather than an index.
+            ?.filter { it.fileType == LuaFileType }
             ?: emptyList()
 }

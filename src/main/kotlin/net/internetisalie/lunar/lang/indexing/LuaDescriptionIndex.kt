@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang.indexing
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.indexing.DataIndexer
+import com.intellij.util.indexing.DefaultFileTypeSpecificInputFilter
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileContent
@@ -10,9 +11,12 @@ import com.intellij.util.indexing.ID
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.EnumeratorStringDescriptor
 import com.intellij.util.io.KeyDescriptor
+import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.psi.LuaCommentOwner
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaFuncName
+import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.syntax.collectDescriptionText
@@ -36,17 +40,28 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
 
     // BUG-408 changed the record encoding (separators are now percent-escaped), so previously
     // written values decode differently. Bumped to force a rebuild.
-    override fun getVersion(): Int = 3
+    // 3 -> 4 (BUG-436): the filter widened, so the index CONTENT changed. Without the bump a
+    // persisted index keeps its `.lua`-only entries and the fix is invisible on any machine
+    // that has indexed before it.
+    override fun getVersion(): Int = 4
 
     override fun dependsOnFileContent(): Boolean = true
 
     override fun indexDirectories(): Boolean = false
 
-    override fun getInputFilter(): FileBasedIndex.InputFilter = InputFilter()
-
-    private class InputFilter : FileBasedIndex.InputFilter {
-        override fun acceptInput(file: VirtualFile): Boolean = file.extension == "lua"
-    }
+    /**
+     * BUG-436: derived from the file type, never re-stated as an extension. `plugin.xml:99-100`
+     * registers `LuaFileType` for `extensions="lua;rockspec"` **and** `fileNames=".luacheckrc;.busted"`;
+     * this filter used to read `file.extension == "lua"`, so three of the four registrations were
+     * silently unindexed — absent, not stale, and absent in the direction no gate here looks.
+     *
+     * **Instantiated, never subclassed.** `RequiredIndexesEvaluator.toHint` turns this into a real
+     * file-type predicate only when `filter.javaClass == DefaultFileTypeSpecificInputFilter::class.java`
+     * — a subclass silently loses the hint and is evaluated per file instead. `LuaReceiverMemberIndex`
+     * (fixed first, in `fcce5966`) is the worked example.
+     */
+    override fun getInputFilter(): FileBasedIndex.InputFilter =
+        DefaultFileTypeSpecificInputFilter(LuaFileType)
 
     private class StringDataExternalizer : DataExternalizer<String> {
         override fun save(
@@ -88,8 +103,17 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
                                 .firstOrNull()
                                 ?.nameRef
                                 ?.text
-                        is LuaFuncDecl -> owner.funcName.text
-                        is LuaLocalFuncDecl -> owner.nameRef.text
+                        // BUG-436: null-safe, because widening the filter means this indexer now
+                        // sees `.rockspec`/`.luacheckrc`/`.busted` too, and a generated `@NotNull`
+                        // getter does NOT return null on a missing child — `notNullChild` calls
+                        // `LOG.error` (`PsiElementBase:293`), i.e. a reported IDE exception. An
+                        // indexer sees every file in the project and a file being edited is
+                        // malformed most of the time (`local function repeat(…)` — `repeat` is a
+                        // keyword — yields a `LuaLocalFuncDecl` with no name node at all). Same
+                        // defect class as BUG-441; latent here until the version bump forced a
+                        // rebuild.
+                        is LuaFuncDecl -> PsiTreeUtil.getChildOfType(owner, LuaFuncName::class.java)?.text
+                        is LuaLocalFuncDecl -> PsiTreeUtil.getChildOfType(owner, LuaNameRef::class.java)?.text
                         else -> null
                     } ?: owner.text
 

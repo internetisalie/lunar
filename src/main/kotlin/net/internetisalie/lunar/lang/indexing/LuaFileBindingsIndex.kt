@@ -6,6 +6,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiRecursiveElementVisitor
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileContent
@@ -19,6 +20,8 @@ import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaFuncName
+import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
@@ -77,15 +80,29 @@ class LuaFileBindingsIndex : FileBasedIndexExtension<Int, LuaFileBindingsRecord>
         }
     }
 
+    /**
+     * BUG-436: this one was the sharpest of the five — `LuaFileInputFilter` already tested the FILE
+     * TYPE correctly, and the extension check was ANDed on top, narrowing a right answer back down
+     * to `.lua` alone. The comment on it read "make sure it's the right file type", which is what
+     * the line above it was already doing.
+     *
+     * **Only the AND is deleted; `LuaFileInputFilter` stays.** The first cut replaced it wholesale
+     * with `DefaultFileTypeSpecificInputFilter` for the `RequiredIndexesEvaluator.toHint` fast path,
+     * on the reasoning that the `url.startsWith("file:")` guard was "anomalous, not protective".
+     * **That reasoning was wrong, and the suite said so**: dropping it admits the in-memory
+     * `temp://` files a `BasePlatformTestCase` fixture lives on, which changes what this index binds
+     * and cost `LuaParameterInlayHintsTest.testStdlibAssertDoesNotShowHints` its stdlib resolution.
+     * The guard is load-bearing; the narrowing next to it was the defect. Keeping the hint would be
+     * a separate change with its own measurement.
+     */
     private class InputFilter : FileBasedIndex.InputFilter {
         private val luaFileInputFilter = LuaFileInputFilter()
 
-        override fun acceptInput(file: VirtualFile): Boolean {
-            if (!luaFileInputFilter.acceptInput(file)) return false
-            // make sure it's the right file type
-            val extension = file.path.substringAfterLast('.', "")
-            return extension == "lua"
-        }
+        // BUG-436: the file-type test alone. `LuaFileInputFilter` already asks whether the file IS a
+        // `LuaFileType`; the extension check that used to be ANDed here — under a comment reading
+        // "make sure it's the right file type", which is what the line above it was already doing —
+        // narrowed that right answer back down to `.lua` and hid `.rockspec`/`.luacheckrc`/`.busted`.
+        override fun acceptInput(file: VirtualFile): Boolean = luaFileInputFilter.acceptInput(file)
     }
 
     override fun getIndexer(): ForwardIndexer<LuaFileBindingsRecord> = myIndexer
@@ -105,7 +122,8 @@ class LuaFileBindingsIndex : FileBasedIndexExtension<Int, LuaFileBindingsRecord>
     companion object {
         // MAINT-30-01 (§3.2): 2 → 3 forces a one-time full rebuild so the shrunk declaration-only
         // binding set (usages no longer recorded) replaces the stale usage-inclusive index.
-        const val VERSION: Int = 3
+        // 3 -> 4 (BUG-436): the filter widened, so the index content changed.
+        const val VERSION: Int = 4
     }
 }
 
@@ -371,9 +389,14 @@ class LuaFileBindingsIndexer : ForwardIndexer<LuaFileBindingsRecord>() {
     /** The declared-name IDENTIFIER leaves introduced by [stmt] at file scope, or empty for a usage. */
     private fun declaredNameLeaves(stmt: PsiElement): List<PsiElement> =
         when (stmt) {
-            is LuaLocalVarDecl -> stmt.attNameList.map { it.nameRef.identifier }
-            is LuaGlobalVarDecl -> stmt.attNameList.map { it.nameRef.identifier }
-            is LuaLocalFuncDecl -> listOf(stmt.nameRef.identifier)
+            // BUG-436: `mapNotNull` + a null-safe read, not `map` over a generated `@NotNull`
+            // getter. `notNullChild` does not return null on a missing child — it calls `LOG.error`
+            // (`PsiElementBase:293`). Widening the filter puts `.rockspec`/`.luacheckrc`/`.busted`
+            // through here, and malformed source is the normal case for an indexer. BUG-441's
+            // defect class, latent until the version bump forced a rebuild.
+            is LuaLocalVarDecl -> stmt.attNameList.mapNotNull { identifierOf(it) }
+            is LuaGlobalVarDecl -> stmt.attNameList.mapNotNull { identifierOf(it) }
+            is LuaLocalFuncDecl -> listOfNotNull(identifierOf(stmt))
             is LuaGlobalFuncDecl -> listOfNotNull(stmt.nameRef?.identifier)
             is LuaFuncDecl -> funcDeclNameLeaves(stmt)
             is LuaAssignmentStatement -> assignmentNameLeaves(stmt)
@@ -381,10 +404,16 @@ class LuaFileBindingsIndexer : ForwardIndexer<LuaFileBindingsRecord>() {
         }
 
     /** `function foo` → `foo`; `function recv:m` / `recv.m` → the method-qualified leaf as well. */
+    /** The IDENTIFIER leaf under [element], or null when the parse produced no name node. */
+    private fun identifierOf(element: PsiElement): PsiElement? =
+        PsiTreeUtil.getChildOfType(element, LuaNameRef::class.java)?.identifier
+
     private fun funcDeclNameLeaves(decl: LuaFuncDecl): List<PsiElement> {
-        val plain = decl.funcName.nameRef.identifier
+        val plain = PsiTreeUtil.getChildOfType(decl, LuaFuncName::class.java)?.nameRef?.identifier
         val method =
-            decl.funcName.funcNameMethod
+            PsiTreeUtil
+                .getChildOfType(decl, LuaFuncName::class.java)
+                ?.funcNameMethod
                 ?.nameRef
                 ?.identifier
         return listOfNotNull(plain, method)

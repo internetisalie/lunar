@@ -22,6 +22,12 @@
   it, and the conflict is reported as a hypothesis — the model saying it is incomplete — rather than
   as a mistake in your code. The same applies to `wx.thing or "s"`. Code with no unknown in it is
   still checked exactly as before.
+- **Declarations in `.rockspec`, `.luacheckrc` and `.busted` files are indexed** (BUG-436): Lunar
+  registers all four file kinds as Lua, but five whole-project indexes re-stated that as "files ending
+  in `.lua`", so anything declared in the other three was not stale in the index — it was absent.
+  Completion could not see a global declared in a rockspec at all, and a bare `---@class` there was
+  invisible to Go to Class. Measured on the luacheck project, this also removes seven false
+  "undeclared variable" warnings for globals its `.luacheckrc` declares.
 - **A global's members declared in a sibling file are offered** (BUG-439): completion showed only the
   members declared in the same file that assigned the global, so `love.` offered its 40 direct members
   and **none of its 19 submodules** — `love.graphics`, `love.audio`, `love.filesystem` and the rest
