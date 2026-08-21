@@ -13,6 +13,12 @@ name: Build Plugin
 #   - the internal UniTrack ingest step is omitted (Gitea-only integration + secrets)
 #   - ktlintCheck fails its step directly; the Gitea routine lane must defer it to a final
 #     verdict step because its executor rejects step-level `if:` (see that file). Same effect.
+#   - no `changes` job: it exists on Gitea only, to restore the `paths-ignore` filtering
+#     act_runner does not honor, and GitHub applies natively above. It runs there on `act-ci`,
+#     a Gitea-only runner label with no GitHub equivalent — GitHub-hosted `ubuntu-latest` is
+#     not tier2's shared pool and has none of that pool's Docker problem.
+#   - no `corpus` job: the corpus lane is Gitea-only (it needs the pinned out-of-repo fixtures
+#     the lunar-ci job image provisions).
 #
 # The env-fragile :integrationTest (real GoLand via IDE-Starter) and parser/lexer regeneration are
 # NOT run here — same as the Gitea variant.

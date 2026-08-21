@@ -45,7 +45,28 @@ jobs:
   # determine the diff base yields code=true (build runs), and `v*` tags always build (release).
   # The GitHub variant omits this guard because GitHub applies `paths-ignore` natively.
   changes:
-    runs-on: ubuntu-latest
+    # act-ci, NOT ubuntu-latest — same reason docs-lint moved on 2026-08-21, and this job is
+    # the more damaging place to lose the draw. `ubuntu-latest` resolves to tier2's shared
+    # pool, whose four runners do not all officially support Docker, and `actions/checkout`
+    # needs a job container:
+    #
+    #   Cannot connect to the Docker daemon at unix:///var/run/docker.sock
+    #   unable to determine if image already exists for image 'docker.gitea.com/runner-images:ubuntu-latest'
+    #
+    # Observed on runner-runner-0 for run 13870, and again on its rerun (job 16622 → 16628)
+    # — rerunning only re-rolls which runner picks the job up, and it can lose twice.
+    # `build` and `corpus` both `needs: changes`, so a gate that dies takes the whole lane
+    # with it: those two run on the healthy lunar-ci pool and were skipped anyway.
+    #
+    # act-ci is an act_runner on GCP (glimmer-gitea-runner, deployment/values/act-ci.yaml):
+    # `ci.executor: act` with `vm.docker: true` and the stock runner image, so `uses:`,
+    # `${{ }}` and `outputs:` all work — unlike lunar-ci, which is why this job cannot move
+    # there instead: it is expressions and a checkout, exactly what that executor skips.
+    #
+    # act-ci is a canary pool at `capacity: 1`, so this job and docs-lint QUEUE behind each
+    # other rather than run concurrently. A docs-only push runs both; `changes` is seconds of
+    # git diff, so the queue costs the build lane almost nothing and never fails it.
+    runs-on: act-ci
     outputs:
       code: ${{ steps.filter.outputs.code }}
       corpus: ${{ steps.filter.outputs.corpus }}
