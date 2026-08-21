@@ -63,7 +63,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | MAINT-21 | IJPGP 2.17 + Gradle 9 bump (deferred from MAINT-03-04) | deferred | L | **2026.2 platform release** *(build 262; not yet shipped as of 2026-07-03)* | — | — |
 | REDIS-07 | Reuse an IntelliJ Database Redis data source | planned | C | REDIS-01 *(connections, done)* | — | ✓ |
-| BUG-381 | Ephemeral Redis/Valkey provisioning **UI** | planned | M | provisioning capability *(built, done)* | — | ✓ |
+| BUG-381 | Ephemeral Redis/Valkey provisioning **UI** — and the settings page that silently destroys it | planned | M | provisioning capability *(built, done)* | — | **PLANNED 2026-08-21, and it grew a second half.** `LuaRedisConnectionDraft` carries no `provisioning` field, so the settings page is not merely missing a control: `reset()` drops the value, `toConnection()` hardcodes `Remote`, and `apply()` upserts **every** draft wholesale — so editing any field of any connection rewrites *all* of them to `Remote`. That destroys the hand-edited-XML workaround this bug used to cite as its mitigation, silently and with no diff. Front-matter priority raised medium → high. Fix is two commits: pass provisioning through the draft (lossless, shippable alone), then add the control. Host/Port must be disabled for non-Remote — the launcher allocates both | ✓ |
 | BUG-388 | Dimmed-text binding-state renderer | backlog | C | BUG-387 *(done)* | — | ✓ |
 | BUG-358 | Reformatting a read-only file throws a write-unsafe exception | todo | C | — | — | ✓ |
 | BUG-411 | Vertical tab and form feed are not treated as whitespace | todo | C | — | — | ✓ |
