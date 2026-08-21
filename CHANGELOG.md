@@ -2,94 +2,53 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
-- **Redis/Valkey connections can be given an ephemeral server, and the settings page no longer
-  destroys one** (BUG-381): Lunar could already start a session-scoped Redis server from a Docker
-  image or a local `redis-server`/`valkey-server` binary, run your script against it and tear it
-  down — but nothing in the UI could ask for it, so every connection you created was a plain remote
-  one. The Redis Connections form now has a **Server** choice, with an image field for Docker and a
-  binary choice for local, and it greys out Host and Port for those kinds because the launcher picks
-  both itself. Worse than the missing control: the page did not merely fail to *set* provisioning, it
-  **erased** it. Editing any field of any connection rewrote every connection to remote, silently —
-  including one you had configured by hand-editing `.idea/lunar-redis.xml`, which was the only way to
-  reach the feature at all. Both halves are fixed.
-- **Running a script against a Docker-provisioned Redis server now works at all, and no longer leaks
-  the container** (BUG-446): starting the container read its id from a stream the platform was
-  already draining, so the id came back empty and the run died with `Stream closed`. An empty id also
-  disabled the cleanup, leaving a Redis container running after the IDE session ended — one per
-  attempt. The id is now captured through the process handler rather than alongside it, and a
-  `docker run` that fails reports docker's own reason instead of silently handing back a server
-  address where nothing is listening. Separately, **neither** provisioning kind waited for the server
-  it started to actually accept commands: measured, a Docker container answered 31–70 ms after
-  `docker run` returned and a local binary 15–32 ms after spawn, so the run could connect and stall
-  before the server was up. Both kinds now wait for the server to answer before the client connects.
-  This path had no test coverage of any kind — the integration suite started its own containers with
-  a copy of the launcher's command line rather than calling the launcher — so it now has a test that
-  drives the real thing.
-- **Completing members of an annotated `---@class` no longer parses the file that declares it**
-  (BUG-438): resolving a class read its declaring file's whole syntax tree, even when everything the
-  class needed was already in the index — for a 3 600-member class that put time-to-first-result at
-  323 ms against a 100 ms budget. Two reads forced it: the class's bound name, now taken from the
-  stub, and the scan for implicit `Klass.field = …` assignments, which now runs only for a file the
-  index says actually has one. Measured across the shipped definition libraries, **73 of 75**
-  class-declaring files have no such assignment and are no longer parsed at all. Classes written the
-  other way behave exactly as before.
-- **Reloading project settings no longer leaves Lua runs with a stale `PATH`** (BUG-444): the PATH
-  entries Lunar prepends for your toolchain were cached and refreshed whenever the toolchain changed,
-  but the platform's own state-reload path — opening a project, switching a VCS branch, an external
-  `.idea` edit, importing settings — replaces the whole toolchain without announcing it. Run
-  configurations, the test runner, the LuaRocks runner and the terminal could then be handed the
-  *previous* toolchain's `PATH`, or, if the cache had been built before any tool was bound, no `PATH`
-  entry at all.
+- **Redis connections can be given an ephemeral server, and the settings page stops erasing one**
+  (BUG-381): a Server choice offers a Docker image or a local `redis-server`/`valkey-server` binary,
+  and editing any connection no longer silently rewrites every connection back to remote
+  ([f0a9b6a7](https://github.com/internetisalie/lunar/commit/f0a9b6a7)).
+- **Docker-provisioned Redis servers now work at all, and stop leaking containers** (BUG-446): the
+  launcher read the container id from a stream the platform was already draining, and neither
+  provisioning kind waited for the server to accept commands
+  ([8e7c6e28](https://github.com/internetisalie/lunar/commit/8e7c6e28)).
+- **Completing a `---@class`'s members no longer parses the file that declares it** (BUG-438):
+  answered from the index instead, taking a 3 600-member class from 323 ms to inside the 100 ms
+  budget; 73 of 75 shipped library files are no longer parsed at all
+  ([dbd94bb4](https://github.com/internetisalie/lunar/commit/dbd94bb4)).
+- **A reloaded toolchain no longer leaves Lua runs with a stale `PATH`** (BUG-444): opening a project,
+  switching a branch or importing settings replaces the toolchain without announcing it, and the
+  cached PATH prepends are now retired with it
+  ([f2f4f965](https://github.com/internetisalie/lunar/commit/f2f4f965)).
 - **Calling a function with fewer arguments than it names is no longer an error** (BUG-419): Lua fills
-  missing arguments with `nil` and discards extra ones, so `local function H(c, bg)` called as
-  `H('8e908c')` is ordinary Lua, not a defect — and the engine had been contradicting it. Argument
-  counts are now checked only against a signature somebody *wrote*: a `---@param`, a `fun(...)` type,
-  or a stub. A declared contract is still enforced in both directions, and `---@param b? number` is
-  still honoured. Measured across four real projects, this removes **629 of the 714** remaining
-  type-inspection warnings — 88 % — including 157 in a single file. Some warnings from *other*
-  inspections appear for the first time as a result: they were being hidden underneath these.
+  the rest with `nil`, so arity is checked only against a signature somebody wrote — removing 629 of
+  the 714 remaining type-inspection warnings across four real projects
+  ([c4c958ce](https://github.com/internetisalie/lunar/commit/c4c958ce)).
 - **`x and f()` / `x or default` no longer report their unused branch as a type error** (BUG-428,
-  fixed by BUG-441): the `nil` or `boolean` arm of an `and`/`or` — the branch that did not run — was
-  reported against a declared type at the use site. Measured across four real projects, **89 of 100**
-  remaining type-assignability and return-type warnings were this, including every one in ZeroBrane
-  Studio. Diagnostics from other causes are unaffected.
-- **A variable the engine cannot fully account for is no longer reported as an error** (BUG-441):
-  `local d = wx.thing` contributed nothing at all to what the engine knew about `d`, so a later
-  `d = "s"` looked like the whole story and using `d` where a `---@param` declared a number was
-  reported as a definite error. The unknown now widens what `d` may hold instead of vanishing from
-  it, and the conflict is reported as a hypothesis — the model saying it is incomplete — rather than
-  as a mistake in your code. The same applies to `wx.thing or "s"`. Code with no unknown in it is
-  still checked exactly as before.
-- **Declarations in `.rockspec`, `.luacheckrc` and `.busted` files are indexed** (BUG-436): Lunar
-  registers all four file kinds as Lua, but five whole-project indexes re-stated that as "files ending
-  in `.lua`", so anything declared in the other three was not stale in the index — it was absent.
-  Completion could not see a global declared in a rockspec at all, and a bare `---@class` there was
-  invisible to Go to Class. Measured on the luacheck project, this also removes seven false
-  "undeclared variable" warnings for globals its `.luacheckrc` declares.
-- **Quick Documentation works for a `---@field` member** (BUG-440): pressing Ctrl+Q on a member
-  declared with `---@field` — as most definition libraries declare their constants and settings —
-  returned "No documentation found". It now shows the field's declared type and its description.
-  Members declared as `function X.y()` were never affected, which is why this looked like a
-  library-specific fault rather than a general one.
+  fixed by BUG-441): 89 of 100 remaining assignability and return-type warnings across four projects
+  were this ([d6ce62e0](https://github.com/internetisalie/lunar/commit/d6ce62e0)).
+- **A value the engine cannot fully account for is no longer reported as an error** (BUG-441): an
+  unknown such as `local d = wx.thing` now widens what `d` may hold, and a later conflict reads as a
+  hypothesis rather than a mistake in your code
+  ([d6ce62e0](https://github.com/internetisalie/lunar/commit/d6ce62e0)).
+- **Declarations in `.rockspec`, `.luacheckrc` and `.busted` files are indexed** (BUG-436): five
+  indexes matched `.lua` rather than the registered file types, so anything declared in the other
+  three was absent rather than stale
+  ([48eabe7d](https://github.com/internetisalie/lunar/commit/48eabe7d)).
+- **Quick Documentation works for a `---@field` member** (BUG-440): Ctrl+Q on a field — how most
+  definition libraries declare their constants — returned "No documentation found"; it now shows the
+  declared type and description ([e9f48be0](https://github.com/internetisalie/lunar/commit/e9f48be0)).
 - **Indexing a large Lua file does less work** (BUG-437): the receiver-member index read each file
-  seven times to collect five kinds of declaration; it now reads it once. Measured at roughly 40 ms of
-  a 67 ms per-file cost on a 126 KiB library. Nothing it records has changed — the emitted index is
-  byte-identical, which is what the change was gated on.
-- **A `type(x) == "table"` guard no longer hides the value's members** (BUG-435): inside the
-  idiomatic guard, `x.` offered nothing at all — narrowing a value to `table` removed every member it
-  had, so completion was worse inside the check than outside it. The guard asserts the value *is* a
-  table, so it can now only ever add information, never take it away.
-- **A nested table's members complete** (BUG-430): `Config.db.host = …` is ordinary Lua, but
-  `Config.db.` offered **nothing at all** — a table with members completing as empty. Members written
-  through a two-segment receiver were recorded under no receiver at all, and completion only ever
-  asked about the trailing segment. Both halves are fixed; `Config.` is unchanged and still does not
-  offer `host`, which belongs one level down.
-- **A global's members declared in a sibling file are offered** (BUG-439): completion showed only the
-  members declared in the same file that assigned the global, so `love.` offered its 40 direct members
-  and **none of its 19 submodules** — `love.graphics`, `love.audio`, `love.filesystem` and the rest
-  are each assigned in a file of their own, putting love2d's whole 100-function graphics API out of
-  reach. Every declaring file is now read. A same-named `local` in an unrelated file is still not one
-  of them, which is what took three attempts.
+  seven times to collect five kinds of declaration and now reads it once, saving ~40 ms of a 67 ms
+  per-file cost with a byte-identical index
+  ([bdec6130](https://github.com/internetisalie/lunar/commit/bdec6130)).
+- **A `type(x) == "table"` guard no longer hides the value's members** (BUG-435): narrowing a value to
+  `table` removed every member it had, making completion worse inside the guard than outside it
+  ([a715abf1](https://github.com/internetisalie/lunar/commit/a715abf1)).
+- **A nested table's members complete** (BUG-430): `Config.db.` offered nothing at all, because
+  members written through a two-segment receiver were recorded under no receiver
+  ([7f3533ef](https://github.com/internetisalie/lunar/commit/7f3533ef)).
+- **A global's members declared in a sibling file are offered** (BUG-439): `love.` offered its 40
+  direct members and none of its 19 submodules, each assigned in a file of its own; every declaring
+  file is now read ([dc712238](https://github.com/internetisalie/lunar/commit/dc712238)).
 - **Member completion answered from an index** (COMP-09): a global's members are offered without
   building the declaring file's type graph first, taking the first completion against a large
   definition library from ~491 ms to ~15 ms ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
@@ -98,10 +57,10 @@
   `redis.REPL_ALL` ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
 - **A grandchild is no longer offered as a member** (BUG-430): `Shapes.nested.deep = 1` stops
   offering `deep` on `Shapes.`, where it does not exist ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
-- **A `---@class` can declare an operator metamethod** (COMP-09, closing BUG-426's known
-  limitation): `---@class Vec` with a `---@field __add fun(a: Vec, b: Vec): Vec` now makes `a + b`
-  legal on its instances, as `setmetatable` already did — inherited metamethods included, so
-  `---@class Mat : Vec` gets it too. What member completion offers is unchanged.
+- **A `---@class` can declare an operator metamethod** (COMP-09, closing BUG-426's known limitation):
+  a `---@field __add fun(a: Vec, b: Vec): Vec` makes `a + b` legal on its instances as `setmetatable`
+  already did, inherited metamethods included
+  ([4a614d25](https://github.com/internetisalie/lunar/commit/4a614d25)).
 - **`---@class` members no longer cost a project-wide scan** (COMP-09): materializing a class read
   every global-declaration key to find one receiver's methods — 4 145 keys for 50 members on the
   measured fixture. It is now a receiver-keyed lookup whose work does not grow when unrelated code is
