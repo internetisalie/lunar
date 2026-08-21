@@ -11,6 +11,7 @@ import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainEvent
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainListener
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
+import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
 import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import java.io.File
 import java.nio.file.Path
@@ -23,9 +24,11 @@ import java.util.concurrent.atomic.AtomicInteger
  * LUA_PATH unions duplicated across the run configs.
  *
  * **Caching:** only [pathPrependDirs] is cached (resolver-derived; changes exactly when the
- * toolchain changes). It is invalidated by the app-level `LuaToolchainListener.TOPIC` — fixing the
- * stale-cache defect where a `registerTool` fired no event. `LUA_PATH` / `LUA_CPATH` are **not**
- * cached here: they depend on rockspec PSI, which `RockspecSourcePathProvider` already caches under
+ * toolchain changes). Two things retire it, because neither covers the other: the app-level
+ * `LuaToolchainListener.TOPIC` — fixing the stale-cache defect where a `registerTool` fired no
+ * event — and a generation stamp over the two state stores, which catches the `loadState` that
+ * publishes nothing (BUG-422; see [currentStamp]). `LUA_PATH` / `LUA_CPATH` are **not** cached here:
+ * they depend on rockspec PSI, which `RockspecSourcePathProvider` already caches under
  * `PsiModificationTracker`; double-caching would reintroduce invalidation bugs.
  *
  * **Threading:** [pathPrependDirs] is safe on any thread (no PSI/VFS — the terminal customizer's
@@ -37,7 +40,7 @@ class LuaExecutionEnvironmentBuilder(
     private val project: Project,
 ) : Disposable {
     @Volatile
-    private var cachedPathPrependDirs: List<Path>? = null
+    private var cachedPathPrependDirs: CachedDirs? = null
 
     /**
      * Generation counter, bumped by [invalidate] (BUG-422).
@@ -60,7 +63,8 @@ class LuaExecutionEnvironmentBuilder(
 
     /** TOOLING-03-07/11. Cached resolver-derived PATH prepend dirs, highest priority first. */
     fun pathPrependDirs(): List<Path> {
-        cachedPathPrependDirs?.let { return it }
+        val stamp = currentStamp()
+        cachedPathPrependDirs?.let { if (it.stamp == stamp) return it.dirs }
 
         val epoch = cacheEpoch.get()
         val resolver = LuaToolResolver.getInstance()
@@ -76,10 +80,29 @@ class LuaExecutionEnvironmentBuilder(
         // write here is not merely a missed refresh — it would be *served*, because an empty list
         // is non-null, so the next caller gets "no PATH entries" as a cached answer.
         if (cacheEpoch.get() == epoch) {
-            cachedPathPrependDirs = dirs
+            cachedPathPrependDirs = CachedDirs(dirs, stamp)
         }
         return dirs
     }
+
+    /**
+     * Identifies the toolchain state [pathPrependDirs] was computed from (BUG-422).
+     *
+     * `loadState` on either store replaces the whole state without publishing on
+     * `LuaToolchainListener.TOPIC` — the platform calls it while loading persisted component state,
+     * where this topic's other listeners must not run. So the event subscription above cannot see
+     * it, and a cached list would outlive the tools it was derived from and be **served**: an empty
+     * list is a legitimate value, so callers get "no PATH entries" rather than a recomputation, and
+     * `LuaLaunchEnvironment.applyPath` then leaves PATH untouched entirely.
+     */
+    private fun currentStamp(): Pair<Int, Int> =
+        LuaToolchainRegistry.getInstance().stateGeneration() to
+            LuaToolchainProjectSettings.getInstance(project).stateGeneration()
+
+    private data class CachedDirs(
+        val dirs: List<Path>,
+        val stamp: Pair<Int, Int>,
+    )
 
     /** TOOLING-03-08/09/14. Full environment; [sourcePathOverride] = run-config sourcePath. */
     fun build(sourcePathOverride: String? = null): LuaLaunchEnvironment {

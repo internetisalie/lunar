@@ -11,6 +11,7 @@ import com.intellij.openapi.util.io.FileUtil
 import net.internetisalie.lunar.toolchain.model.LuaEnvironmentState
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 class LuaToolchainProjectState {
     var bindings: MutableMap<String, String> = HashMap()
@@ -31,6 +32,12 @@ class LuaToolchainProjectSettings(
     private val stateLock = Any()
     private var myState = LuaToolchainProjectState()
 
+    /** Bumped whenever [loadState] replaces the whole state; see `LuaToolchainRegistry` (BUG-422). */
+    private val generation = AtomicInteger(0)
+
+    /** Monotonic stamp of the current state; changes on every [loadState]. */
+    fun stateGeneration(): Int = generation.get()
+
     override fun getState(): LuaToolchainProjectState =
         synchronized(stateLock) {
             myState
@@ -40,6 +47,7 @@ class LuaToolchainProjectSettings(
         synchronized(stateLock) {
             myState = state
         }
+        generation.incrementAndGet()
     }
 
     fun environments(): List<LuaEnvironmentState> =

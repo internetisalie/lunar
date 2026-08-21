@@ -19,6 +19,7 @@ import net.internetisalie.lunar.toolchain.probe.LuaToolProbeResult
 import java.io.File
 import java.nio.file.Path
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 private val LOG = logger<LuaToolchainRegistry>()
 
@@ -133,6 +134,20 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
     private val stateLock = Any()
     private var myState = LuaToolchainAppState()
 
+    /**
+     * Bumped whenever [loadState] replaces the whole state (BUG-422).
+     *
+     * Every other mutator publishes on [LuaToolchainListener.TOPIC], so caches derived from this
+     * registry are invalidated through that. [loadState] cannot: the platform calls it while
+     * loading persisted component state, and this topic's listeners include the health monitor and
+     * the target synchronizer, which must not run at that point. So it exposes a generation for
+     * derived caches to stamp themselves with instead of publishing.
+     */
+    private val generation = AtomicInteger(0)
+
+    /** Monotonic stamp of the current state; changes on every [loadState]. */
+    fun stateGeneration(): Int = generation.get()
+
     override fun getState(): LuaToolchainAppState =
         synchronized(stateLock) {
             myState
@@ -142,6 +157,7 @@ class LuaToolchainRegistry : PersistentStateComponent<LuaToolchainAppState> {
         synchronized(stateLock) {
             myState = state
         }
+        generation.incrementAndGet()
     }
 
     fun tools(): List<LuaRegisteredTool> =

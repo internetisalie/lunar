@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Reloading project settings no longer leaves Lua runs with a stale `PATH`** (BUG-444): the PATH
+  entries Lunar prepends for your toolchain were cached and refreshed whenever the toolchain changed,
+  but the platform's own state-reload path — opening a project, switching a VCS branch, an external
+  `.idea` edit, importing settings — replaces the whole toolchain without announcing it. Run
+  configurations, the test runner, the LuaRocks runner and the terminal could then be handed the
+  *previous* toolchain's `PATH`, or, if the cache had been built before any tool was bound, no `PATH`
+  entry at all.
 - **Calling a function with fewer arguments than it names is no longer an error** (BUG-419): Lua fills
   missing arguments with `nil` and discards extra ones, so `local function H(c, bg)` called as
   `H('8e908c')` is ordinary Lua, not a defect — and the engine had been contradicting it. Argument
