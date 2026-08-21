@@ -396,7 +396,27 @@ jobs:
   build-release:
     needs: changes
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    # act-ci, for the reason spelled out on `release` below — and learned the hard way. Moving only
+    # `release` off ubuntu-latest was not enough: on v0.21.6's second attempt THIS job drew
+    # runner-runner-0 instead and died on the same "Cannot connect to the Docker daemon" before
+    # `release` was even reachable, which skipped it via `needs:`. The whole tag lane has to leave
+    # the lottery, not just its last step.
+    #
+    # This job is the one that could not move while the only alternative was `lunar-ci`: it depends
+    # on setup-java, actions/cache and two upload-artifact steps, all JS actions that k8sexec cannot
+    # run. act runs them, so act-ci is the one pool that can host it.
+    #
+    # Expect the tag lane to get FASTER as a side effect: this took ~47 min on the shared pool
+    # (9m38 buildPlugin + 30m28 test + 4m42 kover + 1m14 ktlint), which is the same contention that
+    # kept the routine lane at 27-46 min before it moved to a dedicated VM and dropped to ~12.
+    # Against that, act-ci's cache is node-local to an ephemeral VM reaped after 15m idle, so a tag
+    # build — which is rare by definition — re-downloads the ~1 GB platform nearly every time.
+    #
+    # CAPACITY: act-ci is 4, shared with loom-gitea-runner's four workflows. This job is heavy and
+    # long; if tag builds start blocking loom, raise capacity in the pool's values rather than
+    # trimming here. Quota has headroom (committed peak 40 of 64) and the ceiling is free — only
+    # running VMs bill.
+    runs-on: act-ci
     steps:
       - uses: actions/checkout@v4
 
