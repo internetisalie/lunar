@@ -243,6 +243,7 @@ class LuaTypeGraph {
      * a real element, else the value site, else nowhere — see [addError] for why a file-wide error
      * is worse than no error.
      */
+
     /**
      * BUG-441: the engine cannot account for this value. Either spelling counts — `Undefined` is what
      * an unmodellable expression yields directly, `Any` is what [LuaTypesVisitor.collectRhsNodes]
@@ -446,7 +447,16 @@ class LuaTypeGraph {
             for (member in valueType.types) {
                 if (member is LuaGraphType.Table || member is LuaGraphType.Function || member is LuaGraphType.Union) {
                     if (gradual && !isCompatible(member, useType, CompatContext())) continue
-                    checkCompatibility(member, useType, valueElement, useElement, visited, certain, declaredDemand, unknownProvenance)
+                    checkCompatibility(
+                        member,
+                        useType,
+                        valueElement,
+                        useElement,
+                        visited,
+                        certain,
+                        declaredDemand,
+                        unknownProvenance,
+                    )
                 }
             }
             return
@@ -546,13 +556,13 @@ class LuaTypeGraph {
             if (certain) {
                 val message = "nil value is not assignable to ${useType.displayName()}"
                 reportIncompatible(
-                useElement,
-                valueElement,
-                message,
-                declaredDemand,
-                valueType.displayName(),
-                unknownProvenance,
-            )
+                    useElement,
+                    valueElement,
+                    message,
+                    declaredDemand,
+                    valueType.displayName(),
+                    unknownProvenance,
+                )
             }
             return
         }

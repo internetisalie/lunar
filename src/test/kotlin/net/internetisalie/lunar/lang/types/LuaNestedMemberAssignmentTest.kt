@@ -109,6 +109,9 @@ class LuaNestedMemberAssignmentTest : BasePlatformTestCase() {
         val root = completionsFor("Plain.<caret>\n")
         assertFalse("`leaf` belongs to Plain.mid — offered: $root", root.contains("leaf"))
         assertTrue("`mid` belongs to Plain — offered: $root", root.contains("mid"))
-        assertTrue("`leaf` belongs to Plain.mid — offered: ${completionsFor("Plain.mid.<caret>\n")}", completionsFor("Plain.mid.<caret>\n").contains("leaf"))
+        assertTrue(
+            "`leaf` belongs to Plain.mid — offered: ${completionsFor("Plain.mid.<caret>\n")}",
+            completionsFor("Plain.mid.<caret>\n").contains("leaf"),
+        )
     }
 }

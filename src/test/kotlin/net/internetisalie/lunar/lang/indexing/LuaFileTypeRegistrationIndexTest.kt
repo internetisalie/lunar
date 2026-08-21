@@ -55,7 +55,11 @@ class LuaFileTypeRegistrationIndexTest : BasePlatformTestCase() {
         )
         assertEquals(listOf(".luacheckrc"), filesDeclaring(LuaCatsTypeNameIndex.KEY, "FromLuacheckrc"))
         assertEquals(listOf(".busted"), filesDeclaring(LuaCatsTypeNameIndex.KEY, "FromBusted"))
-        assertEquals("the control — the .lua registration always worked", listOf("w.lua"), filesDeclaring(LuaCatsTypeNameIndex.KEY, "FromLua"))
+        assertEquals(
+            "the control — the .lua registration always worked",
+            listOf("w.lua"),
+            filesDeclaring(LuaCatsTypeNameIndex.KEY, "FromLua"),
+        )
     }
 
     /** `@field` members declared in the other three registrations. */
@@ -96,7 +100,11 @@ class LuaFileTypeRegistrationIndexTest : BasePlatformTestCase() {
         name: String,
     ): List<String> =
         runReadAction {
-            FileBasedIndex.getInstance().getAllKeys(key, project).filter { it == name }.sorted()
+            FileBasedIndex
+                .getInstance()
+                .getAllKeys(key, project)
+                .filter { it == name }
+                .sorted()
         }
 
     private fun filesDeclaring(

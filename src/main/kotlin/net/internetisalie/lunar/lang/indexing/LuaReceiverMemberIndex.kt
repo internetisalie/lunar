@@ -480,10 +480,11 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
             val root = target.nameRef?.text ?: return null
             val suffixes = target.varSuffixList
             if (suffixes.isEmpty()) return null
-            val names = suffixes.map { suffix ->
-                if (suffix.nameAndArgsList.isNotEmpty()) return null
-                suffix.indexExpr.nameRef?.text ?: return null
-            }
+            val names =
+                suffixes.map { suffix ->
+                    if (suffix.nameAndArgsList.isNotEmpty()) return null
+                    suffix.indexExpr.nameRef?.text ?: return null
+                }
             // BUG-430 (G-1): the receiver is every segment BUT the last, so `Foo.bar.baz = 1` keys
             // `baz` under `Foo.bar` — where it actually lives — and contributes nothing to `Foo`.
             //

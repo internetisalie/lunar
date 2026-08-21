@@ -236,13 +236,21 @@ class FreeGlobalMemberTypingTest : IndexedBasePlatformTestCase() {
                     snapshot.getValueType(v),
                 snapshot.getValueType(v).let { it == LuaGraphType.Undefined || it == LuaGraphType.Any },
             )
-            assertNotSame("F2: `v` must never acquire the written string's type", LuaGraphType.String, snapshot.getValueType(v))
+            assertNotSame(
+                "F2: `v` must never acquire the written string's type",
+                LuaGraphType.String,
+                snapshot.getValueType(v),
+            )
             assertTrue(
                 "F1 read form: an undeclared chain member must stay untyped, not inherit the " +
                     "global's, got " + snapshot.getValueType(w),
                 snapshot.getValueType(w).let { it == LuaGraphType.Undefined || it == LuaGraphType.Any },
             )
-            assertNotSame("F1: `w` must not inherit the written string's type", LuaGraphType.String, snapshot.getValueType(w))
+            assertNotSame(
+                "F1: `w` must not inherit the written string's type",
+                LuaGraphType.String,
+                snapshot.getValueType(w),
+            )
         }
     }
 

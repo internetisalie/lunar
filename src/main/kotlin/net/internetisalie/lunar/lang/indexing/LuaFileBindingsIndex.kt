@@ -18,12 +18,12 @@ import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaFuncName
 import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
-import net.internetisalie.lunar.lang.psi.LuaFuncName
-import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import net.internetisalie.lunar.lang.syntax.extractLuaString
 import org.jetbrains.annotations.NonNls
@@ -404,6 +404,7 @@ class LuaFileBindingsIndexer : ForwardIndexer<LuaFileBindingsRecord>() {
         }
 
     /** `function foo` → `foo`; `function recv:m` / `recv.m` → the method-qualified leaf as well. */
+
     /** The IDENTIFIER leaf under [element], or null when the parse produced no name node. */
     private fun identifierOf(element: PsiElement): PsiElement? =
         PsiTreeUtil.getChildOfType(element, LuaNameRef::class.java)?.identifier

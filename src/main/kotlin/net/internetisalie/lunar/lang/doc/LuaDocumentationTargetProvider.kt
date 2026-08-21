@@ -328,6 +328,7 @@ internal class LuaCatsDocumentationTarget(
  * rides its assignment statement (not a [LuaCommentOwner]), so it is rendered directly from the
  * preceding [LuaCatsComment] and anchored on the field identifier for presentation/navigation.
  */
+
 /**
  * BUG-440 — renders a `---@field` from the **tag**, not from its comment.
  *

@@ -214,6 +214,7 @@ class LuaCompletionContributor : CompletionContributor() {
          * text range keeps the wrapper case working while still rejecting a qualified receiver — only
          * a bare name can be a global.
          */
+
         /**
          * BUG-430 (G-2): the dotted key for a receiver, plus its root reference.
          *

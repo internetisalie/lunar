@@ -27,15 +27,16 @@ class LuaUnknownProvenanceTest : BasePlatformTestCase() {
     /** Defect 1: the omitted write leaves a flow looking checkable when it is not. */
     @Test
     fun testAnUnknownWriteDefeatsCertainty() {
-        val found = diagnosticsFor(
-            """
-            ---@param n number
-            local function count(n) end
-            local d = wx.thing
-            if cond then d = "s" end
-            count(d)
-            """.trimIndent(),
-        )
+        val found =
+            diagnosticsFor(
+                """
+                ---@param n number
+                local function count(n) end
+                local d = wx.thing
+                if cond then d = "s" end
+                count(d)
+                """.trimIndent(),
+            )
         assertEquals(
             "`d` may hold `wx.thing`, which the engine cannot model — reporting its OTHER " +
                 "definition against a declared demand asserts more than the model knows. Got: $found",
@@ -47,15 +48,16 @@ class LuaUnknownProvenanceTest : BasePlatformTestCase() {
     /** **The control.** Identical minus the unknown write — this one is genuinely checkable. */
     @Test
     fun testTheSameCodeWithoutTheUnknownWriteStillErrors() {
-        val found = diagnosticsFor(
-            """
-            ---@param n number
-            local function count(n) end
-            local d
-            if cond then d = "s" end
-            count(d)
-            """.trimIndent(),
-        )
+        val found =
+            diagnosticsFor(
+                """
+                ---@param n number
+                local function count(n) end
+                local d
+                if cond then d = "s" end
+                count(d)
+                """.trimIndent(),
+            )
         assertTrue(
             "with no unknown in `d`'s provenance the string write IS checkable against a declared " +
                 "`@param n number`, and suppressing it would mean the fix stopped checking rather " +
@@ -67,14 +69,15 @@ class LuaUnknownProvenanceTest : BasePlatformTestCase() {
     /** Defect 2: `wx.thing or "s"` must not be reported against a declared demand either. */
     @Test
     fun testAnUnknownOperandKeepsTheExpressionGradual() {
-        val found = diagnosticsFor(
-            """
-            ---@param n number
-            local function count(n) end
-            local v = wx.thing or "s"
-            count(v)
-            """.trimIndent(),
-        )
+        val found =
+            diagnosticsFor(
+                """
+                ---@param n number
+                local function count(n) end
+                local v = wx.thing or "s"
+                count(v)
+                """.trimIndent(),
+            )
         assertEquals("an unknown operand makes the union gradual. Got: $found", emptyList<String>(), found)
     }
 
@@ -84,6 +87,7 @@ class LuaUnknownProvenanceTest : BasePlatformTestCase() {
      * anything, and the finding is still worth surfacing as "the model is incomplete here". So the
      * assertion has to name the tier: filtering on the message alone would go red on a correct fix.
      */
+
     /**
      * **The presentation half, which BUG-441 scoped out and no test reached.**
      *

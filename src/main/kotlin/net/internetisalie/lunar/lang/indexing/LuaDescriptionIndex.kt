@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.lang.indexing
 
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.indexing.DataIndexer
 import com.intellij.util.indexing.DefaultFileTypeSpecificInputFilter
@@ -16,9 +15,9 @@ import net.internetisalie.lunar.lang.psi.LuaCommentOwner
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFuncName
-import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.syntax.collectDescriptionText
 import org.jetbrains.annotations.NonNls
 import java.io.DataInput
@@ -60,8 +59,7 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
      * — a subclass silently loses the hint and is evaluated per file instead. `LuaReceiverMemberIndex`
      * (fixed first, in `fcce5966`) is the worked example.
      */
-    override fun getInputFilter(): FileBasedIndex.InputFilter =
-        DefaultFileTypeSpecificInputFilter(LuaFileType)
+    override fun getInputFilter(): FileBasedIndex.InputFilter = DefaultFileTypeSpecificInputFilter(LuaFileType)
 
     private class StringDataExternalizer : DataExternalizer<String> {
         override fun save(
