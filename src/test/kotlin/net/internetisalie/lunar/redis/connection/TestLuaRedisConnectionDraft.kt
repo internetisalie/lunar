@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.redis.connection
 
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 
 /**
  * BUG-381 — **the settings page must not silently rewrite a connection's provisioning to `Remote`.**
@@ -99,6 +100,42 @@ class TestLuaRedisConnectionDraft : BasePlatformTestCase() {
             "toConnection must carry the draft's provisioning, not a hardcoded Remote",
             LuaRedisProvisioning.LocalBinary("redis-server"),
             draft.toConnection().provisioning,
+        )
+    }
+
+    /**
+     * BUG-381 step 2's **source of truth for the Server-binary combo**, pinned where it can break.
+     *
+     * This test earned its place by failing. The plan said to fill the combo from
+     * `LuaToolKindClassifier.Tier.PLATFORM_SERVER`, reasoning that it holds exactly the two server
+     * kinds. It does not — that tier is assigned by *absence of capabilities*, and
+     * `lua-language-server` has none either, so the first implementation would have offered a
+     * language server as a Redis server. The list is Redis-owned now
+     * ([LuaRedisProvisioning.SERVER_TOOL_KIND_IDS]), and this asserts both halves of that: the
+     * kinds that must be offered, and the one that must not.
+     *
+     * Every id must also resolve in [net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry],
+     * because the form maps ids to registry entries for their display names and an unmatched id is
+     * dropped silently — a kind that vanishes from the combo with nothing else going red.
+     *
+     * This is the only part of step 2 a unit test can reach. Whether the control renders, whether
+     * its conditional rows toggle, and whether Host/Port actually grey out are questions about a
+     * Swing form on screen, and the `verify-in-ide` VNC pass answers those instead.
+     */
+    fun testTheServerKindListIsRedisOwnedAndFullyRegistered() {
+        val declared = LuaRedisProvisioning.SERVER_TOOL_KIND_IDS
+        val registeredIds = LuaToolKindRegistry.all().map { it.id }
+
+        assertEquals("the RESP-speaking kinds the combo offers", listOf("redis-server", "valkey-server"), declared)
+        assertTrue(
+            "every declared server kind must exist in the registry, or it is dropped from the " +
+                "combo silently — declared=$declared registry=$registeredIds",
+            registeredIds.containsAll(declared),
+        )
+        assertFalse(
+            "lua-language-server is not a Redis server; sourcing this list from the classifier's " +
+                "capability-based PLATFORM_SERVER tier put it in the combo",
+            "lua-language-server" in declared,
         )
     }
 

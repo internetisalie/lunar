@@ -3,7 +3,7 @@ id: "BUG-381"
 title: "Ephemeral Redis/Valkey provisioning (Docker / local binary) is fully built but has no UI — unreachable without hand-editing XML"
 type: "bug"
 parent_id: "BUG"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -123,10 +123,17 @@ today and is independently shippable.
 
 - `ConnectionForm` `:165` gains `provisioningCombo: ComboBox<Kind>` (*Remote* / *Local binary* /
   *Docker*) plus two conditional rows:
-  - **Local binary** — a combo of tool-kind ids sourced from `LuaToolKindRegistry`, filtered to
-    `LuaToolKindClassifier.Tier.PLATFORM_SERVER` (today exactly `redis-server`, `valkey-server`).
-    Do **not** hardcode the two ids; the classifier already answers this and a third server kind
-    should appear without touching this form.
+  - **Local binary** — a combo filled from `LuaRedisProvisioning.SERVER_TOOL_KIND_IDS`, resolved
+    against `LuaToolKindRegistry` for display names.
+
+    > **Corrected during implementation.** This step originally said to filter
+    > `LuaToolKindRegistry` by `LuaToolKindClassifier.Tier.PLATFORM_SERVER`, "today exactly
+    > `redis-server`, `valkey-server`", so a third server kind would appear for free. **That tier
+    > holds three kinds, not two.** It is assigned by *absence of capabilities*, and
+    > `lua-language-server` has none either — so the first implementation offered a language server
+    > as a Redis server. The test written for this row is what caught it, before any of it ran in an
+    > IDE. "Which binaries speak RESP" is Redis domain knowledge and now lives in
+    > `LuaRedisProvisioning`'s companion, next to the launcher that runs them.
   - **Docker** — a text field defaulting to `redis:8`.
 - `bind(draft)` `:190` sets all three; `snapshot(id)` `:203` reads them back into the draft.
 - The kind combo fires `onEdited()` and toggles row visibility.
@@ -149,21 +156,58 @@ today and is independently shippable.
 | `from(connection, …)` preserves each of the three kinds | Step 1's other half | **yes** — drops it today |
 | draft → connection → draft round trip is identity over all three kinds | the two halves agree | **yes** |
 | **`apply()` on a page where a DIFFERENT connection was edited leaves a Docker connection's provisioning intact** | §4a directly — the actual user-visible defect | **yes** |
-| `snapshot(id)` returns the form's selected kind and its parameter | Step 2's wiring | n/a (new control) |
-| Host/Port are disabled for a non-Remote kind | §3's dead-input rule | n/a (new control) |
+| the server-kind list is Redis-owned, fully registered, and excludes `lua-language-server` | Step 2's combo source | **yes, once written** — see the correction in §5 |
+| ~~`snapshot(id)` returns the form's selected kind~~ | — | **not unit-tested; see below** |
+| ~~Host/Port are disabled for a non-Remote kind~~ | — | **not unit-tested; see below** |
 
 The fourth row is the one that matters and the one to write first: the other three can all pass
 while the settings page still flattens a connection the user never touched.
 
-**Mutation proof.** Restore the hardcoded `provisioning = LuaRedisProvisioning.Remote` in
-`toConnection()` and rows 1 and 4 must go red. A test that stays green with that line restored is
-asserting nothing — this defect's whole shape is a value silently replaced by a constant.
+**The last two rows are struck because reaching them needs test-only API, and it would not buy
+what it looks like it buys.** `ConnectionForm` is a private inner class; exposing it to assert that
+`snapshot` reads a combo would test the wiring while saying nothing about whether the control
+renders, whether the conditional rows toggle, or whether Host/Port visibly grey out — which is the
+whole question. Those are answered by the live pass below, and claiming unit coverage for them
+would be the vacuous-gate shape this repo keeps finding. What *is* unit-reachable is the combo's
+source of truth, and that row earned its place by going red.
 
-**Live verification is required** (`verify-in-ide`): this is a settings surface, so a green suite
-cannot show that the control renders, that the conditional rows toggle, or that Apply persists. The
-builder has Docker (DR-04). Create a Docker connection through the UI, run a script, confirm the
-container starts, the reply renders and the container is removed on session end — then reopen
-Settings and confirm the kind survived the round trip, which is §4a from the user's side.
+**Mutation proof.** Not needed as a separate step here: the three round-trip tests were run against
+the unfixed code and all three failed with `expected:<Docker(image=redis:8)> but
+was:<…Remote>`. The pre-fix state *is* the mutation, and it is the exact mutation worth proving —
+this defect's whole shape is a value silently replaced by a constant. Every assertion is written
+through the existing public API rather than reading the new `provisioning` field, which is what let
+them fail rather than fail to compile.
+
+### Live verification — DONE 2026-08-21, with one step not reached
+
+Driven over Xvfb on the builder VM (`verify-in-ide`), against a fresh `runIde` sandbox that logged
+`Loaded custom plugins: lunar` at launch. Verified by screenshot and by reading
+`.idea/lunar-redis.xml` back:
+
+| # | check | result |
+| :-- | :-- | :-- |
+| 1 | the **Server** combo renders, offering exactly Remote server / Local binary / Docker image | ✅ |
+| 2 | choosing Docker reveals the image row, **pre-filled `redis:8`** | ✅ *(see below)* |
+| 3 | choosing Local binary reveals the binary row, showing the registry display name "Redis Server" | ✅ |
+| 4 | **Host and Port grey out** for both non-Remote kinds, and are editable for Remote | ✅ |
+| 5 | a Docker connection created **through the UI alone** persists as `provisioningKind=DOCKER` + `dockerImage=redis:8` | ✅ |
+| 6 | reopening Settings shows it back as Docker — `from()` reads it | ✅ |
+| 7 | **§4a**: adding and editing a *second* connection, then OK, leaves the Docker one untouched | ✅ |
+| 8 | run a script against the ephemeral server end-to-end | **not reached** |
+
+**Row 2 was a defect this pass found and fixed.** The image field was *empty* on switching to
+Docker: `bindProvisioning` only wrote it for an already-Docker draft, and toggling the combo does not
+re-bind. The persisted value was still correct (`selectedProvisioning` treats blank as the default),
+so no unit test could have seen it — it was purely what the user meets. The field is now seeded for
+every kind, which also stops it showing the *previous* connection's image.
+
+**Row 8, stated rather than glossed.** A Redis Script run configuration is not offered from a
+`.lua` file's editor context menu or gutter, so reaching it needs one built by hand through *Edit
+Configurations*; that was not done. What it would exercise is the **launcher**, which this bug did
+not touch and which `src/redisIntegrationTest` already covers against real `redis:8` /
+`valkey/valkey:8` containers. Everything BUG-381 *changed* — form, draft, persistence — is covered
+by rows 1–7, and row 5's XML is byte-identical in shape to what those integration tests consume.
+The join of the two halves in one click remains unwitnessed, and is the honest gap.
 
 ## 7. Other Notes
 

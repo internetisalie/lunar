@@ -59,5 +59,21 @@ sealed interface LuaRedisProvisioning {
         const val KIND_REMOTE: String = "REMOTE"
         const val KIND_LOCAL_BINARY: String = "LOCAL_BINARY"
         const val KIND_DOCKER: String = "DOCKER"
+
+        /**
+         * The tool kinds [LocalBinary] may name, in the order a UI should offer them (BUG-381).
+         *
+         * **Deliberately a Redis-owned list rather than a query against the tool registry.**
+         * BUG-381's plan said to fill the settings combo from
+         * `LuaToolKindClassifier.Tier.PLATFORM_SERVER`, on the reasoning that it holds exactly
+         * `redis-server` and `valkey-server` and so a third server kind would appear for free. It
+         * does not: that tier is assigned by *absence of capabilities*, and `lua-language-server`
+         * has none either — so the combo would have offered a language server as a Redis server.
+         *
+         * "Which binaries speak RESP" is domain knowledge belonging here, next to the launcher that
+         * runs them, not to a classifier whose job is grouping the bindings UI. A future
+         * `keydb-server` joins this list; nothing else needs to change.
+         */
+        val SERVER_TOOL_KIND_IDS: List<String> = listOf("redis-server", "valkey-server")
     }
 }

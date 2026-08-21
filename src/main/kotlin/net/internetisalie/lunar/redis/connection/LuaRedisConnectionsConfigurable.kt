@@ -2,6 +2,7 @@ package net.internetisalie.lunar.redis.connection
 
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.platform.ide.progress.withBackgroundProgress
@@ -12,12 +13,15 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.internetisalie.lunar.redis.resp.RespEndpoint
 import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.toolchain.model.LuaToolKind
+import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 import net.internetisalie.lunar.util.LunarCoroutineScopeService
 import java.awt.BorderLayout
 import java.util.UUID
@@ -30,9 +34,8 @@ import javax.swing.ListSelectionModel
  * Project settings page for Redis/Valkey server connections (design §2.5, §4.3, §7).
  *
  * A short-lived [Configurable] (one per settings open) presenting a [JBList] of connections plus a
- * detail form (host/port/TLS/auth/db) and a **Test Connection** button. Provisioning is carried
- * through the form unedited for now (BUG-381 step 1); this KDoc claimed a control for it that has
- * never existed. Swing layout runs
+ * detail form (host/port/TLS/auth/db/provisioning) and a **Test Connection** button. The provisioning
+ * control is BUG-381 step 2; before it, this KDoc claimed a control that had never existed. Swing layout runs
  * on the EDT (fast, non-blocking — engineering-contract §1); the Test Connection socket I/O runs
  * **off** the EDT on the project coroutine scope with a background progress indicator, marshalling the
  * result back via `withContext(Dispatchers.EDT)` (engineering-contract §1, §2). Secrets are held only
@@ -173,21 +176,35 @@ class LuaRedisConnectionsConfigurable(
         val passwordField = JBPasswordField()
         val databaseField = JBTextField(4)
 
-        var onEdited: () -> Unit = {}
+        /**
+         * BUG-381 step 2 — the control that makes `LocalBinary` and `Docker` provisioning reachable.
+         * The launcher, persistence and both consumers have handled all three kinds since REDIS-01;
+         * this form was the only thing standing between them and a user.
+         */
+        val provisioningCombo = ComboBox(ProvisioningKind.entries.toTypedArray())
 
         /**
-         * BUG-381: the provisioning of the draft currently bound, carried through [snapshot]
-         * untouched because this form has no control for it.
-         *
-         * Without this the page is not merely unable to *create* an ephemeral-server connection —
-         * it destroys one that already exists, because [LuaRedisConnectionsConfigurable.apply]
-         * upserts every draft and `upsert` replaces persisted state wholesale.
+         * Filled from [LuaRedisProvisioning.SERVER_TOOL_KIND_IDS] — the Redis module's own list of
+         * binaries that speak RESP — and rendered with each kind's registry display name.
          */
-        private var boundProvisioning: LuaRedisProvisioning = LuaRedisProvisioning.Remote
+        val toolKindCombo =
+            ComboBox(serverToolKinds().toTypedArray()).apply {
+                renderer = SimpleListCellRenderer.create("") { it.displayName }
+            }
+
+        val dockerImageField = JBTextField(18)
+
+        var onEdited: () -> Unit = {}
+
+        private lateinit var toolKindRow: Row
+        private lateinit var dockerImageRow: Row
 
         val component: JComponent =
             panel {
                 row("Name:") { cell(nameField) }
+                row("Server:") { cell(provisioningCombo) }
+                toolKindRow = row("Server binary:") { cell(toolKindCombo) }
+                dockerImageRow = row("Docker image:") { cell(dockerImageField) }
                 row("Host:") { cell(hostField) }
                 row("Port:") { cell(portField) }
                 row { cell(tlsCheckBox) }
@@ -205,7 +222,7 @@ class LuaRedisConnectionsConfigurable(
             usernameField.text = draft?.username ?: ""
             passwordField.text = draft?.password ?: ""
             databaseField.text = draft?.database?.toString() ?: ""
-            boundProvisioning = draft?.provisioning ?: LuaRedisProvisioning.Remote
+            bindProvisioning(draft?.provisioning ?: LuaRedisProvisioning.Remote)
             component.isVisible = draft != null
         }
 
@@ -219,20 +236,84 @@ class LuaRedisConnectionsConfigurable(
                 username = usernameField.text.trim().ifEmpty { null },
                 password = String(passwordField.password).ifEmpty { null },
                 database = databaseField.text.trim().toIntOrNull() ?: 0,
-                provisioning = boundProvisioning,
+                provisioning = selectedProvisioning(),
             )
 
+        private fun bindProvisioning(provisioning: LuaRedisProvisioning) {
+            // The image is seeded for EVERY kind, not only Docker: switching the combo does not
+            // re-bind, so a field left blank here is the empty box a user meets on picking Docker —
+            // and one left holding the *previous* connection's image is worse. Found in the VNC
+            // pass; `selectedProvisioning` already treats blank as the default, so this is the
+            // visible half of a rule the model side already had.
+            dockerImageField.text = (provisioning as? LuaRedisProvisioning.Docker)?.image ?: DEFAULT_DOCKER_IMAGE
+            when (provisioning) {
+                is LuaRedisProvisioning.LocalBinary -> {
+                    provisioningCombo.item = ProvisioningKind.LOCAL_BINARY
+                    toolKindCombo.item = serverToolKinds().firstOrNull { it.id == provisioning.toolKindId }
+                }
+                is LuaRedisProvisioning.Docker -> provisioningCombo.item = ProvisioningKind.DOCKER
+                is LuaRedisProvisioning.Remote -> provisioningCombo.item = ProvisioningKind.REMOTE
+            }
+            syncProvisioningRows()
+        }
+
+        private fun selectedProvisioning(): LuaRedisProvisioning =
+            when (provisioningCombo.item) {
+                ProvisioningKind.LOCAL_BINARY ->
+                    LuaRedisProvisioning.LocalBinary(toolKindCombo.item?.id ?: DEFAULT_SERVER_KIND_ID)
+                ProvisioningKind.DOCKER ->
+                    LuaRedisProvisioning.Docker(dockerImageField.text.trim().ifEmpty { DEFAULT_DOCKER_IMAGE })
+                else -> LuaRedisProvisioning.Remote
+            }
+
+        /**
+         * Shows the row the selected kind needs, and **disables Host and Port for every kind but
+         * Remote**.
+         *
+         * That last part is not cosmetic. `LuaRedisServerLauncher.launchBinary` and `launchDocker`
+         * each call `allocatePort()` and return `127.0.0.1`, and `LuaRedisRunProfileState.openClient`
+         * prefers those over the connection's — so for an ephemeral server these two fields are
+         * input the plugin silently ignores. Leaving them editable invites a user to set a port and
+         * then wonder why the server is somewhere else.
+         */
+        private fun syncProvisioningRows() {
+            val kind = provisioningCombo.item ?: ProvisioningKind.REMOTE
+            toolKindRow.visible(kind == ProvisioningKind.LOCAL_BINARY)
+            dockerImageRow.visible(kind == ProvisioningKind.DOCKER)
+            val remote = kind == ProvisioningKind.REMOTE
+            hostField.isEnabled = remote
+            portField.isEnabled = remote
+        }
+
         private fun installEditListeners(target: JComponent) {
-            listOf(nameField, hostField, portField, usernameField, databaseField)
+            listOf(nameField, hostField, portField, usernameField, databaseField, dockerImageField)
                 .forEach { field -> field.document.addUndoableEditListener { onEdited() } }
             passwordField.document.addUndoableEditListener { onEdited() }
             tlsCheckBox.addActionListener { onEdited() }
+            toolKindCombo.addActionListener { onEdited() }
+            provisioningCombo.addActionListener {
+                syncProvisioningRows()
+                onEdited()
+            }
+            syncProvisioningRows()
             target.isVisible = false
         }
     }
 
     private companion object {
         const val DEFAULT_PORT: Int = 6379
+
+        /** Mirrors `LuaRedisConnectionSettings.provisioningOf`'s fallbacks, so a blank field agrees with a blank XML. */
+        const val DEFAULT_SERVER_KIND_ID: String = "redis-server"
+        const val DEFAULT_DOCKER_IMAGE: String = "redis:8"
+
+        /** The RESP-speaking kinds, resolved to registry entries for their display names. */
+        fun serverToolKinds(): List<LuaToolKind> {
+            val registered = LuaToolKindRegistry.all()
+            return LuaRedisProvisioning.SERVER_TOOL_KIND_IDS.mapNotNull { id ->
+                registered.firstOrNull { it.id == id }
+            }
+        }
     }
 }
 
@@ -297,6 +378,24 @@ data class LuaRedisConnectionDraft(
                 provisioning = LuaRedisProvisioning.Remote,
             )
     }
+}
+
+/**
+ * BUG-381 — the three provisioning kinds as the Server combo offers them.
+ *
+ * Separate from [LuaRedisProvisioning] because that sealed interface carries each kind's *parameter*
+ * (`toolKindId`, `image`) and a combo item must not: the user picks Docker before typing an image,
+ * and a combo of half-built model values is a combo whose selection can be invalid.
+ */
+private enum class ProvisioningKind(
+    private val label: String,
+) {
+    REMOTE("Remote server"),
+    LOCAL_BINARY("Local binary"),
+    DOCKER("Docker image"),
+    ;
+
+    override fun toString(): String = label
 }
 
 /** Renders a connection list row as `name — host:port` (design §2.5 UI). */

@@ -2,6 +2,16 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Redis/Valkey connections can be given an ephemeral server, and the settings page no longer
+  destroys one** (BUG-381): Lunar could already start a session-scoped Redis server from a Docker
+  image or a local `redis-server`/`valkey-server` binary, run your script against it and tear it
+  down — but nothing in the UI could ask for it, so every connection you created was a plain remote
+  one. The Redis Connections form now has a **Server** choice, with an image field for Docker and a
+  binary choice for local, and it greys out Host and Port for those kinds because the launcher picks
+  both itself. Worse than the missing control: the page did not merely fail to *set* provisioning, it
+  **erased** it. Editing any field of any connection rewrote every connection to remote, silently —
+  including one you had configured by hand-editing `.idea/lunar-redis.xml`, which was the only way to
+  reach the feature at all. Both halves are fixed.
 - **Completing members of an annotated `---@class` no longer parses the file that declares it**
   (BUG-438): resolving a class read its declaring file's whole syntax tree, even when everything the
   class needed was already in the index — for a 3 600-member class that put time-to-first-result at
