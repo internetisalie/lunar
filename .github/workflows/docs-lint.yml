@@ -3,6 +3,11 @@ name: Docs Front-matter Lint
 # GitHub Actions variant of .gitea/workflows/docs-lint.yml. The lint scripts are platform-agnostic;
 # this copy exists so the GitHub mirror runs the same doc gate. GitHub reads only .github/workflows,
 # and Gitea's act_runner prefers .gitea/workflows, so each platform runs exactly one copy.
+#
+# One deliberate difference: the Gitea copy runs on `act-ci`, because `ubuntu-latest` there resolves
+# to a self-hosted pool whose runners do not all support Docker — and this job is all containers and
+# JS actions. Here `ubuntu-latest` is GitHub's own hosted runner, which always does, so it stays.
+# Same gate, same scripts; only the runner that can actually host them differs.
 on:
   # push only on the default branch; pull_request covers every other branch — so a branch that
   # has an open PR does not run this workflow twice (once for the branch push, once for the PR).

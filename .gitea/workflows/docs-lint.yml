@@ -19,7 +19,29 @@ on:
 
 jobs:
   lint-docs:
-    runs-on: ubuntu-latest
+    # act-ci, NOT ubuntu-latest. `ubuntu-latest` resolves to tier2's shared pool, whose
+    # runners do not all officially support Docker — and every step here is a container or a
+    # JS action, so a job landing on a docker-less runner dies before linting anything:
+    #
+    #   Cannot connect to the Docker daemon at unix:///var/run/docker.sock
+    #   unable to determine if image already exists for image 'docker.gitea.com/runner-images:ubuntu-latest'
+    #
+    # Observed 2026-08-21 on runner-runner-0. It is not a docs failure and re-running only
+    # re-rolls which runner picks the job up, since `ubuntu-latest` is carried by four
+    # runners of differing capability.
+    #
+    # act-ci is an act_runner on GCP (glimmer-gitea-runner, deployment/values/act-ci.yaml):
+    # `ci.executor: act` with `vm.docker: true` and the stock
+    # docker.gitea.com/runner-images:ubuntu-latest image, so `uses:` steps, expressions and
+    # service containers all work — everything this job needs, and a drop-in for the runner
+    # it replaces. loom's own required docs-lint gate already runs there, which is this exact
+    # job shape.
+    #
+    # It is a canary pool at `capacity: 1`, so a second job QUEUES rather than failing. That
+    # is fine for a ~30 s lint and is the trade accepted here: a slow gate beats one that
+    # fails on infrastructure. The rest of this repo's `ubuntu-latest` jobs (`changes`, and
+    # the release lane, which needs artifact actions) are deliberately left where they are.
+    runs-on: act-ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
