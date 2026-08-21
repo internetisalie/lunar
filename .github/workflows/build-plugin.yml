@@ -19,6 +19,11 @@ name: Build Plugin
 #     not tier2's shared pool and has none of that pool's Docker problem.
 #   - no `corpus` job: the corpus lane is Gitea-only (it needs the pinned out-of-repo fixtures
 #     the lunar-ci job image provisions).
+#   - `release` stays on `ubuntu-latest` here, where the Gitea variant moved it to `act-ci`. Same
+#     reason as `changes` above: that move exists to escape tier2's shared pool, where one runner
+#     advertises the `ubuntu-latest` label with no Docker daemon behind it and killed the v0.21.6
+#     release. GitHub-hosted runners always have one, so there is nothing to escape and no `act-ci`
+#     label to escape to. The jobs are equivalent in effect — both publish the tested artifact.
 #
 # The env-fragile :integrationTest (real GoLand via IDE-Starter) and parser/lexer regeneration are
 # NOT run here — same as the Gitea variant.

@@ -543,7 +543,24 @@ jobs:
   release:
     needs: build-release
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    # act-ci, NOT ubuntu-latest. This job died on v0.21.6 with "Cannot connect to the Docker daemon
+    # at unix:///var/run/docker.sock" — it had drawn runner-runner-0, which carries the label but has
+    # no daemon, so its job container could not start at all. That is the same runner, and the same
+    # failure, that took out the `changes` job earlier the same day.
+    #
+    # No `runs-on` value can dodge it: runner-runner-0 and the healthy runner-runner-1 advertise
+    # IDENTICAL labels (ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-slim). Pinning `ubuntu-heavy`
+    # would only redirect to the two mini-ci runners, whose daemons are equally unverified. Rerunning
+    # does not help either — a job-level rerun re-dispatches the WHOLE run in this Gitea, and both
+    # observed draws landed on runner-runner-0 anyway.
+    #
+    # act-ci runs the act backend with vm.docker: true by construction (its chart refuses to render
+    # otherwise), so the daemon is guaranteed rather than gambled on. The rule in AGENTS.md that keeps
+    # the release lane off "the pool" is about `lunar-ci` specifically — its k8sexec executor cannot
+    # run artifact actions — and does NOT apply here: act runs them, which is what makes
+    # download-artifact@v3-node20 below work. `build-release` deliberately stays on ubuntu-latest;
+    # artifacts are stored server-side, so the cross-runner handoff is unaffected.
+    runs-on: act-ci
     # Releases + asset upload fall under `contents: write`; declare it so we don't depend on the
     # instance's default token scope.
     permissions:
