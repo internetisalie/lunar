@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Completing members of an annotated `---@class` no longer parses the file that declares it**
+  (BUG-438): resolving a class read its declaring file's whole syntax tree, even when everything the
+  class needed was already in the index — for a 3 600-member class that put time-to-first-result at
+  323 ms against a 100 ms budget. Two reads forced it: the class's bound name, now taken from the
+  stub, and the scan for implicit `Klass.field = …` assignments, which now runs only for a file the
+  index says actually has one. Measured across the shipped definition libraries, **73 of 75**
+  class-declaring files have no such assignment and are no longer parsed at all. Classes written the
+  other way behave exactly as before.
 - **Reloading project settings no longer leaves Lua runs with a stale `PATH`** (BUG-444): the PATH
   entries Lunar prepends for your toolchain were cached and refreshed whenever the toolchain changed,
   but the platform's own state-reload path — opening a project, switching a VCS branch, an external

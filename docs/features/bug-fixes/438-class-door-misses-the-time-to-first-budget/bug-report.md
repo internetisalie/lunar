@@ -3,7 +3,7 @@ id: "BUG-438"
 title: "The `@class` completion door misses the 100 ms time-to-first budget — 323 ms at 3 600 members"
 type: "bug"
 parent_id: "BUG"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -217,3 +217,107 @@ Bucket the door on the same five-receivers-in-five-files shape, medians of five,
 anything: parse vs stub construction vs `funcTypeFromStub` vs `LuaImplicitFields`. COMP-09's standing
 rule applies — **no ratio between two figures of one harness is quotable**, and a count gate is
 preferred to a timing threshold wherever a count will do.
+
+## 9. The gate measurement — PASSED, and it corrects this report's own framing
+
+§7 made a measurement a precondition and said it might kill the fix. It did not, but it refuted the
+comparison the warning rested on.
+
+**The unit was wrong, not just the sample size.** §7 tabulated *two files* — love2d's `love.lua` (0
+implicit assignments) against openresty's `ngx.lua` (78) — and generalised to *libraries*:
+"love2d-shaped libraries skip the parse entirely and openresty-shaped ones do not skip it at all."
+But the guard is asked once **per declaring file**, so a library is not the unit at all. Measured
+per file over both libraries in full:
+
+| library | declaring files | walk-skippable | `@field` total |
+| :-- | --: | --: | --: |
+| love2d | 20 | **20 (100 %)** | 10 |
+| openresty | 55 | **53 (96 %)** | 213 |
+| **both** | **75** | **73 (97 %)** | 223 |
+
+`ngx.lua` is an outlier *within* openresty — it and `prometheus.lua` (5 assignments) are the only
+two of its 55 declaring files that need the walk. Treating it as openresty's shape is what made the
+two libraries look like opposite cases.
+
+Three caveats, none of which move the verdict:
+
+- **The survey is a regex approximation, deliberately biased toward "walk".** It counts any
+  `r.f =` or `self.f =` line anywhere in the file, which is looser than the walk's own rule, so a
+  file it calls skippable has no candidate assignment under a *wider* test than the guard applies.
+- **busted and luassert were not measured** — the two remaining catalog entries are fetched over the
+  network and are 2 KB and 8 KB. luassert's shape is already on record without fetching it:
+  `LuaImplicitFields`' own KDoc quotes `internal.are = internal` from it, so it is a walk file.
+  Counting it as one leaves the verdict at 73/76.
+- **The corpus cannot inform this gate.** All four pinned checkouts — luacheck, luarocks, penlight,
+  zerobrane — contain **zero** LuaCATS `---@class` declarations between them. The 27 `@class` and
+  6 `@classmod` hits in penlight and zerobrane are **LDoc**, on two-dash comments
+  (`-- @class function`, `-- @classmod pl.Map`), which is a different annotation that never reaches
+  `LuaCatsClassTag`. This door's material is definition libraries; the corpus is a gate for member
+  *sets*, not for this shape.
+
+## 10. Root cause, corrected a second time — the de-stub is one call earlier than §6 says
+
+§6 named `LuaImplicitFields.collect` and `LuaImplicitFields.kt:75`. That call does de-stub, and
+guarding it is half the fix — but it is not where the file is first loaded, and a guard on it alone
+leaves the door exactly as slow. Staging one more reading between §6's `03` and `04`:
+
+```
+B438-STAGE Klass 03afterAllHostedParts     =[false]
+B438-STAGE Klass 04afterClassReceiverNames =[true]    <- the AST is forced HERE
+B438-STAGE Klass 05afterImplicitFields     =[true]
+```
+
+**`classReceiverNames` is what de-stubs**, through `declaredName`:
+
+```kotlin
+decl.attNameList.firstOrNull()?.node?.findChildByType(LuaElementTypes.NAME_REF)?.psi?.text
+```
+
+`attNameList` and `.node` both load the file. §6's probe could not see this because
+`classReceiverNames(name, decls)` is an **argument expression** to `collect` — it is evaluated
+inside the same statement, so any reading taken after `collect` returns attributes it to `collect`.
+
+### Both halves are load-bearing, proved by deleting each
+
+| mutation | `testAFieldOnlyDeclaringFileIsNeverParsed` | the two behaviour tests |
+| :-- | :-- | :-- |
+| delete the `collect` guard | **red** | green |
+| revert `declaredName` to the AST read | **red** | green |
+| both fixes present | green | green |
+
+Neither alone is sufficient, which is why the earlier attribution mattered: a fix built on §6 as
+written would have passed review, shipped, and moved nothing.
+
+### §7's predicate could not have worked either
+
+"Consult `LuaReceiverMemberIndex` for a `FIELD`-kind member. If none, skip that file" does not
+discriminate. `Kind.FIELD` is what an `---@field` tag records (index source 3), and what the
+`OPAQUE_BINDING` and `LOCAL_BINDING` sentinels record — so "has a FIELD member" is true of every
+annotated library file and the guard would never fire, on precisely the love2d-shaped files it was
+designed for. Inverting it is worse than useless: `R.f = function() end` records `Kind.FUNCTION`
+and **is** collected by the walk, so excluding FUNCTION would skip a file holding a member that was
+about to be added. Neither `Kind` nor `Separator` can answer the question, which is why what shipped
+is a marker emitted at the one index source that means it.
+
+## 11. What shipped
+
+- **`declaredName` reads `LuaLocalVarStub.names` first**, falling back to the AST for a declaration
+  with no stub — one in the file being edited, where the parse is already paid for. The stub is
+  built from the same expression, so the answer is unchanged.
+- **`LuaReceiverMember.ASSIGNED_MEMBER`**, a fourth sentinel emitted once per receiver that writes a
+  member through an assignment statement. Index version **4 → 5**: the bump is not optional here,
+  because an unmarked persisted index reads as "assigns nothing", which is exactly when the guard
+  skips the walk.
+- **`LuaReceiverMemberIndex.assignsMembersTo`** — a per-file boolean, not a third member door: it
+  selects no members and unions nothing, so §4.5's rule is untouched. Every uncertain path returns
+  `true`, so the caller walks as it did before.
+- **`LuaImplicitFields.mayAssignMembers`** skips the walk only for a file whose AST is *not already
+  loaded*. That condition is the freshness argument, not an optimisation: a file the user is editing
+  always has its AST loaded, so the index is never consulted about content newer than itself.
+- `MemberEnumerationLatencyGateTest`'s traversal counts gain `+ ASSIGNMENT_MARKS`. The mark is
+  counted rather than filtered from `LuaReceiverMemberWork`, which measures entries actually read;
+  the independence claim lives in the before-versus-after assertions and is unaffected.
+
+**Not done, and deliberately.** `collectMethodMembers` / `funcTypeFromStub` at ~29 % (§6's table) is
+untouched. It is a separate target with its own measurement, and this report's evidence does not
+reach it.

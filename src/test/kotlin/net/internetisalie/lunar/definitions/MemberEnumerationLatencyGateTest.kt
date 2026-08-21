@@ -107,8 +107,16 @@ class MemberEnumerationLatencyGateTest : TimedCompletionTestCase() {
         val narrowAfter = entriesToAnswer("${NARROW_PREFIX}0")
         val wideAfter = entriesToAnswer("${WIDE_PREFIX}0")
         println("COMP-09-08 entries narrow=$narrowBefore->$narrowAfter wide=$wideBefore->$wideAfter")
-        assertEquals("the narrow receiver's traversal is its own member count", NARROW_MEMBERS, narrowBefore)
-        assertEquals("the wide receiver's traversal is its own member count", WIDE_MEMBERS, wideBefore)
+        assertEquals(
+            "the narrow receiver's traversal is its own member count, plus its assignment mark",
+            NARROW_MEMBERS + ASSIGNMENT_MARKS,
+            narrowBefore,
+        )
+        assertEquals(
+            "the wide receiver's traversal is its own member count, plus its assignment mark",
+            WIDE_MEMBERS + ASSIGNMENT_MARKS,
+            wideBefore,
+        )
         assertEquals(
             "adding ${UNRELATED_RECEIVERS * UNRELATED_MEMBERS} unrelated indexed members moved the " +
                 "narrow receiver's work — enumeration is scanning, not looking up",
@@ -201,6 +209,19 @@ class MemberEnumerationLatencyGateTest : TimedCompletionTestCase() {
         const val WIDE_RECEIVERS = 5
         const val WIDE_MEMBERS = 3600
         const val WIDE_FIELDS = 3400
+
+        /**
+         * BUG-438’s `LuaReceiverMember.ASSIGNED_MEMBER` — one entry per receiver that writes a
+         * member through an assignment, which both fixtures here do (`R.n0 = nil`, `R.wxC_0 = nil`).
+         *
+         * It is **counted, not filtered out**: `LuaReceiverMemberWork` measures the entries the
+         * traversal actually reads, and a counter that quietly skipped a stored entry would
+         * understate the work — the one quantity this assertion exists to bound. The independence
+         * claim is unaffected, because a constant does not track member count: that claim is the two
+         * before-versus-after assertions below, and they are what would catch a scan.
+         */
+        const val ASSIGNMENT_MARKS = 1
+
         const val NARROW_PREFIX = "Narrow"
         const val NARROW_RECEIVERS = 5
         const val NARROW_MEMBERS = 3

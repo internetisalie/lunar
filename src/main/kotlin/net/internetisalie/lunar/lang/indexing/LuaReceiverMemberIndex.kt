@@ -128,8 +128,28 @@ data class LuaReceiverMember(
          */
         const val LOCAL_BINDING: String = "\u0000local"
 
-        /** Both sentinels are bookkeeping, and neither is ever an offerable member. */
-        internal val SENTINELS: Set<String> = setOf(OPAQUE_BINDING, LOCAL_BINDING)
+        /**
+         * BUG-438: the sentinel that says "this file writes a member of the receiver through an
+         * **assignment statement**" — source 2, `R.f = …`, the only source `LuaImplicitFields`'
+         * walk can find anything in.
+         *
+         * [LuaReceiverMember.Kind] cannot answer that question and neither can
+         * [LuaReceiverMember.Separator], which is why this is a marker rather than a filter over
+         * what is already stored. `FIELD` is what an `---@field` tag records (source 3) and what
+         * both sentinels above record, so "has a FIELD member" is true of every annotated library
+         * file and a guard resting on it would never fire; `FUNCTION` is recorded by
+         * `function R.f()` (source 1, which the walk does **not** collect) *and* by
+         * `R.f = function() end` (source 2, which it does), so excluding it would skip a file
+         * holding a member the walk was going to add.
+         *
+         * One marker emitted at the only site that means it is the whole discrimination, and it
+         * costs one entry per assigning receiver rather than a wider value — design §4.13's
+         * deliberate sizing of the value is untouched.
+         */
+        const val ASSIGNED_MEMBER: String = "\u0000assigned"
+
+        /** Every sentinel is bookkeeping, and none is ever an offerable member. */
+        internal val SENTINELS: Set<String> = setOf(OPAQUE_BINDING, LOCAL_BINDING, ASSIGNED_MEMBER)
     }
 }
 
@@ -176,8 +196,15 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
      * 3 → 4 (BUG-430): `dottedTarget` now keys a nested assignment under its real receiver, so
      * `Foo.bar.baz = 1` adds a `Foo.bar` key where it previously reached none. New keys are new
      * content; a persisted index would keep answering `Foo.bar.` with nothing.
+     *
+     * 4 → 5 (BUG-438): [LuaReceiverMember.ASSIGNED_MEMBER] is a new value in the same wire format,
+     * so a persisted index reads back fine and simply carries no marks. That direction is the
+     * dangerous one here and the bump is not optional: an unmarked file reads as "assigns nothing",
+     * which is precisely when [assignsMembersTo] tells the `@class` door to skip the walk — so a
+     * machine that had indexed before this version would silently lose every implicit member,
+     * exactly on the libraries that have them.
      */
-    override fun getVersion(): Int = 4
+    override fun getVersion(): Int = 5
 
     override fun dependsOnFileContent(): Boolean = true
 
@@ -343,9 +370,24 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
             assignments: List<LuaAssignmentStatement>,
             byReceiver: MemberSink,
         ) {
+            val assigning = linkedSetOf<String>()
             forEachAssignedTarget(assignments) { target, assigned ->
                 val (receiver, name) = dottedTarget(target) ?: return@forEachAssignedTarget
                 byReceiver.record(receiver, LuaReceiverMember(name, kindOf(assigned), LuaReceiverMember.Separator.DOT))
+                assigning.add(receiver)
+            }
+            // BUG-438 — one mark per receiver, not per assignment: the guard asks whether the file
+            // assigns anything at all, so openresty's `ngx.lua` costs two entries for its 78
+            // assignments, which key under `ngx` and `ngx.var`.
+            assigning.forEach { receiver ->
+                byReceiver.record(
+                    receiver,
+                    LuaReceiverMember(
+                        LuaReceiverMember.ASSIGNED_MEMBER,
+                        LuaReceiverMember.Kind.FIELD,
+                        LuaReceiverMember.Separator.DOT,
+                    ),
+                )
             }
         }
 
@@ -588,6 +630,37 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
             project: Project,
             exclude: PsiFile?,
         ): List<LuaReceiverMember> = globalMembership(receiver, project, exclude).members
+
+        /**
+         * BUG-438 — does [file] write a member of any of [receivers] through an assignment?
+         *
+         * **This is not the third member door §4.5 rules out.** It selects no members, unions
+         * nothing across files and answers about one file, so it cannot drift from `membersIn` or
+         * `globalMembership` the way a shared `membersOf` did: there is no selection rule here to
+         * get wrong. What it replaces is not an index query at all — it is
+         * `PsiTreeUtil.findChildrenOfType` over a file whose AST had to be loaded first.
+         *
+         * **True is the safe answer and every uncertain path returns it.** While dumb the platform
+         * throws `IndexNotReadyException` from a data read, and a file the index has no entry for is
+         * indistinguishable here from a file that assigns nothing — so the caller walks, which is
+         * what it did before this existed. A wrong `false` silently drops members; a wrong `true`
+         * costs one walk.
+         *
+         * `self` is not special-cased here. `self.f = …` is keyed under `self` like any other
+         * receiver, so a caller whose collection rule includes it has to ask for it — see
+         * `LuaImplicitFields`, which owns that rule.
+         */
+        fun assignsMembersTo(
+            receivers: Set<String>,
+            file: VirtualFile,
+            project: Project,
+        ): Boolean {
+            if (DumbService.isDumb(project)) return true
+            val declared = FileBasedIndex.getInstance().getFileData(KEY, file, project)
+            return receivers.any { receiver ->
+                declared[receiver].orEmpty().any { it.name == LuaReceiverMember.ASSIGNED_MEMBER }
+            }
+        }
 
         /**
          * While dumb the answer is `Membership(emptyList(), authoritative = true, found = false)` —
