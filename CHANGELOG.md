@@ -12,6 +12,19 @@
   **erased** it. Editing any field of any connection rewrote every connection to remote, silently —
   including one you had configured by hand-editing `.idea/lunar-redis.xml`, which was the only way to
   reach the feature at all. Both halves are fixed.
+- **Running a script against a Docker-provisioned Redis server now works at all, and no longer leaks
+  the container** (BUG-446): starting the container read its id from a stream the platform was
+  already draining, so the id came back empty and the run died with `Stream closed`. An empty id also
+  disabled the cleanup, leaving a Redis container running after the IDE session ended — one per
+  attempt. The id is now captured through the process handler rather than alongside it, and a
+  `docker run` that fails reports docker's own reason instead of silently handing back a server
+  address where nothing is listening. Separately, **neither** provisioning kind waited for the server
+  it started to actually accept commands: measured, a Docker container answered 31–70 ms after
+  `docker run` returned and a local binary 15–32 ms after spawn, so the run could connect and stall
+  before the server was up. Both kinds now wait for the server to answer before the client connects.
+  This path had no test coverage of any kind — the integration suite started its own containers with
+  a copy of the launcher's command line rather than calling the launcher — so it now has a test that
+  drives the real thing.
 - **Completing members of an annotated `---@class` no longer parses the file that declares it**
   (BUG-438): resolving a class read its declaring file's whole syntax tree, even when everything the
   class needed was already in the index — for a 3 600-member class that put time-to-first-result at

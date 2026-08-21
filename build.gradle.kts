@@ -248,6 +248,19 @@ tasks {
                 isFailOnNoMatchingTests = false
             }
         }
+        // BUG-446: tests that drive real Docker — they need a running daemon and pull images, so
+        // they are opt-in the way the corpus sweeps below are: `./gradlew test -PwithDocker`. They
+        // live in `src/test` rather than the `redisIntegrationTest` source set because they are
+        // BasePlatformTestCase — they hand a real Project to LuaRedisServerLauncher — and only this
+        // IJPGP-configured task supplies the platform JVM setup that needs (`--add-opens`,
+        // `idea.home.path`, and a class loader that must be set at fork time). A hand-registered
+        // Test task supplies none of it, which is the same limitation the note above records.
+        if (!project.hasProperty("withDocker")) {
+            filter {
+                excludeTestsMatching("*DockerTest")
+                isFailOnNoMatchingTests = false
+            }
+        }
         // CI checkouts lack the out-of-repo `test/` fixture tree (a tracked symlink → ../test that
         // the gce-builder rsyncs in with -L). When it is absent these two tests fail at setup, so
         // CI passes -PexcludeExternalFixtureTests to skip them; they stay covered on the local

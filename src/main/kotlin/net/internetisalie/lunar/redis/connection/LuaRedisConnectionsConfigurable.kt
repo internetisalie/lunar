@@ -2,8 +2,8 @@ package net.internetisalie.lunar.redis.connection
 
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.options.Configurable
-import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.ui.CollectionListModel
