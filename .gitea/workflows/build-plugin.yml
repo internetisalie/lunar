@@ -156,6 +156,24 @@ jobs:
       - name: Build plugin (compile + verifyPlugin + distributable zip)
         run: ./gradlew buildPlugin --no-daemon --stacktrace
 
+      # The formatting gate (BUG-445). Runs after compile — a compile error is the more
+      # useful failure — but before the suite, so a lint result does not wait on it.
+      #
+      # ktlintCheck ALONE. Never `ktlintFormat ktlintCheck`: the format pass rewrites the
+      # very files the check then reads, so that pairing CANNOT FAIL. It is what AGENTS.md
+      # prescribed for the local gate, and it is how 13 files reached main unformatted while
+      # that gate reported green — same shape as the `--rerun` defect recorded above, where a
+      # step reports a pass having asserted nothing.
+      #
+      # Failure is RECORDED, not propagated, exactly as the test step below does it and for
+      # the same reason: under `sh -e` a failing step aborts the whole job script, so a
+      # misplaced brace would throw away the suite, the coverage report and the analytics
+      # ingest. The final step turns either failure into the job's verdict.
+      - name: Lint (ktlintCheck)
+        run: |
+          ./gradlew ktlintCheck --no-daemon --stacktrace \
+            || touch /tmp/lunar-ktlint-failed
+
       - name: Unit tests (excludes :integrationTest and out-of-repo fixture tests)
         # Failure is RECORDED, not propagated, so the coverage + analytics steps below
         # still run on a red build — that is what `if: always()` bought on the standard
@@ -230,15 +248,26 @@ jobs:
             "$@" \
             -F "sourceManifest=@sources.txt"
 
-      # The deferred verdict from the test step. Last, so coverage and analytics have
-      # already been collected from the failing run — the point of doing it this way.
-      - name: Report test result
+      # The deferred verdict from the lint and test steps. Last, so coverage and analytics
+      # have already been collected from the failing run — the point of doing it this way.
+      #
+      # BOTH are reported before exiting, rather than exiting at the first: a run that is
+      # red on formatting AND on tests should say so once, not hide the second behind a
+      # re-run. `continue-on-error` is NOT used on either step, as that would mark them
+      # succeeded and let a genuine failure through as a green build.
+      - name: Report lint + test result
         run: |
+          verdict=0
+          if [ -f /tmp/lunar-ktlint-failed ]; then
+            echo "::error::ktlintCheck failed — see the Lint step above; './gradlew ktlintFormat' fixes it"
+            verdict=1
+          fi
           if [ -f /tmp/lunar-tests-failed ]; then
             echo "::error::unit tests failed — see the Unit tests step above"
-            exit 1
+            verdict=1
           fi
-          echo "unit tests passed"
+          if [ "$verdict" -ne 0 ]; then exit 1; fi
+          echo "ktlintCheck and unit tests passed"
 
   # The corpus gate (BUG-415): the ratchet that catches semantic regressions across pinned
   # real-world projects (MAINT-33/35) finally has a trigger that is not "when someone
@@ -451,6 +480,19 @@ jobs:
             -F "buildUrl=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             "${args[@]}" \
             -F "sourceManifest=@sources.txt"
+
+      # The formatting gate (BUG-445), on the release lane too — otherwise a tag build would
+      # mean strictly less than a branch build, and on GitHub (whose single `build` job covers
+      # tags) it already would not.
+      #
+      # Placed here rather than early on purpose: tests, coverage and the analytics ingest have
+      # all run by now, so a formatting failure costs no diagnostics. It still fails the job,
+      # which drops `if: success()` on the upload below — so an unformatted tree cannot be
+      # published, and `release` (needs: build-release) never starts.
+      #
+      # ktlintCheck ALONE, for the reason spelled out in the `build` job above.
+      - name: Lint (ktlintCheck)
+        run: ./gradlew ktlintCheck --no-daemon --stacktrace
 
       # Gitea's act_runner rejects the upload-artifact@v4 protocol ("v4+ not supported on
       # GHES"), and plain @v3 (v3.2.2) is a Node 16 action the Node 20 runner image can't execute.

@@ -11,6 +11,8 @@ name: Build Plugin
 #   - release via `gh release create` against the GitHub API (the Gitea variant POSTs the Gitea API)
 #   - explicit `tags: ['v*']` trigger (GitHub does not inherit act_runner's tag/path-filter behavior)
 #   - the internal UniTrack ingest step is omitted (Gitea-only integration + secrets)
+#   - ktlintCheck fails its step directly; the Gitea routine lane must defer it to a final
+#     verdict step because its executor rejects step-level `if:` (see that file). Same effect.
 #
 # The env-fragile :integrationTest (real GoLand via IDE-Starter) and parser/lexer regeneration are
 # NOT run here — same as the Gitea variant.
@@ -99,6 +101,23 @@ jobs:
         # Scoped to this task rather than --no-build-cache, which would also stop compile
         # being served from cache — the thing the actions/cache step exists to make fast.
         run: ./gradlew test --rerun --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
+
+      # The formatting gate (BUG-445). ktlintCheck ALONE — never `ktlintFormat ktlintCheck`:
+      # the format pass rewrites the very files the check then reads, so that pairing CANNOT
+      # FAIL. That pairing is what AGENTS.md prescribed for the local gate, and it is how 13
+      # files reached main unformatted while the gate reported green.
+      #
+      # Placed after the suite rather than before it so a formatting failure costs no test
+      # diagnostics: "Upload test reports" is `if: always()` and still runs, while the
+      # `if: success()` on the plugin upload below drops — so an unformatted tree cannot be
+      # published and `release` (needs: build) never starts.
+      #
+      # The Gitea variant records this failure to a file and reports it in a final verdict
+      # step instead. That is forced, not a difference in meaning: its routine lane runs on an
+      # executor with no step-level `if:`, where a failing step aborts the job script outright.
+      # Both platforms fail the job when, and only when, ktlintCheck fails.
+      - name: Lint (ktlintCheck)
+        run: ./gradlew ktlintCheck --no-daemon --stacktrace
 
       - name: Upload plugin artifact
         if: success()

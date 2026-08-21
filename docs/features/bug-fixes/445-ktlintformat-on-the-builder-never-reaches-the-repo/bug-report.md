@@ -3,7 +3,7 @@ id: "BUG-445"
 title: "The documented `ktlintFormat` step formats the builder VM's copy and never reaches the repo"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -54,16 +54,43 @@ Violations are ordinary mechanical ones — `argument-list-wrapping`, `chain-met
 so nothing else catches the drift. The repo's claim that the check "is a real gate" is currently only
 true of a command that cannot fail.
 
-## Fix direction
+## Fix
 
-Two parts, and the second is the one that matters:
+Both halves, together, so the gate is never added to a repo it would immediately fail.
 
-1. **Clear the debt.** `ktlintFormat` is mechanical and ktlint's output *is* the house style, so this
-   is a formatting-only commit — kept separate from any behavioural change, per the standing "no
-   mass-reformatting inside a fix" rule.
-2. **Make the gate able to fail.** Either run `ktlintCheck` **without** `ktlintFormat` as the
-   pre-commit step (so it reports on what will actually be committed), or give `gce-builder.sh` a
-   sync-back leg for source files after a formatting task. Correct `AGENTS.md` either way — the
-   current instruction is the defect, not a mistake by whoever followed it.
+**1. CI gates on `ktlintCheck`** — `build-plugin.yml`, both platforms, both build lanes:
 
-Adding `ktlintCheck` to CI would close it permanently, but only once the debt above is cleared.
+| lane | placement | why there |
+| :-- | :-- | :-- |
+| Gitea `build` (`lunar-ci`) | after compile, before the suite | failure is written to `/tmp/lunar-ktlint-failed` and reported by the final verdict step, alongside the test verdict. The executor rejects step-level `if:`, and under `sh -e` a failing step aborts the job script — a formatting nit would otherwise throw away the suite, the coverage report and the analytics ingest |
+| Gitea `build-release` | after the analytics ingest, before the artifact upload | tests, coverage and ingest have all run, so the failure costs no diagnostics. It still drops `if: success()` on the upload, so an unformatted tree cannot be published and `release` never starts |
+| GitHub `build` | after the suite, before the artifact upload | same, and `Upload test reports` is `if: always()` so reports survive |
+
+The platforms differ in *how* the failure is carried and not in what a green build means: both fail
+the job when, and only when, `ktlintCheck` fails. The GitHub file's header records the difference in
+its existing list.
+
+**2. The debt is cleared** in the same change — 13 files, `ktlintFormat` output verbatim. Proven to
+be formatting-only: with whitespace, commas and `import` lines stripped, every file is byte-identical
+to its previous version. The only net semantic change is the removal of four genuinely unused
+`import com.intellij.openapi.vfs.VirtualFile` lines left behind by BUG-436, which the contract asks
+for anyway; the two other import diffs are re-orderings, removed and re-added.
+
+**3. The instruction that caused it is corrected** in `.agents/AGENTS.md` — both places that
+prescribed `run "ktlintFormat ktlintCheck"`. It now says to run `ktlintCheck` **alone**, explains why
+the pairing cannot fail, and gives the format-then-pull-back recipe:
+
+```bash
+tooling/gce-builder/gce-builder.sh run ktlintFormat
+rsync -az --include='*/' --include='*.kt' --exclude='*' builder:/home/builder/lunar/src/ src/
+```
+
+That file is **gitignored and local-only** (`.gitignore:13`), so unlike the other two halves the
+correction does not travel with the repo — it applies to this machine's checkout only. Anyone
+cloning fresh inherits CI's gate but not the corrected local advice, which is a gap this repo's
+`.agents/` convention creates and cannot fix from inside a commit.
+
+## Verification
+
+`ktlintCheck` **alone** — never paired with `ktlintFormat`, which is the whole point — run against
+the reformatted tree, together with the full suite so the import removals are proven by compilation.
