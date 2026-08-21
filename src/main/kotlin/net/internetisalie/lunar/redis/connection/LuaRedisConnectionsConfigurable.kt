@@ -30,7 +30,9 @@ import javax.swing.ListSelectionModel
  * Project settings page for Redis/Valkey server connections (design §2.5, §4.3, §7).
  *
  * A short-lived [Configurable] (one per settings open) presenting a [JBList] of connections plus a
- * detail form (host/port/TLS/auth/db/provisioning) and a **Test Connection** button. Swing layout runs
+ * detail form (host/port/TLS/auth/db) and a **Test Connection** button. Provisioning is carried
+ * through the form unedited for now (BUG-381 step 1); this KDoc claimed a control for it that has
+ * never existed. Swing layout runs
  * on the EDT (fast, non-blocking — engineering-contract §1); the Test Connection socket I/O runs
  * **off** the EDT on the project coroutine scope with a background progress indicator, marshalling the
  * result back via `withContext(Dispatchers.EDT)` (engineering-contract §1, §2). Secrets are held only
@@ -173,6 +175,16 @@ class LuaRedisConnectionsConfigurable(
 
         var onEdited: () -> Unit = {}
 
+        /**
+         * BUG-381: the provisioning of the draft currently bound, carried through [snapshot]
+         * untouched because this form has no control for it.
+         *
+         * Without this the page is not merely unable to *create* an ephemeral-server connection —
+         * it destroys one that already exists, because [LuaRedisConnectionsConfigurable.apply]
+         * upserts every draft and `upsert` replaces persisted state wholesale.
+         */
+        private var boundProvisioning: LuaRedisProvisioning = LuaRedisProvisioning.Remote
+
         val component: JComponent =
             panel {
                 row("Name:") { cell(nameField) }
@@ -193,6 +205,7 @@ class LuaRedisConnectionsConfigurable(
             usernameField.text = draft?.username ?: ""
             passwordField.text = draft?.password ?: ""
             databaseField.text = draft?.database?.toString() ?: ""
+            boundProvisioning = draft?.provisioning ?: LuaRedisProvisioning.Remote
             component.isVisible = draft != null
         }
 
@@ -206,6 +219,7 @@ class LuaRedisConnectionsConfigurable(
                 username = usernameField.text.trim().ifEmpty { null },
                 password = String(passwordField.password).ifEmpty { null },
                 database = databaseField.text.trim().toIntOrNull() ?: 0,
+                provisioning = boundProvisioning,
             )
 
         private fun installEditListeners(target: JComponent) {
@@ -236,6 +250,7 @@ data class LuaRedisConnectionDraft(
     val username: String?,
     val password: String?,
     val database: Int,
+    val provisioning: LuaRedisProvisioning,
 ) {
     fun toConnection(): LuaRedisServerConnection =
         LuaRedisServerConnection(
@@ -246,7 +261,7 @@ data class LuaRedisConnectionDraft(
             tls = tls,
             database = database,
             username = username,
-            provisioning = LuaRedisProvisioning.Remote,
+            provisioning = provisioning,
         )
 
     fun toEndpoint(): RespEndpoint =
@@ -266,6 +281,7 @@ data class LuaRedisConnectionDraft(
                 username = connection.username,
                 password = password,
                 database = connection.database,
+                provisioning = connection.provisioning,
             )
 
         fun newDefault(): LuaRedisConnectionDraft =
@@ -278,6 +294,7 @@ data class LuaRedisConnectionDraft(
                 username = null,
                 password = null,
                 database = 0,
+                provisioning = LuaRedisProvisioning.Remote,
             )
     }
 }
