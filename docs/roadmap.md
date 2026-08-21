@@ -63,6 +63,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | MAINT-21 | IJPGP 2.17 + Gradle 9 bump (deferred from MAINT-03-04) | deferred | L | **2026.2 platform release** *(build 262; not yet shipped as of 2026-07-03)* | — | — |
 | REDIS-07 | Reuse an IntelliJ Database Redis data source | planned | C | REDIS-01 *(connections, done)* | — | ✓ |
+| BUG-446 | Docker provisioning has never worked in the IDE — `launchDocker` double-consumes the process stream | todo | **M** | — | — | **FOUND 2026-08-21** during BUG-381's VNC pass, the first real run of this code path. `startNotify()` hands the stream to the platform's reader threads and `readContainerId` then reads it again: the id comes back empty, so `stopDockerContainer` no-ops and the container leaks, and the run dies with `Stream closed` → console shows `(no reply)`. **The coverage claim was wrong**: `redisIntegrationTest` starts its own containers with a raw ProcessBuilder and only *mirrors* the launcher's command line, so the real Docker path had no test at all. A readiness gap (`docker run -d` returns before Redis listens) is likely the next failure behind it | ✓ |
 | BUG-388 | Dimmed-text binding-state renderer | backlog | C | BUG-387 *(done)* | — | ✓ |
 | BUG-358 | Reformatting a read-only file throws a write-unsafe exception | todo | C | — | — | ✓ |
 | BUG-411 | Vertical tab and form feed are not treated as whitespace | todo | C | — | — | ✓ |

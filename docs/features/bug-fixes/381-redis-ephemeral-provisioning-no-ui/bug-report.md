@@ -45,7 +45,7 @@ investigation recorded had all drifted by 1–12 lines and are corrected here.
 | Consumers | `LuaRedisRunProfileState.kt:149` and `LuaLdbController.kt:113` both read `connection.provisioning` and launch/stop per session | done |
 | Persistence | `LuaRedisConnectionSettings.provisioningOf` `:86` round-trips all three kinds through `.idea/lunar-redis.xml`, keyed on `provisioningKind` `:36` | done |
 | Tool kinds | `LuaToolKindRegistry.kt:146` `redis-server`, `:158` `valkey-server` — both registered, classified `Tier.PLATFORM_SERVER` (`LuaToolKindClassifier.kt:21`) | done |
-| Integration tests | `src/redisIntegrationTest/…` exercises real `redis:8` / `valkey/valkey:8` Docker provisioning | done |
+| Integration tests | `src/redisIntegrationTest/…` starts real `redis:8` / `valkey/valkey:8` containers — but with its **own** `ProcessBuilder`, *mirroring* the launcher's command line rather than calling it (**[[BUG-446]]**) | **not launcher coverage** |
 | **UI** | — | **missing** |
 
 **The launcher owns host and port for every non-Remote kind.** `launchBinary` and `launchDocker`
@@ -193,7 +193,7 @@ Driven over Xvfb on the builder VM (`verify-in-ide`), against a fresh `runIde` s
 | 5 | a Docker connection created **through the UI alone** persists as `provisioningKind=DOCKER` + `dockerImage=redis:8` | ✅ |
 | 6 | reopening Settings shows it back as Docker — `from()` reads it | ✅ |
 | 7 | **§4a**: adding and editing a *second* connection, then OK, leaves the Docker one untouched | ✅ |
-| 8 | run a script against the ephemeral server end-to-end | **not reached** |
+| 8 | run a script against the ephemeral server end-to-end | ⚠️ **launcher invoked correctly; it then failed — [[BUG-446]]** |
 
 **Row 2 was a defect this pass found and fixed.** The image field was *empty* on switching to
 Docker: `bindProvisioning` only wrote it for an already-Docker draft, and toggling the combo does not
@@ -201,13 +201,39 @@ re-bind. The persisted value was still correct (`selectedProvisioning` treats bl
 so no unit test could have seen it — it was purely what the user meets. The field is now seeded for
 every kind, which also stops it showing the *previous* connection's image.
 
-**Row 8, stated rather than glossed.** A Redis Script run configuration is not offered from a
-`.lua` file's editor context menu or gutter, so reaching it needs one built by hand through *Edit
-Configurations*; that was not done. What it would exercise is the **launcher**, which this bug did
-not touch and which `src/redisIntegrationTest` already covers against real `redis:8` /
-`valkey/valkey:8` containers. Everything BUG-381 *changed* — form, draft, persistence — is covered
-by rows 1–7, and row 5's XML is byte-identical in shape to what those integration tests consume.
-The join of the two halves in one click remains unwitnessed, and is the honest gap.
+**Row 8, and a correction to why it was missed.** The first write-up of this said a Redis Script
+run configuration "is not offered from a `.lua` file's editor context menu or gutter, so reaching it
+needs one built by hand". **The reason was wrong.** `LuaRedisRunConfigurationProducer` exists and is
+registered (`plugin.xml:613`), alongside `LuaRedisRunConfigurationType`, `LuaRedisRunConfiguration`
+and `LuaRedisRunProfileState` — the whole stack has been there since REDIS-01 Phase 5.
+
+It is **target-gated by design**: `setupConfigurationFromContext` returns `false` unless
+`LuaProjectSettings.state.getTarget().platform == LuaPlatform.REDIS` (design §7, RISK-R12, pinned by
+TC-PROD-1). The VNC pass ran against the `test` fixture project, whose target is not Redis, so the
+producer correctly declined. Nothing was missing; a precondition was unmet and I misread the
+absence as an absence of machinery.
+
+Row 8 was then **done**, by setting the target and right-clicking the file — `prefillConnection`
+selected the Docker connection from row 5 automatically. The producer offered *Run 'Redis Script:
+redis_bug381.lua'*, and the launcher ran with the connection's image:
+
+```
+LuaRedisServerLauncher - Launching Redis Docker container: /usr/bin/docker run --rm -d -p 40513:6379 redis:8
+```
+
+`docker ps` showed `redis:8` on port **40513** — an allocated port, not the connection's 6379, which
+is §3's rule holding in practice. **That is the join this row existed to witness, and it works.**
+
+**It then failed, and the failure is not this bug — but the argument for skipping row 8 was.**
+One second later: `Redis run failed: Stream closed`, console `(no reply)`, and the container left
+running. Root-caused and filed as **[[BUG-446]]**: `launchDocker` calls `startNotify()` and then
+reads `process.inputStream` itself, so the id comes back empty and the container is never removed.
+
+The reasoning that nearly let this go unseen is worth keeping: *"row 8 only exercises the launcher,
+and `redisIntegrationTest` covers that."* **The second half was false** — those tests start their own
+containers and only mirror the launcher's command line. The claim came from §3 of this very report,
+and I repeated it without checking what the tests call. A capability recorded as "done, integration
+tested" had never once run.
 
 ## 7. Other Notes
 
