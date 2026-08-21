@@ -63,9 +63,11 @@ jobs:
     # `${{ }}` and `outputs:` all work — unlike lunar-ci, which is why this job cannot move
     # there instead: it is expressions and a checkout, exactly what that executor skips.
     #
-    # act-ci is a canary pool at `capacity: 1`, so this job and docs-lint QUEUE behind each
-    # other rather than run concurrently. A docs-only push runs both; `changes` is seconds of
-    # git diff, so the queue costs the build lane almost nothing and never fails it.
+    # act-ci was `capacity: 1` when this job moved here, so it and docs-lint queued behind
+    # each other on a docs-touching push. That cost the build lane almost nothing —
+    # `changes` is seconds of `git diff` — and the pool was widened to 4 slots the same day
+    # (2026-08-21), which removes the question. Neither shape can FAIL this job; a full pool
+    # queues, which is the whole reason it beats `ubuntu-latest`.
     runs-on: act-ci
     outputs:
       code: ${{ steps.filter.outputs.code }}

@@ -37,10 +37,12 @@ jobs:
     # it replaces. loom's own required docs-lint gate already runs there, which is this exact
     # job shape.
     #
-    # It is a canary pool at `capacity: 1`, so a second job QUEUES rather than failing. That
-    # is fine for a ~30 s lint and is the trade accepted here: a slow gate beats one that
-    # fails on infrastructure. The rest of this repo's `ubuntu-latest` jobs (`changes`, and
-    # the release lane, which needs artifact actions) are deliberately left where they are.
+    # The pool was widened to 4 concurrent slots on 2026-08-21; it was `capacity: 1` when
+    # this job moved there earlier the same day, which meant co-located jobs QUEUED rather
+    # than failing — a trade worth taking for a ~30 s lint, since a slow gate beats one that
+    # fails on infrastructure. At 4 the queue stops being a consideration for this repo.
+    # `changes` moved here too; the release lane stays on `ubuntu-latest` because it needs
+    # artifact actions, and is still exposed to the lottery above.
     runs-on: act-ci
     steps:
       - uses: actions/checkout@v4
