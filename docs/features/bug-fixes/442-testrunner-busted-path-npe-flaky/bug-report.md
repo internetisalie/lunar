@@ -3,7 +3,7 @@ id: "BUG-442"
 title: "`LuaTestRunnerTest.testBustedPathPrependedFromEnvBuilder` throws an NPE intermittently under the full suite"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -60,3 +60,33 @@ the summary; the full `<failure>` body in
 `build/test-results/test/TEST-…LuaTestRunnerTest.xml` on the builder will name the null. Run the full
 suite (not the class alone) until it reproduces, then read that element rather than re-deriving from
 the source.
+
+## Resolved 2026-08-21 — it *is* [[BUG-422]], and the shared cause is now measured
+
+The report above was right to refuse the merge on the evidence it had. That evidence has changed.
+
+**The NPE names the value.** The failing line is `commandLine.environment["PATH"]!!`, and
+`LuaLaunchEnvironment.applyPath` assigns `PATH` **only** when `pathPrependDirs` is non-empty —
+otherwise it returns early and leaves the variable unset. So a bare, message-less NPE there happens
+*iff* the prepend list was empty. That is the same state BUG-422 fails on, and the assertion above it
+(`assertEquals(bustedPath, commandLine.exePath)`) passing says the resolver had just found the bound
+tool. Two classes, two failure modes, one impossible-looking state.
+
+**The cause is the project-open health pass**, not this class. `LuaToolHealthStartup` ran
+`LuaToolHealthMonitor.revalidateAll()`, which re-probes every tool in the *application-level* registry
+against the real filesystem and writes the result back. `bindBusted` seeds a tool at a temp-dir path
+that is never created, so a pass landing mid-test rewrote its health to `Binary missing`, `isUsable`
+went false, every resolver tier rejected it, and `pathPrependDirs()` came back empty. Measured
+directly — see BUG-422's root-cause section for the captured health record.
+
+The order inside `buildCommandLine()` is what splits the two symptoms: busted is resolved first and
+the environment applied second, so a pass landing between them leaves `exePath` right and the prepend
+list empty — `exePath` asserts fine, then `!!` throws.
+
+**Fixed by BUG-422's change**: the startup activity returns early in unit-test mode, and the monitor
+stays covered through its own `@TestOnly` seams.
+
+**Caveat, kept deliberately.** The original run's stack was never captured, so the attribution rests
+on the mechanism being reproducible on demand plus its accounting for the passing `exePath` assertion
+and the NPE's only possible source. A recurrence would be evidence of a second cause, and this
+section is where to start.

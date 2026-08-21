@@ -3,6 +3,7 @@ id: "BUG-422"
 title: "`LuaInterpreterCommandLinesTest` PATH-prepend test is flaky under the full suite"
 type: "bug"
 parent_id: "BUG"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -138,16 +139,94 @@ cause it, which is its real cost: every occurrence forces a judgement call about
 a regression, and that judgement is exactly what a flaky test destroys. Here it cost a 10-minute
 confirming run to turn "green modulo a known flake" into a green gate.
 
-## Fix direction (if it recurs)
+## Root cause — the project-open health pass strips the fixtures' tools mid-test (2026-08-21)
 
-Reproduce first — run the suite with a fixed seed / ordering until it fails, then bisect the
-preceding class. Do not "fix" it by adding another `invalidate()` call until the leak is identified;
-that would hide the ordering dependency rather than remove it.
+`LuaToolHealthStartup` is a `postStartupActivity` that calls `LuaToolHealthMonitor.revalidateAll()`.
+That pass walks every tool in the **application-level** `LuaToolchainRegistry`, re-probes it against
+the real filesystem with `LuaToolHealthChecker.check`, and writes the result back through
+`updateToolCheck`. Every toolchain fixture in this suite seeds tools at paths that **do not exist** and
+asserts their health directly — `LuaInterpreterCommandLinesTest`'s own KDoc says so: *"resolution
+never touches disk, so a nonexistent tool path is fine."* It was, until something consulted the disk.
 
-## Why file it
+Measured, by driving the pass explicitly against this report's own fixture:
 
-Same reasoning as **BUG-410** (`RockspecSourcePathProviderTest`, recorded in
-[`docs/roadmap.md`](../../../roadmap.md)), which is the other known flake: a suite that fails once in
-a while trains people to re-run instead of read, which is
-exactly how a real regression gets waved through. Two independent flakes now argue for a broader
-look at test isolation rather than two separate patches.
+```
+AFTER REVALIDATION: dirs=[]
+  health=LuaToolHealth(fileExists=false, executable=false, probeOk=null, probedAtMtime=null,
+                       reason=Binary missing)
+  usable=false
+```
+
+`isUsable` is `fileExists && executable && probeOk != false`, so the tool the test just bound is now
+rejected by **every** `LuaToolResolver` tier, and `pathPrependDirs()` — which resolves each kind in
+turn — comes back **empty**.
+
+**This explains the detail that made the bug so hard to place: the assertion immediately before the
+failing one always passed.** `LuaInterpreterCommandLines.forProject` resolves the runtime *first* and
+builds the environment *second*:
+
+```kotlin
+val tool = LuaToolResolver.getInstance().resolveRuntime(project) ?: return null   // sees it usable
+val cmd = forBinary(Path.of(tool.path))                                          // exePath correct
+LuaExecutionEnvironmentBuilder.getInstance(project).build().applyTo(cmd)          // …now empty
+```
+
+A pass landing between those two lines leaves `exePath` right and the prepend list empty. And
+`LuaLaunchEnvironment.applyPath` returns early on an empty list, so PATH is never assigned at all —
+which surfaces as `expected the runtime dir prepended to PATH` here and as a bare NPE on
+`commandLine.environment["PATH"]!!` in [[BUG-442]]. One cause, two failure modes, exactly as the
+window predicts.
+
+**And it explains the ordering dependency.** The registry is application-level, so the project open
+that triggers the pass need not belong to the class being damaged: any test whose fixture opens a
+project can strip the tools of whichever test is running. The trigger is a queued background pass
+racing a test body, which is why the odds moved when unrelated test classes were added, why it
+never reproduced under a narrow `--tests` filter, and why it survived the 2026-08-07 cache guard —
+that guard protected the *cache*, while here the underlying state was legitimately rewritten.
+
+### A wrong turn worth recording
+
+This report first concluded the cause was `loadState` replacing the toolchain without publishing on
+`LuaToolchainListener.TOPIC`, leaving a stale cached list to be served. The reasoning was an
+elimination: the `exePath` assertion passes, so the resolver succeeded, therefore a *fresh*
+computation could not have been empty, therefore the empty list must have been cached.
+
+**The full suite refuted it.** The regression test written for that theory failed at its own *first*
+assertion — `expected:<[/opt/lua/bin]> but was:<[]>` — on a list computed immediately after an
+`invalidate()`. A fresh computation can be empty, because the tool itself had been marked unusable.
+The elimination was sound only under the unstated assumption that nothing else mutates tool health
+concurrently, and something does.
+
+The `loadState` gap is real and was independently reproducible, so it is filed separately as
+[[BUG-444]] rather than discarded — but it is **not** what made this test flaky.
+
+## Fix
+
+`LuaToolHealthStartup` returns early in unit-test mode. The monitor's behaviour stays covered
+deterministically through the `@TestOnly` seams it already exposes for the purpose
+(`revalidateNow`, `rebuildWatchSetNow`, `prepareChangeNow`), so the automatic pass contributed no
+coverage to the suite — only interference. Production behaviour is unchanged, and marking a tool
+whose binary has genuinely disappeared as unusable is correct there.
+
+## Verification
+
+`LuaToolHealthStartupTest`, both halves confirmed red before the fix and green after:
+
+| test | without the fix | with the fix |
+| :-- | :-- | :-- |
+| `testStartupDoesNotRevalidateInUnitTestMode` | `AssertionFailedError` — the pass empties the prepend list | passes |
+| `testAnExplicitRevalidationStillMarksAMissingBinaryUnusable` | passes | passes — pins the mechanism, and that the *explicit* pass is still correct |
+
+The second deliberately passes in both directions: it is there so the mechanism this report describes
+cannot rot silently, not as a guard on the fix.
+
+Full gate on the fixed tree: **434 classes, 2707 tests, 0 failures, 1 skipped**
+(`test --rerun --no-build-cache`). The run immediately before the fix, on the same tree, was
+2705/**1 failed** — and that failure was this defect striking the new regression test itself, at its
+*first* assertion, which is what exposed the real cause.
+
+**What remains unproven.** The original intermittent interleaving was never captured, so the
+attribution rests on the mechanism being reproducible on demand and on it accounting for every
+recorded observation — the passing `exePath` assertion, both failure modes, the ordering sensitivity,
+and the immunity to `--tests` filters. If either test flakes again, that is evidence of a second
+cause and this section is the place to start.
