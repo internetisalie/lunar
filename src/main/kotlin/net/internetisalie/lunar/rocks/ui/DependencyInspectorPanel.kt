@@ -1,31 +1,45 @@
 package net.internetisalie.lunar.rocks.ui
 
+import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.util.ui.JBUI
 import net.internetisalie.lunar.rocks.deps.DependencyNode
-import java.awt.BorderLayout
+import java.awt.CardLayout
 import javax.swing.JEditorPane
 import javax.swing.JPanel
 
 /**
  * Shows detail for the selected dependency node: resolved version, the constraints requiring it,
  * its reverse dependencies ("required by"), and any conflicts. Read-only HTML.
+ *
+ * A [CardLayout] toggles between the empty state and the detail body. The empty state is a
+ * [JBPanelWithEmptyText] — centred, dimmed and non-italic like every platform empty state — rather
+ * than the italic HTML string in a label it used to be (BUG-448 #14). Platform empty text takes no
+ * trailing period.
  */
-class DependencyInspectorPanel : JPanel(BorderLayout()) {
+class DependencyInspectorPanel : JPanel(CardLayout()) {
+    private val cards = layout as CardLayout
     private val content =
         JEditorPane("text/html", "").apply {
             isEditable = false
             border = JBUI.Borders.empty(8)
         }
+    private val emptyCard = JBPanelWithEmptyText().withEmptyText(EMPTY_TEXT)
 
     init {
-        add(JBScrollPane(content), BorderLayout.CENTER)
+        add(emptyCard, EMPTY_CARD)
+        add(JBScrollPane(content), DETAIL_CARD)
         show(null)
     }
 
     fun show(node: DependencyNode?) {
-        content.text = if (node == null) "<html><body><i>Select a dependency.</i></body></html>" else render(node)
+        if (node == null) {
+            cards.show(this, EMPTY_CARD)
+            return
+        }
+        content.text = render(node)
         content.caretPosition = 0
+        cards.show(this, DETAIL_CARD)
     }
 
     private fun render(node: DependencyNode): String =
@@ -60,4 +74,10 @@ class DependencyInspectorPanel : JPanel(BorderLayout()) {
     }
 
     private fun escape(text: String): String = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    private companion object {
+        const val EMPTY_CARD = "empty"
+        const val DETAIL_CARD = "detail"
+        const val EMPTY_TEXT = "Select a dependency"
+    }
 }

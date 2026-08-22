@@ -106,8 +106,21 @@ Groups 1 and 2 are what a user actually notices. Group 4 is cheap and touches on
 
 ### Delivery status
 
-**Batch A — groups 1, 2 and 7 are done** (#2, #3, #4, #6, #7, #8, #21, #22, #23, #24). Groups 3, 4,
-5 and 6 remain. One deviation from the strategy above: #21 is fixed by naming the stripe in
+**Batch A — groups 1, 2 and 7 are done** (#2, #3, #4, #6, #7, #8, #21, #22, #23, #24).
+**Batch C — group 4 is done** (#1, #9, #10).
+**Batch B — groups 3 and 6 are done** (#5, #12, #13, #14): both tool windows now build a flat
+`ActionToolbar` (target component set, actions `DumbAware`), the dependency filter is a
+`SearchTextField` with `emptyText`, and the inspector's empty state is a `JBPanelWithEmptyText`.
+Deploy and Delete gained icons (`Actions.Upload`, `General.Delete`) because a toolbar renders text
+only for actions that ask for it. **Group 5 (run-config editors) remains.**
+
+One divergence found in batch B but deliberately *not* fixed, since it is outside the four
+findings: `LuaRedisFunctionsPanel`'s connection selector is a raw `JComboBox` rather than the
+platform `ComboBox`, and `DependencyTreePanel` splits with a raw `JSplitPane` rather than
+`OnePixelSplitter`. Both are COMPONENT CHOICE divergences of the same family and neither was
+measured in the audit.
+
+One deviation from the strategy above: #21 is fixed by naming the stripe in
 `MatrixResultsToolWindow.init`, not by changing the `<toolWindow>` id — the id is persisted layout
 state and `RunMatrixAction`'s lookup key, and `ToolWindow.setStripeTitle` is what the platform
 provides for exactly this (`EventWatcherToolWindowFactory` does the same).

@@ -22,6 +22,15 @@
   two different ways across two pages) now match the sentence-case form `Advanced tools` already
   used correctly on the same pages. A new `LuaBundleCasingTest` holds the bundle half of this rule
   so it cannot regress.
+- **The Redis Functions and LuaRocks Dependencies tool windows use platform chrome** (BUG-448,
+  batch B — tool-window chrome): both drove their actions from bordered Swing push-buttons —
+  Refresh/Deploy/Delete on one, Refresh/Expand/Collapse on the other — which read as a foreign
+  application beside the flat action gutter of the native Problems window docked next to them. Both
+  now use a flat `ActionToolbar`. The dependency filter was a bare text box with no placeholder and
+  no search icon, indistinguishable from a fourth, empty button; it is now a search field that says
+  it filters dependencies. And the dependency inspector's empty state — previously the italic HTML
+  string *"Select a dependency."*, left-aligned at the top — is now the centred, dimmed platform
+  empty text, without the trailing period the platform never uses.
 - **The LuaRocks Packages browser shows package details again** (BUG-449): the Marketplace tab's
   detail half had been blank since the two-tab browser shipped — both tabs were handed the same
   detail pane, and a Swing component has one parent, so the second tab silently took it. Each
