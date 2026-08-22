@@ -2,7 +2,7 @@
 id: REFACT-01
 title: "01: Rename Refactoring"
 type: feature
-status: "todo"
+status: "planned"
 vf_icon: 📋
 priority: "medium"
 parent_id: REFACT/INTENT
@@ -63,7 +63,7 @@ Two different kinds of claim appear below, and they are not equally strong:
 Verified in `src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaBaseElements.kt` and `lua.bnf`:
 
 - `LuaNameDeclElement : PsiNameIdentifierOwner` has exactly **one** grammar rule behind it —
-  `labelName` (`lua.bnf:252`). Labels are the only declarations Lunar models as named owners.
+  `labelName` (`lua.bnf:251`). Labels are the only declarations Lunar models as named owners.
 - Every other name — local, parameter, `for` variable, function name, method segment, global — is
   `nameRef` (`lua.bnf:169`), whose mixin `LuaNameRefBaseImpl` implements `LuaNameRefElement :
   PsiNamedElement` only. A declaration is not a type; it is *a `LuaNameRef` in a particular parent
@@ -103,7 +103,7 @@ Two consequences run through the whole table, both **(inferred)**:
 | `REFACT-01-07` | **Rename a global — across every file** | **M** | **Not Implemented** | A Lua global is `_ENV.x`, so its rename is not file-local. The cross-file search substrate exists and is tested (`LuaFindUsagesCrossFileTest`, `LuaNameReferenceSearcher` narrowing by `CacheManager.getFilesWithWord`); the rename that would consume it does not. |
 | `REFACT-01-08` | **Rename a method or dotted member declaration** | **S** | **Not Implemented** | `function Obj:m()` / `function Obj.m()` — `canFindUsagesFor` accepts `LuaFuncName` and `LuaFuncNameMethod` grandparents, so declarations are findable. Note the known resolution caveat that constrains any implementation: references key on receiver *text* (`b.setName`), so `local b = Builder; b:setName()` does not resolve to `function Builder:setName` and would be missed. |
 | `REFACT-01-09` | **Rename a table field / constructor key** | **C** | **Not Implemented** | `t.field` is a `nameRef` reachable through `LuaMemberFieldNavigation`; `{ field = 1 }` is a bare IDENTIFIER leaf (`lua.bnf:319`) with no wrapper, no reference and no `PsiNamedElement` — it cannot be a rename target at all without a grammar change. Correctness also needs type inference to know *which* table, and the string form `t["field"]` would have to move with it. |
-| `REFACT-01-10` | **New name is a valid, non-reserved identifier** | **M** | **Full** | Delegated, not duplicated: `LuaNamesValidator` is registered at `plugin.xml:391` and specified by [[REFACT-05]]. It is the one piece of REFACT-01's platform contract that is genuinely finished — and it is inert today, because the rename UI that consults it is unreachable for identifiers. |
+| `REFACT-01-10` | **New name is a valid, non-reserved identifier** | **M** | **Full** | Delegated, not duplicated: `LuaNamesValidator` is registered at `plugin.xml:393-395` and specified by [[REFACT-05]]. It is the one piece of REFACT-01's platform contract that is genuinely finished — and it is inert today, because the rename UI that consults it is unreachable for identifiers. |
 | `REFACT-01-11` | **Validity tracks the configured language level** | **C** | **Not Implemented** | `LuaNamesValidator` ignores its `project` argument and consults a single fixed `LuaKeywords.RESERVED` set. The practical exposure is smaller than it looks, and both halves were checked rather than assumed: `global` is **not** in `RESERVED`, which is correct — `lua.bnf:212` documents it as a *soft* keyword remapped from IDENTIFIER only when a declaration follows, so `global` stays a legal name at every level including 5.5. `goto` **is** in the set unconditionally, which over-rejects for a Lua 5.1 project where `goto` is an ordinary identifier — though `lua.flex:74` returns `GOTO` at every level, so Lunar could not parse such a file anyway. The gap is real but is one name wide, and its root is in the lexer, not here. |
 | `REFACT-01-12` | **In-place rename in the editor** | **S** | **Not Implemented** | `LuaRefactoringSupportProvider.isInplaceRenameAvailable` returns a hard `false`, and `isMemberInplaceRenameAvailable` returns `elementToRename is LuaLabelName`. `VariableInplaceRenameHandler.isAvailable` consults exactly the first of those, so no identifier ever gets the inline template — matching [[plugin-feature-comparison]]'s `✔ (labels only)`. |
 | `REFACT-01-13` | **Dialog with preview and Find Conflicts** | **S** | **Not Implemented** | The dialog, the preview pane and the usages view are platform-supplied and would need no code — but they are unreachable while `REFACT-01-01`/`-02` fail at `canRename`. Recorded as not implemented for the *user*, with the caveat that the eventual cost is zero. |

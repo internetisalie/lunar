@@ -75,7 +75,8 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-443 | Quick Doc reported empty for `ngx.say` live, never reproduced | todo | C | — | — | — |
 | BUG-450 | The debugger's `STACK` payload is unbounded at both ends, and DEBUG-07 claimed otherwise | todo | C | — | — | ✓ |
-| BUG-457 | Rename is offered on ordinary identifiers and rewrites only the declaration | todo | M | — | **CONFIRMED LIVE 2026-08-22** — declaration renamed, 4 usages left behind, no warning; the file is silently broken and `print(counter)` now prints nil. Interim fix is to REFUSE rename on non-label elements | ✓ |
+| BUG-457 | Rename is offered on ordinary identifiers and rewrites only the declaration | todo | M | — | **CONFIRMED LIVE 2026-08-22** — declaration renamed, 4 usages left behind, no warning; the file is silently broken and `print(counter)` now prints nil. interim refusal shipped in `b2cb211c`; REFACT-01 retires it | ✓ |
+| REFACT-01 | Rename Refactoring — the real capability behind BUG-457's interim refusal | planned | M | — | BUG-457 (retires the refusal); shares machinery with REFACT-04 | Serial: rename machinery |
 | BUG-451 | luacheck `--std` overrides the project's `.luacheckrc`, false warnings on every rockspec and spec file | todo | S | — | one flag disables two mechanisms; user cannot override it | ✓ |
 | BUG-452 | luacheck exit 2 is a lint result, not a crash — the whole report is discarded | todo | S | — | a test pins the defect as intended | ✓ |
 | BUG-453 | The human formatter is parsed instead of luacheck's documented editor interface | todo | S | — | escapes in tooltips; a configured formatter yields a silent false-clean | ✓ |
