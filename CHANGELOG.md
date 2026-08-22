@@ -2,6 +2,16 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Lua settings pages, provisioning dialogs and the test-matrix window now line up with the rest
+  of the IDE** (BUG-448, first batch): columns in the Definition Libraries list and the provisioning
+  dialogs stopped drifting apart (85px and 90px of stagger — a label-less Kotlin UI DSL row sizes
+  itself alone unless told to share the page grid); the Redis Connections page fills its width
+  instead of a third of it; the toolchain inventory and matrix results tables size their columns to
+  what those columns hold, so a path is no longer elided to `/usr/loca…` while a one-character exit
+  code keeps 230px; both provisioning dialogs are wide enough to show a real path, and the version
+  matrix dialog is wide enough for its own title; and the matrix tool window is called *Lua Test
+  Matrix* rather than `Lunar.LuaMatrix`, with run status shown as `Passed`/`Failed` plus an icon
+  instead of the bare enum constant `FAIL`.
 - **The LuaRocks Packages browser shows package details again** (BUG-449): the Marketplace tab's
   detail half had been blank since the two-tab browser shipped — both tabs were handed the same
   detail pane, and a Swing component has one parent, so the second tab silently took it. Each

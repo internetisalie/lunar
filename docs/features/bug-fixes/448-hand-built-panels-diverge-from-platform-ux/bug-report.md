@@ -3,7 +3,7 @@ id: "BUG-448"
 title: "Hand-built settings panels, dialogs and tool windows diverge from the JetBrains Platform UX standard"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -103,6 +103,14 @@ Grouped so each can land independently:
    status as icon + sentence case rather than `FAIL` (#22), and spell out `Exit code` (#23).
 
 Groups 1 and 2 are what a user actually notices. Group 4 is cheap and touches only strings.
+
+### Delivery status
+
+**Batch A — groups 1, 2 and 7 are done** (#2, #3, #4, #6, #7, #8, #21, #22, #23, #24). Groups 3, 4,
+5 and 6 remain. One deviation from the strategy above: #21 is fixed by naming the stripe in
+`MatrixResultsToolWindow.init`, not by changing the `<toolWindow>` id — the id is persisted layout
+state and `RunMatrixAction`'s lookup key, and `ToolWindow.setStripeTitle` is what the platform
+provides for exactly this (`EventWatcherToolWindowFactory` does the same).
 
 ## 5. Test strategy
 

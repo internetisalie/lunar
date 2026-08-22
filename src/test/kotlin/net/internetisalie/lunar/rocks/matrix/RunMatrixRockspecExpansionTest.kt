@@ -71,10 +71,12 @@ class RunMatrixRockspecExpansionTest : ToolchainSettingsTestCase() {
             )
         val rows = MatrixResultsToolWindow.tableRows(result)
         assertEquals(1, rows.size)
-        // Row: [rockspec, env, status, exit]
+        // Row: [rockspec, env, status, exit]. The status cell holds the Status itself since
+        // BUG-448 #22 — the renderer turns it into sentence-case text plus an icon, so the raw
+        // enum name no longer reaches the user.
         assertEquals("a-1.0-1.rockspec", rows[0][0])
         assertEquals("E1", rows[0][1])
-        assertEquals("PASS", rows[0][2])
+        assertEquals(Status.PASS, rows[0][2])
         // exitCode is Int? boxed as Any; compare as string to avoid JUnit3 boxing differences
         assertEquals("0", rows[0][3].toString())
     }
