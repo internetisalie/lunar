@@ -36,9 +36,9 @@ feature's problem even if the code is not.
 ## How these requirements were derived
 
 **Not from Lunar's code.** A specification read off its own implementation cannot fail — the defect
-that left `RUN-07` (`docs/features/debug/07-lazy-remote-stack-evaluation/`) marked shipped
-for months ([[BUG-450]] §4), and this file was one of the same
-16 bulk-created placeholders. The rows below come from three external sources, in this order:
+that left `RUN-07` (`docs/features/debug/07-lazy-remote-stack-evaluation/`) marked shipped for
+months ([[BUG-450]] §4) — and this file was one of the same 16 bulk-created placeholders. The rows
+below come from three external sources, in this order:
 
 1. **luacheck's own configuration surface** — the authority. `docsrc/config.rst`, `docsrc/cli.rst`
    and `docsrc/inline.rst` of the vendored luacheck (`test/luacheck`, v1.2.0) enumerate every
