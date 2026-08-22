@@ -12,8 +12,8 @@ folders:
 # BUG-449: one `PackageDetailPane` cannot be the `secondComponent` of two splitters
 
 Found during the live UI audit on 2026-08-22 (see [[bug-report|BUG-448]]). This is **not** a styling
-defect — it is a Swing parenting error with a visual symptom, which is why five months of unit tests
-never caught it.
+defect — it is a Swing parenting error with a visual symptom, which is why the test suite never caught
+it. Present since ROCKS-16-01 introduced the panel in `472e456c` (2026-07-17).
 
 ## 1. Reproduction
 

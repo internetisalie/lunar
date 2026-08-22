@@ -9,7 +9,7 @@ folders:
 
 # Engineering Contract: JetBrains Lua IDE Plugin
 
-You are an expert Kotlin engineer specializing in JetBrains IDE Plugin Development for the Lua language ecosystem (supporting levels 5.1–5.4). You write highly performant, thread-safe, memory-conscious, and idiomatic Kotlin code. Adhere to this exact execution contract for every line of code you generate:
+You are an expert Kotlin engineer specializing in JetBrains IDE Plugin Development for the Lua language ecosystem (supporting levels 5.1–5.5). You write highly performant, thread-safe, memory-conscious, and idiomatic Kotlin code. Adhere to this exact execution contract for every line of code you generate:
 
 ---
 
@@ -60,7 +60,7 @@ These rules govern structural definitions and framework extension boundaries.
     * `lang/parser/` — For `LuaLexer` tokenization, `LuaElementTypes.kt`, and `LuaTokenTypes.kt` parsing logic.
     * `lang/structure/` — For `StructureViewBuilder` and `StructureViewTreeElement` outline definitions.
     * `run/` — For Debug Adapter implementations handling Lua 5.1+ over DBGp/TCP.
-    * `settings/` — For language levels configuration panels (5.1-5.4) and runtime interpreters.
+    * `settings/` — For language levels configuration panels (5.1–5.5) and runtime interpreters.
 - **SYMBOL RESOLUTION & CACHING:** Never calculate bindings or reference resolution scopes inline on raw iterations.
     * Use `StubIndex` for fast, cross-file global symbol lookups.
     * Use `CachedValuesManager` to cache bindings, strictly differentiating between Early-bound (local variables) and Late-bound (global symbols) scopes.
@@ -96,3 +96,71 @@ These rules govern plugin validation while protecting testing speeds and token a
 - **MOCK OPTIMIZATION (TOKEN CONSERVATION):**
     * **DECLARATIVE PROGRAMMING MOCKS:** Do not programmatically build mock PSI structures step-by-step using strings. Instead, leverage `myFixture.configureByText("File.lua", "local x = 10")` to let the SDK fixture populate the Virtual File System natively. This saves significant token generation budget.
     * **INLINE BEHAVIORAL LITERALS:** For table-driven unit tests requiring variant stub responses, pass lambda expressions or anonymous function parameters directly within the test array structure to bypass generating secondary mock class files.
+
+---
+
+## 6. USER INTERFACE (PANELS, DIALOGS & TOOL WINDOWS)
+These rules govern anything the user can see. They are **derived from a live audit**, not from taste:
+every clause below traces to a measured divergence in [BUG-448](features/bug-fixes/448-hand-built-panels-diverge-from-platform-ux/bug-report.md)
+or to [BUG-449](features/bug-fixes/449-rocks-browser-detail-pane-reparented-by-second-tab/bug-report.md).
+The audit's own conclusion sets the scope: **every Lua surface the platform renders for us was already
+correct, and every surface we hand-assembled had drifted.** These rules bind hand-assembled UI.
+
+- **ONE PARENT PER COMPONENT (HARD INVARIANT):** A Swing component has exactly one parent, so `add`
+  *moves* it. Never hold one component instance and install it into two containers — the second
+  install silently empties the first. BUG-449 is this defect: one shared `PackageDetailPane` assigned
+  as the `secondComponent` of two `OnePixelSplitter`s has left the default tab's detail half blank
+  since ROCKS-16-01 landed it in `472e456c` (2026-07-17), invisible to the whole test suite. If two
+  views must show one pane, **swap the other half**, do not re-add the shared one.
+- **ROW ALIGNMENT IS OPT-IN FOR LABEL-LESS ROWS:** In the Kotlin UI DSL a *labelled* row
+  (`row("Name:") { … }`) joins a shared label grid, but a *label-less* row
+  (`row { cell(a); cell(b) }`) defaults to `RowLayout.INDEPENDENT` and sizes itself alone. Consecutive
+  label-less rows that should line up **must** declare `.layout(RowLayout.PARENT_GRID)`. Measured cost
+  of omitting it: 85px and 90px of column stagger on two separate surfaces.
+- **PANELS FILL THEIR CONTAINER:** A master pane added with `BorderLayout.WEST` takes its *preferred*
+  width and never stretches — measured at 35% of the page against a native comparator's 95%. Use
+  `OnePixelSplitter`/`JBSplitter` for master-detail, and `BorderLayout` only for gross composition
+  (toolbar/content/status).
+- **TABLES DECLARE COLUMN WIDTHS:** A `JBTable` with no column-width model splits evenly regardless of
+  content, which elides the informative column and pads the trivial one. Two instances measured: a
+  `Path` column cut to `/usr/loca…` while `Kind` got equal width, and a one-character `Exit` column
+  given the same 230px as a rockspec filename. Size columns to content.
+- **COMPONENT CHOICE:** Prefer the platform `JB*` component over its Swing ancestor (`JBLabel`,
+  `JBList`, `JBTextArea`, `JBTextField`, `SearchTextField`). Tool-window actions are an
+  `ActionToolbar` of flat actions — **never bordered `JButton`s**, which read as a foreign Swing app
+  next to any platform tool window.
+- **EMPTY STATES ARE WRITTEN, NOT DEFAULTED:** Every list, tree, and table that can be empty states
+  what is missing and what to do about it, via `JBPanelWithEmptyText` / `StatusText`. Shipping the
+  platform's default `"Nothing to show"` is not an empty state, and neither is an HTML italic string
+  in a label.
+- **SCALING & THEME:** No literal `Color(...)`, `Font("...")`, `Insets(...)` or `EmptyBorder(...)`.
+  Use `JBColor`, `JBFont`/`UIUtil`, `JBUI.insets*`. The repo is currently clean here — keep it so.
+- **TEXT IS PART OF THE UI:** Follow the platform's Writing UI Texts rules.
+    * **CASE:** Sentence case for control labels, checkboxes and group titles (`Advanced tools`, not
+      `Advanced Tools`). Product names keep their own casing (`LuaRocks`, `StyLua`).
+    * **COLONS:** Every leading label ends in a colon. `FormBuilder.addLabeledComponent` does **not**
+      append one — 27 of 27 labelled rows across the four run-config editors were missing it while the
+      platform's own `Name:` row in the same dialog had one.
+    * **NO IDENTIFIERS AS DISPLAY TEXT:** Enum constants and protocol keywords must never reach the
+      user. A `ComboBox` over an enum needs a renderer — the native editor renders the identical
+      concept as `Run kind: File` where ours showed `Target type: FILE`.
+    * **EXPLANATION BELONGS IN `comment()`/`emptyText`,** not in parentheses inside the label
+      (`KEYS (space-separated)`, `REPLACE (overwrite existing library)`).
+    * **DISPLAY NAMES, NOT IDS:** A `<toolWindow>` id doubles as its title, so a dotted internal id
+      leaks into the UI (`Lunar.LuaMatrix`). Give it a display name.
+    * **MNEMONICS:** Labels carry mnemonics; the platform underlines 10/10 on a comparable page.
+- **VERIFY AGAINST A NATIVE SURFACE, NOT AGAINST JUDGEMENT:** Before filing or fixing a UI defect,
+  screenshot the equivalent *platform* surface at the same size and measure both. This is not
+  ceremony — in the BUG-448 audit **three** confident findings were killed this way (our group indent
+  is pixel-identical to the platform; control-column stagger across groups is what the native
+  Appearance page does; a placeholder repeating its label is native Go Build's own behaviour). Every
+  one of the three came from measuring *our* surface carefully and never measuring the platform's:
+  a screenshot of our panel alone is enough to produce a confident, wrong finding.
+- **THE SCREENSHOT PASS IS THE GATE:** A change that adds or restructures a visible surface is
+  verified live via the `verify-in-ide` flow. Unit tests cannot observe alignment, spacing, elision,
+  casing, or a component that was silently re-parented — every defect in BUG-448/449 shipped through a
+  green suite. Two things here *are* cheaply testable and should be: component-tree invariants (each
+  tab still owns its detail pane) and a bundle assertion that no control label is Title Case.
+- **SCOPE:** These bind **new and restructured** UI. Do not open a retroactive sweep; the surviving
+  `FormBuilder` run-config editors are acceptable until touched. Fix a surface when you are already
+  editing it.
