@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Add to Watches works on debugger variables** (BUG-447): the action was offered on every
+  variable and silently did nothing, because Lunar never supplied the expression the platform
+  needs; watches now resolve nested members too, as `cfg["name"]` and `items[1]`
+  ([af4e1bf9](https://github.com/internetisalie/lunar/commit/af4e1bf9)).
 - **Jump to Source on a debugger variable no longer risks an exception or a stale result**
   (BUG-414): the lookup walked the PSI tree from a background thread without taking a read lock,
   so a concurrent edit could make it fail

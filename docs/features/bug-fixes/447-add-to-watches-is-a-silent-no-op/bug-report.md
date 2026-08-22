@@ -3,7 +3,7 @@ id: "BUG-447"
 title: "Add to Watches is a silent no-op for every debugger variable — the evaluation expression was left commented out"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -128,7 +128,35 @@ The numeric-key case is the one that fails against a naive restoration, because 
 `isIndex = false` currently breaks. Mutation-proof it: restore `isIndex = false` at the construction
 site and confirm that test alone goes red.
 
-## 7. Notes
+## 7. Outcome — fixed 2026-08-22 in `af4e1bf9`
+
+§5's live gate ran and **confirmed the prediction**: the context menu offered **Add to Watches**
+as an enabled item, the click was accepted, and before the fix nothing reached the Watches pane.
+The headless half was decided first and more cheaply than expected — all four expression tests
+failed with `but was: <null>`, which is §3's root cause stated directly, so the delete-vs-restore
+fork never depended on the live run.
+
+Verified in a real MobDebug session paused at `test/debug.lua:20`, sandbox jar confirmed to carry
+the fix, three watches added through the real context menu and evaluated against the live debuggee:
+
+| watch | value |
+| :-- | :-- |
+| `count` | `42` |
+| `cfg["name"]` | `"lunar"` |
+| `items[1]` | `10` |
+
+`items[1]` is the case §4 predicted a naive restoration would break, and it resolves to the first
+element rather than the second or an error.
+
+**One deviation from §4**, which left the double-bracket fix as an open design choice: the class
+carries a `subscript: String?` instead of `isIndex: Boolean`. Same field count, computed at the one
+site that knows both the key's kind and its raw value, so `parent[[1]]` is unrepresentable rather
+than merely fixed. Two behaviours were added beyond §6's table, each tested — a key with no Lua
+literal form yields no expression at all, and quotes in a string key are escaped.
+
+Suite 2731/0/0 (1 skipped), `ktlintCheck` green.
+
+## 8. Notes
 
 - **Severity.** A menu item that is enabled and does nothing is worse than a missing one — there is
   no signal to the user that the feature is absent. Against that, the whole Watches surface is
