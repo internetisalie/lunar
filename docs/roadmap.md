@@ -31,6 +31,11 @@ folders:
   within a wave prefer higher priority.
 - **Parallel ✓** = new files / a distinct extension point → safe to run concurrently in separate
   worktrees. **Serial: <cluster>** = mutates a shared hot file → one agent at a time in that cluster.
+- **`Depends on` and `Unblocks` carry edges, not prose** — an ID, at most with a short
+  parenthetical (`TARGET-08 *(done)*`). Rationale, measurements and planning state belong in the
+  feature's own docs, which are canonical. A cell that restates them goes stale on its own: by
+  2026-08-22 ANALYSIS-07's `Unblocks` had grown to 886 characters of planning narrative wrapped
+  around two edges that were no longer true, both bugs having since been fixed elsewhere.
 - **Update `status` to `done`** in the feature's `requirements.md` as you finish; that makes its
   dependents ready.
 - **DoD gate (learned the hard way):** a feature surfacing through a platform extension point
@@ -68,7 +73,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-411 | Vertical tab and form feed are not treated as whitespace | todo | C | — | — | ✓ |
 | BUG-413 | Generated doc comments infer wrong `@param` types | todo | C | — | — | ✓ |
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
-| BUG-443 | Quick Doc reported empty for `ngx.say` live, never reproduced | todo | C | — | carved out of BUG-440 on 2026-08-20 when its `---@field` half shipped and was VNC-verified. The function form renders through **every** route tried — headless with the real `ngx.lua`, unit fixture, and the live IDE. The one variable never exercised is the **shipped-catalog** loading path (`LuaDefinitionLibraryProvider`), which would make it a library-registration defect, not a documentation one. **Rule out the cheaper explanation first**: `Ctrl+Q` with the caret one char past the identifier produces "No documentation found." verbatim — measured during BUG-440's VNC run | — |
+| BUG-443 | Quick Doc reported empty for `ngx.say` live, never reproduced | todo | C | — | — | — |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 
@@ -82,7 +87,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | TARGET-07 | Lua 5.5 standard-library stubs | planned | C | SYNTAX-09 *(Lua 5.5, done)* | — | ✓ |
-| ANALYSIS-07 | Value constraints over the CFG — the type engine and the control-flow graph are two flow analyses that never speak | planned | **L** | ANALYSIS-06 *(CFG, done)*, TYPE-08 *(flow-sensitive, done)* | BUG-435, BUG-428 residual · **PLANNED 2026-08-20** — 4 artifacts, 13 DRs, 5 phases; Step 9 review PASS 10/10 after two FAIL rounds. Phase 0 is a **DR spike**: `-01` decides the direction (A teach the CFG a value domain / B give the type engine the CFG / C a narrow reaching-definitions bridge) from a measurement — TYPE-08 §9's "much larger refactor" is unmeasured and is task 1. `-02`/`-03`/`-04` are design-DEFERRED behind named gates; DR-01+02 can cancel `-02` outright, DR-10 can cancel `-03`, DR-11 `-04`. Do NOT add a third analysis (`-05`) · **DR-10 RESOLVED EARLY 2026-08-20 → `-03` CANCELLED**: BUG-435 was a wrong node at `injectNarrowedBinding:464-478` (dump in risks-and-gaps), which is the verdict Phase 2 states in advance means "this phase does not exist". Phase 2 keeps its number as a visible terminal state; 0/1/3/4 unaffected, and the direction is still Phase 0's job | — |
+| ANALYSIS-07 | Value constraints over the CFG — the type engine and the control-flow graph are two flow analyses that never speak | planned | **L** | ANALYSIS-06 *(CFG, done)*, TYPE-08 *(flow-sensitive, done)* | — | — |
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
 | TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog | **in_progress** | C | — | MAINT-37 *(zerobrane member scope)* | ✓ |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | — | — | ✓ |
