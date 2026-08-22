@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.refactoring.rename
 
+import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.rename.RenamePsiElementProcessor
@@ -92,6 +93,20 @@ class LuaUnsupportedRenameProcessorTest : BasePlatformTestCase() {
             "registration must actually take effect — without this the unit assertions above " +
                 "would pass while the real rename still corrupted the file",
             RenamePsiElementProcessor.forElement(nameRef) is LuaUnsupportedRenameProcessor,
+        )
+    }
+
+    /**
+     * `forPsiElement` skips a processor that is not usable in the current context
+     * (`RenamePsiElementProcessorBase:156`), so without this marker the refusal disappears while
+     * the project indexes and rename falls back to the platform default — BUG-457 again, in a
+     * window nobody would think to test.
+     */
+    @Test
+    fun testSurvivesDumbMode() {
+        assertTrue(
+            "without DumbAware the refusal evaporates during indexing",
+            processor is DumbAware,
         )
     }
 }

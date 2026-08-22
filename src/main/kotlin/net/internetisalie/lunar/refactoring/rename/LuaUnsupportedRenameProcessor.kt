@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.refactoring.rename
 
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiNamedElement
@@ -31,9 +32,18 @@ import net.internetisalie.lunar.lang.psi.LuaLabelName
  * and `LuaLabelReference` overrides `handleElementRename`, so label rename genuinely works
  * ([[REFACT-04]]); claiming it here would break the one refactoring that does.
  *
+ * **`DumbAware` is load-bearing, not decoration.** `RenamePsiElementProcessorBase.forPsiElement`
+ * skips any processor failing `dumbService.isUsableInCurrentContext` (`:156`), so without the
+ * marker this refusal simply evaporates while the project is indexing and the rename falls
+ * through to the platform default — reinstating the exact silent partial rewrite this class
+ * exists to prevent, in a window the user cannot see. Both overrides are index-free (two `is`
+ * tests and an error hint), so the marker is safe.
+ *
  * Delete this class when a real processor lands.
  */
-class LuaUnsupportedRenameProcessor : RenamePsiElementProcessor() {
+class LuaUnsupportedRenameProcessor :
+    RenamePsiElementProcessor(),
+    DumbAware {
     override fun canProcessElement(element: PsiElement): Boolean =
         element is PsiNamedElement &&
             element !is PsiFile &&
