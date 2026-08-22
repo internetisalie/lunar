@@ -24,18 +24,18 @@ draws a latency conclusion from it; measuring it is `DEBUG-06-00-DR-01`, still `
 ### 1.1 Current State
 
 `LuaRunConfiguration.checkConfiguration()` is nine lines with two branches
-(`src/main/kotlin/net/internetisalie/lunar/run/LuaRunConfiguration.kt:275-285`):
+(`src/main/kotlin/net/internetisalie/lunar/run/LuaRunConfiguration.kt:276-286`):
 
 ```kotlin
 override fun checkConfiguration() {
     if (resolveInterpreter() == null) {
-        throw RuntimeConfigurationException(              // :277  bare tier — launch ALLOWED
+        throw RuntimeConfigurationException(              // :278  bare tier — launch ALLOWED
             "No Lua runtime is configured. Add one under " +
                 "Settings | Languages & Frameworks | Lua | Toolchain.",
         )
     }
     if (options.scriptName.isNullOrEmpty()) {
-        throw RuntimeConfigurationWarning("No script file configured")   // :283
+        throw RuntimeConfigurationWarning("No script file configured")   // :284
     }
 }
 ```
@@ -56,16 +56,16 @@ Three structural defects follow, and all three are requirement rows:
 
 | Existing component | `file:line` | Disposition |
 | :-- | :-- | :-- |
-| `LuaRunConfiguration.checkConfiguration()` | `run/LuaRunConfiguration.kt:275-285` | **Replaced** by a delegation to `LuaTargetValidator` (§2.6). The two existing conditions survive as checks 1 and 3 of §3.2 — the empty-script *warning* tier is preserved verbatim. |
-| `LuaTestRunConfiguration.checkConfiguration()` | `run/test/LuaTestRunConfiguration.kt:287-294` | **Extended**: its runtime branch is rerouted through `LuaTargetMessages.noRuntimeConfigured()` (§3.3, `DEBUG-06-22`/`-23`). Its `testTarget` branch is untouched. |
-| `LuaRedisRunConfiguration.checkConfiguration()` | `redis/run/LuaRedisRunConfiguration.kt:242-252` | **Left alone.** It validates a Redis connection and an FCALL name, not a Lua *target*. Out of scope; noted in [risks-and-gaps.md](risks-and-gaps.md) Gap 2.4. |
+| `LuaRunConfiguration.checkConfiguration()` | `run/LuaRunConfiguration.kt:276-286` | **Replaced** by a delegation to `LuaTargetValidator` (§2.6). The two existing conditions survive as checks 1 and 3 of §3.2 — the empty-script *warning* tier is preserved verbatim. |
+| `LuaTestRunConfiguration.checkConfiguration()` | `run/test/LuaTestRunConfiguration.kt:289-296` | **Extended**: its runtime branch is rerouted through `LuaTargetMessages.noRuntimeConfigured()` (§3.3, `DEBUG-06-22`/`-23`). Its `testTarget` branch is untouched. |
+| `LuaRedisRunConfiguration.checkConfiguration()` | `redis/run/LuaRedisRunConfiguration.kt:245-255` | **Left alone.** It validates a Redis connection and an FCALL name, not a Lua *target*. Out of scope; noted in [risks-and-gaps.md](risks-and-gaps.md) Gap 2.4. |
 | `LuaToolResolver.notConfiguredMessage(kindId)` | `toolchain/resolve/LuaToolResolver.kt:93-97` | **Adopted as the single source** for `DEBUG-06-22`. Executed: `grep -rn notConfiguredMessage src/` returns the definition plus one *test* caller (`LuaToolResolverTest.kt:61`) — **zero production callers today**. |
 | `LuaToolHealthChecker` / `LuaToolHealth` | `toolchain/health/LuaToolHealthChecker.kt:29-61`, `toolchain/model/LuaRegisteredTool.kt:24-33` | **Consumed, not duplicated.** `adHocRuntime` already computes `fileExists`/`executable` (`run/LuaRuntimeResolution.kt:41-48`); `DEBUG-06-07` is satisfied by *reading* `tool.health`, which currently nothing in `run/` does (executed: `grep -rn '\.health' src/main/kotlin/net/internetisalie/lunar/run/ \| wc -l` → `0`). |
 | `isUsable` extension | `toolchain/model/LuaRegisteredTool.kt:32-33` | **Reused verbatim** as the usability predicate. Zero uses in `run/` today. |
 | `LuaTestRunConfigurationProducer` | `run/test/LuaTestRunConfigurationProducer.kt:17-173` | **Not duplicated.** The new generic producer (§2.9) yields to it via `isPreferredConfiguration` rather than copying its `isTestFile` heuristic. |
 | `LuaRedisRunConfigurationProducer` | `redis/run/LuaRedisRunConfigurationProducer.kt:21-53` | **Mirrored gating.** It declines on a non-REDIS target (`:31`); the new producer declines on a REDIS target, so exactly one offers. |
 | `LuaToolHealthMonitor` | `toolchain/health/LuaToolHealthMonitor.kt:43-79` | **Not extended.** It watches *inventory* binaries over VFS. An ad-hoc path typed into a run configuration is not in the inventory, so it is not watched — which is why §2.4 exists. |
-| RUN-04's `startProcess()` checks | `run/LuaRunConfiguration.kt:294-307` | **Untouched.** RUN-04 is `done`; its `ExecutionException`s stay as the last line of defence. This feature adds gates *earlier*, it does not move RUN-04's. |
+| RUN-04's `startProcess()` checks | `run/LuaRunConfiguration.kt:295-308` | **Untouched.** RUN-04 is `done`; its `ExecutionException`s stay as the last line of defence. This feature adds gates *earlier*, it does not move RUN-04's. |
 
 ### 1.3 Target State
 
@@ -126,8 +126,8 @@ data class LuaTargetSpec(
 
 **Both factories are specified here in full; neither is left to inference.**
 
-`getOptions()` is `protected` on both configuration classes (`run/LuaRunConfiguration.kt:194` overrides
-without a modifier, so it inherits `RunConfigurationBase`'s `protected`; `run/test/LuaTestRunConfiguration.kt:191`
+`getOptions()` is `protected` on both configuration classes (`run/LuaRunConfiguration.kt:195` overrides
+without a modifier, so it inherits `RunConfigurationBase`'s `protected`; `run/test/LuaTestRunConfiguration.kt:193`
 widens it to `public`). A companion factory therefore reads **only public accessors**, and
 `runtimePath` is taken from the resolved tool rather than from `options.interpreter`:
 `adHocRuntime` copies the stored path verbatim into `LuaRegisteredTool.path`
@@ -137,12 +137,12 @@ is resolved exactly once per factory call, not twice.
 
 ```kotlin
 fun of(configuration: LuaRunConfiguration): LuaTargetSpec {
-    val resolvedRuntime = configuration.resolveInterpreter()          // run/LuaRunConfiguration.kt:219
+    val resolvedRuntime = configuration.resolveInterpreter()          // run/LuaRunConfiguration.kt:220
     return LuaTargetSpec(
         runtime = resolvedRuntime,
         runtimePath = resolvedRuntime?.path,                          // toolchain/model/LuaRegisteredTool.kt:9
-        scriptPath = configuration.scriptName,                        // run/LuaRunConfiguration.kt:196-200
-        workingDirectory = configuration.effectiveWorkDirectory(),    // :228
+        scriptPath = configuration.scriptName,                        // run/LuaRunConfiguration.kt:197-201
+        workingDirectory = configuration.effectiveWorkDirectory(),    // :229
         projectLanguageLevel =
             LuaProjectSettings.getInstance(configuration.project).state.languageLevel,
         envFilePaths = configuration.envFilePaths,                    // §2.8 (EnvFilesOptions)
@@ -150,12 +150,12 @@ fun of(configuration: LuaRunConfiguration): LuaTargetSpec {
 }
 
 fun of(configuration: LuaTestRunConfiguration): LuaTargetSpec {
-    val resolvedRuntime = configuration.resolveInterpreter()          // run/test/LuaTestRunConfiguration.kt:211
+    val resolvedRuntime = configuration.resolveInterpreter()          // run/test/LuaTestRunConfiguration.kt:213
     return LuaTargetSpec(
         runtime = resolvedRuntime,
         runtimePath = resolvedRuntime?.path,
         scriptPath = null,
-        workingDirectory = configuration.workingDirectory,            // :213-216
+        workingDirectory = configuration.workingDirectory,            // :215-218
         projectLanguageLevel =
             LuaProjectSettings.getInstance(configuration.project).state.languageLevel,
         envFilePaths = emptyList(),
@@ -166,11 +166,11 @@ fun of(configuration: LuaTestRunConfiguration): LuaTargetSpec {
 Three asymmetries in the test factory, stated so they are not read as omissions:
 
 - **`scriptPath = null`.** `LuaTestRunConfiguration` has no script; it has a `testTarget`
-  (`run/test/LuaTestRunConfiguration.kt:291-293`), which keeps its own branch. `TEST_TARGET` runs
+  (`run/test/LuaTestRunConfiguration.kt:293-295`), which keeps its own branch. `TEST_TARGET` runs
   only checks 1–2, so the field is never read for a test spec.
 - **`workingDirectory` is the raw property, not an `effectiveWorkDirectory()`.** No such method
   exists on `LuaTestRunConfiguration` (`grep -n effectiveWorkDirectory src/main/kotlin/net/internetisalie/lunar/run/test/LuaTestRunConfiguration.kt`
-  → no match); the only accessor is `var workingDirectory` at `:213-216`. Do **not** invent a
+  → no match); the only accessor is `var workingDirectory` at `:215-218`. Do **not** invent a
   `project.basePath` fallback for it — `TEST_TARGET` does not include `WORKDIR_MISSING`.
 - **`envFilePaths = emptyList()`.** `LuaTestRunConfiguration` has no env-file property
   (`grep -n envFilePaths src/main/kotlin/net/internetisalie/lunar/run/test/LuaTestRunConfiguration.kt`
@@ -297,14 +297,14 @@ is `String` (`toolchain/model/LuaRegisteredTool.kt:9`), the same type the two br
 
 ### 2.6 Call sites in the existing configurations (MODIFIED)
 
-`net.internetisalie.lunar.run.LuaRunConfiguration` — replaces `:275-285`:
+`net.internetisalie.lunar.run.LuaRunConfiguration` — replaces `:276-286`:
 
 ```kotlin
 override fun checkConfiguration() =
     LuaTargetValidator.validate(LuaTargetSpec.of(this), LuaTargetChecks.LOCAL_SCRIPT)
 ```
 
-`net.internetisalie.lunar.run.test.LuaTestRunConfiguration` — replaces the runtime branch at `:288-290`:
+`net.internetisalie.lunar.run.test.LuaTestRunConfiguration` — replaces the runtime branch at `:290-292`:
 
 ```kotlin
 override fun checkConfiguration() {
@@ -318,8 +318,8 @@ override fun checkConfiguration() {
 **This is a behaviour change for the test configuration in two directions, and it is intended.** The
 shipped branch tests the *stored string* — `if (options.interpreter.isNullOrEmpty()) throw
 RuntimeConfigurationException("Runtime is not defined")`
-(`run/test/LuaTestRunConfiguration.kt:288-290`). `TEST_TARGET` tests the *resolved tool*
-(`resolveInterpreter()`, `:211`, which is `resolveConfiguredRuntime` — stored path wins, otherwise the
+(`run/test/LuaTestRunConfiguration.kt:290-292`). `TEST_TARGET` tests the *resolved tool*
+(`resolveInterpreter()`, `:213`, which is `resolveConfiguredRuntime` — stored path wins, otherwise the
 project-resolved default, `run/LuaRuntimeResolution.kt:19-27`). So:
 
 | Configuration state | Today | After |
@@ -382,8 +382,8 @@ this repo: `PublishRockAction.isAuthFailure` is `internal` at `rocks/publish/Pub
 and is called from `src/test/kotlin/net/internetisalie/lunar/rocks/publish/PublishRockAuthFailureTest.kt:14`.
 
 Both asset messages are copied verbatim from RUN-04-03's existing strings
-(`run/LuaRunConfiguration.kt:320-326`) so the two gates cannot drift.
-`LuaRunConfiguration.DEBUGGER_PRELOADER_FILE` is `"debug.lua"` (`run/LuaRunConfiguration.kt:356`).
+(`run/LuaRunConfiguration.kt:321-327`) so the two gates cannot drift.
+`LuaRunConfiguration.DEBUGGER_PRELOADER_FILE` is `"debug.lua"` (`run/LuaRunConfiguration.kt:357`).
 
 > **Why the arguments, and not `environment`.** An earlier draft passed the `ExecutionEnvironment` and
 > then declared `DEBUG-06-13` untestable because `LuaFileUtil.pluginVirtualDirectory` resolves through
@@ -421,9 +421,9 @@ class LuaRunConfiguration(…) : RunConfigurationBase<LuaRunConfigurationOptions
 ```
 
 `LuaRunConfigurationOptions` gains, alongside the existing `StoredProperty` declarations
-(`run/LuaRunConfiguration.kt:65-122`), **both** the private property and the public accessor that
+(`run/LuaRunConfiguration.kt:66-123`), **both** the private property and the public accessor that
 `options.envFilePaths` above requires — the accessor is not optional, and it follows the shape every
-other option on that class uses (`var interpreter` at `:124-128`):
+other option on that class uses (`var interpreter` at `:125-129`):
 
 ```kotlin
 // inside class LuaRunConfigurationOptions : RunConfigurationOptions()
@@ -441,13 +441,13 @@ Grounding for the two halves: `BaseState.list()` is `protected fun <T : Any> lis
 StoredPropertyBase<MutableList<T>>`
 (`platform/projectModel-api/src/com/intellij/openapi/components/BaseState.kt:101`), so
 `MutableList<String>` is the property's real type — the same shape as the existing
-`map<String, String>()` property at `run/LuaRunConfiguration.kt:90-94`. The `getValue(this)` /
+`map<String, String>()` property at `run/LuaRunConfiguration.kt:91-95`. The `getValue(this)` /
 `setValue(this, value)` accessor pair is the idiom every other option on this class uses
-(`var interpreter`, `:124-128`). `EnvFilesOptions.envFilePaths` is declared `List<String>`
+(`var interpreter`, `:125-129`). `EnvFilesOptions.envFilePaths` is declared `List<String>`
 (`platform/execution-impl/src/com/intellij/execution/EnvFilesOptions.kt:6`), which is why the
 `LuaRunConfiguration` override converts in both directions.
 
-`LuaRunSettingsEditor` replaces the **deprecated** no-`Project` widget at `:377`
+`LuaRunSettingsEditor` replaces the **deprecated** no-`Project` widget at `:378`
 (`EnvironmentVariablesTextFieldWithBrowseButton()`; deprecation at
 `platform/execution-impl/…/EnvironmentVariablesTextFieldWithBrowseButton.java:54-57`) with
 
@@ -456,7 +456,7 @@ private val environmentVariablesField = EnvironmentVariablesComponent(project)
 ```
 
 (`platform/execution-impl/…/EnvironmentVariablesComponent.java:48-56` — the non-deprecated
-constructor). `resetEditorFrom` (`:414`) and `applyEditorTo` (`:425`) gain the env-file half using
+constructor). `resetEditorFrom` (`:415`) and `applyEditorTo` (`:426`) gain the env-file half using
 the component's **public** accessors (`:78-84`):
 
 ```kotlin
@@ -475,30 +475,62 @@ runConfiguration.envFilePaths = environmentVariablesField.getEnvFilePaths().toLi
 
 ### 2.8.1 One label, not two — the decision (contract §6, TEXT IS PART OF THE UI)
 
+> **Re-taken against `main` after [[BUG-448]] — the decision stands, the edit it asks for shrank.**
+> When this section was first written the row was `FormBuilder.addLabeledComponent("Environment
+> variables", …)`: no colon, no mnemonic. Commit `9783b8af` rewrote all eight rows of
+> `LuaRunSettingsEditor` to `addMnemonicLabeledComponent("&Environment variables:", …)`
+> (`run/LuaRunConfiguration.kt:403`) through a **new** helper,
+> `net.internetisalie.lunar.ui.addMnemonicLabeledComponent`
+> (`src/main/kotlin/net/internetisalie/lunar/ui/LuaFormBuilders.kt:25-33`). Two of the three things
+> this section prescribed — the colon on the form label, and a mnemonic on it — **are already
+> shipped**. What survives untouched is the doubling, below.
+
 `EnvironmentVariablesComponent` **is a `LabeledComponent<TextFieldWithBrowseButton>`**
 (`platform/execution-impl/…/EnvironmentVariablesComponent.java:26`) and its constructor sets its own
 title at `:53` from `environment.variables.component.title` = `&Environment variables`
 (`platform/execution/resources/messages/ExecutionBundle.properties:292`). `LabeledComponent`'s
 default label constraint is `BorderLayout.NORTH`
-(`platform/platform-api/src/com/intellij/openapi/ui/LabeledComponent.java:28`). Dropping it into the
-existing `FormBuilder.addLabeledComponent("Environment variables", …)` row
-(`run/LuaRunConfiguration.kt:402`) therefore renders the text **twice**: once in the form's left label
-column and once above the field. The raw widget it replaces is not a `LabeledComponent`, so this is
-new with §2.8 and the contract binds it.
+(`platform/platform-api/src/com/intellij/openapi/ui/LabeledComponent.java:28`).
 
-**Decision: the `FormBuilder` label survives; the component's own title is cleared.** In the editor's
-`init`, before the `FormBuilder` chain:
+**`addMnemonicLabeledComponent` does not address this, and was never meant to.** It builds a
+`JBLabel` from the label text, calls `DialogUtil.registerMnemonic(label, component, '&')` — which
+strips the marker, sets `displayedMnemonic` and sets `labelFor`
+(`platform/platform-api/src/com/intellij/util/ui/DialogUtil.java:77-105`) — sets `labelFor` again
+itself, and delegates to `FormBuilder.addLabeledComponent(JLabel, JComponent)`
+(`src/main/kotlin/net/internetisalie/lunar/ui/LuaFormBuilders.kt:25-33`). Every statement in it acts
+on the *label*; it never inspects the component. So dropping an `EnvironmentVariablesComponent` into
+that row still renders the text **twice**: once in the form's left label column and once above the
+field. The raw widget it replaces is not a `LabeledComponent`, so this is still new with §2.8 and the
+contract still binds it.
+
+**Decision (unchanged): the `FormBuilder` label survives; the component's own title is cleared.** In
+the editor's `init`, before the `FormBuilder` chain:
 
 ```kotlin
 environmentVariablesField.labelLocation = BorderLayout.WEST   // LabeledComponent.java:109
 environmentVariablesField.text = ""                           // LabeledComponent.java:56
 ```
 
-and the form row keeps its label, with the colon the contract requires:
+**The form row itself now needs no edit.** `run/LuaRunConfiguration.kt:403` already reads
 
 ```kotlin
-.addLabeledComponent("Environment variables:", environmentVariablesField)
+.addMnemonicLabeledComponent("&Environment variables:", environmentVariablesField)
 ```
+
+— colon present, mnemonic `E`, `labelFor` set. Phase 5 keeps that line **verbatim** and changes only
+what `environmentVariablesField` *is* (§2.8). **Do not rewrite it to
+`addLabeledComponent("Environment variables:", …)`**, which an earlier revision of this section
+prescribed: that overload sets no mnemonic, and `test every labelled row carries a mnemonic`
+(`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:46-54`) would go red
+on it.
+
+**`labelFor` will name a `LabeledComponent`, not a text field, and that is not a defect.**
+`EnvironmentVariablesComponent` is a `JPanel`. `BasicLabelUI`'s mnemonic release action calls
+`labelFor.requestFocus()` only when `labelFor` is a `Container` that **is** a focus-cycle root, and
+`SwingUtilities2.compositeRequestFocus(labelFor)` — which descends to the first focusable child —
+otherwise (JDK 21 `src.zip`, `java.desktop/javax/swing/plaf/basic/BasicLabelUI.java:580-584`);
+`JPanel` is not a focus-cycle root by default. This is read from source, **not executed**:
+`DEBUG-06-00-DR-04`'s screenshot pass is where Alt+E is actually pressed.
 
 **Grounded, not invented.** This is the platform's own idiom for placing an
 `EnvironmentVariablesComponent` inside a grid that already supplies the label:
@@ -510,9 +542,19 @@ the row rather than occupying a line above the field.
 
 **Why not the other way round** (drop the `FormBuilder` label with `addComponent(...)` and keep the
 component's own): the component's label would render at `NORTH`, above the field, out of the left
-label column the other seven rows share — and its bundle text is Title-less but mnemonic-bearing
-(`&Environment variables`), so it would also be the only row in the editor carrying a mnemonic. This
-is a decision, not a DR item; DR-04 is reduced to a screenshot **confirmation** of it.
+label column the other seven rows share. Since [[BUG-448]] that option also **breaks two live
+tests**, which is what makes it decidable rather than a matter of taste.
+`RunConfigurationEditorProbe.formLabelsOf` collects only `JLabel`s that are *direct children* of the
+form panel and carry a `labelFor`
+(`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorProbe.kt:26-29`); a row added
+with `addComponent(...)` contributes none. `test the editors between them still expose every labelled
+row the audit counted` would see 26 against `AUDITED_ROW_COUNT = 27`
+(`…/RunConfigurationEditorTextTest.kt:96-102`, `:159`), and `test the environment field is labelled
+identically in every editor` would see `[]` against `listOf("Environment variables:")` (`:82-94`).
+This is a decision, not a DR item; `DEBUG-06-00-DR-04` is reduced to a screenshot **confirmation** of
+it — and it is the *only* gate, because the doubling is invisible to those same tests: the component's
+own title is a grandchild of the form panel, not a direct child, so `formLabelsOf` never sees it
+whether it is cleared or not.
 
 > **The disk-icon extension is installed only by `setEnvFilePaths`.** `addEnvFilesExtension()` is
 > private and its sole call site is inside `setEnvFilePaths` (`:83`, called from `:241`). Typing an
@@ -520,7 +562,7 @@ is a decision, not a DR item; DR-04 is reduced to a screenshot **confirmation** 
 > when `myEnvFilePaths.isEmpty()` (`:250`). So calling `setEnvFilePaths(...)` from `resetEditorFrom`
 > — even with an empty list — is what makes the chooser reachable at all.
 
-The `environmentFile` `StoredProperty` at `:95-99` is **left in place, unused** — `DEBUG-06-16` is a
+The `environmentFile` `StoredProperty` at `:96-100` is **left in place, unused** — `DEBUG-06-16` is a
 `Won't` and removing the property would discard saved configurations. §10.2 records why.
 
 ### 2.9 `net.internetisalie.lunar.run.LuaRunConfigurationProducer` (NEW) — `DEBUG-06-18`
@@ -667,7 +709,7 @@ Declared in this exact order. Each cell is the whole rule.
 | :-: | :-- | :-- | :-- | :-- |
 | 1 | `RUNTIME_MISSING` | `spec.runtime == null` | `FATAL` | `LuaTargetMessages.noRuntimeConfigured()` + `LuaToolchainSettingsQuickFix` |
 | 2 | `RUNTIME_UNUSABLE` | `spec.runtime != null && !spec.runtime.isUsable` | `FATAL` | Three-way, in this order — see below |
-| 3 | `SCRIPT_UNSET` | `spec.scriptPath.isNullOrEmpty()` | `WARNING` | `"No script file configured"` (verbatim from `:283`) |
+| 3 | `SCRIPT_UNSET` | `spec.scriptPath.isNullOrEmpty()` | `WARNING` | `"No script file configured"` (verbatim from `:284`) |
 | 4 | `SCRIPT_MISSING` | `scriptPath` non-empty **and** `!LuaPathFacts.of(scriptPath).exists` | `FATAL` | `scriptMissing(path)` |
 | 5 | `WORKDIR_MISSING` | `workingDirectory` non-empty **and** `!LuaPathFacts.of(workingDirectory).exists` | `WARNING` | `workingDirectoryMissing(path)` |
 | 6 | `SCRIPT_REACHABLE` | §3.6 predicate is true | `WARNING` | `scriptOutsideBaseDirectory(relative)` |
@@ -754,8 +796,10 @@ search for.** What is actually there:
   `private const val BUNDLE: String = "net.internetisalie.lunar.LuaBundle"`, exposing
   `message(key: @PropertyKey(resourceBundle = BUNDLE) String, vararg params: Any): String`
   (`:20-26`), which wraps `BundleBase.message` (`:3`, `:26`) — it does not extend `DynamicBundle`.
-- `src/main/resources/net/internetisalie/lunar/LuaBundle.properties` — 145 lines, with a
-  `# debugging` section at `:109`.
+- `src/main/resources/net/internetisalie/lunar/LuaBundle.properties` — 148 lines, with a
+  `# debugging` section at `:109`. (It was 145 when §3.3 was written; [[BUG-448]] appended
+  `toolwindow.matrix.displayName` at `:148` and re-cased two `application.*` values — the
+  `# debugging` anchor is unmoved, and so is `refactoring.rename.unsupported` at `:145`.)
 - **11 caller files** and **22 live call sites.** Executed: `grep -rln LuaBundle src/main/kotlin/`
   → 12 paths, one of which is `LuaBundle.kt` itself; `grep -rn 'LuaBundle\.message'
   src/main/kotlin/ | wc -l` → `24`, of which two are commented out
@@ -798,9 +842,9 @@ bundle option genuinely live. Reasons, in order of weight:
    posits does not exist yet — executed: `grep -rln LuaBundle src/test/kotlin/` returns one file,
    `lang/insight/LuaLineMarkerTest.kt`.)
 4. **The rest of this surface is literals — checked, not inherited.** Every `checkConfiguration` /
-   `ExecutionException` message in `run/` and `redis/` is a literal: `run/LuaRunConfiguration.kt:277`,
-   `:283`, `:323`, `:326`; `run/test/LuaTestRunConfiguration.kt:289`, `:292`;
-   `redis/run/LuaRedisRunConfiguration.kt:244`, `:247`, `:256`;
+   `ExecutionException` message in `run/` and `redis/` is a literal: `run/LuaRunConfiguration.kt:278`,
+   `:284`, `:324`, `:327`; `run/test/LuaTestRunConfiguration.kt:291`, `:294`;
+   `redis/run/LuaRedisRunConfiguration.kt:247`, `:250`, `:259`;
    `redis/run/LuaRedisRunProfileState.kt:144`, `:196`, `:200`. `run/`'s single bundle use
    (`LuaExecutionStack.kt:28`) is a *label* — a debugger thread name — not a diagnostic. One rule
    for the whole diagnostic surface beats a package in which the ten new messages resolve one way
@@ -829,8 +873,9 @@ specified, and §9's acceptance rows assert these exact strings.
 | `debugPortInUse(port)` | `Debug port $port is already in use. Change "Debug port" in this run configuration, or stop the other Lua debug session.` |
 
 `DEBUG-06-21` (ratified vocabulary) is preserved: no message says *interpreter*; the editor labels
-`"Runtime"`/`"Runtime arguments"` (`:398`, `:403`) are untouched; the persisted option key stays
-`interpreter` (`:72-76`).
+still read *Runtime* — `"&Runtime:"` and `"Runtime &arguments:"` since [[BUG-448]] added the colon
+and the mnemonic (`:399`, `:404`) — and this feature does not touch either; the persisted option key
+stays `interpreter` (`:73-77`).
 
 `LuaTestCommandLineState.kt:124` and `LuaConsoleRunner.kt:40` also hand-roll the same literal at
 launch time. They are **out of scope** here — they are `ExecutionException` sites, not
@@ -1098,7 +1143,7 @@ The shape mirrors `redis/run/LuaRedisRunConfigurationProducer.kt:21-53` and
    other, **exactly one** of the two producers offers on a `.lua` file for any project target. This
    is what §1.2's "Mirrored gating" row asserts and what TC-06-18c tests.
 6. `configuration.scriptName = targetVirtualFile.path` — the public accessor at
-   `run/LuaRunConfiguration.kt:196-200`. Note the name: it is `scriptName` on the configuration and
+   `run/LuaRunConfiguration.kt:197-201`. Note the name: it is `scriptName` on the configuration and
    `scriptPath` on `LuaTargetSpec` (§2.1); the value is a full path in both.
 7. `configuration.name = targetVirtualFile.name` — the bare file name, e.g. `main.lua`, so the
    action reads *Run 'main.lua'* / *Debug 'main.lua'*. **No prefix**, unlike the Redis producer's
@@ -1111,11 +1156,11 @@ The shape mirrors `redis/run/LuaRedisRunConfigurationProducer.kt:21-53` and
 **Fields deliberately left unset**, so an implementer does not add them:
 
 - **`workingDirectory`** — left null. `effectiveWorkDirectory()` already falls back to
-  `project.basePath` (`run/LuaRunConfiguration.kt:228`). Pre-filling the script's own directory would
+  `project.basePath` (`run/LuaRunConfiguration.kt:229`). Pre-filling the script's own directory would
   make check 6 (`SCRIPT_REACHABLE`, §3.6) unable to ever fire for a context-created configuration,
   which is the opposite of what `DEBUG-06-11` asks for.
 - **`interpreter`** — left null. `resolveInterpreter()` tracks the project default dynamically
-  (`run/LuaRunConfiguration.kt:213-219`); freezing a snapshot is what that method's own KDoc declines
+  (`run/LuaRunConfiguration.kt:214-220`); freezing a snapshot is what that method's own KDoc declines
   to do. (The test producer sets it at `LuaTestRunConfigurationProducer.kt:52-55` for the *directory*
   case only; that is not a precedent for this one.)
 
@@ -1166,7 +1211,7 @@ removed, only to lose to it.
   (`platform/execution-impl/src/com/intellij/execution/envFile/EnvFileParser.kt:4`) is a public,
   non-experimental top-level function and is used verbatim.
 - **Applied at launch** in `startProcess()`, around
-  `environmentVariables?.configureCommandLine(commandLine, true)` (`run/LuaRunConfiguration.kt:317`):
+  `environmentVariables?.configureCommandLine(commandLine, true)` (`run/LuaRunConfiguration.kt:318`):
 
   ```kotlin
   private fun envFileVariables(): Map<String, String> =
@@ -1245,13 +1290,13 @@ came first.
 | **Registry** runtime whose file was deleted after its last probe | Check 2 does **not** fire, and this is a stated bound rather than a fix. `findByPath` returns the stored tool verbatim (`exactMatch.toModel()`, `toolchain/registry/LuaToolchainRegistry.kt:178-181`), so `health.fileExists` is the *probe-time* value and `isUsable` stays `true`; `checkConfiguration()` never re-stats the runtime path on that branch (§3.4). Refreshing stored health belongs to `toolchain/health/LuaToolHealthMonitor.kt`, which revalidates on VFS events (`:69,239-249`) and writes through `updateToolCheck` (`:130-134`) — the stale window closes when it next runs, and a deletion the VFS never observes leaves it open. Out of scope for DEBUG-06: adding a fresh `stat` here would re-introduce the per-keystroke I/O `DEBUG-06-05` exists to bound. The launch still fails, later, at `ExecutionException` time. |
 | Runtime resolves from the registry and is healthy | `isUsable` is `true` (`LuaRegisteredTool.kt:32-33`); check 2 returns `null`. No new I/O — registry lookups are in-memory (`LuaToolResolver.kt:60-84`). |
 | Ad-hoc runtime, never probed | `runtime.runtime == null` (`LuaRuntimeResolution.kt:38`) → check 7 returns `null`. No level comparison against a level we do not know. |
-| Script unset (interactive REPL) | Check 3 `WARNING` only — the deliberate `lua -v -i` fallback (`run/LuaRunConfiguration.kt:304-306`, RUN-04-04). Checks 4 and 6 short-circuit. |
-| Working directory unset | `effectiveWorkDirectory()` already falls back to `project.basePath` (`:228`), so `spec.workingDirectory` is non-empty whenever the project has a base path. On a project with a null base path it is `null`, and checks 5 and 6 return `null`. |
-| Debug port out of range | Unrepresentable: `JBIntSpinner(DEFAULT_DEBUG_PORT, 1, 65535)` (`:380`). `DEBUG-06-14` is already `Full`; **no check is added** — validating what the widget cannot produce would be dead code. |
+| Script unset (interactive REPL) | Check 3 `WARNING` only — the deliberate `lua -v -i` fallback (`run/LuaRunConfiguration.kt:305-307`, RUN-04-04). Checks 4 and 6 short-circuit. |
+| Working directory unset | `effectiveWorkDirectory()` already falls back to `project.basePath` (`:229`), so `spec.workingDirectory` is non-empty whenever the project has a base path. On a project with a null base path it is `null`, and checks 5 and 6 return `null`. |
+| Debug port out of range | Unrepresentable: `JBIntSpinner(DEFAULT_DEBUG_PORT, 1, 65535)` (`:381`). `DEBUG-06-14` is already `Full`; **no check is added** — validating what the widget cannot produce would be dead code. |
 | Two problems of equal severity | First in the §3.2 declaration order wins (`maxByOrNull` semantics, §3.1 step 3). |
 | `System.nanoTime()` goes backwards across cores | §3.4 step 2 treats a negative delta as a miss. |
 | Env file list empty | Check 8 iterates nothing and returns `null`; `envFileVariables()` folds to an empty map. |
-| Test configuration | `TEST_TARGET` runs only checks 1–2; the `testTarget` branch keeps its own bare `RuntimeConfigurationException` (`LuaTestRunConfiguration.kt:291-293`), unchanged. |
+| Test configuration | `TEST_TARGET` runs only checks 1–2; the `testTarget` branch keeps its own bare `RuntimeConfigurationException` (`LuaTestRunConfiguration.kt:293-295`), unchanged. |
 | Redis configuration | Untouched (§1.2). |
 
 ## 7. Integration Points
@@ -1433,7 +1478,7 @@ narrower `EnvFilesOptions` — a **single** property — *is* implemented (§2.8
 **Not done, and the property is not removed.** `EnvironmentVariablesData.configureCommandLine`
 (`platform/execution-impl/…/EnvironmentVariablesData.java:122-127`) sets only the parent-env type
 and `myEnvs`; `environmentFile` is never read. Validating a path nothing consumes manufactures a
-check for a feature that does not exist. The `StoredProperty` at `run/LuaRunConfiguration.kt:95-99`
+check for a feature that does not exist. The `StoredProperty` at `run/LuaRunConfiguration.kt:96-100`
 stays because deleting it would drop the field from existing `.idea/runConfigurations/*.xml`.
 
 ### 10.3 Execute `.sh`/`.bat` environment scripts at launch
@@ -1454,7 +1499,7 @@ public `parseEnvFile` (§4.1) and skips script env files. Tracked as TBD-1.
 that no edit to the run configuration can repair, so a red banner in the Run/Debug Configurations
 dialog would point the user at a field that is not the problem. It is also not a *Run*-executor
 concern at all — `LuaRunConfiguration` only reads the assets under `DefaultDebugExecutor`
-(`run/LuaRunConfiguration.kt:320-326`), while `checkConfiguration()` receives no executor. Hoisting
+(`run/LuaRunConfiguration.kt:321-327`), while `checkConfiguration()` receives no executor. Hoisting
 it into the pre-spawn gate (§2.7) satisfies this feature's own scope statement — "the **edit-time /
 pre-launch** half" — by moving it from *after* the interpreter is spawned to *before*.
 

@@ -225,15 +225,23 @@ rewritten and because *how* it survived is the transferable part.
 
 ### Gap 2.4: no `human-verification-checklists.md` is authored yet
 
-- **Question**: five rows in this feature are not settleable by a unit test — the *Lua Remote
-  (Mobdebug)* template appearing with a Debug-but-no-Run action, the attach editor's label column
-  and casing, the quoted console output of Risk 1.6, the §3.5 mismatch message rendering, and the
-  `LuaDebugProcess` half of the §2.4 disconnect bridge (a real `XDebugSession` + `ExecutionResult`
-  are needed to install it; TC-05-05c proves only the controller half). The standard artifact set
-  includes a manual checklist and this feature does not have one.
+- **Question**: **eight** rows in this feature are not settleable by a unit test — **HV-01** the
+  *Lua Remote (Mobdebug)* template appearing with a Debug-but-no-Run action; **HV-02** the attach
+  editor's label column, casing and *painted* mnemonics (TC-05-07f asserts the model only);
+  **HV-03** the quoted console output of Risk 1.6; **HV-04** the §3.5 mismatch message rendering;
+  **HV-05** the background-progress **Cancel** control (TC-05-06a cancels the `Job`
+  programmatically, so it never reaches the button); **HV-06** the `LuaDebugProcess` half of the
+  §2.4 disconnect bridge (a real `XDebugSession` + `ExecutionResult` are needed to install it;
+  TC-05-05c proves only the controller half); **HV-07** the end-to-end half of [[BUG-463]] — a
+  Step Over from a pause in a nested project following to the next line — which TC-05-08c pins at
+  `LuaPosition.localPosition` but not at the `run/LuaDebuggerController.kt:326` call site; and
+  **HV-08** *Run to Cursor* in an attach session with `localRoot != remoteRoot`, the **only** gate
+  on the `run/LuaDebugProcess.kt:78-84` rewire, which no unit row can reach for the same
+  live-`XDebugSession` reason. The standard artifact set includes a manual checklist and this
+  feature does not have one.
 - **Options / leaning**: author it as part of Phase 3, when the surface it describes exists. Writing
   it now would describe a dialog nobody has seen.
-- **Resolved by**: `DEBUG-05-00-DR-04`. The six checks are enumerated as HV-01…HV-06 in
+- **Resolved by**: `DEBUG-05-00-DR-04`. All **eight** checks are enumerated as HV-01…HV-08 in
   [implementation-plan.md](implementation-plan.md)'s Verification Tasks so they are not lost if the
   file slips. This mirrors [[DEBUG-06]]'s own Gap 2.6 / DR-03, which made the same call.
 
@@ -306,7 +314,7 @@ frozen input and DEBUG-06 is a merged sibling.
 | :-- | :-- | :-- | :-- |
 | `DEBUG-05-00-DR-01` | ~~Correct [[DEBUG-06]] design §3.3's "no message bundle" claim and decide, once, whether `LuaTargetMessages` holds literals or `LuaBundle` keys.~~ **Closed — done upstream in `1a5d5b70`**, which rewrote §3.3 with the corrected premise and re-took the literals decision on `noRuntimeConfigured()`'s call-time composition. Nothing is owed by this feature. | Gap 2.1 | **done** |
 | `DEBUG-05-00-DR-02` | Measure, on an IPv6-first host (or with `-Djava.net.preferIPv6Addresses=true` plus a `::1`-only `/etc/hosts` entry for `localhost`), whether a mobdebug debuggee with `MOBDEBUG_HOST` unset reaches a listener bound to `InetAddress.getLoopbackAddress()`. Paste the transcript into design §0 Probe L either way. | Gap 2.2 | todo |
-| `DEBUG-05-00-DR-04` | Author `human-verification-checklists.md` during Phase 3 with HV-01…HV-06 as enumerated in [implementation-plan.md](implementation-plan.md), then run one `verify-in-ide` pass per the `verify-in-ide` skill. HV-05 (the background-progress **Cancel**) is the only executed evidence `DEBUG-05-06`'s user-facing half will have — TC-05-06a cancels the `Job` programmatically — and **HV-06** (the session ending when the debuggee disconnects) is the only evidence for the `LuaDebugProcess` half of the §2.4 bridge. | Gap 2.4; `-05`, `-06`, `-07`, `-10`, `-12` (UX halves) | todo |
+| `DEBUG-05-00-DR-04` | Author `human-verification-checklists.md` during Phase 3 with **HV-01…HV-08** as enumerated in [implementation-plan.md](implementation-plan.md), then run one `verify-in-ide` pass per the `verify-in-ide` skill. Three of the eight are the *only* executed evidence their subject will ever have: **HV-05** (the background-progress **Cancel**) for `DEBUG-05-06`'s user-facing half — TC-05-06a cancels the `Job` programmatically; **HV-06** (the session ending when the debuggee disconnects) for the `LuaDebugProcess` half of the §2.4 bridge; and **HV-08** (*Run to Cursor* under `localRoot != remoteRoot`) for the `run/LuaDebugProcess.kt:78-84` rewire, which no unit row can reach because `LuaDebugProcess` needs a live `XDebugSession` + `ExecutionResult`. **HV-07** is the end-to-end half of [[BUG-463]], beyond TC-05-08c's reach at the `run/LuaDebuggerController.kt:326` call site. | Gap 2.4; `-05`, `-06`, `-07`, `-08`, `-10`, `-12` (UX halves) | todo |
 | `DEBUG-05-00-DR-03` | Before Phase 4, confirm on the real harness that a `204 Output` frame can arrive **between** a `Run`-group command's `200 OK` and the subsequent `202 Paused` (design §0 Probe K measured the paused case only). If it can, TC-05-10a needs a sibling row for the running case; if it cannot, record why in design §3.6. | Test-case gap 4.1 | todo |
 
 ## Test Case Gaps

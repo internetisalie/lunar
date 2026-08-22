@@ -45,7 +45,7 @@ the design section it realizes; no task requires a design decision.
         `LOCAL_SCRIPT` and `TEST_TARGET` lists — realizes design §3.2 rows 1 and 3.
   - [ ] Edit `run/LuaRunConfiguration.kt` — land the **`envFilePaths` declaration only**, all three
         parts of design §2.8's first two code blocks: on `LuaRunConfigurationOptions` (alongside
-        `:95-99`) the private `myEnvFilePaths` `StoredProperty` **and** the public
+        `:96-100`) the private `myEnvFilePaths` `StoredProperty` **and** the public
         `var envFilePaths: MutableList<String>` accessor; on `LuaRunConfiguration` the
         `EnvFilesOptions` supertype and its `override var envFilePaths: List<String>`.
         **This is a Phase 1 task, not a Phase 5 one**: §2.1's `LuaTargetSpec.of(configuration:
@@ -61,7 +61,7 @@ the design section it realizes; no task requires a design decision.
         **Everything else in §2.8 stays in Phase 5** — the widget swap, `resetEditorFrom`/`applyEditorTo`,
         the §2.8.1 label fix, `startProcess()`'s `envFileVariables()` and check 8. Phase 1 declares the
         property; Phase 5 wires it.
-  - [ ] Edit `run/LuaRunConfiguration.kt:275-285` — replace the body with the one-line delegation of
+  - [ ] Edit `run/LuaRunConfiguration.kt:276-286` — replace the body with the one-line delegation of
         design §2.6.
   - [ ] Create `src/test/kotlin/net/internetisalie/lunar/run/validation/LuaTargetValidationTest.kt`
         with the shared fixture helpers of design §9 and **TC-06-04a** only.
@@ -83,7 +83,7 @@ the design section it realizes; no task requires a design decision.
         probe-failed tool as "not executable") — realizes design §3.2 rows 1–2.
   - [ ] Create `.../validation/LuaToolchainSettingsQuickFix.kt` and attach it to `RUNTIME_MISSING` —
         realizes design §3.8.
-  - [ ] Edit `run/test/LuaTestRunConfiguration.kt:287-294` — route the runtime branch through
+  - [ ] Edit `run/test/LuaTestRunConfiguration.kt:289-296` — route the runtime branch through
         `LuaTargetValidator` per design §2.6; leave the `testTarget` branch alone. **Expect the test
         configuration's behaviour to move, not just its message** — design §2.6's table: an empty
         `interpreter` with a project default now validates clean (today it errors), and an explicit
@@ -145,7 +145,7 @@ the design section it realizes; no task requires a design decision.
         `PublishRockAuthFailureTest.kt:14`.)
 - **Exit criteria**: all five TCs pass, closing `DEBUG-06-13` — a `Must` — with real coverage rather
   than a checklist item. RUN-04-03's existing `startProcess()` asset checks
-  (`run/LuaRunConfiguration.kt:320-326`) are **unchanged** — confirm with `git diff` that those
+  (`run/LuaRunConfiguration.kt:321-327`) are **unchanged** — confirm with `git diff` that those
   lines are untouched. Full suite green.
 
 ### Phase 5: Environment files [Should]
@@ -157,23 +157,30 @@ the design section it realizes; no task requires a design decision.
         Phase 1, because §2.1's factory reads them. Do not re-add them; confirm with
         `grep -rn 'envFilePaths' src/main/kotlin` (non-empty — it was 0 hits before Phase 1) before
         starting. Phase 5 owns only the wiring below.
-  - [ ] Edit `run/LuaRunConfiguration.kt:377` — swap the **deprecated** no-`Project`
+  - [ ] Edit `run/LuaRunConfiguration.kt:378` — swap the **deprecated** no-`Project`
         `EnvironmentVariablesTextFieldWithBrowseButton()` for `EnvironmentVariablesComponent(project)`.
         The raw widget's `getEnvFilePaths()` is package-private and will not compile from Lunar
         (design §2.8) — the component is the only public route.
-  - [ ] Edit `run/LuaRunConfiguration.kt` `init` (before the `FormBuilder` chain at `:395-407`) — add
+  - [ ] Edit `run/LuaRunConfiguration.kt` `init` (before the `FormBuilder` chain at `:396-408`) — add
         `environmentVariablesField.labelLocation = BorderLayout.WEST` and
-        `environmentVariablesField.text = ""`, then change `:402` to
-        `.addLabeledComponent("Environment variables:", environmentVariablesField)`. **Both halves are
-        required**: `EnvironmentVariablesComponent` is a `LabeledComponent` that sets its own title
-        (`EnvironmentVariablesComponent.java:26,53`), so without the clear the row renders the label
-        twice. This is design §2.8.1's decision, already taken — do not re-decide it. Platform
-        precedent: `ShRunConfigurationEditor.java:76-78`.
-  - [ ] Edit `run/LuaRunConfiguration.kt:414` and `:425` — reset/apply both `envData` and
+        `environmentVariablesField.text = ""`. **Leave the form row at `:403` exactly as it is**:
+        [[BUG-448]] (`9783b8af`) already rewrote it to
+        `.addMnemonicLabeledComponent("&Environment variables:", environmentVariablesField)`, so the
+        colon and the mnemonic design §2.8.1 asked for are shipped. Reverting it to
+        `addLabeledComponent("Environment variables:", …)` — which an older revision of §2.8.1
+        prescribed — sets no mnemonic and turns `test every labelled row carries a mnemonic`
+        (`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:46-54`) red.
+        The clear is still **required**: `EnvironmentVariablesComponent` is a `LabeledComponent` that
+        sets its own title (`EnvironmentVariablesComponent.java:26,53`) and
+        `addMnemonicLabeledComponent` only ever touches the label
+        (`src/main/kotlin/net/internetisalie/lunar/ui/LuaFormBuilders.kt:25-33`), so without it the
+        row renders the label twice. This is design §2.8.1's decision, re-taken against `main` — do
+        not re-decide it. Platform precedent: `ShRunConfigurationEditor.java:76-78`.
+  - [ ] Edit `run/LuaRunConfiguration.kt:415` and `:426` — reset/apply both `envData` and
         `envFilePaths`. `setEnvFilePaths(...)` must be called even with an empty list, or the
         disk-icon chooser is never installed (design §2.8).
   - [ ] Edit `run/LuaRunConfiguration.kt` `startProcess()` — add `envFileVariables()` and apply it
-        **before** `environmentVariables?.configureCommandLine(...)` (`:317`) so explicit table
+        **before** `environmentVariables?.configureCommandLine(...)` (`:318`) so explicit table
         entries win — realizes design §4.1.
   - [ ] Edit `.../validation/LuaTargetChecks.kt` — add `ENV_FILES` (`ADVISORY`) as check 8.
   - [ ] Add **TC-06-17a** to `src/test/kotlin/net/internetisalie/lunar/run/TestLuaRunConfiguration.kt`
@@ -183,15 +190,22 @@ the design section it realizes; no task requires a design decision.
   `LuaTargetValidationTest.kt`); the pre-existing editor round-trips
   `testSourcePathRoundTripsThroughEditor` and `testDebugPortRoundTripsThroughEditor`
   (`TestLuaRunConfiguration.kt:121-140`, `:155-175`) still pass — this phase swaps the widget they
-  drive through `LuaRunSettingsEditor`. Full suite green.
+  drive through `LuaRunSettingsEditor`. **`RunConfigurationEditorTextTest` must also stay green**: it
+  is new since this plan was written (`9783b8af`) and it reads `LuaRunSettingsEditor` back row by row,
+  so it is the gate this phase can most easily break — `AUDITED_ROW_COUNT = 27`
+  (`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:159`) fails if the
+  environment row stops contributing a form label, and `test every labelled row carries a mnemonic`
+  fails if `:403` loses `addMnemonicLabeledComponent`. Neither is a new obligation to *design* —
+  §2.8.1 already prescribes the only edit that satisfies both. Full suite green.
 - **Note**: `LuaRunSettingsEditor` is a `FormBuilder` editor. `docs/engineering-contract.md:164-166`
   (`- **SCOPE:**`, a top-level bullet governing the whole UI section, not a rider on the
   screenshot-gate bullet) reads: *"These bind **new and restructured** UI. Do not open a retroactive
   sweep; the surviving `FormBuilder` run-config editors are acceptable until touched. Fix a surface
   when you are already editing it."* So: no `FormBuilder` → Kotlin-UI-DSL migration is in scope, the
-  `"Environment variables"` row **is** being edited and therefore gets both its colon (§6 COLONS) and
-  the double-label fix (§2.8.1), and the other seven labels in this editor are **not** swept here —
-  that is [risks-and-gaps.md](risks-and-gaps.md) TBD-3.
+  `"Environment variables"` row **is** being edited and therefore gets the double-label fix (§2.8.1).
+  Its colon and mnemonic, and those of the other seven rows, were already delivered by [[BUG-448]]
+  (`9783b8af`) after this plan was written — see [risks-and-gaps.md](risks-and-gaps.md) TBD-3, which
+  is closed by that commit.
 
 ### Phase 6: Create a target from context [Should]
 

@@ -838,9 +838,9 @@ already throws on either failure — that code is unchanged and simply feeds the
 
 ```kotlin
 val pluginLuaPath = LuaFileUtil.getPluginVirtualDirectoryChild("lua")
-    ?: throw ExecutionException("Failed to locate plugin directory")            // :321-323, verbatim
+    ?: throw ExecutionException("Failed to locate plugin directory")            // :322-324, verbatim
 val debuggerPreloaderFile = pluginLuaPath.findChild(DEBUGGER_PRELOADER_FILE)
-    ?: throw ExecutionException("Failed to locate debugger preloader")          // :324-326, verbatim
+    ?: throw ExecutionException("Failed to locate debugger preloader")          // :325-327, verbatim
 val target = LuaDebugTarget.of(this@LuaRunConfiguration)                        // NEW — §2.3
 commandLine.withEnvironment(debuggerEnvironment(pluginLuaPath.path, debuggerPreloaderFile.path, target))
 ```
@@ -1031,13 +1031,20 @@ Nine keys are added to `LuaBundle.properties`, under the existing `# debugging` 
    `collisionIn` groups `formLabelsOf(editor)` **per editor**
    (`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:163-170`).
 2. **Against the platform chrome drawn around the editor in the same dialog.** The Run/Debug
-   Configurations dialog contributes `Allow m&ultiple instances` (`U`) and `&Store as project file`
-   (`S`) — `platform/execution/resources/messages/ExecutionBundle.properties:266`, `:267`. Neither
-   `U` nor `S` is used here. (The shipped `LuaRunSettingsEditor` does collide with `S` via
-   `&Script file:`; that is pre-existing and is **not** propagated into this editor.)
+   Configurations dialog contributes **three** mnemonics, and the list is complete so that it can be
+   checked: `&Name:` (`N`) — the configuration-name field above every editor,
+   `platform/execution/resources/messages/ExecutionBundle.properties:251` —
+   `Allow m&ultiple instances` (`U`) and `&Store as project file` (`S`) — the same file at `:266`
+   and `:267`. None of `N`, `U`, `S` is among this editor's `H D T L R O K`. (The shipped
+   `LuaRunSettingsEditor` does collide with `S` via `&Script file:`; that is pre-existing and is
+   **not** propagated into this editor.)
 3. **Against the four sibling editors.** *No collision is possible*, because they are never on
    screen together: the dialog mounts exactly one `SettingsEditor`, the one belonging to the selected
-   configuration type. `LuaRunSettingsEditor` uses `R S W T E A P D`
+   configuration type. `RunConfigurable.updateRightPanel` calls `rightPanel.removeAll()` and then
+   adds exactly one `configurable.createComponent()` at `BorderLayout.CENTER`
+   (`platform/execution-impl/src/com/intellij/execution/impl/RunConfigurable.kt:422-436`), so
+   selecting another row replaces the mounted editor rather than adding to it.
+   `LuaRunSettingsEditor` uses `R S W T E A P D`
    (`run/LuaRunConfiguration.kt:399-406`), `LuaTestSettingsEditor` `f T a R W E v`
    (`run/test/LuaTestRunConfiguration.kt:329-335`), `LuaRocksRunSettingsEditor` `C A R G v`
    (`rocks/run/LuaRocksRunConfiguration.kt:311-315`), `LuaRedisSettingsEditor` `S C E D K A F` plus
@@ -2085,7 +2092,7 @@ repeatedly catch. Both are audited here so a reviewer does not have to redo it.
 | `debuggerEnvironment(pluginLuaPath, preloaderPath, target)` | **3** | `LuaAttachState(targetProject)` | 1 (a `Project`, excluded) |
 | `LuaDebuggerController.restartListener()` / `listener()` | 0 | `LuaPathMapper.joinRemote(wirePath)` | 1 |
 | `LuaAttachState.execute(executor, runner)` | 2 | `LuaTargetChecks.attach(configuration)` | 1 |
-| `remoteRootUnset(configuration)` / `bindHostUnresolvable(configuration)` | 1 | `LuaRemoteStack.create(project, text, resolver)` | 2 (`Project` excluded) |
+| `remoteRootUnset(configuration)` / `bindHostUnresolvable(configuration)` | 1 | — | — |
 | `LuaRemoteStackEntry(table, resolver)` | 2 | `LuaRemoteStackFrame(table, resolver)` | 2 |
 | `LuaRemoteStack(stack, resolver = …)` | 2 | `LuaRemoteStack.create(project, text, resolver)` | 2 (`Project` excluded) |
 | `createRemotePosition(xSourcePosition, mapper)` | 2 | `localPosition(mapper)` | 1 |

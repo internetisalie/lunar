@@ -135,7 +135,7 @@ Three kinds of entry, kept apart on purpose:
   `checkWorkingDirectoryExist` throws `RuntimeConfigurationWarning`
   (`ProgramParametersConfigurator.java:249,261`), and a missing working directory does not make a
   target unrunnable — `effectiveWorkDirectory()` already falls back to `project.basePath`
-  (`run/LuaRunConfiguration.kt:228`). Requirements outrank a bug report's fix-strategy prose.
+  (`run/LuaRunConfiguration.kt:229`). Requirements outrank a bug report's fix-strategy prose.
 - **Consequence for BUG-455**: its §5 sentence is wrong on this one condition. Do not "fix" it by
   raising the tier; fix the bug report when it is closed.
 
@@ -163,10 +163,10 @@ Three kinds of entry, kept apart on purpose:
 ### Gap 2.4: `LuaRedisRunConfiguration` is not folded into the pipeline
 
 - **Question**: three configurations override `checkConfiguration()`
-  (`run/LuaRunConfiguration.kt:275`, `run/test/LuaTestRunConfiguration.kt:287`,
-  `redis/run/LuaRedisRunConfiguration.kt:242`). Two are converted; why not the third?
+  (`run/LuaRunConfiguration.kt:276`, `run/test/LuaTestRunConfiguration.kt:289`,
+  `redis/run/LuaRedisRunConfiguration.kt:245`). Two are converted; why not the third?
 - **Decision (taken)**: the Redis configuration validates a *connection* and an FCALL function name
-  against a library file (`:242-252` and `validateFunctionNameAgainstLibrary`), not a Lua execution
+  against a library file (`:245-255` and `validateFunctionNameAgainstLibrary`), not a Lua execution
   target. It shares no check with `LOCAL_SCRIPT`. Converting it would mean inventing a fourth check
   list to hold one-off Redis logic. If a future REDIS feature wants the severity ladder, the
   pipeline is already parameterised on the check list (design §2.10) — that is a one-line adoption
@@ -244,7 +244,7 @@ once the typed text parses as an env-file reference".
    is why design §2.8 requires calling it from `resetEditorFrom` **even with an empty list**.
 
 The row's *conclusion* — that anything the user selects there is silently dropped because
-`LuaRunSettingsEditor` reads only `.data` (`:414`, `:425`) — is correct, and TC-06-17a is the test.
+`LuaRunSettingsEditor` reads only `.data` (`:415`, `:426`) — is correct, and TC-06-17a is the test.
 
 ### 3.3 `DEBUG-06-22`'s quoted message is reachable only with the right `kindId`
 
@@ -269,12 +269,12 @@ The row names two sites plus the unused canonical function. Executed
 
 | Wording | Sites |
 | :-- | :-- |
-| `"No Lua runtime is configured. Add one under Settings \| … \| Toolchain."` | `run/LuaRunConfiguration.kt:277` (edit-time) · `run/LuaRunConfiguration.kt:296` (launch-time) · `run/test/LuaTestCommandLineState.kt:124` · `run/console/LuaConsoleRunner.kt:40` |
-| `"Runtime is not defined"` | `run/test/LuaTestRunConfiguration.kt:289` |
+| `"No Lua runtime is configured. Add one under Settings \| … \| Toolchain."` | `run/LuaRunConfiguration.kt:278` (edit-time) · `run/LuaRunConfiguration.kt:297` (launch-time) · `run/test/LuaTestCommandLineState.kt:124` · `run/console/LuaConsoleRunner.kt:40` |
+| `"Runtime is not defined"` | `run/test/LuaTestRunConfiguration.kt:291` |
 | `LuaToolResolver.notConfiguredMessage()` | defined at `toolchain/resolve/LuaToolResolver.kt:93`; **zero production callers** (`grep -rn notConfiguredMessage src/` returns the definition and `LuaToolResolverTest.kt:61` only) |
 
 The two `ExecutionException` sites (`LuaTestCommandLineState`, `LuaConsoleRunner`) plus
-`LuaRunConfiguration.kt:296` are **launch-time**, so they are outside this feature's scope
+`LuaRunConfiguration.kt:297` are **launch-time**, so they are outside this feature's scope
 (design §3.3). They are listed here so the sweep is not lost — see TBD-2.
 
 ### 3.5 The Verification section overstates the test-configuration coverage
@@ -306,7 +306,7 @@ requirement alone would expect the level always to be available.
 ### 3.7 `DEBUG-06-14`'s cited test does not test what the row claims
 
 The row grades `-14` **Full** on the argument that `JBIntSpinner(DEFAULT_DEBUG_PORT, 1, 65535)`
-(`:380`) makes an out-of-range port unrepresentable — which is sound — and then cites
+(`:381`) makes an out-of-range port unrepresentable — which is sound — and then cites
 `TestLuaRunConfiguration.testDebugPortRoundTripsThroughEditor` as evidence. That test sets `9000`
 and asserts it survives a `resetFrom`/`applyTo` cycle (`TestLuaRunConfiguration.kt:155-174`); it
 never attempts a value outside `1..65535`, so it is evidence for *round-tripping*, not for *range*.
@@ -318,11 +318,11 @@ records that adding a range check would be dead code.
 - **[[RUN-04]] is stale at two points.** Its `requirements.md` Out-of-Scope section states "The main
   run config does **not** override `checkConfiguration()`", and its `risks-and-gaps.md` Gap 2.1
   repeats it with a grep as evidence. Both are false against `main`: the override is at
-  `run/LuaRunConfiguration.kt:275-285`, which is `DEBUG-06-01`. RUN-04's `design.md` §RUN-04-02 is
+  `run/LuaRunConfiguration.kt:276-286`, which is `DEBUG-06-01`. RUN-04's `design.md` §RUN-04-02 is
   stale in a third way — it names `newLuaInterpreterCommandLine(interpreter)` and
   `command/LuaCommandLine.kt:32`, while the shipped code calls
   `LuaInterpreterCommandLines.forBinary(Path.of(interpreter.path))`
-  (`run/LuaRunConfiguration.kt:302`) and no `command/LuaCommandLine.kt` exists
+  (`run/LuaRunConfiguration.kt:300`) and no `command/LuaCommandLine.kt` exists
   (`find src/main -name LuaCommandLine.kt` → nothing). RUN-04 is `status: done` and is **not edited
   by this feature** — recorded per the dispatcher's instruction.
 - **The epic table (`docs/features/debug/requirements.md:23`) still records `DEBUG-06` as `Full`**,
@@ -343,26 +343,33 @@ records that adding a range check would be dead code.
   (`platform/core-impl/src/com/intellij/openapi/progress/ProgressIndicatorEx.kt:12`), so a call with
   no global indicator NPEs. Revisit when the API leaves `@Experimental`.
 - **TBD-2: the launch-time message sweep.** The three `ExecutionException` sites of §3.4
-  (`run/LuaRunConfiguration.kt:296`, `run/test/LuaTestCommandLineState.kt:124`,
+  (`run/LuaRunConfiguration.kt:297`, `run/test/LuaTestCommandLineState.kt:124`,
   `run/console/LuaConsoleRunner.kt:40`) still hand-roll the runtime message. Routing them through
   `LuaTargetMessages.noRuntimeConfigured()` is a two-line change per site but touches RUN-04's and
   RUN-03's shipped behaviour, so it is deliberately out of DEBUG-06.
-- **TBD-3: the `LuaRunSettingsEditor` label sweep.** 27 of 27 labelled rows across the four
-  run-config editors lack the trailing colon the platform's own `Name:` row has
-  (`docs/engineering-contract.md` §6, COLONS). Phase 5 fixes the one label it edits; the remaining
-  seven in this editor and the other three editors are a separate pass — `docs/engineering-contract.md:164-166`
-  (`- **SCOPE:**`) says in terms: *"Do not open a retroactive sweep; the surviving `FormBuilder`
-  run-config editors are acceptable until touched. Fix a surface when you are already editing it."*
+- **TBD-3: the `LuaRunSettingsEditor` label sweep — CLOSED upstream, nothing owed by this feature.**
+  When this was written, 27 of 27 labelled rows across the four run-config editors lacked the trailing
+  colon the platform's own `Name:` row has (`docs/engineering-contract.md` §6, COLONS), and this
+  feature deliberately deferred all but the one label Phase 5 edits. [[BUG-448]] (`9783b8af`) then did
+  the whole sweep: every row in all four editors now goes through
+  `addMnemonicLabeledComponent("&Label:", …)`
+  (`src/main/kotlin/net/internetisalie/lunar/ui/LuaFormBuilders.kt:25-33`; the `LuaRunSettingsEditor`
+  chain at `run/LuaRunConfiguration.kt:399-406`), and `RunConfigurationEditorTextTest`
+  (`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt`) is a live gate on
+  colon, mnemonic, sentence case and per-editor mnemonic uniqueness. **The consequence for DEBUG-06 is
+  a subtraction, not an addition**: Phase 5's row edit shrinks to clearing the component's own title
+  (design §2.8.1), and the `docs/engineering-contract.md:164-166` (`- **SCOPE:**`) no-retroactive-sweep
+  argument that justified the deferral is now moot.
 - **TBD-4: `environmentFile` stays inert.** `DEBUG-06-16` is a `Won't`; the `StoredProperty` at
-  `run/LuaRunConfiguration.kt:95-99` is retained so existing `.idea/runConfigurations/*.xml` do not
+  `run/LuaRunConfiguration.kt:96-100` is retained so existing `.idea/runConfigurations/*.xml` do not
   lose a field. Delete it only alongside a deliberate settings break.
 - **TBD-5: ten new user-visible strings sit outside `LuaBundle` — a convention split, deliberately
   taken.** Design §3.3 decides `LuaTargetMessages` holds literals. That decision is now made on a
   *corrected* premise: an earlier revision of §3.3 claimed Lunar has no message bundle and backed it
   with two executed commands that searched the wrong names. Lunar does have one —
   `src/main/kotlin/net/internetisalie/lunar/LuaBundle.kt:15-18`,
-  `src/main/resources/net/internetisalie/lunar/LuaBundle.properties` (145 lines, `# debugging` at
-  `:109`), 11 caller files / 22 live call sites including `run/LuaExecutionStack.kt:28`, and nine
+  `src/main/resources/net/internetisalie/lunar/LuaBundle.properties` (148 lines since [[BUG-448]],
+  `# debugging` at `:109`), 11 caller files / 22 live call sites including `run/LuaExecutionStack.kt:28`, and nine
   `plugin.xml` references (`:468,470,475,480,494,496,510,682,686`). §3.3 records the corrected facts
   and the four reasons for staying on literals. The residual to carry forward:
   - **The split is real.** `run/` will hold ten bundle-less diagnostics beside one bundle-backed
@@ -396,7 +403,7 @@ records that adding a range check would be dead code.
 | DEBUG-06-00-DR-01 | On the builder VM, add a temporary run configuration whose runtime path points into an unreachable NFS/autofs mount and measure (a) the wall time of **one** `stat` on that path, and (b) the wall time of a typing burst of 20 keystrokes with and without `LuaPathFacts`. **What it settles:** (b) is the memo's claim and is expected to improve ~20× ; (a) is the part the memo does **not** improve at all, and is the number that decides whether §3.4 needs off-thread staleness instead of a TTL. Design §3.4 no longer asserts a latency bound, so this task measures an open question rather than confirming a stated one. Revert with the `temporary-edits` skill. | Risk 1.5, design §3.4 | todo |
 | DEBUG-06-00-DR-02 | Determine the UID the test JVM runs as on each of the three lanes (`gce-builder`, `lunar-ci`, `ubuntu-latest` dind) — `id -u` in a throwaway job. If any is root, record it against Risk 1.2 so TC-06-07b's skip is understood rather than discovered. | Risk 1.2 | todo |
 | DEBUG-06-00-DR-03 | Author `human-verification-checklists.md` and run one `verify-in-ide` pass covering: red banner for a missing runtime, yellow banner for an unset script, the quick-fix button opening the Toolchain page, and *Debug 'main.lua'* on the `.lua` context menu. | Gap 2.6; `-03`, `-18`, `-20`, `-21`, `-23` | todo |
-| DEBUG-06-00-DR-04 | **Confirmation only — the decision is taken in design §2.8.1.** The doubled label is not a possibility to investigate; it is certain (`EnvironmentVariablesComponent extends LabeledComponent`, `EnvironmentVariablesComponent.java:26`, setting its own title at `:53` from `ExecutionBundle.properties:292`). §2.8.1 resolves it: keep the `FormBuilder` label (with its colon), clear the component's own with `labelLocation = WEST` + `text = ""`, per `ShRunConfigurationEditor.java:76-78`. DR-04 is the `verify-in-ide` screenshot that confirms exactly one *Environment variables:* label renders and that the emptied label leaves no gap. | Phase 5, contract §6 (`docs/engineering-contract.md:141-143`, `:164-166`) | todo |
+| DEBUG-06-00-DR-04 | **Confirmation only — the decision is taken in design §2.8.1.** The doubled label is not a possibility to investigate; it is certain (`EnvironmentVariablesComponent extends LabeledComponent`, `EnvironmentVariablesComponent.java:26`, setting its own title at `:53` from `ExecutionBundle.properties:292`), and [[BUG-448]]'s `addMnemonicLabeledComponent` does not touch it — that helper acts on the label only (`src/main/kotlin/net/internetisalie/lunar/ui/LuaFormBuilders.kt:25-33`). §2.8.1 resolves it: keep the `FormBuilder` row at `run/LuaRunConfiguration.kt:403` verbatim (its colon and mnemonic already shipped), clear the component's own title with `labelLocation = WEST` + `text = ""`, per `ShRunConfigurationEditor.java:76-78`. DR-04 is the `verify-in-ide` screenshot that confirms exactly one *Environment variables:* label renders, that the emptied label leaves no gap, and that **Alt+E** moves focus into the field now that `labelFor` names a `LabeledComponent` panel rather than a text field (§2.8.1 reads `BasicLabelUI` to say it should; nothing here executes it). **DR-04 is the only gate**: `RunConfigurationEditorProbe.formLabelsOf` collects direct children of the form panel only (`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorProbe.kt:26-29`), and the component's own title is a grandchild — so no unit row can see the doubling, cleared or not. | Phase 5, contract §6 (`docs/engineering-contract.md:141-143`, `:164-166`) | todo |
 
 ## Test Case Gaps
 
