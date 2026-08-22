@@ -1,14 +1,19 @@
 package net.internetisalie.lunar.run
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runReadAction
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.xdebugger.XDebuggerUtil
 import com.intellij.xdebugger.XSourcePosition
 import com.intellij.xdebugger.frame.XNavigatable
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.psi.LuaTableConstructor
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -90,5 +95,53 @@ class TestLuaDebugVariable : BaseDocumentTest() {
         assertEquals("x", debug1.name)
         assertEquals("y", debug2.name)
         assertEquals("z", debug3.name)
+    }
+
+    /**
+     * BUG-414: `computeSourcePosition` is a platform callback invoked off the EDT with no guaranteed
+     * read lock, and it walks PSI. Driven through [LuaDebugVariable.navigateFrom], the seam that
+     * stands in for the live debug session this test cannot install.
+     *
+     * The control assertion is not decoration. Under [BaseDocumentTest] the test thread already
+     * permits read access, so a same-thread version of this test would pass identically with and
+     * without the read action — a green asserting nothing. The control proves the walking thread
+     * holds no read lock at the moment the walk is made.
+     */
+    @Test
+    fun testComputeSourcePositionWalksPsiUnderAReadAction() {
+        myFixture.configureByText(LuaFileType, "local target = 1\nprint(target)\n")
+
+        val targetProject = myFixture.project
+        val pausedAt: XSourcePosition? =
+            ApplicationManager.getApplication().runReadAction<XSourcePosition?> {
+                XDebuggerUtil.getInstance().createPosition(myFixture.file.virtualFile, 1)
+            }
+        assertNotNull(pausedAt)
+
+        val variable = LuaDebugVariable("target", LuaDebugValue("number", "1", null), true, targetProject)
+        val recorded = mutableListOf<XSourcePosition?>()
+        val navigatable = XNavigatable { position -> recorded.add(position) }
+
+        val readAccessOnWalker = AtomicBoolean(true)
+        val failure = AtomicReference<Throwable?>(null)
+
+        val walker =
+            Thread {
+                readAccessOnWalker.set(ApplicationManager.getApplication().isReadAccessAllowed)
+                runCatching { variable.navigateFrom(targetProject, pausedAt, navigatable) }
+                    .onFailure { thrown -> failure.set(thrown) }
+            }
+
+        walker.start()
+        walker.join(WALKER_TIMEOUT_MS)
+
+        assertFalse(readAccessOnWalker.get(), "control: the walking thread must hold no read lock")
+        assertNull(failure.get(), "the PSI walk threw off the EDT: ${failure.get()}")
+        assertEquals(1, recorded.size)
+        assertEquals(0, recorded.single()?.line, "navigates to `local target` on line 0")
+    }
+
+    private companion object {
+        const val WALKER_TIMEOUT_MS = 10_000L
     }
 }

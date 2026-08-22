@@ -16,6 +16,7 @@
 package net.internetisalie.lunar.run
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -95,55 +96,59 @@ class LuaDebugVariable private constructor(
         val debugSession: XDebugSession = XDebuggerManager.getInstance(project).currentSession ?: return
         val currentPosition: XSourcePosition = debugSession.currentPosition ?: return
 
-        val contextElement: PsiElement? =
+        navigateFrom(project, currentPosition, navigatable)
+    }
+
+    /**
+     * [computeSourcePosition] minus the platform session lookup, which no test can install.
+     * The read action this takes is the whole point of the split: without a seam here, the walk
+     * below is only reachable from a live debug session and its locking cannot be asserted.
+     */
+    internal fun navigateFrom(
+        project: Project,
+        currentPosition: XSourcePosition,
+        navigatable: XNavigatable,
+    ) {
+        // A platform callback off the EDT: nothing guarantees a read lock here, so take one.
+        val position: XSourcePosition? =
+            ApplicationManager.getApplication().runReadAction<XSourcePosition?> {
+                resolveDeclarationPosition(project, currentPosition)
+            }
+
+        if (position != null) navigatable.setSourcePosition(position)
+    }
+
+    /** Resolves this variable's declaration from the paused frame's context. Call under a read action. */
+    private fun resolveDeclarationPosition(
+        project: Project,
+        currentPosition: XSourcePosition,
+    ): XSourcePosition? {
+        val contextElement: PsiElement =
             XDebuggerUtil.getInstance().findContextElement(
                 currentPosition.getFile(),
                 currentPosition.getOffset(),
                 project,
                 false,
-            )
+            ) ?: return null
 
-        if (contextElement == null) return
+        val declaration: PsiElement = findDeclaration(contextElement) ?: return null
 
-        // Use standard bindings resolution to find the variable declaration
+        return XDebuggerUtil.getInstance().createPositionByElement(declaration)
+    }
+
+    /** Walks enclosing scopes outward from [contextElement], then the file, using standard bindings resolution. */
+    private fun findDeclaration(contextElement: PsiElement): PsiElement? {
         val processor = LuaScopeProcessor(name)
-        var current: PsiElement? = contextElement
+        var current: PsiElement = contextElement
 
-        while (current != null && current !is PsiFile) {
-            val state = ResolveState.initial()
+        while (current !is PsiFile) {
+            if (isScopeElement(current) &&
+                !current.processDeclarations(processor, ResolveState.initial(), contextElement, contextElement)
+            ) {
+                return processor.result
+            }
 
-            // Process declarations in scope elements
-            val matchFound =
-                when (current) {
-                    is LuaBlock -> !current.processDeclarations(processor, state, contextElement, contextElement)
-                    is LuaFuncDef -> !current.processDeclarations(processor, state, contextElement, contextElement)
-                    is LuaFuncDecl -> !current.processDeclarations(processor, state, contextElement, contextElement)
-                    is LuaLocalFuncDecl ->
-                        !current.processDeclarations(
-                            processor,
-                            state,
-                            contextElement,
-                            contextElement,
-                        )
-                    is LuaNumericForStatement ->
-                        !current.processDeclarations(
-                            processor,
-                            state,
-                            contextElement,
-                            contextElement,
-                        )
-                    is LuaGenericForStatement ->
-                        !current.processDeclarations(
-                            processor,
-                            state,
-                            contextElement,
-                            contextElement,
-                        )
-                    else -> false
-                }
-
-            if (matchFound) break
-            current = current.parent
+            current = current.parent ?: return processor.result
         }
 
         // Also process the file itself
@@ -151,10 +156,17 @@ class LuaDebugVariable private constructor(
             current.processDeclarations(processor, ResolveState.initial(), contextElement, contextElement)
         }
 
-        if (processor.result != null) {
-            navigatable.setSourcePosition(XDebuggerUtil.getInstance().createPositionByElement(processor.result))
-        }
+        return processor.result
     }
+
+    /** The PSI types that introduce a Lua scope; every other element is walked through, not searched. */
+    private fun isScopeElement(element: PsiElement): Boolean =
+        element is LuaBlock ||
+            element is LuaFuncDef ||
+            element is LuaFuncDecl ||
+            element is LuaLocalFuncDecl ||
+            element is LuaNumericForStatement ||
+            element is LuaGenericForStatement
 
 //    val evaluationExpression: String?
 //        get() {
