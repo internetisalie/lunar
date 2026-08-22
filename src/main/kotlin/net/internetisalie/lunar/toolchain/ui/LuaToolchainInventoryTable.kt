@@ -19,6 +19,7 @@ import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.TableView
 import com.intellij.util.ui.ColumnInfo
+import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.ListTableModel
 import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
 import net.internetisalie.lunar.toolchain.model.LuaToolHealth
@@ -28,6 +29,7 @@ import net.internetisalie.lunar.toolchain.provision.LuaToolProvisioner
 import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
 import java.awt.Component
+import java.awt.Dimension
 import javax.swing.Icon
 import javax.swing.JComponent
 import javax.swing.JTable
@@ -61,6 +63,14 @@ class LuaToolchainInventoryTable {
     init {
         table.setShowGrid(false)
         table.emptyText.text = EMPTY_TEXT
+        // The column widths below are PROPORTIONS, not a demand for space. Without this the table's
+        // preferred width (the sum of them, 857px) became the whole settings PAGE's preferred width,
+        // which is wider than the settings dialog's content area — so the dialog scrolled the page
+        // horizontally and pushed Origin and Health out of view. Measured: page preferred width
+        // 859px before, 510px after, against ~452px prior to the column model existing at all.
+        // A zero height means "do not pin the height" (JBTable.getPreferredScrollableViewportSize
+        // only honours a positive one), so the page keeps its natural height.
+        table.preferredScrollableViewportSize = Dimension(JBUI.scale(PREFERRED_VIEWPORT_WIDTH), 0)
         component =
             ToolbarDecorator
                 .createDecorator(table)
@@ -75,6 +85,14 @@ class LuaToolchainInventoryTable {
 
     fun refresh() {
         model.items = registry().tools()
+    }
+
+    private companion object {
+        /**
+         * What the inventory ASKS for. It fills whatever it is given (the cell is `Align.FILL` +
+         * `resizableColumn`); this only stops it inflating the page's minimum width.
+         */
+        const val PREFERRED_VIEWPORT_WIDTH: Int = 480
     }
 
     fun selectedTool(): LuaRegisteredTool? = table.selectedObject
