@@ -2,7 +2,7 @@
 id: DEBUG-05
 title: "05: Remote Debugging"
 type: feature
-status: "todo"
+status: "planned"
 vf_icon: 📋
 priority: "medium"
 parent_id: DEBUG/RUN
