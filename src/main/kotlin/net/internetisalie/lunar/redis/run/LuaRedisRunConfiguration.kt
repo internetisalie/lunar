@@ -28,6 +28,7 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
+import com.intellij.util.ui.JBUI
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.redis.connection.LuaRedisConnectionSettings
 import net.internetisalie.lunar.redis.connection.LuaRedisServerConnection
@@ -331,6 +332,7 @@ class LuaRedisSettingsEditor(
     init {
         scriptPathField.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleFile())
         debugModeCombo.renderer = SimpleListCellRenderer.create("") { debugModeLabel(it) }
+        connectionCombo.setMinimumAndPreferredWidth(JBUI.scale(CONNECTION_COMBO_WIDTH))
         keysField.editorField.emptyText.text = SPACE_SEPARATED_HINT
         argvField.editorField.emptyText.text = SPACE_SEPARATED_HINT
         reloadConnections()
@@ -431,6 +433,14 @@ class LuaRedisSettingsEditor(
     override fun createEditor(): JComponent = myPanel
 
     private companion object {
+        /**
+         * A `JComboBox` gets `GridBagConstraints.NONE` from `FormBuilder.getFill`, so it renders at
+         * its preferred width rather than filling the column. The connection combo is the only
+         * control here that must show arbitrary user text, and the audit measured it at 72px beside
+         * 360px siblings; this restores it to the column width its neighbours occupy.
+         */
+        const val CONNECTION_COMBO_WIDTH = 360
+
         const val SPACE_SEPARATED_HINT = "Space-separated"
     }
 }

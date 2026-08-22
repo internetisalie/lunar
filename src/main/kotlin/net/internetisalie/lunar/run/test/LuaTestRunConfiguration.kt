@@ -23,6 +23,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.util.NotNullLazyValue
 import com.intellij.ui.RawCommandLineEditor
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.run.adHocRuntime
@@ -300,7 +301,7 @@ class LuaTestSettingsEditor(
 ) : SettingsEditor<LuaTestRunConfiguration>() {
     private val myPanel: JPanel
     private val frameworkCombo = ComboBox(LuaTestFramework.entries.toTypedArray())
-    private val targetTypeCombo = ComboBox(arrayOf("FILE", "DIRECTORY", "PATTERN"))
+    private val targetTypeCombo = ComboBox(arrayOf(TARGET_TYPE_FILE, TARGET_TYPE_DIRECTORY, TARGET_TYPE_PATTERN))
     private val testTargetField = TextFieldWithBrowseButton()
     private val interpreterField = ComboBox<LuaRegisteredTool>()
     private val workingDirectoryField = TextFieldWithBrowseButton()
@@ -309,6 +310,8 @@ class LuaTestSettingsEditor(
 
     init {
         LuaRuntimeComboBox.customize(project, interpreterField)
+        frameworkCombo.renderer = SimpleListCellRenderer.create("") { frameworkLabel(it) }
+        targetTypeCombo.renderer = SimpleListCellRenderer.create("") { targetTypeLabel(it) }
 
         testTargetField.addBrowseFolderListener(
             project,
@@ -335,7 +338,7 @@ class LuaTestSettingsEditor(
 
     override fun resetEditorFrom(config: LuaTestRunConfiguration) {
         frameworkCombo.item = config.testFramework
-        targetTypeCombo.item = config.testTargetType ?: "FILE"
+        targetTypeCombo.item = config.testTargetType ?: TARGET_TYPE_FILE
         testTargetField.text = config.testTarget ?: ""
         interpreterField.item = config.interpreter
         workingDirectoryField.text = config.workingDirectory ?: ""
@@ -345,7 +348,7 @@ class LuaTestSettingsEditor(
 
     override fun applyEditorTo(config: LuaTestRunConfiguration) {
         config.testFramework = frameworkCombo.item ?: LuaTestFramework.BUSTED
-        config.testTargetType = targetTypeCombo.item ?: "FILE"
+        config.testTargetType = targetTypeCombo.item ?: TARGET_TYPE_FILE
         config.testTarget = testTargetField.text
         config.interpreter = interpreterField.item
         config.workingDirectory = workingDirectoryField.text
@@ -353,5 +356,30 @@ class LuaTestSettingsEditor(
         config.environmentVariables = environmentVariablesField.data
     }
 
+    /**
+     * Display text for a framework. The enum constant is the persisted value and must not reach
+     * the user (engineering contract §6): the combo showed `BUSTED` where native Go Build shows
+     * `File` for the same kind of choice.
+     */
+    private fun frameworkLabel(framework: LuaTestFramework): String =
+        when (framework) {
+            LuaTestFramework.BUSTED -> "Busted"
+            LuaTestFramework.LUNITY -> "Lunity"
+        }
+
+    /** Display text for a target type; the stored value stays the uppercase key it has always been. */
+    private fun targetTypeLabel(targetType: String): String =
+        when (targetType) {
+            TARGET_TYPE_DIRECTORY -> "Directory"
+            TARGET_TYPE_PATTERN -> "Pattern"
+            else -> "File"
+        }
+
     override fun createEditor(): JComponent = myPanel
+
+    private companion object {
+        const val TARGET_TYPE_FILE = "FILE"
+        const val TARGET_TYPE_DIRECTORY = "DIRECTORY"
+        const val TARGET_TYPE_PATTERN = "PATTERN"
+    }
 }
