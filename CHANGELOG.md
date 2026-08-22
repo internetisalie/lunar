@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Jump to Source on a debugger variable no longer risks an exception or a stale result**
+  (BUG-414): the lookup walked the PSI tree from a background thread without taking a read lock,
+  so a concurrent edit could make it fail
+  ([45fd5693](https://github.com/internetisalie/lunar/commit/45fd5693)).
 - **Redis connections can be given an ephemeral server, and the settings page stops erasing one**
   (BUG-381): a Server choice offers a Docker image or a local `redis-server`/`valkey-server` binary,
   and editing any connection no longer silently rewrites every connection back to remote

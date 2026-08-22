@@ -3,7 +3,7 @@ id: "BUG-414"
 title: "Debugger variable navigation walks PSI with no read action"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -130,3 +130,9 @@ rather than reporting coverage the run did not demonstrate.
 
 - Sequencing: this is independent of [[BUG-447]] and needs no debug session. The full-suite gate
   applies (`--rerun`), not the corpus sweep — no type or index behaviour is touched.
+- **Fixed 2026-08-22 in `45fd5693`.** Suite 2725/0/0 (1 skipped), `ktlintCheck` green.
+  §5's mutation gate ran and the test is real coverage: with the read action stripped out it
+  fails on the platform's own assertion — *"Read access is allowed from inside read-action only"*,
+  `EventQueue.isDispatchThread()=false` — while the control confirms the walking thread holds no
+  read lock. §2's "visible by inspection regardless" understated it: off the EDT this does not
+  race, it throws every time.
