@@ -43,9 +43,10 @@ enumerated from three sources outside this repo, and only *then* checked against
 Statuses marked **(unverified)** are read off source — plugin source, platform source, or an existing
 assertion's *absence* — and could not be settled without executing the formatter, which this pass did
 not do. They are not claims that the behaviour is broken; they are claims that nothing establishes it.
-**Eight rows therefore carry no status keyword at all.** That is deliberate: entering `Full` or
-`Not Implemented` there would be the same defect this document was written to correct — asserting an
-outcome from reading rather than from running.
+Eleven of the thirty rows carry that marker, and **six of them carry no status keyword at all** —
+`-18`, `-23`, `-26`, `-27`, `-28`, `-30`. That is deliberate, not a shortfall: entering `Full` or
+`Not Implemented` in those cells would be the same defect this document was written to correct —
+asserting an outcome from reading rather than from running.
 
 Registration and settings UI are [[FORMAT-02]]'s; wrapping is [[FORMAT-04]]'s; `=` alignment is
 [[FORMAT-05]]'s; delegating the whole job to StyLua is [[FORMAT-07]]'s. This feature owns *where the
