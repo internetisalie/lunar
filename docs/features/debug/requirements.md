@@ -21,7 +21,7 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | [`DEBUG-04`](./04-expression-evaluation/requirements.md) | **Expression Evaluation** | **S** | **Full** | Allow users to evaluate arbitrary Lua expressions in the current context. |
 | `DEBUG-05` | **Remote Debugging** | **S** | **Full** | Support connecting to external Lua processes (e.g., via Mobdebug). |
 | `DEBUG-06` | **Debug Target Configuration** | **S** | **Full** | Validate debug configurations before launching. |
-| `DEBUG-07` | **Lazy Remote Stack Evaluation** | **S** | **Full** | Defer parsing of frame details until explicitly accessed. |
+| [`DEBUG-07`](./07-lazy-remote-stack-evaluation/requirements.md) | **Lazy Remote Stack Evaluation** | **S** | **Not Implemented** | Defer parsing of frame details until explicitly accessed. Marked **Full** until 2026-08-22 by a bulk edit; the parse is eager and always was. See [[BUG-450]]. |
 | `RUN-01` | **Lua Interpreter SDK** | **M** | **Full** | Allow configuring local Lua binaries (5.1-5.4, LuaJIT) as project SDKs. |
 | `RUN-02` | **Run Configurations** | **M** | **Full** | Create and save configurations for script execution. |
 | [`RUN-03`](./run-03-interactive-console/requirements.md) | **Interactive Console (REPL) Specification** | **S** | **Full** | Provide a Lua REPL console within the IDE using the selected project SDK. |

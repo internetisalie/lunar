@@ -74,6 +74,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-413 | Generated doc comments infer wrong `@param` types | todo | C | — | — | ✓ |
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-443 | Quick Doc reported empty for `ngx.say` live, never reproduced | todo | C | — | — | — |
+| BUG-450 | The debugger's `STACK` payload is unbounded at both ends, and DEBUG-07 claimed otherwise | todo | C | — | — | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 
