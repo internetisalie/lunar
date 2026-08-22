@@ -11,6 +11,16 @@ folders: ["[[features/debug/requirements|requirements]]"]
 
 # 07: Lazy Remote Stack Evaluation
 
+> **Measured 2026-08-22 ([[BUG-450]] §5b).** This feature's terminal state was left to that
+> measurement and is now settled: it stays `todo`, not `cancelled`. Parse cost exceeds the
+> debuggee's serialization at every payload size tested (43 ms vs ~43 ms at 5 frames; 152 ms vs
+> ~48 ms at 135 KB), so deferral does address the larger half. Two caveats belong in any
+> requirements written from here: parse has a **~30 ms fixed floor** in PSI construction that no
+> payload bound can cross, and the whole path runs on `Dispatchers.Default`, so this is populate
+> latency (~125 ms in the realistic 60-frame case), never a frozen IDE. The alternative fix
+> [[BUG-450]] §3a proposed — passing `maxlevel`/`maxnum` — was measured unavailable: `maxlevel` is
+> inert because mobdebug adds 4 to it, and `maxnum` truncates the frame tuple itself.
+
 > **This was marked `done` / **Full** until 2026-08-22 and was never implemented.** The status came
 > from a bulk edit, not from a verification: this file was one of 16 placeholders created by
 > `5632a81d` for zero-coverage epics, which later received `status: done` and a ✅ wholesale. No
