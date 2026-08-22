@@ -542,6 +542,25 @@ jobs:
       - name: Lint (ktlintCheck)
         run: ./gradlew ktlintCheck --no-daemon --stacktrace
 
+      # KNOWN NO-OP ON act-ci, KEPT DELIBERATELY. This step 404s here every time — act's
+      # ACTIONS_RUNTIME_URL is baked from the controller's shim address at daemon startup, before
+      # any task exists, so the toolkit dials a server with no artifact endpoint (loom LGR-002;
+      # `content-length: 19` in the diagnostic is Go's `404 page not found\n`). `continue-on-error`
+      # swallows it, so the job goes GREEN having uploaded nothing.
+      #
+      # Measured on v0.21.6's successful run: the step failed at 00:27:53 and the next one started
+      # at 00:30:53 — three minutes of retry budget spent per tag, for no artifact.
+      #
+      # It stays because it is the fleet's only live reproduction of LGR-002, firing on every lunar
+      # tag. That is a deliberate trade, not an oversight: **the HTML report under
+      # build/reports/tests/ is not collected on any tag build while this is true.** Nothing is
+      # actually lost — `Ingest into UniTrack` above runs BEFORE this step and posts the JUnit XML
+      # and Kover coverage, which is the copy anything queries.
+      #
+      # When LGR-002 lands: drop this comment and confirm the step actually uploads. If lunar stops
+      # wanting to host another project's canary first, delete the step instead — UniTrack already
+      # has the data, and a green step that asserts nothing is the failure mode this repo's
+      # `--rerun` and ktlint rules both exist to prevent.
       - name: Upload test reports
         if: always()
         continue-on-error: true
