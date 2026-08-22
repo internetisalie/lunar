@@ -38,8 +38,8 @@ import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
 class LuaDebugVariable private constructor(
     name: String,
     private val parent: LuaDebugVariable?,
+    private val subscript: String?,
     private val value: LuaDebugValue,
-    private val isIndex: Boolean,
     private val isLocal: Boolean,
     private val targetProject: Project?,
 ) : XNamedValue(name) {
@@ -48,36 +48,71 @@ class LuaDebugVariable private constructor(
         value: LuaDebugValue,
         isLocal: Boolean,
         targetProject: Project? = null,
-    ) : this(name, null, value, false, isLocal, targetProject)
+    ) : this(name, null, null, value, isLocal, targetProject)
 
     override fun computeChildren(node: XCompositeNode) {
-        if (value.isTable) {
-            val fields = value.raw.checkTable()?.pairs() ?: return
-            val xValues = XValueChildrenList(fields.size)
-            fields.forEach { field ->
-                val key =
-                    when (field.first.kind) {
-                        LuaValueKind.String -> field.first.stringValue ?: "?"
-                        LuaValueKind.Number -> "[" + (field.first.numberValue?.toInt() ?: 0) + "]"
-                        else -> "[" + field.first.toDisplayString() + "]"
-                    }
-                val debugValue = LuaDebugValue(field.second, null, AllIcons.Nodes.Field)
-                xValues.add(
-                    LuaDebugVariable(
-                        name = key,
-                        parent = this,
-                        value = debugValue,
-                        isIndex = false,
-                        isLocal = true,
-                        targetProject = targetProject,
-                    ),
-                )
-            }
-            node.addChildren(xValues, true)
-        } else {
+        if (!value.isTable) {
             super.computeChildren(node)
+            return
         }
+
+        val fields = value.raw.checkTable()?.pairs() ?: return
+        val xValues = XValueChildrenList(fields.size)
+
+        fields.forEach { field -> xValues.add(memberFor(field.first, field.second)) }
+
+        node.addChildren(xValues, true)
     }
+
+    /**
+     * The Lua expression that re-evaluates to this value — what **Add to Watches** adds (BUG-447).
+     * A root variable is its own name; a member appends the subscript that selected it from its
+     * parent. Null when any link in the chain has no expressible form: the platform discards a null
+     * rather than adding a watch that would silently evaluate to something else.
+     */
+    override fun getEvaluationExpression(): String? {
+        if (parent == null) return name
+
+        val parentExpression: String = parent.getEvaluationExpression() ?: return null
+        val ownSubscript: String = subscript ?: return null
+
+        return parentExpression + ownSubscript
+    }
+
+    private fun memberFor(
+        key: LuaValue,
+        fieldValue: LuaValue,
+    ): LuaDebugVariable =
+        LuaDebugVariable(
+            name = displayNameFor(key),
+            parent = this,
+            subscript = subscriptFor(key),
+            value = LuaDebugValue(fieldValue, null, AllIcons.Nodes.Field),
+            isLocal = true,
+            targetProject = targetProject,
+        )
+
+    private fun displayNameFor(key: LuaValue): String =
+        when (key.kind) {
+            LuaValueKind.String -> key.stringValue ?: "?"
+            LuaValueKind.Number -> "[" + (key.numberValue?.toInt() ?: 0) + "]"
+            else -> "[" + key.toDisplayString() + "]"
+        }
+
+    /**
+     * The Lua subscript selecting [key] from this table, or null when the key has no literal form.
+     * A table or function key cannot be written as an expression at all, and the number branch uses
+     * [LuaValue.toDisplayString] rather than the display name's `toInt`, which would resolve a
+     * non-integral key to a different element.
+     */
+    private fun subscriptFor(key: LuaValue): String? =
+        when (key.kind) {
+            LuaValueKind.String -> "[\"" + escapeLuaString(key.stringValue ?: return null) + "\"]"
+            LuaValueKind.Number -> "[" + key.toDisplayString() + "]"
+            else -> null
+        }
+
+    private fun escapeLuaString(raw: String): String = raw.replace("\\", "\\\\").replace("\"", "\\\"")
 
     override fun computePresentation(
         node: XValueNode,
@@ -167,12 +202,4 @@ class LuaDebugVariable private constructor(
             element is LuaLocalFuncDecl ||
             element is LuaNumericForStatement ||
             element is LuaGenericForStatement
-
-//    val evaluationExpression: String?
-//        get() {
-//            if (isIndex) {
-//                return parent.getEvaluationExpression() + "[" + getName() + "]"
-//            }
-//            return if (parent != null) parent.getEvaluationExpression() + "[\"" + getName() + "\"]" else getName()
-//        }
 }
