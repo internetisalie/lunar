@@ -75,6 +75,17 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-443 | Quick Doc reported empty for `ngx.say` live, never reproduced | todo | C | — | — | — |
 | BUG-450 | The debugger's `STACK` payload is unbounded at both ends, and DEBUG-07 claimed otherwise | todo | C | — | — | ✓ |
+| BUG-457 | Rename is offered on ordinary identifiers and rewrites only the declaration | todo | M | — | predicted, not executed — settle live before fixing | ✓ |
+| BUG-451 | luacheck `--std` overrides the project's `.luacheckrc`, false warnings on every rockspec and spec file | todo | S | — | one flag disables two mechanisms; user cannot override it | ✓ |
+| BUG-452 | luacheck exit 2 is a lint result, not a crash — the whole report is discarded | todo | S | — | a test pins the defect as intended | ✓ |
+| BUG-453 | The human formatter is parsed instead of luacheck's documented editor interface | todo | S | — | escapes in tooltips; a configured formatter yields a silent false-clean | ✓ |
+| BUG-454 | Toggling a breakpoint mid-run deadlocks the debug session | todo | S | — | unanswered SETB held under writeMutex | ✓ |
+| BUG-455 | No run configuration can block a launch — the non-fatal exception tier is thrown | todo | S | — | RuntimeConfigurationError appears zero times in src/ | ✓ |
+| BUG-456 | The debug listener binds all interfaces and offers EXEC | todo | S | — | one-argument fix; exposure rather than exploit chain | ✓ |
+| BUG-459 | Reformatting may rewrite the contents of a long string | todo | S | — | predicted from the platform chain; settle live first | ✓ |
+| BUG-461 | Tests that cannot fail — 4 uncollected, 3 pinning defects, 2 vacuous | todo | S | — | the durable half is a build-time guard | ✓ |
+| BUG-458 | Safe Delete of a label leaves `::::`, unparseable on every Lua version | todo | C | — | — | ✓ |
+| BUG-460 | Naming two indent options hides tabs/tab-width and suppresses 4 `.editorconfig` properties | todo | C | — | — | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 
