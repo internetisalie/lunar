@@ -117,7 +117,12 @@ section it realizes; no task requires a design decision.
   - [ ] Edit `src/test/kotlin/net/internetisalie/lunar/run/LuaDebugHarness.kt` — add
         `LuaHarnessSpec` and the two-overload `startLuaDebugHarness` of design §2.9;
         `.directory(spec.workingDirectory)` on the `ProcessBuilder` and a loopback-bound,
-        caller-chosen port on the `ServerSocket`.
+        caller-chosen port on the `ServerSocket`. **The child must be told the port**: the existing
+        `.apply { … }` block (`:35-41`) sets no `MOBDEBUG_PORT` and the preloader falls back to
+        `8172` (`src/main/lua/lunar/debug.lua:13`), so add
+        `environment()["MOBDEBUG_PORT"] = spec.port.toString()` and then
+        `environment().putAll(spec.environment)` — without them `spec.port` binds a listener the
+        debuggee never dials and TC-05-07d cannot connect (design §2.9).
 - **Exit criteria**: TC-05-03c, TC-05-06a, TC-05-06b, TC-05-07c, TC-05-07d, **TC-05-12a** green; `TestLuaDebugHarness`'s
   existing `testBreakpointAndExec` green **unmodified** (it calls the retained one-line overload);
   full suite green.
@@ -168,9 +173,14 @@ section it realizes; no task requires a design decision.
         from `startProcess`'s `:319-335`, adding the `MOBDEBUG_HOST` entry. Realizes §2.6.
         **Three arguments, both paths `String`** — the two `?: throw ExecutionException(...)`
         resolutions at `:321-326` stay in `startProcess` and are passed in, so the helper needs no
-        `!!` and no VFS (contract §1). The call becomes
+        `!!` and no VFS (contract §1). The call site becomes
+        `val target = LuaDebugTarget.of(this@LuaRunConfiguration)` followed by
         `commandLine.withEnvironment(debuggerEnvironment(pluginLuaPath.path, debuggerPreloaderFile.path, target))`,
-        replacing the four `withEnvironment` calls at `:328-334`.
+        replacing the four `withEnvironment` calls at `:328-334`. **`target` is derived right there,
+        from the qualified receiver** — `startProcess` is the body of the anonymous
+        `CommandLineState` inside `getState` (`:291-292`), so `this@LuaRunConfiguration` is in scope,
+        as `:314`'s `effectiveWorkDirectory()` and `:334`'s `debugPort` already demonstrate
+        (design §2.6).
   - [ ] Edit `run/validation/LuaTargetSpec.kt` (DEBUG-06) — add the third factory
         `of(configuration: LuaAttachRunConfiguration)` per design §2.8.
   - [ ] Edit `run/validation/LuaTargetChecks.kt` (DEBUG-06) — add
@@ -189,7 +199,8 @@ section it realizes; no task requires a design decision.
 - **Exit criteria**: TC-05-04a, TC-05-05a, TC-05-05b, **TC-05-05c**, TC-05-07e, TC-05-12b,
   TC-05-12c green; the
   **Lua Remote (Mobdebug)** template appears in *Run → Edit Configurations → +* with no Run action
-  (HV-01); full suite green.
+  (HV-01), and an attached session **ends when the debuggee disconnects** (**HV-06** — the
+  `LuaDebugProcess` half of the §2.4 bridge, which no unit row reaches); full suite green.
 
 ### Phase 4: Console output and stale breakpoints [Should]
 
@@ -205,11 +216,25 @@ section it realizes; no task requires a design decision.
         Realizes §4.1's parse. **The ordering is the requirement** — Probe K (design §0) is the
         measurement that makes it so.
   - [ ] Edit `run/LuaDebuggerController.kt` — add `private suspend fun redirectOutput()` (§3.6d)
-        and `private suspend fun clearRemoteBreakpoints()` (§3.7 step 2) with the four constants
-        `OUTPUT_STREAM`, `OUTPUT_MODE_REDIRECT`, `DELB_ALL_FILES`, `DELB_ALL_LINES`; call both from
+        and `private suspend fun clearRemoteBreakpoints()` (§3.7 step 2); call both from
         `handshake()` in the §3.7 order (`setBaseDir` → `clearRemoteBreakpoints` → `redirectOutput`
-        → `detectRootMismatch`).
-- **Exit criteria**: TC-05-10a, TC-05-10b, TC-05-10c, TC-05-11a green; full suite green.
+        → `detectRootMismatch`). The four constants — `OUTPUT_STREAM`, `OUTPUT_MODE_REDIRECT`,
+        `DELB_ALL_FILES`, `DELB_ALL_LINES` — go in the **existing `companion object`** (`:347-351`),
+        beside `CONNECT_TIMEOUT_MS` (`:348`), declared **`internal const val`, not `private`**
+        (design §3.7). The visibility is load-bearing, not stylistic: TC-05-10c and TC-05-11a must
+        send *these* values rather than retyping them, or mutating a constant leaves both harness
+        rows green.
+  - [ ] Append **TC-05-11b** to
+        `src/test/kotlin/net/internetisalie/lunar/run/TestLuaDebuggerListener.kt` — the scripted
+        fake debuggee of design §9, asserting `connect()` puts exactly
+        `["BASEDIR /srv/app/", "DELB * 0", "OUTPUT stdout r"]` on the wire, **in that order**.
+        This is the only check that covers the task above; the harness rows cannot reach it, because
+        `LuaDebugHarness.kt:52` builds its own `LuaDebugConnection` and never constructs a
+        `LuaDebuggerController`. Socket mechanics measured in design §0, Probe P.
+- **Exit criteria**: TC-05-10a, TC-05-10b, TC-05-10c, TC-05-11a, **TC-05-11b** green; full suite
+  green. **TC-05-11b is the one that can fail if the fourth task is skipped** — without it this
+  phase's criteria are all satisfiable with `redirectOutput()`/`clearRemoteBreakpoints()`
+  unimplemented, which is exactly how `DEBUG-05-11` would ship unproven.
 
 ### Phase 5: Keep listening after the debuggee disconnects [Could]
 
@@ -257,10 +282,14 @@ section it realizes; no task requires a design decision.
 - [ ] Create `src/test/kotlin/net/internetisalie/lunar/run/TestLuaFrameResolver.kt` — TC-05-08a/b/c,
       TC-05-09a/b. Refresh real files into the VFS with the
       `LuaFileUtilTest.kt:30-33` idiom before asserting.
-- [ ] Create `src/test/kotlin/net/internetisalie/lunar/run/TestLuaDebuggerListener.kt` — TC-05-06a/b,
-      TC-05-12a, TC-05-07c in **Phase 2** (the phase that creates `LuaDebugTarget` and
+- [ ] Create `src/test/kotlin/net/internetisalie/lunar/run/TestLuaDebuggerListener.kt`, extending
+      **`BaseDocumentTest`** (a JUnit5 plain class, so **every method needs `@Test`**) — the
+      controller-level rows need `myFixture.project` for their `fakeSession` and for constructing an
+      attach configuration — TC-05-06a/b, TC-05-12a, TC-05-07c in **Phase 2** (the phase that creates `LuaDebugTarget` and
       `openListener`, which every one of those fixtures calls); **TC-05-05c appended in Phase 3**
-      (the phase that adds `onDisconnect`); TC-05-13a/b appended in Phase 5. `fakeSession` is
+      (the phase that adds `onDisconnect`); **TC-05-11b appended in Phase 4** (the phase that adds
+      `clearRemoteBreakpoints()`/`redirectOutput()`, whose scripted fake debuggee reuses this file's
+      copied `fakeSession` and `Proxy` console); TC-05-13a/b appended in Phase 5. `fakeSession` is
       `private` in `TestLuaDebuggerEvaluator.kt:76` and therefore **not callable from another
       file** — copy the anonymous `XDebugSession` into this file and vary only `getRunProfile()`.
       TC-05-13a installs a `ConsoleView`
@@ -276,7 +305,10 @@ section it realizes; no task requires a design decision.
 - [ ] Extend `src/test/kotlin/net/internetisalie/lunar/run/TestLuaDebugHarness.kt` —
       `testBreakpointBindsAcrossDifferingRoots` (TC-05-07d), `testOutputRedirectReachesObserver`
       (TC-05-10c), `testWildcardDelbClearsBreakpoints` (TC-05-11a). All three launch the child from
-      a directory the harness creates, using `LuaHarnessSpec`.
+      a directory the harness creates, using `LuaHarnessSpec`. The last two **must build their
+      `DebugCommand` arguments from `LuaDebuggerController.OUTPUT_STREAM` /
+      `OUTPUT_MODE_REDIRECT` / `DELB_ALL_FILES` / `DELB_ALL_LINES`, never from literals** — with
+      literals neither row can be turned red by any change to Lunar (design §9).
 - [ ] Run the **full** suite through `tooling/gce-builder/gce-builder.sh run test` at the end of
       every phase. A green `test --tests *Lua*Mapper*` proves nothing about the suite
       (`.agents/AGENTS.md`, *Isolated `--tests` masks full suite*).
@@ -294,7 +326,16 @@ section it realizes; no task requires a design decision.
       debugger* background-progress item shows a **Cancel** control, and pressing it ends the
       listen within a second and terminates the session — the user-facing half of `DEBUG-05-06`
       (**M**), which TC-05-06a cannot reach because it cancels the `Job` programmatically
-      (design §5.2 step 4). `LuaAttachSettingsEditor` is a **new** visible surface and
+      (design §5.2 step 4); **HV-06** an attached session whose debuggee exits (or is killed) ends
+      in the IDE — the *Stop* action greys out and the Debug tool window reports the process
+      terminated — instead of leaving a live session over a dead socket. HV-06 is the
+      `LuaDebugProcess` half of the design §2.4 disconnect bridge
+      (`controller.onDisconnect { if (!myClosing) executionResult.processHandler?.destroyProcess() }`):
+      TC-05-05c proves only the **controller** half (that the callback fires), and the installation
+      side needs a real `XDebugSession` + `ExecutionResult`, so it has no unit row. Note the
+      asymmetry HV-06 closes — `DEBUG-05-13` (a **Could**) has two dedicated tests, while this
+      component of a **Must** requirement (`-05`) otherwise has none.
+      `LuaAttachSettingsEditor` is a **new** visible surface and
       `docs/engineering-contract.md:159-163` makes the screenshot pass the gate for one.
 
 ## Task Summary

@@ -114,6 +114,34 @@ DELB * 0                  -> 200 OK
 RUN -> 200 OK ; next -> None ; stdout 'out:42\n'   <-- the wildcard really cleared it
 ```
 
+**Probe G2 — the mutation TC-05-11a names, executed.** Same rig, two runs against a real
+mobdebug child (`~/bin/lua` 5.4.7, `src/main/lua/debug.lua` preloader, working directory `app/`,
+script `script.lua` whose line 2 is `print("hit")`), differing only in the `DELB` line:
+
+```
+=== with 'DELB * 0'
+   BASEDIR              -> 200 OK
+   SETB script.lua 2    -> 200 OK
+   DELB * 0             -> 200 OK
+   RUN                  -> 200 OK
+   after RUN            -> <EOF: the debuggee ran to completion and closed the socket>
+   child stdout: 'hit' ; exit=0
+=== with 'DELB * 1'
+   BASEDIR              -> 200 OK
+   SETB script.lua 2    -> 200 OK
+   DELB * 1             -> 200 OK
+   RUN                  -> 200 OK
+   after RUN            -> 202 Paused script.lua 2
+   child stdout: '' ; exit=None (still suspended)
+```
+
+Both `DELB` lines are answered `200 OK`, which is the whole point: **the acknowledgement carries no
+information**, so a test that only asserts the reply asserts nothing. The difference is entirely in
+what happens after `RUN` — `line == 0` takes `remove_breakpoint`'s wildcard branch
+(`breakpoints = {}`, `src/main/lua/mobdebug/init.lua:360-365`) while `line == 1` falls through to
+`breakpoints[1]['*'] = nil`, leaving the line-2 breakpoint installed. This is the executed basis for
+TC-05-11a's mutation being red rather than merely plausible.
+
 ### Probe K — a `204 Output` frame arrives **while a command is in flight**
 
 ```
@@ -295,6 +323,41 @@ Three things this settles, none of them inferable from reading:
 §3.2's `.removeSuffix("/")` guard is derived from this transcript, and the last line shows it is a
 **no-op for every other root**.
 
+### Probe P — the handshake fixture's socket shape, measured (TC-05-11b)
+
+TC-05-11b drives the real `connect()` against a **scripted fake debuggee**, so two mechanics have to
+hold before that row can be written: the test must be able to name a port `openListener` will bind,
+and a client-side peer must be able to answer every handshake command in order. Both were run
+(corretto-21, loopback only, three consecutive runs), borrowing an ephemeral port with
+`ServerSocket(0, 1, loopback)`, closing it, rebinding that exact port as `openListener` would, then
+letting a retry-connecting fake reply `200 OK\n` to each newline-framed command:
+
+```
+borrowed port=43355
+rebind ok after 0.05 ms, bound=localhost/127.0.0.1:43355
+accepted after 2.05 ms from /127.0.0.1
+  reply to 'BASEDIR /srv/app/': 200 OK
+  reply to 'DELB * 0': 200 OK
+  reply to 'OUTPUT stdout r': 200 OK
+debuggee recorded, in order: [BASEDIR /srv/app/, DELB * 0, OUTPUT stdout r]
+```
+
+Three things this settles:
+
+1. **Re-binding a just-released ephemeral port succeeds**, in 0.05 ms, three runs for three
+   (ports 43355 / 45311 / 45613 / 45077). A listening socket closed with no accepted connection
+   leaves no `TIME_WAIT` state, so the borrow-close-rebind idiom is sound; it is how the fixture
+   learns the port without a Phase-5 `listener()` seam.
+2. **The fake debuggee records the commands in send order**, which is what makes the ordering half
+   of §3.7 assertable at all — a mutation that swaps `clearRemoteBreakpoints()` and
+   `redirectOutput()` changes the recorded list, not just its contents.
+3. **A retry-connect loop removes the start-order constraint**: the fake may be started before the
+   controller binds (2.05 ms of retries here), so the test needs no rendezvous beyond the port.
+
+The fixture speaks the production framing — `DbgpFraming.readLine(input)` / `writeLine(output, line)`
+(`run/DbgpFraming.kt:26`, `:58`) — rather than a hand-rolled reader, so a framing change cannot make
+the row silently pass.
+
 ## 1. Architecture Overview
 
 ### 1.1 Current State
@@ -401,7 +464,7 @@ workingDirectory.path`.
 `private val mapping = PathMappingSettings.PathMapping(localRoot, remoteRoot)`. Its constructor
 normalises with `FileUtil.toSystemIndependentName` + trailing-slash trim
 (`PathMappingSettings.java:210-222`, `:283-293`), and `canReplaceLocal`/`canReplaceRemote` enforce a
-**segment boundary** (`:254-266`, `:333-339`) — which is why `/p/projekt/a.lua` is not treated as
+**segment boundary** (`:254-266`, `:334-338`) — which is why `/p/projekt/a.lua` is not treated as
 being under `/p/proj`. Do not hand-roll `startsWith`.
 
 ### 2.2 `net.internetisalie.lunar.run.LuaFrameResolver` (NEW)
@@ -750,9 +813,12 @@ four `withEnvironment` calls with the single three-argument call shown below.
 **Both new declarations go in the existing `companion object` (`run/LuaRunConfiguration.kt:355-362`),
 beside `ENV_MOBDEBUG_PORT` (`:361`) — not on the class.** That is what makes TC-05-04a's
 `LuaRunConfiguration.debuggerEnvironment(…)` and `LuaRunConfiguration.ENV_MOBDEBUG_HOST` resolve;
-written as instance members they would not compile at that call site. The companion is also the
-only place the existing `startProcess` can reach them from, since it lives inside the anonymous
-`CommandLineState` at `:291-292`.
+written as instance members they would not compile at that call site. **That is the whole reason —
+not reachability from `startProcess`.** `startProcess` reaches either placement equally: it already
+calls the instance members `effectiveWorkDirectory()` (`run/LuaRunConfiguration.kt:314`) and
+`debugPort` (`:334`) on the outer receiver from inside the anonymous `CommandLineState`
+(`:291-292`), so an instance `debuggerEnvironment` would compile there fine. It would not compile in
+TC-05-04a, which has no instance.
 
 ```kotlin
 // inside LuaRunConfiguration's companion object, run/LuaRunConfiguration.kt:355-362
@@ -772,8 +838,20 @@ val pluginLuaPath = LuaFileUtil.getPluginVirtualDirectoryChild("lua")
     ?: throw ExecutionException("Failed to locate plugin directory")            // :321-323, verbatim
 val debuggerPreloaderFile = pluginLuaPath.findChild(DEBUGGER_PRELOADER_FILE)
     ?: throw ExecutionException("Failed to locate debugger preloader")          // :324-326, verbatim
+val target = LuaDebugTarget.of(this@LuaRunConfiguration)                        // NEW — §2.3
 commandLine.withEnvironment(debuggerEnvironment(pluginLuaPath.path, debuggerPreloaderFile.path, target))
 ```
+
+**Where `target` comes from at this call site.** `startProcess` is the body of the anonymous
+`CommandLineState` declared inside `LuaRunConfiguration.getState` (`run/LuaRunConfiguration.kt:291-292`),
+so the qualified receiver `this@LuaRunConfiguration` is in scope — the same receiver `:314`'s
+`effectiveWorkDirectory()` and `:334`'s `debugPort` already use. `LuaDebugTarget.of(LuaRunConfiguration)`
+(§2.3) is the launched-session factory, so `target.port` is `configuration.debugPort` — byte-identical
+to the `MOBDEBUG_PORT` value `:334` writes today — and `target.debuggeeHost()` is the loopback address
+the same factory pins. The line is added inside the existing
+`if (executor.getId() == DefaultDebugExecutor.EXECUTOR_ID)` block (`:319`): the four
+`withEnvironment` calls at `:328-334` collapse into one, so the block is two statements shorter even
+with the new `val`.
 
 `debuggerEnvironment` returns exactly
 
@@ -948,6 +1026,24 @@ fun startLuaDebugHarness(script: File, observer: LuaDebugObserver): LuaHarness =
 
 `ProcessBuilder` gains `.directory(spec.workingDirectory)` and the listener becomes
 `ServerSocket(spec.port, 1, InetAddress.getLoopbackAddress())`.
+
+**The port has to reach the child too, or `spec.port` is a lie.** `LuaDebugHarness.kt:36-40` sets
+three environment variables and **no `MOBDEBUG_PORT`**, and the debuggee's preloader falls back to
+`tonumber(os.getenv("MOBDEBUG_PORT")) or 8172` (`src/main/lua/lunar/debug.lua:13`) — so a harness
+bound to a free port would be dialled at 8172 and TC-05-07d could never connect. The existing
+`.apply { … }` block therefore gains two lines, after the three it already has:
+
+```kotlin
+environment()["MOBDEBUG_PORT"] = spec.port.toString()
+environment().putAll(spec.environment)                 // last, so a spec entry can override
+```
+
+`spec.environment` exists for exactly this shape of override (a `MOBDEBUG_HOST` case, or a
+`LUA_PATH` a future row needs); with the default `emptyMap()` the `putAll` is a no-op and
+`TestLuaDebugHarness.testBreakpointAndExec` keeps its current environment byte for byte, except
+that `MOBDEBUG_PORT` is now stated rather than defaulted — `LuaHarnessSpec.port` defaults to
+`LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT`, which is the same `8172`
+(`run/LuaRunConfiguration.kt:185`) the preloader falls back to.
 
 ## 3. Algorithms
 
@@ -1202,7 +1298,7 @@ OUTPUT(
 
 Measured (§0, Probe F): `OUTPUT stdout r` → `200 OK`; `OUTPUT stderr r`, `OUTPUT stdout x` and a
 bare `OUTPUT` → `400 Bad Request`. mobdebug accepts only `stdout` and only modes `d`/`c`/`r`
-(`init.lua:1011-1012`).
+(`init.lua:1011-1013` — `:1012` is the `([dcr])` pattern, `:1013` the `stream == "stdout"` test).
 
 **(b) The `Output` branch, placed FIRST in `handleLine`** — before the Case A test at `:277` and
 before the `if (running)` test at `:296`:
@@ -1258,7 +1354,8 @@ private suspend fun redirectOutput() {
 }
 ```
 
-with `const val OUTPUT_STREAM = "stdout"` and `const val OUTPUT_MODE_REDIRECT = "r"`. Mode `r`
+with `internal const val OUTPUT_STREAM = "stdout"` and `internal const val OUTPUT_MODE_REDIRECT = "r"`
+(placement and visibility fixed in §3.7). Mode `r`
 (redirect) rather than `c` (copy) because an attached debuggee's stdout goes to *its* terminal,
 not ours; measured difference in §0, Probe F/F2.
 
@@ -1270,7 +1367,7 @@ not ours; measured difference in §0, Probe F/F2.
 1. `setBaseDir()` — must precede everything: `BASEDIR` resets `lastsource`
    (`init.lua:965-971`), and every subsequent path is interpreted against it.
 2. `clearRemoteBreakpoints()` — `if (target.clearRemoteBreakpoints) sendCommand(DebugCommand(DebugCommandKind.DELB, listOf(DELB_ALL_FILES, DELB_ALL_LINES)))` with
-   `const val DELB_ALL_FILES = "*"` and `const val DELB_ALL_LINES = "0"`. mobdebug's
+   `internal const val DELB_ALL_FILES = "*"` and `internal const val DELB_ALL_LINES = "0"`. mobdebug's
    `remove_breakpoint` special-cases `file == '*' and line == 0` to `breakpoints = {}`
    (`init.lua:360-364`); measured `200 OK` and a real clear (§0, Probe G). It must precede
    `drainInstalledBreakpoints`, which happens in `LuaDebugProcess.sessionInitialized` at
@@ -1280,7 +1377,28 @@ not ours; measured difference in §0, Probe F/F2.
 4. `detectRootMismatch()` (§3.5) — last, because it needs `BASEDIR` applied.
 
 `DELB` already declares `minArgs = 2, maxArgs = 2` (`run/LuaDebugConnection.kt:71-75`), so `* 0`
-fits the existing model with no change.
+fits the existing model with no change. **That is also why a test that merely puts `DELB * 0` on the
+wire asserts nothing about Lunar** — the bytes are already legal today; see TC-05-11a's restatement
+in §9.
+
+**Where the four constants live, and why they are `internal`.** `OUTPUT_STREAM`,
+`OUTPUT_MODE_REDIRECT`, `DELB_ALL_FILES` and `DELB_ALL_LINES` are declared in
+`LuaDebuggerController`'s **existing companion object** (`run/LuaDebuggerController.kt:347-351`),
+beside `CONNECT_TIMEOUT_MS` (`:348`), as `internal const val`. `internal` rather than `private`
+because the two harness rows (TC-05-10c, TC-05-11a) must send *the very values production sends* —
+otherwise mutating a constant leaves their hand-typed literals untouched and both rows stay green,
+which is the defect those rows carried before this revision. Main-source `internal` is visible to
+this module's test compilation: `PublishRockAction.isAuthFailure` is `internal` at
+`rocks/publish/PublishRockAction.kt:144` and is called from
+`src/test/kotlin/net/internetisalie/lunar/rocks/publish/PublishRockAuthFailureTest.kt:14`.
+
+**How the handshake itself is asserted.** `handshake()` stays `private`; it is reached through the
+public `connect()` by **TC-05-11b**, which drives the controller against a scripted fake debuggee on
+a loopback socket and asserts the recorded command list is exactly
+`["BASEDIR <root>/", "DELB * 0", "OUTPUT stdout r"]` — contents *and* order. That single row is what
+makes each of the following turn red: dropping either call from `handshake()`, reordering them,
+mutating any of the four constants, or moving `setBaseDir()` out of first place. Measured socket
+mechanics for the fixture: §0, Probe P.
 
 ### 3.8 Frame resolution (`DEBUG-05-08`, `-09`)
 
@@ -1355,7 +1473,7 @@ production reads it any more.
 [[BUG-450]] §3b names, so the two changes agree rather than fight; whichever lands second must
 keep the resolution lazy.
 
-`LuaExecutionStack.computeStackFrames` (`run/LuaExecutionStack.kt:36-53`) is unchanged — it
+`LuaExecutionStack.computeStackFrames` (`run/LuaExecutionStack.kt:31-58`) is unchanged — it
 already branches on `it.frame.file == "=[C]"` (`:38`) and already reads `it.frame.virtualFile`
 (`:49`).
 
@@ -1629,8 +1747,8 @@ Nothing else is added:
 | `DEBUG-05-07` | M | Not Implemented | §3.2 `toWire`, §3.7 step 1, and §3.5 for the missing diagnostic |
 | `DEBUG-05-08` | M | Not Implemented | §2.2, §3.8 |
 | `DEBUG-05-09` | S | Not Implemented | §3.8 — resolution keys on frame field 2 (`file`), not field 7 (`path`) |
-| `DEBUG-05-10` | S | Not Implemented | §3.6, §4.1; §2.6 supplies the console an attached session otherwise lacks |
-| `DEBUG-05-11` | S | Not Implemented | §3.7 step 2 (`DELB * 0`) |
+| `DEBUG-05-10` | S | Not Implemented | §3.6, §4.1; §2.6 supplies the console an attached session otherwise lacks. Both halves are asserted: the **receiver** by TC-05-10a/b, the **sender** (`redirectOutput()` and its `handshake()` call) by TC-05-11b, with TC-05-10c pinning the constant values against a real debuggee |
+| `DEBUG-05-11` | S | Not Implemented | §3.7 step 2 (`DELB * 0`) — sent **on connect**, which is TC-05-11b's ordered-transcript assertion; TC-05-11a pins the constant values against a real debuggee |
 | `DEBUG-05-12` | S | Not Implemented | §3.1 (loopback default, explicit bind host), §3.4 (origin check) |
 | `DEBUG-05-13` | C | Not Implemented | §3.9 |
 | `DEBUG-05-14` | S | Partial | §1.2 — REDIS-02's LDB debugger is named as **left alone**; no design |
@@ -1745,14 +1863,14 @@ exact class, never `assertFailsWith<Supertype>`.
 | TC-05-03c | `-03` | `TestLuaDebugTarget`; `LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")` left with **`workingDirectory == ""`** — the untouched default, pinned first with `assertEquals("", config.workingDirectory)` so the fixture cannot silently drift to `null`; `val basePath = assertNotNull(myFixture.project.basePath)`; then `LuaDebugTarget.of(config)` | `assertEquals(basePath, target.mapper.localRoot)`; `assertEquals("$basePath/", target.mapper.baseDirArgument())`; `assertTrue(target.mapper.isIdentity())` | Replace §2.3's `configuration.effectiveWorkDirectory()` with the shipped derivation `listOfNotNull(configuration.workingDirectory, configuration.project.basePath, "").first()` (`run/LuaDebuggerController.kt:80-90`). Compiles — both expressions feed `?.let(::File)` as `String?`/`String`, and `.first()` on a non-empty list is total. Reachable **because this fixture's working directory is empty, not unset**: `listOfNotNull` keeps `""`, so the mutant's root is `""`, `LuaPathMapper("", "")` is an empty `PathMapping`, `baseDirArgument()` returns `null` and the second assertion fails. TC-05-03b cannot catch it (it constructs the mapper directly and never touches the derivation). **`project.basePath` is non-null in this fixture** — `TestLuaPosition.kt:21` and `:85` both do `File(myFixture.project.basePath!!)` from the same `BaseDocumentTest` base (`TestLuaPosition.kt:12`) and are green, so the `!!` proves non-nullness under this fixture and the row cannot degrade into null-equals-null. (`TestLuaRunConfiguration.testEmptyWorkingDirectoryFallsBackToBasePath` (`:142-153`) is **not** evidence for this: it asserts `assertEquals(myFixture.project.basePath, config.effectiveWorkDirectory())`, whose two sides move together and stay green when both are null.) |
 | TC-05-03d | `-03`, `-08` | `LuaPathMapper.identity(File("/"))` — the launched-session shape whose working directory is the filesystem root (§3.2's `/`-root note); no fixture, the mapper is pure | `assertEquals("/", mapper.baseDirArgument())`; `assertEquals("/sub/a.lua", mapper.toLocalPath("sub/a.lua"))`; `assertEquals("/home/u/a.lua", mapper.toWire("/home/u/a.lua"))`; `assertTrue(mapper.isIdentity())` | Replace `remoteRootPrefix` with `normalisedRemoteRoot` in **both** `joinRemote` and `baseDirArgument()` (§3.2) — i.e. drop the `.removeSuffix("/")`. Compiles: both are `String` and every use site is string concatenation. Reachable **because this fixture's root is `/`, the one root `trimSlash` returns slash-terminated** (`PathMappingSettings.java:289-291`): the mutant yields `"//"` and `"//sub/a.lua"`, so the first two assertions fail. Measured both ways in §0 Probe O. TC-05-03b cannot catch it — its `/ide/proj` root is trimmed, so mutant and correct code agree. |
 | TC-05-07a | `-07` | `LuaPathMapper("/ide/proj", "/srv/app")`; local path `/ide/proj/sub/a.lua` | `assertEquals("sub/a.lua", mapper.toWire(...))` | Change §3.2 step 1 to `val remoteAbsolute = localPath` (skip the mapping), so `toWire` strips `remoteRoot` from a path that is under `localRoot`. Compiles — `remoteAbsolute` keeps its declaration and its type. (**Not** "delete step 1": that would leave `remoteAbsolute` undeclared for steps 2–4 and fail to compile, which is a mutation that asserts nothing.) Reachable: no prefix matches, so the mutant returns `/ide/proj/sub/a.lua`. TC-05-03b cannot catch this (there `localRoot == remoteRoot`, so step 1 is a no-op and the mutant stays green). |
-| TC-05-07b | `-07` | `LuaPathMapper("/ide/proj", "/srv/app")`; local path `/elsewhere/x.lua` | `assertEquals("/elsewhere/x.lua", mapper.toWire(...))` | Replace §3.2 steps 2–4 with the shipped rule `FileUtil.getRelativePath(File(localRoot), File(localPath)) ?: localPath` (`run/LuaPosition.kt:43`). Compiles. Reachable: the mutant returns `../elsewhere/x.lua`, the form Probe J1 shows cannot bind. |
+| TC-05-07b | `-07` | `LuaPathMapper("/ide/proj", "/srv/app")`; local path `/elsewhere/x.lua` | `assertEquals("/elsewhere/x.lua", mapper.toWire(...))` | Replace §3.2 steps 2–4 with the shipped rule `FileUtil.getRelativePath(localRoot?.let(::File), File(localPath)) ?: localPath` (`run/LuaPosition.kt:43`). Compiles **with the `?.let`, which is not decoration**: `localRoot` is `String?` (§2.1), so `File(localRoot)` would not compile, while `getRelativePath`'s `base` parameter is an unannotated Java `File` (platform type `File!`, `FileUtil.java:100`) and accepts a `File?` — exactly as `run/LuaPosition.kt:43` already passes its nullable `workingDir`. Reachable: measured against GoLand 2026.1.3's `util-8.jar` on corretto-21, `getRelativePath(/ide/proj, /elsewhere/x.lua)` returns `../../elsewhere/x.lua` (and `sub/a.lua` for a path under the root), so the mutant yields the `..`-prefixed form Probe J1 shows cannot bind and the assertion fails. |
 | TC-05-08a | `-08` | `LuaPathMapper("$scratch/ide", "/srv/app")`; a real file at `$scratch/ide/sub/a.lua`; `LuaFrameResolver(mapper)` | `assertEquals("$scratch/ide/sub/a.lua", resolver.resolve("sub/a.lua")?.path)` | Change §3.2 `toLocalPath` step 2 to return `wirePath` unchanged for relative inputs (drop the `joinRemote`). Compiles. Reachable: `findFileByPath("sub/a.lua")` is `null`, so the assertion fails on a null receiver. |
 | TC-05-08b | `-08` | `LuaPathMapper("$scratch/ide", "/srv/app")`; a real file at `$scratch/ide/sub/a.lua`; wire path `/srv/app/sub/a.lua` (absolute) | `assertEquals("$scratch/ide/sub/a.lua", resolver.resolve("/srv/app/sub/a.lua")?.path)` | Invert `toLocalPath` step 2's test to `!File(wirePath).isAbsolute`, so every wire path is joined to the remote root. Compiles cleanly (an inversion, not an `if (false)` the compiler flags as unreachable). Reachable: the mutant builds `/srv/app//srv/app/sub/a.lua`, which does not resolve. TC-05-08a cannot catch it (its input is relative). |
 | TC-05-08c | `-08`, [[BUG-463]] | `TestLuaFrameResolver`; a real file at `$scratch/ide/sub/a.lua` refreshed into the VFS (`LuaFileUtilTest.kt:30-33` idiom); `LuaPathMapper.identity(File("$scratch/ide"))`; `LuaPosition("sub/a.lua", 2).localPosition(mapper)` | `assertNotNull(position)`; `assertEquals("$scratch/ide/sub/a.lua", position.file.path)`; `assertEquals(1, position.line)` (0-indexed in the IDE — `createLocalPosition` subtracts one, `run/LuaPosition.kt:55`) | Restore the shipped body `findFileByPath(path)` in `localPosition` (`run/LuaPosition.kt:31-35`), ignoring the mapper. Compiles — the parameter may go unused. Reachable **because the fixture is nested under `$scratch/ide` rather than at `/`**: the mutant calls `findFileByPath("sub/a.lua")`, which returns `null`, `createLocalPosition` short-circuits at `:54` and `assertNotNull` fails. [[BUG-463]] §5 records the trap this row is built to avoid — *a fixture rooted at `/` stays green under this mutation*, so the fixture's depth **is** the test. This is the only row that covers the non-breakpoint pause path (`run/LuaDebuggerController.kt:326`), which Phase 1 fixes incidentally. |
 | TC-05-09a | `-09` | `TestLuaFrameResolver`; a real file at `$scratch/proj/src/module/target.lua`; a stack chunk whose frame tuple is `{ nil, "src/module/target.lua", 0, 5, "main", "", "...ted_project_directory_name/src/module/target.lua" }` — field 7 verbatim from Probe I, i.e. `...`-truncated; identity mapper on `$scratch/proj` | `assertEquals("target.lua", stack.entries.first().frame.virtualFile?.name)` | In `LuaRemoteStackFrame`, resolve from `path` (index 6) instead of `file` (index 1) — the shipped code. Compiles (`path` and `file` are both `String`). Reachable: this fixture's field 7 begins with `...`, so `findFileByPath` returns `null` and the assertion fails. **This is the only row where field 6 and field 2 disagree**, which is why the existing 43-character fixtures in `TestLuaRemoteStackFrames.kt:15-19` are blind to it. |
 | TC-05-09b | `-09`, `-08` | Same file. The fixture **creates a real file literally named `=[C]`** at `$scratch/proj/=[C]` (a legal POSIX filename) and refreshes it into the VFS, then parses the `=[C]` frame from `TestLuaRemoteStackFrames.kt:19` (`{ nil, "=[C]", -1, -1, "C", "", "[C]" }`) with an identity mapper on `$scratch/proj` | `assertNull(stack.entries.last().frame.virtualFile)`; `assertEquals("=[C]", stack.entries.last().frame.file)` | Delete §3.8 step 1's leading-`=` guard. Compiles (the guard is a plain `if (…) return null`). Reachable **because of the odd fixture file**: without the guard, `toLocalPath("=[C]")` yields `$scratch/proj/=[C]`, which now exists, `findFileByPath` returns it, and `assertNull` fails. The file exists for exactly this reason — with an ordinary fixture the mutant would resolve to `null` anyway and this row would assert nothing. |
 | TC-05-04a | `-04` | `TestLuaAttachRunConfiguration`; `val env = LuaRunConfiguration.debuggerEnvironment("/plugins/lunar/lua", "/plugins/lunar/lua/debug.lua", LuaDebugTarget.fallback())` — two plain `String`s, **no VFS and no temp directory** (§2.6) | `assertEquals("127.0.0.1", env[LuaRunConfiguration.ENV_MOBDEBUG_HOST])`; `assertEquals("8172", env[LuaRunConfiguration.ENV_MOBDEBUG_PORT])`; `assertEquals("@/plugins/lunar/lua/debug.lua", env[LuaRunConfiguration.ENV_LUA_INIT])` | Delete the `MOBDEBUG_HOST` entry from `debuggerEnvironment` (§2.6). Compiles — the other four entries still build a valid `Map<String, String>`. Reachable: the map lookup returns `null` and the first assertion fails. (The `LUA_INIT` assertion has its own mutation: build the value from `pluginLuaPath` instead of `preloaderPath`, which compiles because both are `String` and yields `@/plugins/lunar/lua`.) |
-| TC-05-05a | `-05` | `LuaDebugRunner()`; an attach configuration built from `LuaAttachRunConfigurationType().configurationFactories[0]` | `assertTrue(runner.canRun(DefaultDebugExecutor.EXECUTOR_ID, attachConfig))`; `assertFalse(runner.canRun(DefaultRunExecutor.EXECUTOR_ID, attachConfig))`; `assertTrue(attachConfig is RunConfigurationWithSuppressedDefaultRunAction)` | Drop the `|| runProfile is LuaAttachRunConfiguration` disjunct from `canRun` (§2.6). Compiles. Reachable: the first assertion flips. (The third assertion has its own mutation — remove the marker interface from the class's supertype list; it compiles because `is` against an unrelated interface is legal for a non-final class.) |
+| TC-05-05a | `-05` | `LuaDebugRunner()`; an attach configuration built from `LuaAttachRunConfigurationType().configurationFactories[0]` | `assertTrue(runner.canRun(DefaultDebugExecutor.EXECUTOR_ID, attachConfig))`; `assertFalse(runner.canRun(DefaultRunExecutor.EXECUTOR_ID, attachConfig))`; `assertTrue(attachConfig is RunConfigurationWithSuppressedDefaultRunAction)` | Drop the `\|\| runProfile is LuaAttachRunConfiguration` disjunct from `canRun` (§2.6). Compiles. Reachable: the first assertion flips. (The third assertion has its own mutation — remove the marker interface from the class's supertype list; it compiles because `is` against an unrelated interface is legal for a non-final class.) |
 | TC-05-05b | `-05`, `-10` | `LuaAttachState(myFixture.project).execute(DefaultDebugExecutor.getDebugExecutorInstance(), LuaDebugRunner())` | `assertEquals(DefaultDebugProcessHandler::class, result.processHandler::class)`; `assertTrue(result.processHandler.detachIsDefault())`; `assertTrue(result.executionConsole is ConsoleView)` | Return `DefaultExecutionResult(console, NopProcessHandler())`. Compiles (both are `ProcessHandler`). Reachable: `NopProcessHandler.detachIsDefault()` is `false` (`platform/util/src/com/intellij/execution/process/NopProcessHandler.java:20-22`), so the second assertion fails and the first fails on the class. |
 | TC-05-05c | `-05` | `LuaDebuggerController(fakeSession(project), CoroutineScope(SupervisorJob()))` — the fake of `TestLuaDebuggerEvaluator.kt:76-77`, whose `getRunProfile()` is `null` so the target is `LuaDebugTarget.fallback()` (`autoRestart == false`); a counting lambda registered with `controller.onDisconnect { … }`; then `controller.DebugObserver().onDisconnected()` called directly | `assertEquals(1, invocations)` | Delete the `disconnectListener?.invoke()` line from `onDisconnected` (§2.4). Compiles — the field is nullable and read nowhere else. Reachable: with auto-restart off this fixture takes the `close(); disconnectListener?.invoke()` path, which is the only route to that line, so the mutant leaves `invocations == 0`. |
 | TC-05-06a | `-06` | `TestLuaDebuggerListener`; `openListener(target)` on port 0 with a loopback bind; `runBlocking { withTimeout(3_000) { val job = launch { awaitClient(server, 0L) }; delay(1_500); assertTrue(job.isActive); job.cancelAndJoin() } }` | The job is still active at 1500 ms and completes within 500 ms of `cancelAndJoin` | Change §3.3's `if (deadlineMs <= 0L)` to `if (deadlineMs < 0L)`. Compiles. Reachable: this fixture passes `0L`, so the mutant's deadline is `now`, the first `SocketTimeoutException` at ~500 ms is rethrown, and `job.isActive` is false at 1500 ms. |
@@ -1761,9 +1879,10 @@ exact class, never `assertFailsWith<Supertype>`.
 | TC-05-12b | `-12` | An attach configuration with `bindHost = "0.0.0.0"`; `LuaDebugTarget.of(config)` | `assertTrue(target.bindAddress.isAnyLocalAddress)`; and with `bindHost = ""`, `assertTrue(target.bindAddress.isLoopbackAddress)` | Hard-code `InetAddress.getLoopbackAddress()` in `resolveBindAddress` (§3.1). Compiles. Reachable: the `0.0.0.0` half of this fixture's two-value table flips. |
 | TC-05-12c | `-12` | An attach configuration with `bindHost = "a b"`, a `localRoot` that exists and a non-blank `remoteRoot`; `val thrown = assertFailsWith<Throwable> { config.checkConfiguration() }` — i.e. through `LuaTargetValidator.validate(LuaTargetSpec.of(config), LuaTargetChecks.attach(config))` (§2.5), because `LuaTargetChecks.attach` only **builds** the list and never throws | `assertEquals(RuntimeConfigurationError::class, thrown::class)`; `assertTrue(thrown.message!!.contains("a b"))` | Change check A2's severity `FATAL` → `WARNING`. Compiles (both are `LuaTargetSeverity` constants). Reachable: this fixture's only problem is A2, so at `WARNING` `validate` throws `RuntimeConfigurationWarning` instead and the exact-class assertion flips. **The fixture is hermetic**: measured, `InetAddress.getByName("a b")` throws `UnknownHostException` in **0.2 ms** without reaching a resolver (the space is rejected by `getaddrinfo` locally), where `no-such-host.invalid` took 24.7 ms and `999.999.999.999` took 91.3 ms — both real lookups, and both hostage to a wildcard resolver. See §4.4. |
 | TC-05-10a | `-10` | `TestLuaDebugOutputFrames`; a loopback socket pair; `LuaDebugConnection` on the server side, `running == false` (no `Run`-group command has been sent); the test writes `204 Output stdout 7\n"side"\n200 OK 26\ndo local _={};return _;end` in that order while a `send(EXEC "print('side')")` is in flight | `assertEquals("do local _={};return _;end", result)`; the observer recorded exactly one `onOutput("stdout", "\"side\"\n")` | Move the §3.6b `Output` branch inside the existing `if (running)` block at `run/LuaDebugConnection.kt:296`. Compiles. Reachable: this fixture is paused, so `running` is `false`, the branch never fires, 7 payload bytes are left unread, `readLine` returns `"side"`, and `handleLine` throws `IOException` at `:269` — `send` then completes exceptionally and the first assertion fails. This is exactly the sequence Probe K measured. |
-| TC-05-10b | `-10` | Same file; the test writes `204 Output stdout notanumber\n` | The observer recorded **no** `onOutput`; `send` still completes when the real response follows | Change the malformed-header path from `return` to `observer.onOutput(stream, DbgpFraming.readExactly(input, 0))`. Compiles. Reachable: this fixture's header is unparsable, so the mutant emits a spurious empty output frame and the "no `onOutput`" assertion fails. |
-| TC-05-10c | `-10` | `TestLuaDebugHarness`; a real debuggee; `connection.send(DebugCommand(OUTPUT, listOf("stdout", "r")))` then `SETB`/`RUN` on a script whose second line is `print("hi")` | `send` returns without throwing; the observer records `onOutput("stdout", "\"hi\"\n")` within 4 s | Change `OUTPUT_STREAM` from `"stdout"` to `"stderr"` (§3.6d). Compiles. Reachable: mobdebug answers `400 Bad Request` for any stream but `stdout` (measured, §0 Probe F3), and `BadRequest` is a declared response, so `send` returns `""` and no output frame ever arrives. |
-| TC-05-11a | `-11` | `TestLuaDebugHarness`; a 3-line script; `SETB <name> 2`, then `DELB * 0`, then `RUN` | No pause is observed within 4 s; `onDisconnected` fires; the child exits | Change `DELB_ALL_LINES` from `"0"` to `"1"` (§3.7 step 2). Compiles (both `String`). Reachable: mobdebug's wildcard branch requires `line == 0` exactly (`init.lua:362`), so with `1` the breakpoint survives, the pause fires and the "no pause" assertion fails. Measured in §0, Probe G. |
+| TC-05-10b | `-10` | Same file; the test writes `204 Output stdout notanumber\n` | The observer recorded **no** `onOutput`; `send` still completes when the real response follows | Make the malformed-header guard emit before bailing out: `if (separator < 0 \|\| byteCount == null) { observer.onOutput(data, ""); return }`. Compiles — both arguments are `String`, and the `return` **must stay**: dropping it leaves `readExactly(input, byteCount)` reading an `Int?` and the file would not compile, which is a mutation that asserts nothing. (For the same reason the mutant cannot name `stream`: §3.6b declares `val stream` *after* the guard.) Reachable: this fixture's header is unparsable, so the mutant emits a spurious output frame and the "no `onOutput`" assertion fails. |
+| TC-05-10c | `-10` | `TestLuaDebugHarness`; a real debuggee launched through `LuaHarnessSpec`; `connection.send(DebugCommand(DebugCommandKind.OUTPUT, listOf(LuaDebuggerController.OUTPUT_STREAM, LuaDebuggerController.OUTPUT_MODE_REDIRECT)))` — **the production constants of §3.7, never the literals `"stdout"`/`"r"`** — then `SETB`/`RUN` on a script whose second line is `print("hi")` | `send` completes normally (no `DebuggerError`); the observer records `onOutput("stdout", "\"hi\"\n")` within 4 s | Change `OUTPUT_STREAM` from `"stdout"` to `"stderr"` (§3.6d). Compiles (both `String`). Reachable **only because the fixture reads the constant instead of typing its value** — with a literal, mutant and correct code send identical bytes and the row is decoration. With the constant: mobdebug's `OUTPUT` branch requires `stream == "stdout"` (`src/main/lua/mobdebug/init.lua:1011-1013`) and answers `400 Bad Request` otherwise (measured, §0 Probe F). `BadRequest` **is** a declared response for `OUTPUT` (§3.6a), so `handleLine` takes Case A and completes the deferred *exceptionally* with `DebuggerError` (`run/LuaDebugConnection.kt:287-289`) — `send` **throws**, failing the first assertion; and no `204 Output` frame is ever emitted, failing the second. (An earlier draft of this row claimed `send` returns `""` on `BadRequest`; `:287-289` says otherwise.) Not green on `main`: `DebugCommandKind` declares no `OUTPUT` there (`:52-156`) and `handleLine` has no `Output` branch, so the fixture does not compile, let alone pass. |
+| TC-05-11a | `-11` | `TestLuaDebugHarness`; a 3-line script whose line 2 is `print("hit")`; `SETB <name> 2`, then `connection.send(DebugCommand(DebugCommandKind.DELB, listOf(LuaDebuggerController.DELB_ALL_FILES, LuaDebuggerController.DELB_ALL_LINES)))` — **the production constants of §3.7, never the literals `"*"`/`"0"`** — then `RUN` | No pause frame within 4 s; the observer's `onDisconnected` fires; the child's stdout is `hit` and it exits 0 | Change `DELB_ALL_LINES` from `"0"` to `"1"` (§3.7 step 2). Compiles (both `String`). Reachable **only because the fixture sends the constants**: measured end to end (§0, **Probe G2**), `DELB * 1` leaves the line-2 breakpoint installed — `remove_breakpoint`'s wildcard branch requires `line == 0` exactly (`src/main/lua/mobdebug/init.lua:360-365`) — so `202 Paused script.lua 2` arrives after `RUN`, the "no pause" assertion fails and the child never reaches its `print`. **What this row is, and what it deliberately is not.** It is the *integration* half of `-11`: it proves the constant **values** Lunar sends are the ones mobdebug honours, which TC-05-11b cannot (a recording fake accepts any bytes). It asserts nothing about `DELB` argument arity — that is already legal on `main` (`minArgs = 2, maxArgs = 2`, `run/LuaDebugConnection.kt:71-75`), which is why the previous form of this row (literal `DELB * 0` on the harness connection) **passed on unmodified `main`** and asserted mobdebug's protocol rather than Lunar's code. With the constants referenced it does not even compile on `main` — `LuaDebuggerController.DELB_ALL_FILES` arrives with Phase 4 — and once Phase 4 lands it is red under the named mutation. |
+| TC-05-11b | `-10`, `-11`, `-03` | **The handshake itself, over a real socket.** Appended to `TestLuaDebuggerListener.kt` in Phase 4 (it already carries the copied `fakeSession` and the `Proxy` console idiom). Borrow a port with `ServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { it.localPort }` and close it (§0 Probe P: rebinding it takes 0.05 ms); an **attach** configuration constructed as in TC-05-12b but with `bindHost = ""` (so `resolveBindAddress` yields the loopback the fake dials, §3.1), that `debugPort`, and `localRoot = remoteRoot = "/srv/app"` (identity, so §3.5's `detectRootMismatch` returns at its step 1 and the transcript is exactly three commands), `redirectOutput = true`, `listenTimeoutSeconds = 5`, and `autoRestart = false` — pinned explicitly so the row is unaffected when Phase 5 puts an auto-restart branch in `onDisconnected`; a `fakeSession` whose `getRunProfile()` returns it, so `init` resolves `LuaDebugTarget.of(attach)` — which pins `clearRemoteBreakpoints = true` (§2.3); a `java.lang.reflect.Proxy` `ConsoleView` installed with `setConsole(...)` (the `Proxy` idiom of `redis/debug/TestLuaLdbController.kt:97-101`) so `connect()`'s `printToConsole` does not hit `log.error("Console not set")` (`run/LuaDebuggerController.kt:99`); a daemon thread that retry-connects to the port (20 × 100 ms) and then three times does `DbgpFraming.readLine(input)` → record → `DbgpFraming.writeLine(output, "200 OK")` (`run/DbgpFraming.kt:26`, `:58`); then `runBlocking { withTimeout(5_000) { controller.connect() } }`, `thread.join(2_000)` (bounded, and the thread is a daemon, so a mutation that sends **fewer** commands leaves it blocked in `readLine` without hanging the suite — the assertion still runs, 2 s later, and fails), and `controller.close()` in a `finally` | `assertEquals(listOf("BASEDIR /srv/app/", "DELB * 0", "OUTPUT stdout r"), recorded)` — **one assertion covering contents and order** | Delete the `clearRemoteBreakpoints()` call from `handshake()` (§3.7 step 2). Compiles: the function survives as an unused `private suspend fun`, which Kotlin reports as a warning and this build does not escalate (`build.gradle.kts` sets no `allWarningsAsErrors`). Reachable: this fixture's target is an attach target, so `target.clearRemoteBreakpoints` is `true` and the call is on the executed path — the mutant records two entries and the list assertion fails. **Four further mutations fail this same row**, which is why it is written as one ordered list rather than three membership checks: `DELB_ALL_LINES "0"→"1"` (records `DELB * 1`), `OUTPUT_STREAM "stdout"→"stderr"` (records `OUTPUT stderr r`), swapping the `clearRemoteBreakpoints()`/`redirectOutput()` calls (order flips), and moving `setBaseDir()` below them (§3.7's step 1 is load-bearing — `BASEDIR` resets `lastsource`). **Not green on `main`**: `connect()` there sends `setBaseDir()` and nothing else (`run/LuaDebuggerController.kt:130`), so the recorded list has one entry. This is the row that covers Phase 4's fourth task — `redirectOutput()`, `clearRemoteBreakpoints()`, the four constants and their `handshake()` invocation in §3.7 order — none of which any harness row can reach, because `LuaDebugHarness.kt:52` builds its own `LuaDebugConnection` and never constructs a `LuaDebuggerController`. |
 | TC-05-07c | `-07` | `LuaRootMismatch.detect` over a three-row table: `("/srv/app/main.lua", "/ide/proj")`, `("main.lua", "/ide/proj")`, `("=[C]", "/ide/proj")` | Row 1 returns a non-null message containing both `/srv/app/main.lua` and `/ide/proj`; rows 2 and 3 return `null` | Change §3.5 step 3's `!File(entryWireFile).isAbsolute` test to `entryWireFile.isEmpty()`. Compiles. Reachable: row 2 (`main.lua`) then returns a message and its `assertNull` fails, while row 1 stays green — which is why all three rows live in one table. |
 | TC-05-07d | `-07`, `-08` | **End-to-end, differing roots.** `LuaHarnessSpec(script = $scratch/remote/sub/a.lua, workingDirectory = $scratch/remote, port = <free>)`; an identical copy at `$scratch/ide/sub/a.lua`; the test drives `BASEDIR $scratch/remote/`, `SETB sub/a.lua 2`, `RUN` and maps the pause back with `LuaPathMapper("$scratch/ide", "$scratch/remote")` | A pause is observed within 4 s at line 2; `mapper.toLocalPath(pausedPos.path)` equals `$scratch/ide/sub/a.lua` | Send the **local** root as `BASEDIR` (i.e. `baseDirArgument()` returns `localRoot + "/"`, the shipped behaviour at `run/LuaDebuggerController.kt:87-88`). Compiles. Reachable: Probe B measured that the debuggee then never pauses, so the latch times out. **This is the capability-B end-to-end case the existing suite has never had**; `TestLuaDebugHarness.testBreakpointAndExec` launches from the script's own directory and is green under this mutation. |
 | TC-05-07e | `-04`, `-05`, `-12` (the UI halves) | `TestLuaAttachRunConfiguration`; the nine `debug.attach.*` keys of §2.7 read through `LuaBundle.message(key)` | For each of the seven **label** keys: the first word is capitalised and no later word starts with an upper-case letter unless it is a product name (`LuaRocks`, `StyLua`, `Mobdebug`); each of the five leading-label keys ends in `':'`; the two checkbox keys do **not** | Change `debug.attach.remoteRoot` in `LuaBundle.properties` to `Remote Source Root:`. Reachable: the Title-Case scan fails on `Source`. A second mutation — drop the trailing colon from `debug.attach.port` — fails the colon assertion. Both are `.properties` edits, so both "compile" trivially. `docs/engineering-contract.md:162-163` names this exact assertion as one of the two UI invariants that *should* be unit-tested; it exists only because §2.7 put the labels in the bundle. |
@@ -1903,12 +2022,4 @@ deciding. Refusing at the kernel is measurably stronger (§0: the LAN connect wa
 
 ## 11. Open Questions
 
-_None — feature has cleared the planning bar. `DEBUG-05-00-DR-01` (correct DEBUG-06 §3.3's
-"no message bundle" claim and settle literals vs `LuaBundle` keys for `LuaTargetMessages`'
-**validation strings**) is **closed**: `1a5d5b70` rewrote §3.3 upstream and re-took the decision on
-a premise that holds — see §2.8's note and [risks-and-gaps.md](risks-and-gaps.md) Gap 2.1. Three
-deferred items remain, tracked as de-risking tasks there: `DEBUG-05-00-DR-02` (measure the
-`localhost` → `::1` hypothesis Probe L did not reproduce), `DEBUG-05-00-DR-03` (decide whether
-TC-05-10a needs a `running == true` sibling) and `DEBUG-05-00-DR-04` (author
-`human-verification-checklists.md` during Phase 3). **None blocks implementation of any phase** —
-each would add a test or a checklist, not change a design decision._
+_None — every deferral is a tracked de-risking task in [risks-and-gaps.md](risks-and-gaps.md)._
