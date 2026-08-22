@@ -63,3 +63,21 @@ as acceptance criteria (TOOLING-08-07 / TOOLING-08-08). Planning narrowed the Fo
 `LuaEditorOptionsConfigurable` (`BeanConfigurable`) and `LuaCodeStyleSettings` (`CustomCodeStyleSettings`)
 are platform-driven with no manual layout, so they are audit-only. It will be fixed as part of that
 feature's DSL standardization pass rather than as a standalone bug fix.
+
+## Outcome — fixed, closed 2026-08-22 — verified live
+
+The only one of this cluster confirmed **in pixels**. TOOLING-08 migrated `LuaApplicationSettingsPanel`
+and `LuaRocksGeneratorPeer` off `FormBuilder` onto the Kotlin UI DSL, and the BUG-448 audit measured the
+result live in GoLand 2026.1.3 against native settings pages:
+
+| | group header | content | indent |
+| :- | :- | :- | :- |
+| Native *Accessibility* | +17 | +41 | **24** |
+| Lunar *Editor Features* | +17 | +41 | **24** |
+| Lunar *Platform Target* | +17 | +41 | **24** |
+| Lunar *Toolchain Bindings* | +17 | +41 | **24** |
+
+(x relative to the settings tree/content divider.) The vertical rhythm and horizontal indent are
+**pixel-identical to the platform** — there is no spacing defect left to fix. During that audit an
+apparent indent divergence was measured, investigated, and retracted as a crop artefact; it is recorded
+in [[bug-report|BUG-448]] §6 so it is not re-opened as a regression of this bug.

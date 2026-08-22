@@ -46,3 +46,14 @@ row baselines, inconsistent insets) still needs to be pinned down from a screens
 ## Absorbed by ROCKS-16
 
 This bug is folded into **[ROCKS-16: Package Browser Redesign](../../rocks/16-package-browser-redesign/requirements.md)** as an acceptance criterion; it will be fixed as part of that feature's detail-pane / tool-window rework rather than as a standalone bug fix.
+
+## Outcome — fixed, closed 2026-08-22
+
+Fixed by ROCKS-16 and verified in code during the BUG-448 UI audit. The hand-nested
+`JPanel`/`BorderLayout` construction this report blamed for the misalignment no longer exists —
+`PackageDetailPanel` was deleted and `PackageDetailPane` is built on the Kotlin UI DSL, which supplies
+the platform's grid.
+
+**Verification basis: code, not pixels** — same caveat as [[bug-report|BUG-363]]. Note that the BUG-448
+audit found this *same defect class* alive on other surfaces (ragged columns measured at 85px and 90px),
+so the pattern was not eradicated by ROCKS-16 — only this instance of it.

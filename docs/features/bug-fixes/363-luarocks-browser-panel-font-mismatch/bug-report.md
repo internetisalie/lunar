@@ -55,3 +55,15 @@ standard IntelliJ font, so the panel looks inconsistent.
 ## Absorbed by ROCKS-16
 
 This bug is folded into **[ROCKS-16: Package Browser Redesign](../../rocks/16-package-browser-redesign/requirements.md)** as an acceptance criterion; it will be fixed as part of that feature's detail-pane / tool-window rework rather than as a standalone bug fix.
+
+## Outcome — fixed, closed 2026-08-22
+
+Fixed by ROCKS-16 and verified in code during the BUG-448 UI audit. The raw `JTextArea` is gone along
+with the whole `PackageDetailPanel`; the replacement `PackageDetailPane` renders the summary through a
+**`JBHtmlPane`** (`PackageDetailPane.kt:53`), which inherits the UI font, and the class KDoc names this
+bug as the reason (`:32`).
+
+**Verification basis: code, not pixels.** See the shared caveat in [[bug-report|BUG-367]] — until
+[[bug-report|BUG-449]] is fixed the detail card cannot appear on the Marketplace tab at all, and
+confirming the font live also needs an installed rock. Closing on the code change is correct; a
+screenshot is still owed the next time that pane is on screen.

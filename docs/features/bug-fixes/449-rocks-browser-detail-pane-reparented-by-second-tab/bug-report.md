@@ -111,4 +111,7 @@ parenting is observable from the component tree, which is exactly the class of d
 - **BUG-367** ("detail panel shows a blank form instead of a proper empty state") was recorded as
   absorbed by ROCKS-16 and fixed. The empty-state *code* did land (`PackageDetailPane.kt:64`); it has
   simply never been visible on the Marketplace tab. The original report's symptom is still reproducible.
+- **The Installed tab was never opened.** That it holds the pane follows from `Container.add`
+  semantics and the build order at `:51-52`, but its behaviour was not observed — the audit
+  project had no installed rocks. Do not assume that tab is working; verify it alongside the fix.
 - Screenshots: `~/.cache/claude-scratch/lunar/90c40f9b/shots/pairs/07-rocks-detail-pane.png`.

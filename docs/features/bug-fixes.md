@@ -27,13 +27,13 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-360` | **Failed to make file writable** | **M** | **Todo** | Failed to make in-project file writable due to container/host user UID mismatch. |
 | `BUG-361` | **`global` Lexed as Keyword** | **H** | **Todo** | `global` is unconditionally lexed as the `GLOBAL` keyword, so it fails to parse as an identifier/field under Lua < 5.5 (and should be contextual even in 5.5). |
 | `BUG-362` | **Platform Target Not Selectable** | **M** | **Todo** | No discoverable way to actively choose the platform target (e.g. Redis) after an interpreter is discovered. |
-| `BUG-363` | **LuaRocks Panel Font Mismatch** | **L** | **Todo** | LuaRocks browser detail panel uses raw `JTextArea` (monospaced LAF default) for summary/deps, not matching the UI font. |
+| `BUG-363` | **LuaRocks Panel Font Mismatch** | **L** | **Done** | LuaRocks browser detail panel uses raw `JTextArea` (monospaced LAF default) for summary/deps, not matching the UI font. |
 | `BUG-364` | **Exceptions During Indexing / Panels** | **H** | **Todo** | Numerous exceptions thrown during project indexing and when opening tool-window panels; stack traces not yet captured. |
-| `BUG-365` | **LuaRocks Packages Panel Alignment** | **L** | **Todo** | UI alignment defect in the "LuaRocks Packages" detail panel; needs live characterization. |
+| `BUG-365` | **LuaRocks Packages Panel Alignment** | **L** | **Done** | UI alignment defect in the "LuaRocks Packages" detail panel; the hand-nested `JPanel` build was replaced by the Kotlin UI DSL. |
 | `BUG-366` | **LuaRocks Tool-Window Overlap** | **L** | **Todo** | Unclear separation of responsibilities between the "LuaRocks" (dependencies) and "LuaRocks Packages" (browser) tool windows. |
-| `BUG-367` | **LuaRocks Packages Empty State** | **L** | **Todo** | Detail panel shows a "(no package selected)" label + blank form instead of a proper empty state (`JBPanelWithEmptyText`). |
-| `BUG-368` | **LuaRocks Packages Deps as Text** | **L** | **Todo** | Dependencies rendered as a `\n`-joined `JTextArea` instead of a `JBList`. |
-| `BUG-369` | **Settings Panels Vertical Spacing** | **L** | **Todo** | Inconsistent vertical spacing across Lua settings panels (mixed Kotlin UI DSL vs legacy `FormBuilder` layouts). |
+| `BUG-367` | **LuaRocks Packages Empty State** | **L** | **Done** | Detail panel shows a "(no package selected)" label + blank form instead of a proper empty state (`JBPanelWithEmptyText`). |
+| `BUG-368` | **LuaRocks Packages Deps as Text** | **L** | **Done** | Dependencies rendered as a `\n`-joined `JTextArea` instead of a `JBList`. |
+| `BUG-369` | **Settings Panels Vertical Spacing** | **L** | **Done** | Inconsistent vertical spacing across Lua settings panels (mixed Kotlin UI DSL vs legacy `FormBuilder` layouts). |
 | `BUG-448` | **Hand-Built Panels Diverge from Platform UX** | **M** | **Todo** | Twenty-four measured divergences across hand-assembled settings pages, dialogs and tool windows (ragged rows, panels that don't fill, bordered buttons, Title-Case labels). Platform-rendered Lua pages are correct. |
 | `BUG-449` | **Rocks Detail Pane Re-Parented by Second Tab** | **H** | **Todo** | One shared `PackageDetailPane` is the `secondComponent` of two splitters, so the Marketplace tab's detail half is permanently blank. |
 ---

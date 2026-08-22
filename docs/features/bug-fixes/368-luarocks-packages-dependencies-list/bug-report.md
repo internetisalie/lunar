@@ -46,3 +46,12 @@ rather than as a proper list of items.
 ## Absorbed by ROCKS-16
 
 This bug is folded into **[ROCKS-16: Package Browser Redesign](../../rocks/16-package-browser-redesign/requirements.md)** as an acceptance criterion; it will be fixed as part of that feature's detail-pane / tool-window rework rather than as a standalone bug fix.
+
+## Outcome — fixed, closed 2026-08-22
+
+Fixed by ROCKS-16 and verified in code during the BUG-448 UI audit. Dependencies are no longer a
+`\n`-joined `JTextArea`: `PackageDetailPane.kt:57` holds a **`JBList`** over a `DependencyRow` model,
+clickable (`onDependencyClicked` re-runs the search for the clicked dependency), and the class KDoc
+cites this bug (`:33`).
+
+**Verification basis: code, not pixels** — same caveat as [[bug-report|BUG-363]].

@@ -47,3 +47,22 @@ dependencies) is left blank. It looks inconsistent and unattractive.
 ## Absorbed by ROCKS-16
 
 This bug is folded into **[ROCKS-16: Package Browser Redesign](../../rocks/16-package-browser-redesign/requirements.md)** as an acceptance criterion; it will be fixed as part of that feature's detail-pane / tool-window rework rather than as a standalone bug fix.
+
+## Outcome — fixed in code, closed 2026-08-22 — but see BUG-449
+
+The empty state exists: `PackageDetailPane.kt:64` holds
+`JBPanelWithEmptyText().withEmptyText("No package selected")`, with a `showEmpty()` card (`:84`,
+`:107`) driven by the selection listener. That is the fix this report asked for.
+
+**It has never been visible on the Marketplace tab.** The BUG-448 audit selected a package there and
+measured the detail half as 99.7% two flat colours — neither the detail nor the empty text. The cause
+is [[bug-report|BUG-449]]: one shared `PackageDetailPane` is assigned as the `secondComponent` of two
+splitters, and the second assignment re-parents it out of the Marketplace tab. By build order the
+*Installed* tab is the one that keeps the pane, so the empty state should render there — **inferred
+from `LuaRocksBrowserPanel.kt:51-52`, not observed**: the audit never had an installed rock and never
+opened that tab.
+
+Closing this report is still right: the defect it describes (no empty state) was fixed. The reason
+nobody could see it is a different defect, tracked separately. **This is the report to remember when
+closing anything on an "absorbed by <feature>" note** — it was marked absorbed and fixed, and the
+symptom stayed reproducible for five more weeks.
