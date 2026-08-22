@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.RowLayout
 import com.intellij.ui.dsl.builder.panel
 import net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeed
 import net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeedLoader
@@ -168,15 +169,18 @@ class LuaProvisionDialog(
                 cell(runtimeCombo)
                 cell(runtimeVersionCombo)
             }
+            // BUG-448 #3: these rows carry no label, so the DSL defaults them to
+            // RowLayout.INDEPENDENT — each sizes its own sub-grid and the version combos drifted
+            // 90px apart while the labelled rows above stayed aligned. PARENT_GRID shares one grid.
             row {
                 cell(includeLuaRocksBox)
                 cell(luaRocksVersionCombo)
-            }
+            }.layout(RowLayout.PARENT_GRID)
             LuaToolCatalog.TOOL_KINDS.forEach { kindId ->
                 row {
                     cell(toolBoxes.getValue(kindId))
                     cell(toolVersionCombos.getValue(kindId))
-                }
+                }.layout(RowLayout.PARENT_GRID)
             }
         }
 
@@ -228,6 +232,16 @@ class LuaProvisionDialog(
 
     /** Exposes the root-dir field for tests (BUG-371: verify disabled state on prefill). */
     internal fun rootDirFieldForTest() = rootDirField
+
+    /**
+     * The checkbox/version-combo pairs of the label-less rows (BUG-448 #3 grid assertions).
+     *
+     * A seam rather than a component search: the tool rows are what must share the panel's grid, and
+     * identifying them by traversal order would pass for the wrong reason if a row were added above.
+     */
+    internal fun optionalToolRowsForTest(): List<Pair<JBCheckBox, ComboBox<String>>> =
+        listOf(includeLuaRocksBox to luaRocksVersionCombo) +
+            LuaToolCatalog.TOOL_KINDS.map { toolBoxes.getValue(it) to toolVersionCombos.getValue(it) }
 
     private fun versionCombo(kindId: String): ComboBox<String> {
         val combo = ComboBox<String>()

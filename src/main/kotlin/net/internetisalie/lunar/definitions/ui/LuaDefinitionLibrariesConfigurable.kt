@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.HyperlinkLabel
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.dsl.builder.RowLayout
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.ui.JBUI
@@ -67,7 +68,10 @@ class LuaDefinitionLibrariesConfigurable(
                             setHyperlinkTarget(entry.entry.attributionUrl)
                         },
                     )
-                }
+                    // BUG-448 #2: a label-less row defaults to RowLayout.INDEPENDENT and sizes its
+                    // own sub-grid, so the status/license/link columns drifted 85px apart down the
+                    // list. PARENT_GRID puts every row's cells in the page's one grid.
+                }.layout(RowLayout.PARENT_GRID)
             }
         }
 
