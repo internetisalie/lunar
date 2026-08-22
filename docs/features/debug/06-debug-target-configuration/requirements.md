@@ -2,7 +2,7 @@
 id: RUN-06
 title: "06: Debug Target Configuration"
 type: feature
-status: "todo"
+status: "planned"
 priority: "medium"
 parent_id: DEBUG/RUN
 folders: ["[[features/debug/requirements|requirements]]"]
@@ -17,13 +17,13 @@ debugged — and tell the user what is wrong at a severity the platform acts on.
 > this feature as **`DEBUG-06`** — the epic table (`docs/features/debug/requirements.md:23`) and
 > [[RUN-04]]'s overview both do. Row IDs below follow the referenced name.
 
-> **Status note.** This document moves the feature off `done`. The epic table still records
-> `DEBUG-06` as **Full** — "Validate debug configurations before launching" — and that claim is
-> false at its own headline: nothing this feature does prevents a launch (`DEBUG-06-02`). Three of
-> eight `Must` rows are Not Implemented and two more are Partial. `in_progress` would be the
-> accurate state, but `scripts/lint_planning.py` requires a `design*.md` alongside it and none
-> exists, so `todo` is used, following [[DEBUG-07]]'s precedent for a feature whose recorded status
-> outran its code. The epic table row was not edited here.
+> **Status note.** This document moved the feature off `done`: the epic table recorded `DEBUG-06`
+> as **Full** — "Validate debug configurations before launching" — and that claim was false at its
+> own headline, because nothing this feature does prevents a launch (`DEBUG-06-02`). Three of eight
+> `Must` rows are Not Implemented and two more are Partial. The status was `todo` while no
+> `design*.md` existed; it is now `planned` — `design.md`, `implementation-plan.md` and
+> `risks-and-gaps.md` passed a Step 9 review on 2026-08-22 after three rounds. The epic table row
+> was corrected separately in `fa1ff02d` and now reads **Partial**.
 
 ## How these requirements were derived
 
