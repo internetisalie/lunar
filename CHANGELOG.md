@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The LuaRocks Packages browser shows package details again** (BUG-449): the Marketplace tab's
+  detail half had been blank since the two-tab browser shipped — both tabs were handed the same
+  detail pane, and a Swing component has one parent, so the second tab silently took it. Each
+  tab now has its own pane, which also makes the "No package selected" empty state visible for
+  the first time.
 - **Add to Watches works on debugger variables** (BUG-447): the action was offered on every
   variable and silently did nothing, because Lunar never supplied the expression the platform
   needs; watches now resolve nested members too, as `cfg["name"]` and `items[1]`

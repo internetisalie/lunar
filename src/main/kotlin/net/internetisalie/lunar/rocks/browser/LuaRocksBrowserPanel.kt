@@ -24,11 +24,11 @@ import javax.swing.event.DocumentEvent
 /**
  * Two-tab LuaRocks browser panel in the Plugins idiom (ROCKS-16-01, design §2.7). A [JBTabbedPane]
  * holds a Marketplace tab (debounced `SearchTextField` → search rows) and an Installed tab
- * (zero-query list from the canonical tree), each an [OnePixelSplitter] list-over-detail split that
- * reuses one shared [PackageDetailPane]. A north strip shows the active target-tree path.
+ * (zero-query list from the canonical tree), each an [OnePixelSplitter] list-over-detail split over
+ * its **own** [PackageDetailPane]. A north strip shows the active target-tree path.
  *
  * EDT-confined. All state flows through [LuaRocksBrowserModel]; this panel is its [Listener]. The
- * 300 ms search [Alarm] and the [PackageDetailPane] are parented to this [Disposable] (BUG-379).
+ * 300 ms search [Alarm] and both [PackageDetailPane]s are parented to this [Disposable] (BUG-379).
  */
 class LuaRocksBrowserPanel(
     private val project: Project,
@@ -36,7 +36,8 @@ class LuaRocksBrowserPanel(
     Disposable,
     LuaRocksBrowserModel.Listener {
     private val model = LuaRocksBrowserModel(ProjectBackend(project), this)
-    private val detailPane = PackageDetailPane(project, model).also { Disposer.register(this, it) }
+    private val marketDetail = PackageDetailPane(project, model).also { Disposer.register(this, it) }
+    private val installedDetail = PackageDetailPane(project, model).also { Disposer.register(this, it) }
     private val searchField = SearchTextField(true)
     private val marketModel = DefaultListModel<LuaRockRow>()
     private val marketList = JBList(marketModel).apply { cellRenderer = MarketCellRenderer() }
@@ -47,7 +48,7 @@ class LuaRocksBrowserPanel(
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
     init {
-        detailPane.onDependencyClicked = { name -> searchFor(name) }
+        detailPanes().forEach { it.onDependencyClicked = { name -> searchFor(name) } }
         tabs.addTab("Marketplace", buildMarketplaceTab())
         tabs.addTab("Installed", buildInstalledTab())
         tabs.addChangeListener { onTabChanged() }
@@ -63,8 +64,8 @@ class LuaRocksBrowserPanel(
         when (state) {
             is BrowserState.Results -> renderResults(state.rows)
             is BrowserState.Installed -> renderInstalled(state.rows)
-            is BrowserState.Error -> detailPane.showError(state.message)
-            is BrowserState.NoTree -> detailPane.showNoTree()
+            is BrowserState.Error -> detailPanes().forEach { it.showError(state.message) }
+            is BrowserState.NoTree -> detailPanes().forEach { it.showNoTree() }
             BrowserState.Idle -> marketModel.clear()
             BrowserState.Loading -> Unit
         }
@@ -92,28 +93,40 @@ class LuaRocksBrowserPanel(
                 add(top, BorderLayout.NORTH)
                 add(ScrollPaneFactory.createScrollPane(marketList), BorderLayout.CENTER)
             }
-        return splitter(left)
+        return splitter(left, marketDetail)
     }
 
-    private fun buildInstalledTab(): Component = splitter(ScrollPaneFactory.createScrollPane(installedList))
+    private fun buildInstalledTab(): Component =
+        splitter(ScrollPaneFactory.createScrollPane(installedList), installedDetail)
 
-    private fun splitter(left: Component): OnePixelSplitter =
+    /**
+     * Each tab gets its **own** detail pane. A Swing component has one parent, so handing one shared
+     * pane to both splitters re-parents it out of the first and leaves that tab's detail half blank
+     * (BUG-449). The panes are independent — [PackageDetailPane] calls into the model but never
+     * subscribes to it — so there is nothing to keep in sync.
+     */
+    private fun splitter(
+        left: Component,
+        detail: PackageDetailPane,
+    ): OnePixelSplitter =
         OnePixelSplitter(false, 0.38f).apply {
             firstComponent = left as? javax.swing.JComponent
-            secondComponent = detailPane
+            secondComponent = detail
         }
+
+    private fun detailPanes(): List<PackageDetailPane> = listOf(marketDetail, installedDetail)
 
     // ── Behavior ───────────────────────────────────────────────────────────
 
     private fun wireSelectionListeners() {
         marketList.addListSelectionListener {
             if (it.valueIsAdjusting) return@addListSelectionListener
-            val row = marketList.selectedValue ?: return@addListSelectionListener detailPane.showEmpty()
-            detailPane.showPackage(row, listOf(row.pkg.version))
+            val row = marketList.selectedValue ?: return@addListSelectionListener marketDetail.showEmpty()
+            marketDetail.showPackage(row, listOf(row.pkg.version))
         }
         installedList.addListSelectionListener {
             if (it.valueIsAdjusting) return@addListSelectionListener
-            installedList.selectedValue?.let { row -> detailPane.showInstalled(row) }
+            installedList.selectedValue?.let { row -> installedDetail.showInstalled(row) }
         }
     }
 

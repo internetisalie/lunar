@@ -35,7 +35,8 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-368` | **LuaRocks Packages Deps as Text** | **L** | **Done** | Dependencies rendered as a `\n`-joined `JTextArea` instead of a `JBList`. |
 | `BUG-369` | **Settings Panels Vertical Spacing** | **L** | **Done** | Inconsistent vertical spacing across Lua settings panels (mixed Kotlin UI DSL vs legacy `FormBuilder` layouts). |
 | `BUG-448` | **Hand-Built Panels Diverge from Platform UX** | **M** | **Todo** | Twenty-four measured divergences across hand-assembled settings pages, dialogs and tool windows (ragged rows, panels that don't fill, bordered buttons, Title-Case labels). Platform-rendered Lua pages are correct. |
-| `BUG-449` | **Rocks Detail Pane Re-Parented by Second Tab** | **H** | **Todo** | One shared `PackageDetailPane` is the `secondComponent` of two splitters, so the Marketplace tab's detail half is permanently blank. |
+| `BUG-449` | **Rocks Detail Pane Re-Parented by Second Tab** | **H** | **Done** | One shared `PackageDetailPane` is the `secondComponent` of two splitters, so the Marketplace tab's detail half is permanently blank. |
+| `BUG-462` | **Detail Card Loading State Never Clears** | **M** | **Todo** | A failed metadata fetch strands `Homepage: (loading)` and an empty `License:` forever; the description and dependency regions never render at all. |
 ---
 ## Technical Debt Fixes
 - **DOC-06-06 Implementation**: Full implementation of platform symbol documentation lookup (Task 273).

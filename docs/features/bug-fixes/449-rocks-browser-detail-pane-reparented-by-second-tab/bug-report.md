@@ -3,7 +3,7 @@ id: "BUG-449"
 title: "The LuaRocks browser's shared detail pane is re-parented by the Installed tab, so the Marketplace tab's detail half is permanently blank"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -115,3 +115,47 @@ parenting is observable from the component tree, which is exactly the class of d
   semantics and the build order at `:51-52`, but its behaviour was not observed — the audit
   project had no installed rocks. Do not assume that tab is working; verify it alongside the fix.
 - Screenshots: `~/.cache/claude-scratch/lunar/90c40f9b/shots/pairs/07-rocks-detail-pane.png`.
+
+## Outcome — fixed 2026-08-22, verified live
+
+**Fix:** each tab gets its own `PackageDetailPane` (`marketDetail`, `installedDetail`), both
+`Disposer`-registered; `splitter()` takes the pane as a parameter. This is fix option **2**, not the
+option 1 the report preferred — option 1 needs `JBTabbedPane` replaced by a tab *selector* and the
+layout restructured, which is more than a surgical fix. Two panes satisfy the engineering contract's
+"never install one instance into two containers" **structurally** rather than by careful sequencing,
+and the panes are independent because `PackageDetailPane` calls into the model but never subscribes
+to it.
+
+**Regression test:** `LuaRocksBrowserPanelTabPaneTest`. Two traps found while writing it, both worth
+keeping in mind for the next component-tree test:
+
+1. The first version asserted `Splitter.secondComponent` and **passed before the fix** — that
+   property is a stored field, so the splitter that *lost* the pane still returns it. Only the
+   parent/child relation moves. The test now asserts containment (`components` / `parent`).
+2. Standing up a real `LuaRocksBrowserPanel` and leaving it to `testRootDisposable` **reddened
+   `LuaSourcePathModuleResolutionTest`** two classes later — `BasePlatformTestCase` reuses one light
+   project for the whole suite. Disposing the panel inside the test that built it clears it.
+   Attribution was established by full-suite runs, since an isolated `--tests` run passes either way:
+   pristine main green; fix without the test green; an empty class in the same ordering slot green;
+   fix plus the original test red. **The mechanism was never proved** — which project-scoped state a
+   live panel keeps warm is still unknown, and the disposal is hygiene rather than a root-cause fix.
+
+**Mutation-proven:** re-pointing the Installed splitter back at `marketDetail` turns both tests red;
+restoring turns them green.
+
+**Live verification** (GoLand 2026.1.3, same fixture project and query as the BUG-448 audit):
+
+| | before | after |
+| :- | :- | :- |
+| Package selected, Marketplace | detail half renders nothing | name, version picker, License/Homepage, Install |
+| Nothing selected, Marketplace | nothing | **"No package selected"** — [[bug-report|BUG-367]]'s empty state, on screen for the first time |
+| Installed tab | never opened | renders its own no-tree card |
+
+Screenshots: `~/.cache/claude-scratch/lunar/90c40f9b/shots/pairs/10-bug449-before-after.png` and
+`shots/after/`.
+
+**Left open, observed during verification:** the detail pane's metadata line stays `(loading)`
+indefinitely for `lls-addon-penlight` — no timeout, no error state when the `luarocks show` fetch
+does not return. Because of that, **BUG-363 (summary font) and BUG-368 (dependency list) could not be
+retro-verified visually** — both live below that metadata line and never rendered. They remain
+code-verified only. The stuck loading state deserves its own report.

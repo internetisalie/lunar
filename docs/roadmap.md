@@ -105,7 +105,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-37 | Corpus sweeps run with pinned definition libraries | todo | S | **BUG-417** *(inspection independence — **done**; had to land first or the re-baseline would be unattributable)*; TARGET-08 *(done)* | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
-| BUG-449 | The LuaRocks browser's shared detail pane is re-parented by the Installed tab, so the Marketplace tab's detail half is permanently blank | todo | M | — | — | ✓ |
+| BUG-462 | The package detail card strands its loading placeholders, and its description and dependency regions never render | todo | S | — | — | ✓ |
 | BUG-448 | Hand-built settings panels, dialogs and tool windows diverge from the JetBrains Platform UX standard (24 measured findings) | todo | S | — | — | ✓ |
 
 ---

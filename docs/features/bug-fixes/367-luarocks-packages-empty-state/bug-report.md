@@ -66,3 +66,10 @@ Closing this report is still right: the defect it describes (no empty state) was
 nobody could see it is a different defect, tracked separately. **This is the report to remember when
 closing anything on an "absorbed by <feature>" note** — it was marked absorbed and fixed, and the
 symptom stayed reproducible for five more weeks.
+
+### Confirmed on screen 2026-08-22
+
+With [[bug-report|BUG-449]] fixed, `"No package selected"` renders on the Marketplace tab — the first
+time this empty state has been visible since it was written. The code-only caveat above is discharged
+for *this* report; it still stands for BUG-363 and BUG-368, whose evidence sits below a metadata line
+that never finished loading.
