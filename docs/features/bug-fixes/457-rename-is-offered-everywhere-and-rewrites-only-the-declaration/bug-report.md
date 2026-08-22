@@ -11,10 +11,11 @@ folders:
 
 # BUG-457: a refactoring that reports success and corrupts the file
 
-Found 2026-08-22 by the [[REFACT-01]] retroactive-requirements agent. **The behaviour is inferred
-from platform control flow, not executed** — see §5, which must run before any fix is written.
+Found 2026-08-22 by the [[REFACT-01]] retroactive-requirements agent as a prediction from platform
+control flow. **CONFIRMED LIVE the same day** — sandbox GoLand, real project file. The prediction
+was exact; §5 records the transcript.
 
-## 1. Reproduction (predicted)
+## 1. Reproduction — verified
 
 1. Open a Lua file with `local counter = 0` and several later uses of `counter`.
 2. Put the caret on the **declaration** and press Shift+F6. Rename to `total`.
@@ -22,7 +23,7 @@ from platform control flow, not executed** — see §5, which must run before an
 ## 2. Expected vs actual
 
 - **Expected**: either every occurrence is renamed, or the refactoring declines with a message.
-- **Actual (predicted)**: the declaration becomes `local total = 0`, **every usage still reads
+- **Actual, measured**: the declaration becomes `local total = 0`, **every usage still reads
   `counter`**, and the refactoring reports success. The file now refers to an undefined global.
 
 ## 3. Root cause
@@ -54,15 +55,45 @@ Lua, renaming to a name already visible does not collide — it silently **rebin
 still compiles. Measured on labels: one rename changed a program's output on 5.3.6 and made it fail
 to load on 5.4.7. The same hazard applies to every local this bug would enable.
 
-## 5. Settle it before fixing — this is a prediction
+## 5. Live verification, 2026-08-22 — silent partial rewrite confirmed
 
-Every claim above is traced through platform source; none was executed, because verification needs a
-built plugin in a running IDE. **Do that first**: attempt a rename on a declaration in a sandbox
-IDE and record what actually happens.
+Sandbox GoLand on the builder VM, Lunar 0.18.0 loaded, a real project file:
 
-The three outcomes lead to different work: silent partial rewrite (as predicted) is an urgent fix;
-a clean refusal is a much smaller usability bug; a working rename means the analysis is wrong and
-this report should be closed.
+```lua
+local counter = 0                       -- caret here, Shift+F6 -> "total"
+
+local function bump()
+    counter = counter + 1
+    ...
+    return counter, sql
+end
+
+print(bump())
+print(counter)
+```
+
+**The rename dialog opened**, confirming `canRename` passes on a declaration. Its prompt read:
+
+> Rename **Lua Name Ref Impl** 'counter' and its usages to:
+
+— both the promise of "its usages", and the raw PSI class name leaking into user-facing text.
+
+**Result after Refactor:**
+
+```lua
+local total = 0            -- renamed
+    counter = counter + 1  -- NOT renamed
+    return counter, sql    -- NOT renamed
+print(counter)             -- NOT renamed
+```
+
+One occurrence changed, four left behind. **No error, no warning, no conflict dialog.** `counter`
+is now an undefined global and `print(counter)` prints `nil` where it printed `1` — the program's
+behaviour changed silently.
+
+The IDE's own inspections underline the damage immediately afterwards: `total` as an unused local,
+all four `counter` occurrences as undefined globals. Lunar's analysis knows the file is broken; the
+refactoring that broke it reported success.
 
 ## 6. Fix strategy sketch
 

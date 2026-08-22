@@ -3,17 +3,18 @@ id: "BUG-459"
 title: "Reformatting may shift the interior lines of a long string, editing the value of a literal"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
-priority: "high"
+status: "cancelled"
+priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-459: a formatter that changes what the program means
 
-Found 2026-08-22 by the [[FORMAT-01]] retroactive-requirements agent. **Predicted from the platform
-chain, not observed** — §4 must run first. Filed at high priority despite that, because the
-predicted failure silently changes data rather than layout.
+Found 2026-08-22 by the [[FORMAT-01]] retroactive-requirements agent as a prediction from the
+platform chain. **REFUTED LIVE the same day — the formatter does not touch a long string's
+contents.** Kept rather than deleted because §4's measurement is the useful part, and because the
+next reader of that platform chain will reach the same prediction and should find this instead.
 
 ## 1. Reproduction (predicted)
 
@@ -50,20 +51,50 @@ Lunar implements neither `FormattingModelWithShiftIndentInsideDocumentRange` nor
 **No test in the repo contains a `[[` at all**, which is why this has never been observed either
 way.
 
-## 4. Settle it before fixing
+## 4. Live verification, 2026-08-22 — refuted, twice, with a control
 
-Reformat a file containing an indented long string in a sandbox IDE and diff the literal's bytes.
-Three outcomes: the value changes (fix urgently), the value is preserved by some path not identified
-here (close, and record why), or the formatter declines to touch the construct (close).
+Sandbox GoLand on the builder VM. Two probes, each deliberately mis-indented so the formatter had to
+do visible work — **without that control an unchanged file proves nothing**, and the first attempt
+here did exactly that: the fixture was already well-formatted, the reformat was a no-op, and the
+byte-identical result was meaningless. (A second false result came from fixtures created over an
+SSH root login: the IDE could not write them and showed "Failed to change read-only status". Both
+near-misses are why the control matters.)
 
-## 5. Fix strategy sketch
+**Probe 1 — indent increases.** Code at columns 0/8/2/6 was reformatted to column 4 throughout.
+Long string interior before and after, byte for byte:
 
-If confirmed: give `STRING` and `LONGCOMMENT` read-only spacing so the formatter treats them as
-atomic, and consider implementing `FormattingModelWithShiftIndentInsideDocumentRange` to make the
-no-op explicit rather than incidental.
+```
+SELECT *
+  FROM t
+ WHERE id = 1
+```
 
-## 6. Test strategy
+**Probe 2 — indent decreases sharply, nested.** Code at columns 20/28 was reformatted to 4/8. Long
+string interior before and after, byte for byte:
 
-A regression test must assert the **exact bytes** of the literal across a reformat. Add long strings
-to the formatter fixture corpus generally — the absence of a single `[[` in the suite is itself the
-finding here.
+```
+line one
+    line two indented
+```
+
+In both directions, and across a 20-column shift, **the literal is unchanged**.
+
+## 4a. What this does not establish
+
+The measurement is decisive about the behaviour and silent about the mechanism. §3's chain predicted
+`shiftIndentInsideRange` would fire, and it evidently does not — but this run did not determine
+*why*: whether the wrapping model differs from the prediction, whether the leaf condition is not
+met, or whether something else intervenes. Anyone changing `lang/format/` should re-run these two
+probes rather than assume the protection is structural, because nothing here proves it is.
+
+## 5. What is still worth doing
+
+No fix. Two smaller things survive this report and should be carried into [[FORMAT-01]] rather than
+kept open here:
+
+- **The suite contains no `[[` at all.** That was true before this bug and is still true. A
+  regression test asserting the exact bytes of a long string across a reformat would convert
+  today's measured behaviour into a guarantee — currently it is neither guaranteed nor tested.
+- Making the protection explicit (read-only `Spacing` for `STRING`, or implementing
+  `FormattingModelWithShiftIndentInsideDocumentRange`) would turn an unexplained absence of a bug
+  into a stated invariant. Optional, and only worth it alongside the test.
