@@ -43,7 +43,13 @@ section it realizes; no task requires a design decision.
         overload and re-express the existing `File?` overload over
         `LuaPathMapper.identity(workingDir)` (§3.8). Change `localPosition()` to
         `localPosition(mapper: LuaPathMapper)`; update its single production call site,
-        `run/LuaDebuggerController.kt:326`.
+        `run/LuaDebuggerController.kt:326`, to
+        **`pos.localPosition(LuaPathMapper.identity(workingDirectory()))`** —
+        `workingDirectory(): File` already exists at `run/LuaDebuggerController.kt:72`, and Phase 2
+        later replaces this expression with `target.mapper`. **Pass the mapper, not
+        `LuaPathMapper(null, null)`.** With both roots null `toLocalPath` returns the wire path
+        unchanged, [[BUG-463]] stays live in the pause path, and **no Phase-1 row would go red**:
+        TC-05-08c pins `LuaPosition.localPosition` itself, not this call site.
   - [ ] Edit `run/LuaRemoteStack.kt` — replace the `virtualFiles: MutableMap<String, VirtualFile?>`
         field (`:14`) and the parameter threaded through `LuaRemoteStackEntry` (`:39`, `:51`) and
         `LuaRemoteStackFrame` (`:69`, `:85`) with a single `LuaFrameResolver`; **delete** the eager
@@ -104,12 +110,23 @@ section it realizes; no task requires a design decision.
         `target.mapper.baseDirArgument()` and returns without sending when it is `null`;
         `addBreakPoint`/`removeBreakPoint`/`runToCursor` and `variables()` use `target.mapper`;
         `DebugObserver.onPause` (`:326`) uses `pos.localPosition(target.mapper)`.
-  - [ ] Edit `run/LuaDebugProcess.kt:82` — `runToPosition` uses
-        `LuaPosition.createRemotePosition(position, controller.pathMapper())`.
+  - [ ] Edit `run/LuaDebugProcess.kt:78-84` — `runToPosition` uses
+        `LuaPosition.createRemotePosition(position, controller.pathMapper())` in place of
+        `controller.workingDirectory()` (`:82`). **Unpinned by design**: no unit row covers this line.
+        `LuaDebugProcess` needs a live `XDebugSession` + `ExecutionResult` to construct, so a mutation
+        here (leaving the `File?` overload in place) turns nothing red — under differing roots it
+        silently sends an un-translated Run-to-Cursor. **HV-08** is its only gate; the mechanical
+        rewire is the whole task.
   - [ ] Create `net.internetisalie.lunar.run.LuaRootMismatch` in `run/LuaRootMismatch.kt` —
         realizes the four-step `detect` of design §3.5.
-  - [ ] Edit `run/LuaDebugConnection.kt:93-100` — `STACK` gains `maxArgs = 1` so the
-        `-- {maxlevel=1}` probe parameter of §4.3 can be sent. No other change to the command model.
+  - [ ] Edit `run/LuaDebugConnection.kt:93-100` — `STACK` gains `maxArgs = 1`. **This is a
+        declaration-consistency edit with no behavioural effect, and it deliberately has no exit
+        criterion.** `minArgs`/`maxArgs` are never read in production — the only repo-wide readers are
+        `TestLuaDebugConnectionParsing.kt:64-65`, asserting `SETB`'s declared pair — so the
+        `-- {maxlevel=1}` argument of §4.3 is sent correctly with or without it and **no mutation of
+        this line can turn any row red**. Do not write a test that merely re-asserts the constant;
+        that would be the decoration §9's mutation column exists to prevent. No other change to the
+        command model.
   - [ ] Edit `run/LuaDebuggerController.kt` — add `private suspend fun handshake()` (§3.7) calling
         `setBaseDir()` then `detectRootMismatch()`; `connect()` calls it in place of the bare
         `setBaseDir()` at `:130`. `clearRemoteBreakpoints()` and `redirectOutput()` are added to
@@ -137,7 +154,18 @@ section it realizes; no task requires a design decision.
         `LuaAttachRunConfigurationType`, `LuaAttachRunConfigurationFactory`,
         `LuaAttachRunConfigurationOptions`, `LuaAttachRunConfiguration` and
         `LuaAttachSettingsEditor` — realizes design §2.5 and §2.7. The configuration implements
-        `RunConfigurationWithSuppressedDefaultRunAction` and `RemoteRunProfile`.
+        `RunConfigurationWithSuppressedDefaultRunAction` and `RemoteRunProfile`. The editor supplies
+        all three `SettingsEditor` overrides — `createEditor(): JComponent`,
+        `resetEditorFrom(runConfiguration: LuaAttachRunConfiguration)` and
+        `applyEditorTo(runConfiguration: LuaAttachRunConfiguration)` — written out in full in §2.7.
+        **Every labelled row is built with `net.internetisalie.lunar.ui.addMnemonicLabeledComponent`
+        (`src/main/kotlin/net/internetisalie/lunar/ui/LuaFormBuilders.kt:25`) and every checkbox with
+        `withMnemonic()` (`:39`)** — never `FormBuilder`'s own `addLabeledComponent(String, …)`,
+        which leaks `U+001B` and sets no mnemonic (design §2.7; contract
+        `docs/engineering-contract.md:151`). The timeout row's unit and `0` semantics go in
+        `FormBuilder.addTooltip("In seconds. 0 waits until you cancel.")`
+        (`platform/platform-api/src/com/intellij/util/ui/FormBuilder.java:125`; in-repo
+        `redis/run/LuaRedisRunConfiguration.kt:348`) — **`FormBuilder` has no `comment(...)`**.
   - [ ] Create `net.internetisalie.lunar.run.attach.LuaAttachState` in the same file — realizes
         design §2.6 (`DefaultDebugProcessHandler` + `TextConsoleBuilderFactory` +
         `DefaultExecutionResult`).
@@ -166,20 +194,20 @@ section it realizes; no task requires a design decision.
   - [ ] Edit `run/LuaDebuggerController.kt` — the `init` `when` gains the
         `is LuaAttachRunConfiguration` arm (§2.4).
   - [ ] Edit `run/LuaRunConfiguration.kt` — add `const val ENV_MOBDEBUG_HOST = "MOBDEBUG_HOST"`
-        in the existing `companion object` (`:355-362`) beside `ENV_MOBDEBUG_PORT` (`:361`) — a
+        in the existing `companion object` (`:356-363`) beside `ENV_MOBDEBUG_PORT` (`:362`) — a
         companion member, which is what makes TC-05-04a's `LuaRunConfiguration.debuggerEnvironment(…)`
         resolve — and extract
         `internal fun debuggerEnvironment(pluginLuaPath: String, preloaderPath: String, target: LuaDebugTarget): Map<String, String>`
-        from `startProcess`'s `:319-335`, adding the `MOBDEBUG_HOST` entry. Realizes §2.6.
+        from `startProcess`'s `:321-336`, adding the `MOBDEBUG_HOST` entry. Realizes §2.6.
         **Three arguments, both paths `String`** — the two `?: throw ExecutionException(...)`
-        resolutions at `:321-326` stay in `startProcess` and are passed in, so the helper needs no
+        resolutions at `:322-327` stay in `startProcess` and are passed in, so the helper needs no
         `!!` and no VFS (contract §1). The call site becomes
         `val target = LuaDebugTarget.of(this@LuaRunConfiguration)` followed by
         `commandLine.withEnvironment(debuggerEnvironment(pluginLuaPath.path, debuggerPreloaderFile.path, target))`,
-        replacing the four `withEnvironment` calls at `:328-334`. **`target` is derived right there,
+        replacing the four `withEnvironment` calls at `:329-335`. **`target` is derived right there,
         from the qualified receiver** — `startProcess` is the body of the anonymous
-        `CommandLineState` inside `getState` (`:291-292`), so `this@LuaRunConfiguration` is in scope,
-        as `:314`'s `effectiveWorkDirectory()` and `:334`'s `debugPort` already demonstrate
+        `CommandLineState` inside `getState` (`:292-293`), so `this@LuaRunConfiguration` is in scope,
+        as `:315`'s `effectiveWorkDirectory()` and `:335`'s `debugPort` already demonstrate
         (design §2.6).
   - [ ] Edit `run/validation/LuaTargetSpec.kt` (DEBUG-06) — add the third factory
         `of(configuration: LuaAttachRunConfiguration)` per design §2.8.
@@ -191,12 +219,23 @@ section it realizes; no task requires a design decision.
         `bindHostUnresolvable(host)` with the exact strings in design §2.8.
   - [ ] Edit `src/main/resources/net/internetisalie/lunar/LuaBundle.properties` — add the nine
         `debug.attach.*` keys of design §2.7 under the existing `# debugging` section (`:109-110`),
-        with the exact values in that table. `LuaAttachSettingsEditor` and
+        with the exact values in that table — **including the `&` mnemonic marker**, which is part of
+        the value and needs no escaping in a `.properties` file. `LuaAttachSettingsEditor` and
         `LuaAttachRunConfigurationType` read every label through `LuaBundle.message(...)`; **no
         control label is a literal.** Prior art: `settings/LuaApplicationSettingsPanel.kt:37-39`.
+        The existing `LuaBundleCasingTest`
+        (`src/test/kotlin/net/internetisalie/lunar/LuaBundleCasingTest.kt:42-55`) picks the new keys up
+        automatically — **add no exclusion for them**; design §2.7 shows all nine pass it as written.
+  - [ ] Edit `src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt` — TC-05-07f.
+        Add `"Lua Remote" to register(LuaAttachSettingsEditor(project))` to the hard-coded `editors()`
+        list (`:140-146`), raise `AUDITED_ROW_COUNT` 27 → **32** (`:159`), and widen
+        `test every checkbox carries a mnemonic` (`:123-127`) from `checkBoxesOf(redisEditor())` to
+        `editors().flatMap { (_, editor) -> checkBoxesOf(editor) }`. **This edit is the mnemonic gate**
+        — that file enumerates four editors by name, so a fifth is invisible to every assertion in it
+        and the suite stays green on an editor with no colons and no mnemonics.
   - [ ] Edit `src/main/resources/META-INF/plugin.xml` — insert the single `<configurationType>`
         of design §7 after `:615-616`.
-- **Exit criteria**: TC-05-04a, TC-05-05a, TC-05-05b, **TC-05-05c**, TC-05-07e, TC-05-12b,
+- **Exit criteria**: TC-05-04a, TC-05-05a, TC-05-05b, **TC-05-05c**, TC-05-07e, **TC-05-07f**, TC-05-12b,
   TC-05-12c green; the
   **Lua Remote (Mobdebug)** template appears in *Run → Edit Configurations → +* with no Run action
   (HV-01), and an attached session **ends when the debuggee disconnects** (**HV-06** — the
@@ -318,8 +357,16 @@ section it realizes; no task requires a design decision.
       `DEBUG-05-00-DR-04`) and run one `verify-in-ide` pass after Phase 3 and one after Phase 4,
       covering at minimum: **HV-01** the *Lua Remote (Mobdebug)* template appears under
       *Run → Edit Configurations → +* and offers **Debug** but **no Run** action; **HV-02** the
-      attach editor renders seven rows in the left label column, sentence case, every leading label
-      ending in a colon; **HV-03** an attached debuggee's `print("x")` reaches the console as
+      attach editor renders **five labelled rows** in the left label column plus **two checkbox
+      rows**, sentence case, every leading label ending in a colon, no label carrying a
+      parenthetical, and — with the dialog focused and **Alt** held — **all seven** rows showing an
+      underlined mnemonic letter (`H D T L R O K`), each Alt+letter moving focus to that row's
+      control (`docs/engineering-contract.md:151`; the unit gate TC-05-07f asserts the *model* —
+      `displayedMnemonic`, `labelFor` — but a painted underline and a working focus traversal are
+      look-and-feel outcomes only a real window shows, as `RunConfigurationEditorTextTest`'s own
+      header says at `src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:24-26`).
+      Check in the same pass that neither `Alt+S` (*Store as project file*) nor `Alt+U` (*Allow
+      multiple instances*) is stolen by a row; **HV-03** an attached debuggee's `print("x")` reaches the console as
       `"x"` (quoted — risks-and-gaps Risk 1.6), so a reviewer does not file it as a bug; **HV-04** a
       mismatched remote root produces the §3.5 console message instead of a silently dead
       breakpoint; **HV-05** with `listenTimeoutSeconds = 0` and no debuggee, the *Connecting to
@@ -328,7 +375,15 @@ section it realizes; no task requires a design decision.
       (**M**), which TC-05-06a cannot reach because it cancels the `Job` programmatically
       (design §5.2 step 4); **HV-06** an attached session whose debuggee exits (or is killed) ends
       in the IDE — the *Stop* action greys out and the Debug tool window reports the process
-      terminated — instead of leaving a live session over a dead socket. HV-06 is the
+      terminated — instead of leaving a live session over a dead socket; **HV-07** in a project whose
+      Lua sources sit in a **nested** directory (never the filesystem root), pause a *launched*
+      session at a breakpoint and then **Step Over**: the editor follows the step to the next line of
+      the same file rather than the Frames pane showing a frame with no source — the end-to-end half
+      of [[BUG-463]], which TC-05-08c pins only at `LuaPosition.localPosition` and not at the
+      `run/LuaDebuggerController.kt:326` call site that reaches it; **HV-08** in an *attach* session
+      with `localRoot != remoteRoot`, **Run to Cursor** on a line in a nested file stops on that line
+      — the only gate on the `run/LuaDebugProcess.kt:78-84` rewire, which no unit row can reach
+      because `LuaDebugProcess` needs a live `XDebugSession` and `ExecutionResult`. HV-06 is the
       `LuaDebugProcess` half of the design §2.4 disconnect bridge
       (`controller.onDisconnect { if (!myClosing) executionResult.processHandler?.destroyProcess() }`):
       TC-05-05c proves only the **controller** half (that the callback fires), and the installation

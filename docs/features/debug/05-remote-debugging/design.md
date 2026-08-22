@@ -174,7 +174,7 @@ produced a false negative; the corrected run is the one above.)
 
 ### Probe N — what a **default** local configuration actually puts on the wire (`DEBUG-05-03`)
 
-`LuaRunConfigurationOptions.myWorkingDirectory` is `string("")` (`run/LuaRunConfiguration.kt:78-82`),
+`LuaRunConfigurationOptions.myWorkingDirectory` is `string("")` (`run/LuaRunConfiguration.kt:79-83`),
 so a configuration the user never edited holds the **empty string, not null**. The shipped
 `listOfNotNull(workingDirectory, project.basePath, "").first()`
 (`run/LuaDebuggerController.kt:80-90`) therefore keeps `""` and never reaches `basePath`, and a
@@ -388,7 +388,10 @@ interpreter through `state.execute(...)` (`:73`). `plugin.xml:602-603` declares 
 | `LuaRemoteStackEntry` / `LuaRemoteStackFrame` | `run/LuaRemoteStack.kt:37-86` | **MODIFIED.** The `virtualFiles` memo map is replaced by `LuaFrameResolver` (§2.2), which owns both the memo and the mapping. |
 | `LuaDebugConnection.handleLine` | `run/LuaDebugConnection.kt:266-338` | **EXTENDED.** One new branch, placed first (§3.6). The Case A / Case B state machine is otherwise byte-for-byte preserved. |
 | `LuaRedisDebugRunner` / `LuaLdbController` | `redis/debug/LuaRedisDebugRunner.kt:31`, `redis/debug/LuaLdbController.kt` | **LEFT ALONE.** `DEBUG-05-14`: a different protocol (LDB, not mobdebug) under a different epic. `LuaRedisDebugRunner.canRun` gates on `LuaRedisRunConfiguration` (`:34-40`), so the two runners cannot collide. Nothing here is merged into it. |
-| `LuaRedisConnectionsConfigurable`'s host/port form | `redis/connection/LuaRedisConnectionsConfigurable.kt:172-173`, `:208` | **PATTERN REUSED** (a `JBTextField` host + a labelled row), not the class. |
+| `LuaRedisConnectionsConfigurable`'s host/port form | `redis/connection/LuaRedisConnectionsConfigurable.kt:174-176`, `:211` | **PATTERN REUSED** (a `JBTextField` host + a labelled row), not the class. |
+| `addMnemonicLabeledComponent` / `withMnemonic` | `src/main/kotlin/net/internetisalie/lunar/ui/LuaFormBuilders.kt:25`, `:39` | **REUSED VERBATIM.** These are the only two calls that produce a working label mnemonic in this repo (BUG-448); §2.7's editor uses them and adds no builder helper of its own. |
+| `RunConfigurationEditorTextTest` | `src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:140-146`, `:159` | **EXTENDED.** Its hard-coded `editors()` list of four gains `LuaAttachSettingsEditor` and `AUDITED_ROW_COUNT` goes 27 → 32 (TC-05-07f). Without that edit a fifth editor is invisible to every assertion in the file and the suite stays green on an editor with no colons and no mnemonics. |
+| `LuaBundleCasingTest` | `src/test/kotlin/net/internetisalie/lunar/LuaBundleCasingTest.kt:42-55` | **EXTENDED BY DATA.** It scans the whole bundle, so the nine new keys are covered automatically; **no exclusion is added**. It is not sufficient — see §2.7 — which is why TC-05-07e still exists. |
 | DEBUG-06 `LuaTargetValidator` / `LuaTargetChecks` | DEBUG-06 design §2.5 (NEW there) | **EXTENDED** by adding `LuaTargetChecks.attach(configuration)` (§2.8). No existing check, severity or problem type changes. |
 | `LuaLineBreakpointType` | `run/LuaLineBreakpointType.kt:33-38` | **LEFT ALONE.** It keys on the `VirtualFile`'s PSI (`:50`), not on a run configuration, so it already serves an attach session. |
 | `startLuaDebugHarness` | `src/test/kotlin/.../run/LuaDebugHarness.kt:26-55` | **EXTENDED.** Gains a spec carrier so a child can be launched from a *different* root (§2.9); the existing one-line call site keeps working through a default. |
@@ -532,7 +535,7 @@ The three factories are specified in full; none is left to inference.
 fun of(configuration: LuaRunConfiguration): LuaDebugTarget =
     LuaDebugTarget(
         bindAddress = InetAddress.getLoopbackAddress(),                   // DEBUG-05-12 / BUG-456
-        port = configuration.debugPort,                                   // run/LuaRunConfiguration.kt:236-240
+        port = configuration.debugPort,                                   // run/LuaRunConfiguration.kt:237-241
         acceptTimeoutMs = LuaDebuggerController.CONNECT_TIMEOUT_MS.toLong(),
         mapper = LuaPathMapper.identity(
             configuration.effectiveWorkDirectory()?.let(::File),          // :228 — see the note below
@@ -568,14 +571,14 @@ than throwing.
 #### The base-directory derivation changes for a launched session, and the change is deliberate
 
 `of(LuaRunConfiguration)` uses **`configuration.effectiveWorkDirectory()`**
-(`run/LuaRunConfiguration.kt:228`, `workingDirectory?.takeIf { it.isNotEmpty() } ?: project.basePath`).
+(`run/LuaRunConfiguration.kt:229`, `workingDirectory?.takeIf { it.isNotEmpty() } ?: project.basePath`).
 The shipped controller uses `listOfNotNull(configuration.workingDirectory, session.project.basePath,
 "").first()` (`run/LuaDebuggerController.kt:80-90`). **These differ for the most common configuration
 there is**, and an earlier draft of this design wrongly claimed the wire bytes were identical:
 
 | Configuration | Today (shipped) | This design |
 | :-- | :-- | :-- |
-| working directory `""` (the default — `myWorkingDirectory` is `string("")`, `:78-82`), `basePath = /home/u/proj` | `BASEDIR /` + `SETB home/u/proj/a.lua` | `BASEDIR /home/u/proj/` + `SETB a.lua` |
+| working directory `""` (the default — `myWorkingDirectory` is `string("")`, `:79-83`), `basePath = /home/u/proj` | `BASEDIR /` + `SETB home/u/proj/a.lua` | `BASEDIR /home/u/proj/` + `SETB a.lua` |
 | working directory `/home/u/proj` (explicitly set) | `BASEDIR /home/u/proj/` + `SETB a.lua` | identical |
 | working directory `""`, `basePath == null` | `BASEDIR /` + `SETB home/u/proj/a.lua` | **no `BASEDIR` sent** + `SETB /home/u/proj/a.lua` |
 
@@ -596,7 +599,7 @@ re-introducing the `startsWith` arithmetic §2.1 forbids **and** keeping a wire 
 [[BUG-463]].
 
 **Why the new rule is right.** `effectiveWorkDirectory()` is already what the launched child gets as
-its process working directory (`run/LuaRunConfiguration.kt:314-315`), so `BASEDIR` and the debuggee's
+its process working directory (`run/LuaRunConfiguration.kt:315-316`), so `BASEDIR` and the debuggee's
 cwd finally agree — which is what `basedir` means. N3 measures it binding, with a short relative
 wire path. The `basePath == null` row degrades to "no `BASEDIR`", which N4 measures as binding too,
 with **absolute** wire paths that resolve directly.
@@ -746,7 +749,7 @@ class LuaAttachRunConfiguration(project: Project, factory: ConfigurationFactory?
 ```
 
 Every `StoredProperty` follows the shape of `LuaRunConfigurationOptions`
-(`run/LuaRunConfiguration.kt:65-186`): a `private val myX: StoredProperty<…> =
+(`run/LuaRunConfiguration.kt:66-188`): a `private val myX: StoredProperty<…> =
 string("")/property(default).provideDelegate(this, "x")` plus a `var x` accessor pair.
 
 **Grounding for the two marker interfaces.**
@@ -807,21 +810,21 @@ override fun canRun(executorId: String, runProfile: RunProfile): Boolean =
 ```
 
 `LuaRunConfiguration` (MODIFIED) gains one constant and one `internal` seam so the debuggee's
-dial-back host is testable without spawning a process. `startProcess` (`:319-335`) replaces its
+dial-back host is testable without spawning a process. `startProcess` (`:321-336`) replaces its
 four `withEnvironment` calls with the single three-argument call shown below.
 
-**Both new declarations go in the existing `companion object` (`run/LuaRunConfiguration.kt:355-362`),
-beside `ENV_MOBDEBUG_PORT` (`:361`) — not on the class.** That is what makes TC-05-04a's
+**Both new declarations go in the existing `companion object` (`run/LuaRunConfiguration.kt:356-363`),
+beside `ENV_MOBDEBUG_PORT` (`:362`) — not on the class.** That is what makes TC-05-04a's
 `LuaRunConfiguration.debuggerEnvironment(…)` and `LuaRunConfiguration.ENV_MOBDEBUG_HOST` resolve;
 written as instance members they would not compile at that call site. **That is the whole reason —
 not reachability from `startProcess`.** `startProcess` reaches either placement equally: it already
-calls the instance members `effectiveWorkDirectory()` (`run/LuaRunConfiguration.kt:314`) and
-`debugPort` (`:334`) on the outer receiver from inside the anonymous `CommandLineState`
-(`:291-292`), so an instance `debuggerEnvironment` would compile there fine. It would not compile in
+calls the instance members `effectiveWorkDirectory()` (`run/LuaRunConfiguration.kt:315`) and
+`debugPort` (`:335`) on the outer receiver from inside the anonymous `CommandLineState`
+(`:292-293`), so an instance `debuggerEnvironment` would compile there fine. It would not compile in
 TC-05-04a, which has no instance.
 
 ```kotlin
-// inside LuaRunConfiguration's companion object, run/LuaRunConfiguration.kt:355-362
+// inside LuaRunConfiguration's companion object, run/LuaRunConfiguration.kt:356-363
 internal fun debuggerEnvironment(
     pluginLuaPath: String,
     preloaderPath: String,
@@ -843,25 +846,25 @@ commandLine.withEnvironment(debuggerEnvironment(pluginLuaPath.path, debuggerPrel
 ```
 
 **Where `target` comes from at this call site.** `startProcess` is the body of the anonymous
-`CommandLineState` declared inside `LuaRunConfiguration.getState` (`run/LuaRunConfiguration.kt:291-292`),
-so the qualified receiver `this@LuaRunConfiguration` is in scope — the same receiver `:314`'s
-`effectiveWorkDirectory()` and `:334`'s `debugPort` already use. `LuaDebugTarget.of(LuaRunConfiguration)`
+`CommandLineState` declared inside `LuaRunConfiguration.getState` (`run/LuaRunConfiguration.kt:292-293`),
+so the qualified receiver `this@LuaRunConfiguration` is in scope — the same receiver `:315`'s
+`effectiveWorkDirectory()` and `:335`'s `debugPort` already use. `LuaDebugTarget.of(LuaRunConfiguration)`
 (§2.3) is the launched-session factory, so `target.port` is `configuration.debugPort` — byte-identical
-to the `MOBDEBUG_PORT` value `:334` writes today — and `target.debuggeeHost()` is the loopback address
+to the `MOBDEBUG_PORT` value `:335` writes today — and `target.debuggeeHost()` is the loopback address
 the same factory pins. The line is added inside the existing
-`if (executor.getId() == DefaultDebugExecutor.EXECUTOR_ID)` block (`:319`): the four
-`withEnvironment` calls at `:328-334` collapse into one, so the block is two statements shorter even
+`if (executor.getId() == DefaultDebugExecutor.EXECUTOR_ID)` block (`:321`): the four
+`withEnvironment` calls at `:329-335` collapse into one, so the block is two statements shorter even
 with the new `val`.
 
 `debuggerEnvironment` returns exactly
 
 | Key | Value | Was |
 | :-- | :-- | :-- |
-| `LUNAR_LUA_PATH_TEMPLATE` | `"$pluginLuaPath/?/init.lua;$pluginLuaPath/?.lua"` | `:329-331` |
-| `LUNAR_DEBUGGER_PACKAGE` | `DEBUGGER_PACKAGE` (`"mobdebug"`, `:357`) | `:332` |
-| `LUA_INIT` | `"@$preloaderPath"` | `:333` |
-| `MOBDEBUG_PORT` | `target.port.toString()` | `:334` |
-| **`MOBDEBUG_HOST`** | `target.debuggeeHost()` | **NEW** — `const val ENV_MOBDEBUG_HOST = "MOBDEBUG_HOST"` beside `:361` |
+| `LUNAR_LUA_PATH_TEMPLATE` | `"$pluginLuaPath/?/init.lua;$pluginLuaPath/?.lua"` | `:330-332` |
+| `LUNAR_DEBUGGER_PACKAGE` | `DEBUGGER_PACKAGE` (`"mobdebug"`, `:358`) | `:333` |
+| `LUA_INIT` | `"@$preloaderPath"` | `:334` |
+| `MOBDEBUG_PORT` | `target.port.toString()` | `:335` |
+| **`MOBDEBUG_HOST`** | `target.debuggeeHost()` | **NEW** — `const val ENV_MOBDEBUG_HOST = "MOBDEBUG_HOST"` beside `:362` |
 
 Taking `String`s rather than a `VirtualFile` also makes the helper **pure**: TC-05-04a needs no
 VFS, no temp directory and no refresh.
@@ -872,9 +875,100 @@ which is why no Lua change is needed. This is `DEBUG-05-04`.
 ### 2.7 `net.internetisalie.lunar.run.attach.LuaAttachSettingsEditor` (NEW)
 
 `SettingsEditor<LuaAttachRunConfiguration>` built with `FormBuilder`, mirroring
-`LuaRunSettingsEditor` (`run/LuaRunConfiguration.kt:365-431`) but with the contract §6 fixes that
-bind **new** UI: sentence case, and a colon on every leading label
-(`docs/engineering-contract.md:138-143`).
+`LuaRunSettingsEditor` (`run/LuaRunConfiguration.kt:366-433`) with **all three** of the contract §6
+text rules that bind **new** UI: sentence case, a colon on every leading label
+(`docs/engineering-contract.md:138-143`), **and a mnemonic on every label and checkbox**
+(`docs/engineering-contract.md:151` — *"Labels carry mnemonics; the platform underlines 10/10 on a
+comparable page"*). §6 SCOPE (`docs/engineering-contract.md:164`) exempts only the *surviving*
+`FormBuilder` editors; a new one is inside it.
+
+**The class, with every override signature.** `SettingsEditor` declares three members an
+implementation must supply, and all three are stated here so none is invented:
+
+```kotlin
+// src/main/kotlin/net/internetisalie/lunar/run/attach/LuaAttachRunConfiguration.kt (same file, §2.5)
+class LuaAttachSettingsEditor(
+    project: Project,
+) : SettingsEditor<LuaAttachRunConfiguration>() {
+    private val myPanel: JPanel
+    private val bindHostField = JBTextField()
+    private val debugPortField = JBIntSpinner(LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT, 1, 65535)
+    private val listenTimeoutField = JBIntSpinner(0, 0, 3600)
+    private val localRootField = TextFieldWithBrowseButton()
+    private val remoteRootField = JBTextField()
+    private val redirectOutputCheckbox =
+        JBCheckBox(LuaBundle.message("debug.attach.redirectOutput")).withMnemonic()
+    private val autoRestartCheckbox =
+        JBCheckBox(LuaBundle.message("debug.attach.autoRestart")).withMnemonic()
+
+    init {
+        bindHostField.emptyText.text = "127.0.0.1 (loopback only)"
+        remoteRootField.emptyText.text = "Path on the debuggee host, e.g. /srv/app"
+        localRootField.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleDir())
+
+        myPanel =
+            FormBuilder
+                .createFormBuilder()
+                .addMnemonicLabeledComponent(LuaBundle.message("debug.attach.bindHost"), bindHostField)
+                .addMnemonicLabeledComponent(LuaBundle.message("debug.attach.port"), debugPortField)
+                .addMnemonicLabeledComponent(LuaBundle.message("debug.attach.timeout"), listenTimeoutField)
+                .addTooltip("In seconds. 0 waits until you cancel.")
+                .addMnemonicLabeledComponent(LuaBundle.message("debug.attach.localRoot"), localRootField)
+                .addMnemonicLabeledComponent(LuaBundle.message("debug.attach.remoteRoot"), remoteRootField)
+                .addComponent(redirectOutputCheckbox)
+                .addComponent(autoRestartCheckbox)
+                .panel
+    }
+
+    override fun createEditor(): JComponent = myPanel
+
+    override fun resetEditorFrom(runConfiguration: LuaAttachRunConfiguration) {
+        bindHostField.text = runConfiguration.bindHost
+        debugPortField.number = runConfiguration.debugPort
+        listenTimeoutField.number = runConfiguration.listenTimeoutSeconds
+        localRootField.text = runConfiguration.localRoot ?: ""
+        remoteRootField.text = runConfiguration.remoteRoot ?: ""
+        redirectOutputCheckbox.isSelected = runConfiguration.redirectOutput
+        autoRestartCheckbox.isSelected = runConfiguration.autoRestart
+    }
+
+    override fun applyEditorTo(runConfiguration: LuaAttachRunConfiguration) {
+        runConfiguration.bindHost = bindHostField.text
+        runConfiguration.debugPort = debugPortField.number
+        runConfiguration.listenTimeoutSeconds = listenTimeoutField.number
+        runConfiguration.localRoot = localRootField.text
+        runConfiguration.remoteRoot = remoteRootField.text
+        runConfiguration.redirectOutput = redirectOutputCheckbox.isSelected
+        runConfiguration.autoRestart = autoRestartCheckbox.isSelected
+    }
+}
+```
+
+The three signatures are copied from the sibling verbatim — `createEditor(): JComponent`
+(`run/LuaRunConfiguration.kt:432`), `resetEditorFrom(runConfiguration: T)` (`:410`) and
+`applyEditorTo(runConfiguration: T)` (`:421`); neither declares a checked exception, and neither
+does this one.
+
+**The two calls that produce the mnemonics — use these, not `FormBuilder`'s own `String`
+overload.** `net.internetisalie.lunar.ui.addMnemonicLabeledComponent(labelText, component)`
+(`src/main/kotlin/net/internetisalie/lunar/ui/LuaFormBuilders.kt:25`) for a labelled row, and
+`net.internetisalie.lunar.ui.withMnemonic()` on an `AbstractButton` (`:39`) for a checkbox. Both read
+the letter marked with `&` out of the text they are given and hand it to
+`com.intellij.util.ui.DialogUtil.registerMnemonic`, then drop the marker. `FormBuilder`'s own
+`addLabeledComponent(String, JComponent)` **cannot** be used with a marked label: it runs the text
+through `UIUtil.replaceMnemonicAmpersand`, which rewrites `&R` to `U+001B R`, and hands the result to
+a bare `JLabel` that sets no mnemonic and leaves the control character in the visible text — measured
+on the GoLand 2026.1 test platform and recorded in that helper's KDoc (`LuaFormBuilders.kt:12-24`)
+and in `RunConfigurationEditorTextTest`'s `test no label leaks the mnemonic escape character`
+(`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:57-64`). The four
+shipped editors all use the helper exclusively (`run/LuaRunConfiguration.kt:399-406`,
+`run/test/LuaTestRunConfiguration.kt:329-335`, `rocks/run/LuaRocksRunConfiguration.kt:311-315`,
+`redis/run/LuaRedisRunConfiguration.kt:343-353`), which is the sibling shape this editor mirrors.
+
+**Where the `&` lives: in the bundle *value*.** The helper takes the marker out of the label text it
+is handed, and that text is `LuaBundle.message(key)`, so the marker is written into
+`LuaBundle.properties`. `&` has no special meaning in a `.properties` file, so no escaping is
+involved. This is also why TC-05-07e strips `&` before its casing scan.
 
 **Every label is a `LuaBundle` key, not a literal — and this AGREES with DEBUG-06 §3.3 rather than
 departing from it.** §3.3 (as corrected in `1a5d5b70`, before this artifact's revision) decides that
@@ -896,31 +990,92 @@ labels elsewhere — `LuaApplicationSettingsPanel.kt:37-39` builds its two check
   in §2.8 — stay literals **because** DEBUG-06 §3.3's rule governs them. Nothing here restyles a
   sibling's `planned` design.
 
-Nine keys are added to `LuaBundle.properties`, under the existing `# debugging` section:
+**Prior art on the casing rule: `LuaBundleCasingTest` — EXTENDED BY DATA, NOT DUPLICATED, AND NOT
+SUFFICIENT.** `src/test/kotlin/net/internetisalie/lunar/LuaBundleCasingTest.kt:42-55` already scans
+**every** value in `LuaBundle.properties` for Title Case, so the nine new keys fall under it the
+moment they are added — nothing has to be registered and **no exclusion may be added for them**.
+Two things follow, and both are load-bearing:
 
-| Key | Value (verbatim) | Component | Bound to |
-| :-- | :-- | :-- | :-- |
-| `debug.attach.bindHost` | `Listen on host:` | `JBTextField` with `emptyText` `"127.0.0.1 (loopback only)"` | `bindHost` |
-| `debug.attach.port` | `Debug port:` | `JBIntSpinner(DEFAULT_DEBUG_PORT, 1, 65535)` — verbatim `:380` | `debugPort` |
-| `debug.attach.timeout` | `Listen timeout (seconds):` | `JBIntSpinner(0, 0, 3600)` with `comment("0 waits until you cancel")` | `listenTimeoutSeconds` |
-| `debug.attach.localRoot` | `Local source root:` | `TextFieldWithBrowseButton` + `FileChooserDescriptorFactory.singleDir()` — verbatim `:390-393` | `localRoot` |
-| `debug.attach.remoteRoot` | `Remote source root:` | `JBTextField` with `emptyText` `"Path on the debuggee host, e.g. /srv/app"` | `remoteRoot` |
-| `debug.attach.redirectOutput` | `Redirect debuggee output to the console` | `JBCheckBox` | `redirectOutput` |
-| `debug.attach.autoRestart` | `Keep listening after the debuggee disconnects` | `JBCheckBox` | `autoRestart` |
-| `debug.attach.type.name` | `Lua Remote (Mobdebug)` | — | `LuaAttachRunConfigurationType`'s display name |
-| `debug.attach.type.description` | `Attach to a running Lua process that dials back with mobdebug` | — | its description |
+- **All nine values pass it as written.** Its `isTitleCase` requires *every* non-product word to
+  match `CAPITALIZED_WORD = ^[A-Z][a-z]+$` (`LuaBundleCasingTest.kt:7`, `:57-60`).
+  `Lua Remote (Mobdebug)` survives because `(Mobdebug)` cannot match that shape, and the sentence-case
+  values survive on their lower-case words. An implementer who sees a red `noControlLabelIsTitleCase`
+  has mistyped a value, not found a needed exclusion.
+- **It cannot replace TC-05-07e, because it cannot see a Title-Case *leading label at all*.** The
+  trailing colon this feature's five leading labels all carry makes the last word (`Root:`) fail
+  `^[A-Z][a-z]+$`, so `all { … }` is false and `Remote Source Root:` is **not** flagged; a leading `&`
+  defeats it the same way (`&Remote` does not match either). TC-05-07e is therefore a strictly
+  stronger, DEBUG-05-scoped scan — first word capitalised, no later word upper-case-initial after the
+  `&` marker is stripped — and it is deliberately *not* a widening of `LuaBundleCasingTest`, whose
+  repo-wide loosening is BUG-448's business and not this feature's.
 
-The two `emptyText` strings and the `comment` stay literals: they are placeholders and hints, not
-control labels, and the contract's casing rule is written for labels.
+Nine keys are added to `LuaBundle.properties`, under the existing `# debugging` section. **The
+`Value (verbatim)` column is the exact right-hand side to type, `&` included.**
+
+| Key | Value (verbatim) | Mnemonic | Component | Bound to |
+| :-- | :-- | :-- | :-- | :-- |
+| `debug.attach.bindHost` | `Listen on &host:` | `H` | `JBTextField` with `emptyText` `"127.0.0.1 (loopback only)"` | `bindHost` |
+| `debug.attach.port` | `&Debug port:` | `D` | `JBIntSpinner(DEFAULT_DEBUG_PORT, 1, 65535)` — verbatim `:381` | `debugPort` |
+| `debug.attach.timeout` | `Listen &timeout:` | `T` | `JBIntSpinner(0, 0, 3600)`, followed by `.addTooltip("In seconds. 0 waits until you cancel.")` | `listenTimeoutSeconds` |
+| `debug.attach.localRoot` | `&Local source root:` | `L` | `TextFieldWithBrowseButton` + `FileChooserDescriptorFactory.singleDir()` — verbatim `:391-394` | `localRoot` |
+| `debug.attach.remoteRoot` | `&Remote source root:` | `R` | `JBTextField` with `emptyText` `"Path on the debuggee host, e.g. /srv/app"` | `remoteRoot` |
+| `debug.attach.redirectOutput` | `Redirect debuggee &output to the console` | `O` | `JBCheckBox(...).withMnemonic()` | `redirectOutput` |
+| `debug.attach.autoRestart` | `&Keep listening after the debuggee disconnects` | `K` | `JBCheckBox(...).withMnemonic()` | `autoRestart` |
+| `debug.attach.type.name` | `Lua Remote (Mobdebug)` | — (not a control label) | — | `LuaAttachRunConfigurationType`'s display name |
+| `debug.attach.type.description` | `Attach to a running Lua process that dials back with mobdebug` | — (not a control label) | — | its description |
+
+**Collision check for the seven letters — `H D T L R O K`.** Three scopes, checked in order:
+
+1. **Within this editor.** All seven are distinct. This is the scope
+   `RunConfigurationEditorTextTest`'s `test mnemonics are unique inside each editor` enforces:
+   `collisionIn` groups `formLabelsOf(editor)` **per editor**
+   (`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:163-170`).
+2. **Against the platform chrome drawn around the editor in the same dialog.** The Run/Debug
+   Configurations dialog contributes `Allow m&ultiple instances` (`U`) and `&Store as project file`
+   (`S`) — `platform/execution/resources/messages/ExecutionBundle.properties:266`, `:267`. Neither
+   `U` nor `S` is used here. (The shipped `LuaRunSettingsEditor` does collide with `S` via
+   `&Script file:`; that is pre-existing and is **not** propagated into this editor.)
+3. **Against the four sibling editors.** *No collision is possible*, because they are never on
+   screen together: the dialog mounts exactly one `SettingsEditor`, the one belonging to the selected
+   configuration type. `LuaRunSettingsEditor` uses `R S W T E A P D`
+   (`run/LuaRunConfiguration.kt:399-406`), `LuaTestSettingsEditor` `f T a R W E v`
+   (`run/test/LuaTestRunConfiguration.kt:329-335`), `LuaRocksRunSettingsEditor` `C A R G v`
+   (`rocks/run/LuaRocksRunConfiguration.kt:311-315`), `LuaRedisSettingsEditor` `S C E D K A F` plus
+   checkbox `o l n` (`redis/run/LuaRedisRunConfiguration.kt:324-353`). Overlaps with this editor's
+   letters therefore carry no consequence, and none is treated as one.
+
+**No label carries a parenthetical.** `Listen timeout:` does **not** say `(seconds)`: contract
+§6 puts explanation in a hint, not in parentheses inside the label
+(`docs/engineering-contract.md:147-148` — it names `comment()`/`emptyText`, the Kotlin UI DSL v2
+idiom; `FormBuilder`'s equivalent, and the only one available in a `FormBuilder` panel, is
+`addTooltip`), and
+`RunConfigurationEditorTextTest`'s `test no label carries a parenthetical hint`
+(`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:66-73`) is a live
+assertion that fails on one. The unit and the `0` semantics go to
+`FormBuilder.addTooltip(String)` — the house call for a sub-label hint
+(`platform/platform-api/src/com/intellij/util/ui/FormBuilder.java:125`, in-repo at
+`redis/run/LuaRedisRunConfiguration.kt:348`, `:353`, `:355`, `:357`). **`FormBuilder` has no
+`comment(...)` method**; the `comment(` call sites in this repo are all Kotlin UI DSL v2
+`Configurable`s, a different builder, and naming one here would not compile.
+
+The two `emptyText` strings and the tooltip stay literals: they are placeholders and hints, not
+control labels, and the contract's casing rule is written for labels. `emptyText` is set through
+`ComponentWithEmptyText`, which `JBTextField` implements
+(`platform/platform-api/src/com/intellij/ui/components/JBTextField.java:27`); in-repo idiom at
+`toolchain/ui/LuaProjectConfigurable.kt:330`.
 
 `JBTextField`/`JBCheckBox` are the platform components the contract mandates over their Swing
 ancestors (`docs/engineering-contract.md:128-131`); both are already used in this repo
-(`redis/connection/LuaRedisConnectionsConfigurable.kt:172`,
+(`redis/connection/LuaRedisConnectionsConfigurable.kt:175`,
 `settings/LuaApplicationSettingsPanel.kt:37`). Checkbox labels take no trailing colon — they are
 not leading labels.
 
+**Row count.** The form has **five** labelled rows (`formLabelsOf` counts a `JLabel` with a non-null
+`labelFor`, so the `addTooltip` label is excluded — `RunConfigurationEditorProbe.kt:26-29`) and two
+checkbox rows. That five is what raises `AUDITED_ROW_COUNT` from 27 to 32 in TC-05-07f.
+
 **The screenshot pass is the gate** (`docs/engineering-contract.md:159-163`): this is a new
-visible surface, so `verify-in-ide` is a required verification task, listed in the plan.
+visible surface, so `verify-in-ide` is a required verification task, listed in the plan (HV-02).
 
 ### 2.8 `LuaTargetChecks.attach(configuration)` (extends DEBUG-06) (NEW list, NEW checks)
 
@@ -1043,7 +1198,7 @@ environment().putAll(spec.environment)                 // last, so a spec entry 
 `TestLuaDebugHarness.testBreakpointAndExec` keeps its current environment byte for byte, except
 that `MOBDEBUG_PORT` is now stated rather than defaulted — `LuaHarnessSpec.port` defaults to
 `LuaRunConfigurationOptions.DEFAULT_DEBUG_PORT`, which is the same `8172`
-(`run/LuaRunConfiguration.kt:185`) the preloader falls back to.
+(`run/LuaRunConfiguration.kt:186`) the preloader falls back to.
 
 ## 3. Algorithms
 
@@ -1266,10 +1421,16 @@ session has two *different* roots — so no local session pays for it:
    `session.reportError(message)` — the idiom already at `run/LuaDebuggerController.kt:336-337`.
 
 `DebugCommandKind.STACK` currently declares `minArgs = 0, maxArgs = 0`
-(`run/LuaDebugConnection.kt:93-100`, defaults from `:59-60`). It becomes `maxArgs = 1`. mobdebug
-parses the parameter table with `string.match(line, "--%s*(%b{})%s*$")` (`init.lua:994`), so the
-argument must be the literal `-- {…}` including the comment marker; `DebugCommand.toString`
-(`:162-170`) space-joins it correctly.
+(`run/LuaDebugConnection.kt:93-100`, defaults from `:59-60`). It becomes `maxArgs = 1` — **as a
+declaration-consistency edit only, not as an enabler.** `minArgs`/`maxArgs` are *never read in
+production*: `grep -rn "minArgs\|maxArgs" src/ | grep -v '^src/main/gen'` returns the two
+declarations (`:59-60`), the per-constant values, `TestLuaDebugConnectionParsing.kt:64-65`
+(which asserts `SETB`'s pair), and — unrelated — `analysis/redis/LuaRedisCommandInspection.kt:89-102`,
+whose `minArgs` is a local computed from a Redis `arity`. Nothing validates a `DebugCommand` against
+its kind's declared arity, so the `-- {maxlevel=1}` argument would be sent correctly with or without
+this edit; `DebugCommand.toString` (`:162-170`) space-joins `args` unconditionally. Make the edit so
+the declared model does not lie about the protocol, and **do not** claim a test covers it — see the
+plan's Phase 2 note.
 
 **Report, do not infer.** EmmyLua's `recognizeBaseDir` guesses the mapping by suffix-matching the
 chunk name against a project file found by name. That is deliberately **not** done here: an
@@ -1698,7 +1859,7 @@ Steps 1–5 as above but remote root `/ide/proj` while the debuggee runs from `/
 | Launched session with an **empty** working directory (the default) | `effectiveWorkDirectory()` returns `project.basePath`, so `BASEDIR <basePath>/` is sent and wire paths are project-relative. Today's `BASEDIR /` with root-relative wire paths is **replaced** — declared in §2.3, measured in §0 Probe N, risked as Risk 1.8, pinned by TC-05-03c. |
 | Launched session with an empty working directory **and** `project.basePath == null` | `effectiveWorkDirectory()` returns `null` → `LuaPathMapper.identity(null)` → `baseDirArgument()` is `null` → **no `BASEDIR` is sent** (§3.7 step 1 returns without sending). mobdebug's `basedir` stays `""` (`init.lua:129`), chunk names stay absolute, and `toWire` returns absolute paths, which match. Measured to bind: §0 Probe N4. Today this shape sends `BASEDIR /`. |
 | Remote root (or a launched session's working directory) is exactly `/` | `trimSlash` returns `"/"` unchanged (`PathMappingSettings.java:289-291`), so it is the only root that arrives slash-terminated. §3.2's `remoteRootPrefix` (`normalisedRemoteRoot.removeSuffix("/")`) collapses it to `""`, giving `BASEDIR /` — what the shipped controller sends today — and `joinRemote("sub/a.lua") == "/sub/a.lua"`. Without the guard both would double the slash (`BASEDIR //`, which `init.lua:657`'s literal `gsub` can never match). `toWire` is unaffected: `canReplaceLocal` is `false` for a `/` root against any deeper path, so step 4 returns it absolute. Measured in §0 Probe O; pinned by TC-05-03d. |
-| `redirectOutput` on a **launched** session | Off by default (§2.3). The child's stdout is already piped into the console by `ProcessHandlerFactory.createColoredProcessHandler` (`run/LuaRunConfiguration.kt:344-347`); mode `r` would silence it and mode `c` would double it. |
+| `redirectOutput` on a **launched** session | Off by default (§2.3). The child's stdout is already piped into the console by `ProcessHandlerFactory.createColoredProcessHandler` (`run/LuaRunConfiguration.kt:345-348`); mode `r` would silence it and mode `c` would double it. |
 | `clearRemoteBreakpoints` on a launched session | Off by default: a process the IDE just spawned holds no breakpoints, and the extra round trip is pure latency. |
 | `autoRestart` with the listener already closed | Step 3 of §3.9 re-opens it; `openListener` is idempotent from the caller's point of view because `serverSocket` is checked first. |
 | `204 Output` with a zero byte count | `DbgpFraming.readExactly(input, 0)` returns `""` (`run/DbgpFraming.kt:46`); the observer is called with an empty string and `printToConsole` prints a bare newline. Harmless. |
@@ -1819,6 +1980,11 @@ Omitting it makes every path-resolution row fail for a reason unrelated to its m
 - `src/test/kotlin/net/internetisalie/lunar/run/TestLuaDebugHarness.kt` (**MODIFIED**) — one new
   end-to-end case, `testBreakpointBindsAcrossDifferingRoots`.
 - `src/test/kotlin/net/internetisalie/lunar/run/LuaDebugHarness.kt` (**MODIFIED**) — §2.9.
+- `src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt` (**MODIFIED**) —
+  TC-05-07f. A `BasePlatformTestCase` (JUnit3 naming, **no `@Test`**) whose assertions are
+  file-wide but whose subject list is hard-coded; the edit is three lines, listed as a Phase 3 task.
+  Note the `Disposer.register(testRootDisposable, editor)` wrapper (`:149-152`) — the new editor
+  goes through the same `register(...)` helper, not raw construction.
 
 **Shared fixture helper** in `TestLuaFrameResolver` and the harness test:
 
@@ -1860,13 +2026,13 @@ exact class, never `assertFailsWith<Supertype>`.
 | :-- | :-- | :-- | :-- | :-- |
 | TC-05-03a | `-03`, `-07` | `LuaPathMapper("/ide/proj", "/srv/app")`; local path `/ide/projekt/a.lua` | `assertEquals("/ide/projekt/a.lua", mapper.toWire("/ide/projekt/a.lua"))` | Replace §3.2 step 1's `mapping.mapToRemote(localPath)` with a hand-rolled `if (localPath.startsWith(localRoot)) remoteRoot + localPath.removePrefix(localRoot) else localPath`. Compiles (both `String`). Reachable: `/ide/projekt` shares the *character* prefix `/ide/proj` but not the *segment*, so the mutant returns `/srv/appekt/a.lua`. |
 | TC-05-03b | `-03` | `LuaPathMapper.identity(File("/ide/proj"))`; local path `/ide/proj/sub/a.lua` | `assertEquals("sub/a.lua", mapper.toWire(...))`; `assertEquals("/ide/proj/", mapper.baseDirArgument())`; `assertTrue(mapper.isIdentity())` | Drop §3.2 step 3 (the `removePrefix` of the remote root). Compiles. Reachable: the mutant returns `/ide/proj/sub/a.lua`, so the first assertion fails — this is the capability-A regression guard. |
-| TC-05-03c | `-03` | `TestLuaDebugTarget`; `LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")` left with **`workingDirectory == ""`** — the untouched default, pinned first with `assertEquals("", config.workingDirectory)` so the fixture cannot silently drift to `null`; `val basePath = assertNotNull(myFixture.project.basePath)`; then `LuaDebugTarget.of(config)` | `assertEquals(basePath, target.mapper.localRoot)`; `assertEquals("$basePath/", target.mapper.baseDirArgument())`; `assertTrue(target.mapper.isIdentity())` | Replace §2.3's `configuration.effectiveWorkDirectory()` with the shipped derivation `listOfNotNull(configuration.workingDirectory, configuration.project.basePath, "").first()` (`run/LuaDebuggerController.kt:80-90`). Compiles — both expressions feed `?.let(::File)` as `String?`/`String`, and `.first()` on a non-empty list is total. Reachable **because this fixture's working directory is empty, not unset**: `listOfNotNull` keeps `""`, so the mutant's root is `""`, `LuaPathMapper("", "")` is an empty `PathMapping`, `baseDirArgument()` returns `null` and the second assertion fails. TC-05-03b cannot catch it (it constructs the mapper directly and never touches the derivation). **`project.basePath` is non-null in this fixture** — `TestLuaPosition.kt:21` and `:85` both do `File(myFixture.project.basePath!!)` from the same `BaseDocumentTest` base (`TestLuaPosition.kt:12`) and are green, so the `!!` proves non-nullness under this fixture and the row cannot degrade into null-equals-null. (`TestLuaRunConfiguration.testEmptyWorkingDirectoryFallsBackToBasePath` (`:142-153`) is **not** evidence for this: it asserts `assertEquals(myFixture.project.basePath, config.effectiveWorkDirectory())`, whose two sides move together and stay green when both are null.) |
+| TC-05-03c | `-03` | `TestLuaDebugTarget`; `LuaRunConfiguration(myFixture.project, LuaRunConfigurationFactory(LuaRunConfigurationType()), "cfg")` left with **`workingDirectory == ""`** — the untouched default, pinned first with `assertEquals("", config.workingDirectory)` so the fixture cannot silently drift to `null`; `val basePath = assertNotNull(myFixture.project.basePath)`; then `LuaDebugTarget.of(config)` | `assertEquals(basePath, target.mapper.localRoot)`; `assertEquals("$basePath/", target.mapper.baseDirArgument())`; `assertTrue(target.mapper.isIdentity())` | Replace §2.3's `configuration.effectiveWorkDirectory()` with the shipped derivation `listOfNotNull(configuration.workingDirectory, configuration.project.basePath, "").first()` (`run/LuaDebuggerController.kt:80-90`). Compiles — both expressions feed `?.let(::File)` as `String?`/`String`, and `.first()` on a non-empty list is total. Reachable **because this fixture's working directory is empty, not unset**: `listOfNotNull` keeps `""`, so the mutant's root is `""`, `LuaPathMapper("", "")` is an empty `PathMapping`, `baseDirArgument()` returns `null` and the second assertion fails. TC-05-03b cannot catch it (it constructs the mapper directly and never touches the derivation). **`project.basePath` is non-null in this fixture, and the row is safe even if that were ever to change** — the fixture binds it with `assertNotNull`, which *fails the test* rather than yielding `null`, so this row can never degrade into a null-equals-null tautology no matter what the platform returns. The premise is separately evidenced: `TestLuaPosition.kt:21` and `:85` both do `File(myFixture.project.basePath!!)` from the same `BaseDocumentTest` base (`TestLuaPosition.kt:12`) and are green, so a null would already be crashing the shipped suite. (`TestLuaRunConfiguration.testEmptyWorkingDirectoryFallsBackToBasePath` (`:142-153`) is **not** evidence for this: it asserts `assertEquals(myFixture.project.basePath, config.effectiveWorkDirectory())`, whose two sides move together and stay green when both are null.) |
 | TC-05-03d | `-03`, `-08` | `LuaPathMapper.identity(File("/"))` — the launched-session shape whose working directory is the filesystem root (§3.2's `/`-root note); no fixture, the mapper is pure | `assertEquals("/", mapper.baseDirArgument())`; `assertEquals("/sub/a.lua", mapper.toLocalPath("sub/a.lua"))`; `assertEquals("/home/u/a.lua", mapper.toWire("/home/u/a.lua"))`; `assertTrue(mapper.isIdentity())` | Replace `remoteRootPrefix` with `normalisedRemoteRoot` in **both** `joinRemote` and `baseDirArgument()` (§3.2) — i.e. drop the `.removeSuffix("/")`. Compiles: both are `String` and every use site is string concatenation. Reachable **because this fixture's root is `/`, the one root `trimSlash` returns slash-terminated** (`PathMappingSettings.java:289-291`): the mutant yields `"//"` and `"//sub/a.lua"`, so the first two assertions fail. Measured both ways in §0 Probe O. TC-05-03b cannot catch it — its `/ide/proj` root is trimmed, so mutant and correct code agree. |
 | TC-05-07a | `-07` | `LuaPathMapper("/ide/proj", "/srv/app")`; local path `/ide/proj/sub/a.lua` | `assertEquals("sub/a.lua", mapper.toWire(...))` | Change §3.2 step 1 to `val remoteAbsolute = localPath` (skip the mapping), so `toWire` strips `remoteRoot` from a path that is under `localRoot`. Compiles — `remoteAbsolute` keeps its declaration and its type. (**Not** "delete step 1": that would leave `remoteAbsolute` undeclared for steps 2–4 and fail to compile, which is a mutation that asserts nothing.) Reachable: no prefix matches, so the mutant returns `/ide/proj/sub/a.lua`. TC-05-03b cannot catch this (there `localRoot == remoteRoot`, so step 1 is a no-op and the mutant stays green). |
 | TC-05-07b | `-07` | `LuaPathMapper("/ide/proj", "/srv/app")`; local path `/elsewhere/x.lua` | `assertEquals("/elsewhere/x.lua", mapper.toWire(...))` | Replace §3.2 steps 2–4 with the shipped rule `FileUtil.getRelativePath(localRoot?.let(::File), File(localPath)) ?: localPath` (`run/LuaPosition.kt:43`). Compiles **with the `?.let`, which is not decoration**: `localRoot` is `String?` (§2.1), so `File(localRoot)` would not compile, while `getRelativePath`'s `base` parameter is an unannotated Java `File` (platform type `File!`, `FileUtil.java:100`) and accepts a `File?` — exactly as `run/LuaPosition.kt:43` already passes its nullable `workingDir`. Reachable: measured against GoLand 2026.1.3's `util-8.jar` on corretto-21, `getRelativePath(/ide/proj, /elsewhere/x.lua)` returns `../../elsewhere/x.lua` (and `sub/a.lua` for a path under the root), so the mutant yields the `..`-prefixed form Probe J1 shows cannot bind and the assertion fails. |
 | TC-05-08a | `-08` | `LuaPathMapper("$scratch/ide", "/srv/app")`; a real file at `$scratch/ide/sub/a.lua`; `LuaFrameResolver(mapper)` | `assertEquals("$scratch/ide/sub/a.lua", resolver.resolve("sub/a.lua")?.path)` | Change §3.2 `toLocalPath` step 2 to return `wirePath` unchanged for relative inputs (drop the `joinRemote`). Compiles. Reachable: `findFileByPath("sub/a.lua")` is `null`, so the assertion fails on a null receiver. |
 | TC-05-08b | `-08` | `LuaPathMapper("$scratch/ide", "/srv/app")`; a real file at `$scratch/ide/sub/a.lua`; wire path `/srv/app/sub/a.lua` (absolute) | `assertEquals("$scratch/ide/sub/a.lua", resolver.resolve("/srv/app/sub/a.lua")?.path)` | Invert `toLocalPath` step 2's test to `!File(wirePath).isAbsolute`, so every wire path is joined to the remote root. Compiles cleanly (an inversion, not an `if (false)` the compiler flags as unreachable). Reachable: the mutant builds `/srv/app//srv/app/sub/a.lua`, which does not resolve. TC-05-08a cannot catch it (its input is relative). |
-| TC-05-08c | `-08`, [[BUG-463]] | `TestLuaFrameResolver`; a real file at `$scratch/ide/sub/a.lua` refreshed into the VFS (`LuaFileUtilTest.kt:30-33` idiom); `LuaPathMapper.identity(File("$scratch/ide"))`; `LuaPosition("sub/a.lua", 2).localPosition(mapper)` | `assertNotNull(position)`; `assertEquals("$scratch/ide/sub/a.lua", position.file.path)`; `assertEquals(1, position.line)` (0-indexed in the IDE — `createLocalPosition` subtracts one, `run/LuaPosition.kt:55`) | Restore the shipped body `findFileByPath(path)` in `localPosition` (`run/LuaPosition.kt:31-35`), ignoring the mapper. Compiles — the parameter may go unused. Reachable **because the fixture is nested under `$scratch/ide` rather than at `/`**: the mutant calls `findFileByPath("sub/a.lua")`, which returns `null`, `createLocalPosition` short-circuits at `:54` and `assertNotNull` fails. [[BUG-463]] §5 records the trap this row is built to avoid — *a fixture rooted at `/` stays green under this mutation*, so the fixture's depth **is** the test. This is the only row that covers the non-breakpoint pause path (`run/LuaDebuggerController.kt:326`), which Phase 1 fixes incidentally. |
+| TC-05-08c | `-08`, [[BUG-463]] | `TestLuaFrameResolver`; a real file at `$scratch/ide/sub/a.lua` refreshed into the VFS (`LuaFileUtilTest.kt:30-33` idiom); `LuaPathMapper.identity(File("$scratch/ide"))`; `LuaPosition("sub/a.lua", 2).localPosition(mapper)` | `assertNotNull(position)`; `assertEquals("$scratch/ide/sub/a.lua", position.file.path)`; `assertEquals(1, position.line)` (0-indexed in the IDE — `createLocalPosition` subtracts one, `run/LuaPosition.kt:55`) | Restore the shipped body `findFileByPath(path)` in `localPosition` (`run/LuaPosition.kt:31-35`), ignoring the mapper. Compiles — the parameter may go unused. Reachable **because the fixture is nested under `$scratch/ide` rather than at `/`**: the mutant calls `findFileByPath("sub/a.lua")`, which returns `null`, `createLocalPosition` short-circuits at `:54` and `assertNotNull` fails. [[BUG-463]] §5 records the trap this row is built to avoid — *a fixture rooted at `/` stays green under this mutation*, so the fixture's depth **is** the test. **What this row does NOT cover.** It pins `LuaPosition.localPosition` itself, not the call site that reaches it: `run/LuaDebuggerController.kt:326` could be rewired to `localPosition(LuaPathMapper(null, null))` and this row would stay green while [[BUG-463]] stayed live in the pause path. The argument at that call site is therefore fixed **by name** in Phase 1 task 3, and the end-to-end behaviour is **HV-07** — it has no unit row because it needs a live pause from a real debuggee. |
 | TC-05-09a | `-09` | `TestLuaFrameResolver`; a real file at `$scratch/proj/src/module/target.lua`; a stack chunk whose frame tuple is `{ nil, "src/module/target.lua", 0, 5, "main", "", "...ted_project_directory_name/src/module/target.lua" }` — field 7 verbatim from Probe I, i.e. `...`-truncated; identity mapper on `$scratch/proj` | `assertEquals("target.lua", stack.entries.first().frame.virtualFile?.name)` | In `LuaRemoteStackFrame`, resolve from `path` (index 6) instead of `file` (index 1) — the shipped code. Compiles (`path` and `file` are both `String`). Reachable: this fixture's field 7 begins with `...`, so `findFileByPath` returns `null` and the assertion fails. **This is the only row where field 6 and field 2 disagree**, which is why the existing 43-character fixtures in `TestLuaRemoteStackFrames.kt:15-19` are blind to it. |
 | TC-05-09b | `-09`, `-08` | Same file. The fixture **creates a real file literally named `=[C]`** at `$scratch/proj/=[C]` (a legal POSIX filename) and refreshes it into the VFS, then parses the `=[C]` frame from `TestLuaRemoteStackFrames.kt:19` (`{ nil, "=[C]", -1, -1, "C", "", "[C]" }`) with an identity mapper on `$scratch/proj` | `assertNull(stack.entries.last().frame.virtualFile)`; `assertEquals("=[C]", stack.entries.last().frame.file)` | Delete §3.8 step 1's leading-`=` guard. Compiles (the guard is a plain `if (…) return null`). Reachable **because of the odd fixture file**: without the guard, `toLocalPath("=[C]")` yields `$scratch/proj/=[C]`, which now exists, `findFileByPath` returns it, and `assertNull` fails. The file exists for exactly this reason — with an ordinary fixture the mutant would resolve to `null` anyway and this row would assert nothing. |
 | TC-05-04a | `-04` | `TestLuaAttachRunConfiguration`; `val env = LuaRunConfiguration.debuggerEnvironment("/plugins/lunar/lua", "/plugins/lunar/lua/debug.lua", LuaDebugTarget.fallback())` — two plain `String`s, **no VFS and no temp directory** (§2.6) | `assertEquals("127.0.0.1", env[LuaRunConfiguration.ENV_MOBDEBUG_HOST])`; `assertEquals("8172", env[LuaRunConfiguration.ENV_MOBDEBUG_PORT])`; `assertEquals("@/plugins/lunar/lua/debug.lua", env[LuaRunConfiguration.ENV_LUA_INIT])` | Delete the `MOBDEBUG_HOST` entry from `debuggerEnvironment` (§2.6). Compiles — the other four entries still build a valid `Map<String, String>`. Reachable: the map lookup returns `null` and the first assertion fails. (The `LUA_INIT` assertion has its own mutation: build the value from `pluginLuaPath` instead of `preloaderPath`, which compiles because both are `String` and yields `@/plugins/lunar/lua`.) |
@@ -1877,15 +2043,16 @@ exact class, never `assertFailsWith<Supertype>`.
 | TC-05-06b | `-06` | Same seam; `val thrown = assertFailsWith<Throwable> { runBlocking { withTimeout(4_000) { awaitClient(server, 700L) } } }` | `assertEquals(SocketTimeoutException::class, thrown::class)` — the **exact** class, so a `TimeoutCancellationException` from the outer `withTimeout` does not pass | Delete the deadline test in the `catch` block, leaving `catch (_: SocketTimeoutException) { }`. Compiles. Reachable: the loop then never exits and `withTimeout` fails the test. TC-05-06a cannot catch this (its deadline is unbounded by design). |
 | TC-05-12a | `-12` | `openListener(LuaDebugTarget.fallback().copy(port = 0))` | `assertTrue(server.inetAddress.isLoopbackAddress)`; `assertFalse(server.inetAddress.isAnyLocalAddress)` | Revert `openListener` to `ServerSocket(target.port)` (the shipped constructor at `run/LuaDebuggerController.kt:116`). Compiles. Reachable: measured `wildcard=true` (§0), so both assertions flip. |
 | TC-05-12b | `-12` | An attach configuration with `bindHost = "0.0.0.0"`; `LuaDebugTarget.of(config)` | `assertTrue(target.bindAddress.isAnyLocalAddress)`; and with `bindHost = ""`, `assertTrue(target.bindAddress.isLoopbackAddress)` | Hard-code `InetAddress.getLoopbackAddress()` in `resolveBindAddress` (§3.1). Compiles. Reachable: the `0.0.0.0` half of this fixture's two-value table flips. |
-| TC-05-12c | `-12` | An attach configuration with `bindHost = "a b"`, a `localRoot` that exists and a non-blank `remoteRoot`; `val thrown = assertFailsWith<Throwable> { config.checkConfiguration() }` — i.e. through `LuaTargetValidator.validate(LuaTargetSpec.of(config), LuaTargetChecks.attach(config))` (§2.5), because `LuaTargetChecks.attach` only **builds** the list and never throws | `assertEquals(RuntimeConfigurationError::class, thrown::class)`; `assertTrue(thrown.message!!.contains("a b"))` | Change check A2's severity `FATAL` → `WARNING`. Compiles (both are `LuaTargetSeverity` constants). Reachable: this fixture's only problem is A2, so at `WARNING` `validate` throws `RuntimeConfigurationWarning` instead and the exact-class assertion flips. **The fixture is hermetic**: measured, `InetAddress.getByName("a b")` throws `UnknownHostException` in **0.2 ms** without reaching a resolver (the space is rejected by `getaddrinfo` locally), where `no-such-host.invalid` took 24.7 ms and `999.999.999.999` took 91.3 ms — both real lookups, and both hostage to a wildcard resolver. See §4.4. |
+| TC-05-12c | `-12` | An attach configuration with `bindHost = "a b"`, a `localRoot` that exists and a non-blank `remoteRoot`; `val thrown = assertFailsWith<Throwable> { config.checkConfiguration() }` — i.e. through `LuaTargetValidator.validate(LuaTargetSpec.of(config), LuaTargetChecks.attach(config))` (§2.5), because `LuaTargetChecks.attach` only **builds** the list and never throws | `assertEquals(RuntimeConfigurationError::class, thrown::class)`; `assertTrue(thrown.message.orEmpty().contains("a b"))` — **`orEmpty()`, not `!!`**: `Throwable.message` is `String?`, and the contract forbids `!!` (`docs/engineering-contract.md:27`); a null message would fail the `contains` assertion, which is the outcome wanted | Change check A2's severity `FATAL` → `WARNING`. Compiles (both are `LuaTargetSeverity` constants). Reachable: this fixture's only problem is A2, so at `WARNING` `validate` throws `RuntimeConfigurationWarning` instead and the exact-class assertion flips. **The fixture is hermetic**: measured, `InetAddress.getByName("a b")` throws `UnknownHostException` in **0.2 ms** without reaching a resolver (the space is rejected by `getaddrinfo` locally), where `no-such-host.invalid` took 24.7 ms and `999.999.999.999` took 91.3 ms — both real lookups, and both hostage to a wildcard resolver. See §4.4. |
 | TC-05-10a | `-10` | `TestLuaDebugOutputFrames`; a loopback socket pair; `LuaDebugConnection` on the server side, `running == false` (no `Run`-group command has been sent); the test writes `204 Output stdout 7\n"side"\n200 OK 26\ndo local _={};return _;end` in that order while a `send(EXEC "print('side')")` is in flight | `assertEquals("do local _={};return _;end", result)`; the observer recorded exactly one `onOutput("stdout", "\"side\"\n")` | Move the §3.6b `Output` branch inside the existing `if (running)` block at `run/LuaDebugConnection.kt:296`. Compiles. Reachable: this fixture is paused, so `running` is `false`, the branch never fires, 7 payload bytes are left unread, `readLine` returns `"side"`, and `handleLine` throws `IOException` at `:269` — `send` then completes exceptionally and the first assertion fails. This is exactly the sequence Probe K measured. |
 | TC-05-10b | `-10` | Same file; the test writes `204 Output stdout notanumber\n` | The observer recorded **no** `onOutput`; `send` still completes when the real response follows | Make the malformed-header guard emit before bailing out: `if (separator < 0 \|\| byteCount == null) { observer.onOutput(data, ""); return }`. Compiles — both arguments are `String`, and the `return` **must stay**: dropping it leaves `readExactly(input, byteCount)` reading an `Int?` and the file would not compile, which is a mutation that asserts nothing. (For the same reason the mutant cannot name `stream`: §3.6b declares `val stream` *after* the guard.) Reachable: this fixture's header is unparsable, so the mutant emits a spurious output frame and the "no `onOutput`" assertion fails. |
 | TC-05-10c | `-10` | `TestLuaDebugHarness`; a real debuggee launched through `LuaHarnessSpec`; `connection.send(DebugCommand(DebugCommandKind.OUTPUT, listOf(LuaDebuggerController.OUTPUT_STREAM, LuaDebuggerController.OUTPUT_MODE_REDIRECT)))` — **the production constants of §3.7, never the literals `"stdout"`/`"r"`** — then `SETB`/`RUN` on a script whose second line is `print("hi")` | `send` completes normally (no `DebuggerError`); the observer records `onOutput("stdout", "\"hi\"\n")` within 4 s | Change `OUTPUT_STREAM` from `"stdout"` to `"stderr"` (§3.6d). Compiles (both `String`). Reachable **only because the fixture reads the constant instead of typing its value** — with a literal, mutant and correct code send identical bytes and the row is decoration. With the constant: mobdebug's `OUTPUT` branch requires `stream == "stdout"` (`src/main/lua/mobdebug/init.lua:1011-1013`) and answers `400 Bad Request` otherwise (measured, §0 Probe F). `BadRequest` **is** a declared response for `OUTPUT` (§3.6a), so `handleLine` takes Case A and completes the deferred *exceptionally* with `DebuggerError` (`run/LuaDebugConnection.kt:287-289`) — `send` **throws**, failing the first assertion; and no `204 Output` frame is ever emitted, failing the second. (An earlier draft of this row claimed `send` returns `""` on `BadRequest`; `:287-289` says otherwise.) Not green on `main`: `DebugCommandKind` declares no `OUTPUT` there (`:52-156`) and `handleLine` has no `Output` branch, so the fixture does not compile, let alone pass. |
 | TC-05-11a | `-11` | `TestLuaDebugHarness`; a 3-line script whose line 2 is `print("hit")`; `SETB <name> 2`, then `connection.send(DebugCommand(DebugCommandKind.DELB, listOf(LuaDebuggerController.DELB_ALL_FILES, LuaDebuggerController.DELB_ALL_LINES)))` — **the production constants of §3.7, never the literals `"*"`/`"0"`** — then `RUN` | No pause frame within 4 s; the observer's `onDisconnected` fires; the child's stdout is `hit` and it exits 0 | Change `DELB_ALL_LINES` from `"0"` to `"1"` (§3.7 step 2). Compiles (both `String`). Reachable **only because the fixture sends the constants**: measured end to end (§0, **Probe G2**), `DELB * 1` leaves the line-2 breakpoint installed — `remove_breakpoint`'s wildcard branch requires `line == 0` exactly (`src/main/lua/mobdebug/init.lua:360-365`) — so `202 Paused script.lua 2` arrives after `RUN`, the "no pause" assertion fails and the child never reaches its `print`. **What this row is, and what it deliberately is not.** It is the *integration* half of `-11`: it proves the constant **values** Lunar sends are the ones mobdebug honours, which TC-05-11b cannot (a recording fake accepts any bytes). It asserts nothing about `DELB` argument arity — that is already legal on `main` (`minArgs = 2, maxArgs = 2`, `run/LuaDebugConnection.kt:71-75`), which is why the previous form of this row (literal `DELB * 0` on the harness connection) **passed on unmodified `main`** and asserted mobdebug's protocol rather than Lunar's code. With the constants referenced it does not even compile on `main` — `LuaDebuggerController.DELB_ALL_FILES` arrives with Phase 4 — and once Phase 4 lands it is red under the named mutation. |
-| TC-05-11b | `-10`, `-11`, `-03` | **The handshake itself, over a real socket.** Appended to `TestLuaDebuggerListener.kt` in Phase 4 (it already carries the copied `fakeSession` and the `Proxy` console idiom). Borrow a port with `ServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { it.localPort }` and close it (§0 Probe P: rebinding it takes 0.05 ms); an **attach** configuration constructed as in TC-05-12b but with `bindHost = ""` (so `resolveBindAddress` yields the loopback the fake dials, §3.1), that `debugPort`, and `localRoot = remoteRoot = "/srv/app"` (identity, so §3.5's `detectRootMismatch` returns at its step 1 and the transcript is exactly three commands), `redirectOutput = true`, `listenTimeoutSeconds = 5`, and `autoRestart = false` — pinned explicitly so the row is unaffected when Phase 5 puts an auto-restart branch in `onDisconnected`; a `fakeSession` whose `getRunProfile()` returns it, so `init` resolves `LuaDebugTarget.of(attach)` — which pins `clearRemoteBreakpoints = true` (§2.3); a `java.lang.reflect.Proxy` `ConsoleView` installed with `setConsole(...)` (the `Proxy` idiom of `redis/debug/TestLuaLdbController.kt:97-101`) so `connect()`'s `printToConsole` does not hit `log.error("Console not set")` (`run/LuaDebuggerController.kt:99`); a daemon thread that retry-connects to the port (20 × 100 ms) and then three times does `DbgpFraming.readLine(input)` → record → `DbgpFraming.writeLine(output, "200 OK")` (`run/DbgpFraming.kt:26`, `:58`); then `runBlocking { withTimeout(5_000) { controller.connect() } }`, `thread.join(2_000)` (bounded, and the thread is a daemon, so a mutation that sends **fewer** commands leaves it blocked in `readLine` without hanging the suite — the assertion still runs, 2 s later, and fails), and `controller.close()` in a `finally` | `assertEquals(listOf("BASEDIR /srv/app/", "DELB * 0", "OUTPUT stdout r"), recorded)` — **one assertion covering contents and order** | Delete the `clearRemoteBreakpoints()` call from `handshake()` (§3.7 step 2). Compiles: the function survives as an unused `private suspend fun`, which Kotlin reports as a warning and this build does not escalate (`build.gradle.kts` sets no `allWarningsAsErrors`). Reachable: this fixture's target is an attach target, so `target.clearRemoteBreakpoints` is `true` and the call is on the executed path — the mutant records two entries and the list assertion fails. **Four further mutations fail this same row**, which is why it is written as one ordered list rather than three membership checks: `DELB_ALL_LINES "0"→"1"` (records `DELB * 1`), `OUTPUT_STREAM "stdout"→"stderr"` (records `OUTPUT stderr r`), swapping the `clearRemoteBreakpoints()`/`redirectOutput()` calls (order flips), and moving `setBaseDir()` below them (§3.7's step 1 is load-bearing — `BASEDIR` resets `lastsource`). **Not green on `main`**: `connect()` there sends `setBaseDir()` and nothing else (`run/LuaDebuggerController.kt:130`), so the recorded list has one entry. This is the row that covers Phase 4's fourth task — `redirectOutput()`, `clearRemoteBreakpoints()`, the four constants and their `handshake()` invocation in §3.7 order — none of which any harness row can reach, because `LuaDebugHarness.kt:52` builds its own `LuaDebugConnection` and never constructs a `LuaDebuggerController`. |
+| TC-05-11b | `-10`, `-11`, `-03` | **The handshake itself, over a real socket.** Appended to `TestLuaDebuggerListener.kt` in Phase 4 (it already carries the copied `fakeSession` and the `Proxy` console idiom). Borrow a port with `ServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { it.localPort }` and close it (§0 Probe P: rebinding it takes 0.05 ms); an **attach** configuration constructed as in TC-05-12b but with `bindHost = ""` (so `resolveBindAddress` yields the loopback the fake dials, §3.1), that `debugPort`, and `localRoot = remoteRoot = "/srv/app"` (identity, so §3.5's `detectRootMismatch` returns at its step 1 and the transcript is exactly three commands), `redirectOutput = true`, `listenTimeoutSeconds = 5`, and `autoRestart = false` — pinned explicitly so the row is unaffected when Phase 5 puts an auto-restart branch in `onDisconnected`; a `fakeSession` whose `getRunProfile()` returns it, so `init` resolves `LuaDebugTarget.of(attach)` — which pins `clearRemoteBreakpoints = true` (§2.3); a `java.lang.reflect.Proxy` `ConsoleView` installed with `setConsole(...)` (the `Proxy` idiom of `redis/debug/TestLuaLdbController.kt:97-101`) so `connect()`'s `printToConsole` does not hit `log.error("Console not set")` (`run/LuaDebuggerController.kt:99`); a daemon thread that retry-connects to the port (20 × 100 ms) and then three times does `DbgpFraming.readLine(input)` → record → `DbgpFraming.writeLine(output, "200 OK")` (`run/DbgpFraming.kt:26`, `:58`); then `runBlocking { withTimeout(20_000) { controller.connect() } }` — **20 s, deliberately four times `listenTimeoutSeconds`**, so that on a slow or loaded machine the *inner* accept deadline is what expires and `connect()` fails with its own diagnostic, rather than the outer guard cutting in at the same instant and reporting an opaque `TimeoutCancellationException`; the outer guard exists only to stop a wedged run hanging the suite — `thread.join(2_000)` (bounded, and the thread is a daemon, so a mutation that sends **fewer** commands leaves it blocked in `readLine` without hanging the suite — the assertion still runs, 2 s later, and fails), and `controller.close()` in a `finally` | `assertEquals(listOf("BASEDIR /srv/app/", "DELB * 0", "OUTPUT stdout r"), recorded)` — **one assertion covering contents and order** | Delete the `clearRemoteBreakpoints()` call from `handshake()` (§3.7 step 2). Compiles: the function survives as an unused `private suspend fun`, which Kotlin reports as a warning and this build does not escalate (`build.gradle.kts` sets no `allWarningsAsErrors`). Reachable: this fixture's target is an attach target, so `target.clearRemoteBreakpoints` is `true` and the call is on the executed path — the mutant records two entries and the list assertion fails. **Four further mutations fail this same row**, which is why it is written as one ordered list rather than three membership checks: `DELB_ALL_LINES "0"→"1"` (records `DELB * 1`), `OUTPUT_STREAM "stdout"→"stderr"` (records `OUTPUT stderr r`), swapping the `clearRemoteBreakpoints()`/`redirectOutput()` calls (order flips), and moving `setBaseDir()` below them (§3.7's step 1 is load-bearing — `BASEDIR` resets `lastsource`). **Not green on `main`**: `connect()` there sends `setBaseDir()` and nothing else (`run/LuaDebuggerController.kt:130`), so the recorded list has one entry. This is the row that covers Phase 4's fourth task — `redirectOutput()`, `clearRemoteBreakpoints()`, the four constants and their `handshake()` invocation in §3.7 order — none of which any harness row can reach, because `LuaDebugHarness.kt:52` builds its own `LuaDebugConnection` and never constructs a `LuaDebuggerController`. |
 | TC-05-07c | `-07` | `LuaRootMismatch.detect` over a three-row table: `("/srv/app/main.lua", "/ide/proj")`, `("main.lua", "/ide/proj")`, `("=[C]", "/ide/proj")` | Row 1 returns a non-null message containing both `/srv/app/main.lua` and `/ide/proj`; rows 2 and 3 return `null` | Change §3.5 step 3's `!File(entryWireFile).isAbsolute` test to `entryWireFile.isEmpty()`. Compiles. Reachable: row 2 (`main.lua`) then returns a message and its `assertNull` fails, while row 1 stays green — which is why all three rows live in one table. |
 | TC-05-07d | `-07`, `-08` | **End-to-end, differing roots.** `LuaHarnessSpec(script = $scratch/remote/sub/a.lua, workingDirectory = $scratch/remote, port = <free>)`; an identical copy at `$scratch/ide/sub/a.lua`; the test drives `BASEDIR $scratch/remote/`, `SETB sub/a.lua 2`, `RUN` and maps the pause back with `LuaPathMapper("$scratch/ide", "$scratch/remote")` | A pause is observed within 4 s at line 2; `mapper.toLocalPath(pausedPos.path)` equals `$scratch/ide/sub/a.lua` | Send the **local** root as `BASEDIR` (i.e. `baseDirArgument()` returns `localRoot + "/"`, the shipped behaviour at `run/LuaDebuggerController.kt:87-88`). Compiles. Reachable: Probe B measured that the debuggee then never pauses, so the latch times out. **This is the capability-B end-to-end case the existing suite has never had**; `TestLuaDebugHarness.testBreakpointAndExec` launches from the script's own directory and is green under this mutation. |
-| TC-05-07e | `-04`, `-05`, `-12` (the UI halves) | `TestLuaAttachRunConfiguration`; the nine `debug.attach.*` keys of §2.7 read through `LuaBundle.message(key)` | For each of the seven **label** keys: the first word is capitalised and no later word starts with an upper-case letter unless it is a product name (`LuaRocks`, `StyLua`, `Mobdebug`); each of the five leading-label keys ends in `':'`; the two checkbox keys do **not** | Change `debug.attach.remoteRoot` in `LuaBundle.properties` to `Remote Source Root:`. Reachable: the Title-Case scan fails on `Source`. A second mutation — drop the trailing colon from `debug.attach.port` — fails the colon assertion. Both are `.properties` edits, so both "compile" trivially. `docs/engineering-contract.md:162-163` names this exact assertion as one of the two UI invariants that *should* be unit-tested; it exists only because §2.7 put the labels in the bundle. |
+| TC-05-07e | `-04`, `-05`, `-12` (the UI halves) | `TestLuaAttachRunConfiguration`; the seven **control-label** keys of §2.7 (`debug.attach.bindHost`, `.port`, `.timeout`, `.localRoot`, `.remoteRoot`, `.redirectOutput`, `.autoRestart`) read through `LuaBundle.message(key)`. `debug.attach.type.name`/`.type.description` are excluded by name — a configuration-type display name follows the platform's Title Case, like *Go Build* | **The `&` mnemonic marker is stripped first** (`value.replace("&", "")`), then, for each of the seven: the first word is capitalised and no later word starts with an upper-case letter unless it is a product name (`LuaRocks`, `StyLua`, `Mobdebug`); no value contains `'('`; each of the five leading-label keys ends in `':'`; the two checkbox keys do **not** | Change `debug.attach.remoteRoot` in `LuaBundle.properties` to `&Remote Source Root:`. Reachable: after the `&` strip the scan fails on `Source`. Two further mutations fail it — drop the trailing colon from `debug.attach.port` (colon assertion), and restore `Listen &timeout (seconds):` (the `'('` assertion, which is the §6 rule at `docs/engineering-contract.md:147-148`). All three are `.properties` edits, so all three "compile" trivially. **Why this is not a duplicate of `LuaBundleCasingTest`** (`src/test/kotlin/net/internetisalie/lunar/LuaBundleCasingTest.kt:42-55`): that test's `CAPITALIZED_WORD = ^[A-Z][a-z]+$` must match *every* generic word, and the trailing colon on `Root:` — plus the leading `&` on `&Remote` — never match it, so `&Remote Source Root:` passes there unflagged. Verified by inspection of `LuaBundleCasingTest.kt:7`, `:57-60`. |
+| TC-05-07f | `-04`, `-05`, `-12` (the UI halves) | **The built editor, not the bundle.** Extend the existing `src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt`: add `"Lua Remote" to register(LuaAttachSettingsEditor(project))` to its hard-coded `editors()` list (`:140-146`), raise `AUDITED_ROW_COUNT` 27 → **32** (`:159`) for the editor's five labelled rows, and widen `test every checkbox carries a mnemonic` (`:123-127`) from `checkBoxesOf(redisEditor())` to `editors().flatMap { (_, editor) -> checkBoxesOf(editor) }` — safe, because Redis and this editor are the only two with checkboxes (`grep -rn "JBCheckBox" src/main/kotlin/net/internetisalie/lunar/run/ …/rocks/run/` → no hits) | The six file-wide assertions now also cover the attach editor: every leading label ends in `':'`; every leading label has `displayedMnemonic != 0`; no label contains `U+001B`; no label contains `'('`; mnemonics are unique within the editor; the total labelled-row count is exactly 32. Both attach checkboxes have `mnemonic != 0` | Drop the `&` from `debug.attach.localRoot` in `LuaBundle.properties` → `displayedMnemonic == 0` → `test every labelled row carries a mnemonic` is red. Three further mutations fail this same file: move the marker to `Local source roo&t:` (collides with `Listen &timeout:`'s `T` → the uniqueness test is red); swap one `addMnemonicLabeledComponent` call for `FormBuilder`'s own `addLabeledComponent(String, JComponent)` (compiles — same receiver, same return type — and leaks `U+001B` into the label, per `LuaFormBuilders.kt:17-23`); delete one row from the builder chain (row count 31 ≠ 32). **Not green on `main`**: `LuaAttachSettingsEditor` does not exist there, so the edited `editors()` does not compile until Phase 3 lands. |
 | TC-05-13a | `-13` | `TestLuaDebuggerListener`; a `fakeSession` (the `TestLuaDebuggerEvaluator.kt:76-77` anonymous `XDebugSession`) whose `getRunProfile()` returns an **attach** configuration with `autoRestart = true` and `debugPort = 0`, so the target is `LuaDebugTarget.of(attach)`; a `java.lang.reflect.Proxy` `ConsoleView` recording `print(String, ConsoleViewContentType)` installed with `controller.setConsole(...)`; `var invocations = 0` registered via `controller.onDisconnect { invocations++ }`; then `controller.DebugObserver().onDisconnected()` called directly; finally `scope.cancel()` in a `finally` so the relaunched `connect()` does not outlive the test | `assertEquals(0, invocations)` — the terminate path was **not** taken; `assertFalse(controller.isReady)`; the proxy recorded one `print` whose text contains `"still listening"` | Delete the `if (target.autoRestart) { restartListener(); return }` line from `onDisconnected` (§3.9 step 1). Compiles — the remaining body is the shipped `close()` plus the §2.4 callback. Reachable **because this fixture's target has `autoRestart == true`**, which is the only input that selects the deleted branch: the mutant falls through to `close(); disconnectListener?.invoke()`, so `invocations` becomes 1 and no `"still listening"` line is ever printed. TC-05-05c cannot catch it (its target is `fallback()`, `autoRestart == false`). |
 | TC-05-13b | `-13` | Same file; a controller built over the same fake attach session (`debugPort = 0`); `val first = controller.listener(); val second = controller.listener()` — the §3.9 step 3 seam, no client and no coroutine | `assertSame(first, second)`; `assertFalse(first.isClosed)`; `assertTrue(first.inetAddress.isLoopbackAddress)` | Drop the `serverSocket ?:` guard from `listener()`, leaving `openListener(target).also { serverSocket = it }`. Compiles (same return type). Reachable: with `port = 0` the mutant binds a **second** ephemeral socket, so `assertSame` fails. This is the assertion that keeps auto-restart re-entering the *same* listener; the raw "a `ServerSocket` survives a client disconnect" property is a JDK fact already measured in §0 (`PollProbe`) and is deliberately **not** re-asserted as a Lunar test. |
 
@@ -1922,11 +2089,15 @@ repeatedly catch. Both are audited here so a reviewer does not have to redo it.
 | `LuaRemoteStackEntry(table, resolver)` | 2 | `LuaRemoteStackFrame(table, resolver)` | 2 |
 | `LuaRemoteStack(stack, resolver = …)` | 2 | `LuaRemoteStack.create(project, text, resolver)` | 2 (`Project` excluded) |
 | `createRemotePosition(xSourcePosition, mapper)` | 2 | `localPosition(mapper)` | 1 |
-| `startLuaDebugHarness(spec, observer)` | 2 | | |
+| `startLuaDebugHarness(spec, observer)` | 2 | `treeWith(root, relative, text)` (test helper, §9) | **3** |
+| `LuaAttachSettingsEditor(project)` | 0 (a `Project`, excluded) | `createEditor()` | 0 |
+| `resetEditorFrom(runConfiguration)` | 1 | `applyEditorTo(runConfiguration)` | 1 |
 
-`debuggerEnvironment` sits **at** the cap, not over it, and the third parameter is what removes the
+`treeWith` also sits **at** the cap and is a *private test helper* — the contract's §3 cap is written
+for every function, private helpers included (the recurring finding this audit exists to pre-empt), so
+it is listed rather than omitted. `debuggerEnvironment` sits **at** the cap, not over it, and the third parameter is what removes the
 `!!` the contract forbids: both plugin paths are resolved (and their failures thrown on) by the
-existing caller at `run/LuaRunConfiguration.kt:321-326`, so the helper never touches the VFS. §2.6
+existing caller at `run/LuaRunConfiguration.kt:322-327`, so the helper never touches the VFS. §2.6
 shows the call site verbatim.
 
 **Two data carriers exceed three fields and are the contract's own remedy, not exceptions to it.**
@@ -1950,7 +2121,7 @@ primitives and an `InetAddress`. `LuaFrameResolver` holds `VirtualFile` values f
 one `LuaRemoteStack` — the same lifetime as the `MutableMap<String, VirtualFile?>` it replaces
 (`run/LuaRemoteStack.kt:14`) — and is not a service. No new class holds a `Project`, `Editor` or
 `PsiFile` in a field; `LuaAttachState`'s `Project` lives for one `execute` call, matching
-`LuaRunConfiguration`'s existing anonymous `CommandLineState` (`:291`).
+`LuaRunConfiguration`'s existing anonymous `CommandLineState` (`:292`).
 
 **Other clauses.** No `!!` is introduced (§1 NULL SAFETY — the one place a preloader path could
 have needed it is hoisted into the caller, which already throws `ExecutionException` there today,

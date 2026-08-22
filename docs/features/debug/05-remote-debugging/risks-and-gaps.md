@@ -115,9 +115,9 @@ folders:
 ### Risk 1.8: the base directory of a **default** local session changes, and it is the common case
 
 - **Impact**: `LuaDebugTarget.of(LuaRunConfiguration)` (design §2.3) derives the mapper root from
-  `configuration.effectiveWorkDirectory()` (`run/LuaRunConfiguration.kt:228`). The shipped controller
+  `configuration.effectiveWorkDirectory()` (`run/LuaRunConfiguration.kt:229`). The shipped controller
   uses `listOfNotNull(configuration.workingDirectory, session.project.basePath, "").first()`
-  (`run/LuaDebuggerController.kt:80-90`). `myWorkingDirectory` is `string("")` (`:78-82`), so an
+  (`run/LuaDebuggerController.kt:80-90`). `myWorkingDirectory` is `string("")` (`:79-83`), so an
   untouched configuration holds the **empty string, not null**, `listOfNotNull` keeps it, and today's
   default session sends **`BASEDIR /`** with `SETB home/u/proj/a.lua`. Under this design it sends
   `BASEDIR /home/u/proj/` with `SETB a.lua`. **This is the configuration most users have**, and an
@@ -136,7 +136,7 @@ folders:
   3. The old wire path is itself the defect. `BASEDIR /` makes every pause report a *relative* path
      (`home/u/proj/a.lua`), which is precisely what `LocalFileSystem.findFileByPath` cannot take —
      the mechanism of [[BUG-463]]. Aligning `BASEDIR` with `effectiveWorkDirectory()` also aligns it
-     with the child's actual process working directory (`run/LuaRunConfiguration.kt:314-315`), which
+     with the child's actual process working directory (`run/LuaRunConfiguration.kt:315-316`), which
      is what `basedir` is for. Probe N3 measures it binding.
   A third shape exists and is also declared: an empty working directory **and** a null
   `project.basePath` yields `baseDirArgument() == null`, so **no `BASEDIR` is sent** where today `/`
@@ -188,6 +188,18 @@ rewritten and because *how* it survived is the transferable part.
   exemption covers *surviving* `FormBuilder` editors). TC-05-07e is the assertion. That is a
   different question from a sibling feature's validation-message convention, and answering it here
   changes nothing DEBUG-06 owns.
+- **The mnemonic clause is not optional, and no existing test would have caught its absence.**
+  `docs/engineering-contract.md:151` binds new UI to mnemonics as firmly as to colons and sentence
+  case, and design §2.7 now names all seven letters (`H D T L R O K`), the marker's home (the bundle
+  *value*), and the two calls that read it —
+  `net.internetisalie.lunar.ui.addMnemonicLabeledComponent`
+  (`src/main/kotlin/net/internetisalie/lunar/ui/LuaFormBuilders.kt:25`) and `withMnemonic()` (`:39`).
+  The reason this had to be pinned in the design rather than left to the implementer is that the
+  repo's mnemonic gate, `RunConfigurationEditorTextTest`, enumerates **four editors by name**
+  (`src/test/kotlin/net/internetisalie/lunar/ui/RunConfigurationEditorTextTest.kt:140-146`) with
+  `AUDITED_ROW_COUNT = 27` (`:159`): a fifth editor is invisible to it and a mnemonic-less attach
+  editor would ship through a green suite. TC-05-07f is the edit that closes that hole; extending the
+  list is a Phase 3 task, not a follow-up.
 - **Outcome**: option (a) — both features stay on literals for **validation prose**, and DEBUG-06
   §3.3 now says why on a premise that survives checking. DEBUG-05 §2.8's two messages are literals
   under that rule; §2.7's control labels are keys under contract §6. No migration is outstanding
@@ -249,7 +261,7 @@ frozen input and DEBUG-06 is a merged sibling.
 | [[DEBUG-06]] design §3.3 | *"Lunar has no message bundle"*, with two executed commands as support | **WAS WRONG — CORRECTED UPSTREAM, no longer outstanding** | `1a5d5b70` (*"DEBUG-06 §3.3 claimed Lunar has no message bundle — it has one"*) rewrote the section before this artifact's revision; it now names `LuaBundle`, 11 caller files / 22 call sites, and re-takes the literals decision on `noRuntimeConfigured()`'s call-time composition (`toolchain/resolve/LuaToolResolver.kt:93-97`). Gap 2.1 is closed and `DEBUG-05-00-DR-01` with it. |
 | [[BUG-450]] §3a | *"mobdebug already supports the fix — the STACK handler reads `maxlevel`, `maxnum` and `sparse`. Lunar has simply never passed any of them."* | **INCOMPLETE, in a way that would mislead an implementer** | Design §0, Probe M: `maxlevel=1` cuts the payload 10102 → 1348 bytes with the frame tuple intact, but `maxnum=3` truncates the **frame tuple itself** to three elements and `maxnum=0` empties the response entirely. Passing `maxnum` as the bound would silently destroy `linedefined`, `currentline`, `what`, `namewhat` and `short_src`. |
 | [[BUG-456]] §3 | *"Loopback is correct for every use Lunar supports today"* and the fix is *"one argument"* | **CORRECT** | Design §0, BindProbe: `ServerSocket(port)` → `0.0.0.0`; `ServerSocket(port, 1, loopback)` → `127.0.0.1`, LAN connect refused at the kernel. Retired by **Phase 2**, whose `openListener(target)` (§3.1) replaces the wildcard bind at `run/LuaDebuggerController.kt:114-117` and is the first point at which the change has a testable seam (TC-05-12a) — see the implementation plan's *Why the loopback fix is not here* note under Phase 1. §3 also asks for an origin check, which `requirements.md` does not have a row for; design §3.4 adds it as an unreachable-on-Linux invariant and says so. |
-| `requirements.md` `DEBUG-05-03` | *"`setBaseDir()` sends `BASEDIR` … from the run config's working directory **or `project.basePath`**"* | **WRONG about the shipped code — the `basePath` arm is unreachable, and it is what makes `-03` a change rather than a preservation** | The controller derives its base directory with `listOfNotNull(configuration.workingDirectory, session.project.basePath, "").first()` (`run/LuaDebuggerController.kt:80-90`), but `myWorkingDirectory` is declared `string("")` (`run/LuaRunConfiguration.kt:78-82`), so `workingDirectory` is the **empty string, not null**, `listOfNotNull` keeps it, `.first()` is `""` and `session.project.basePath` is **never read** — today a default configuration sends `BASEDIR /`, which §0 Probe N2 measured and Risk 1.8 carries. Design §2.3 switches the derivation to `configuration.effectiveWorkDirectory()` (`run/LuaRunConfiguration.kt:228`), which *does* fall back to `basePath` — i.e. the requirement describes the intended behaviour this feature **introduces**, not the one it finds. **No edit to `requirements.md`** — it is frozen input; the row is right about the destination and wrong about the starting point. |
+| `requirements.md` `DEBUG-05-03` | *"`setBaseDir()` sends `BASEDIR` … from the run config's working directory **or `project.basePath`**"* | **WRONG about the shipped code — the `basePath` arm is unreachable, and it is what makes `-03` a change rather than a preservation** | The controller derives its base directory with `listOfNotNull(configuration.workingDirectory, session.project.basePath, "").first()` (`run/LuaDebuggerController.kt:80-90`), but `myWorkingDirectory` is declared `string("")` (`run/LuaRunConfiguration.kt:79-83`), so `workingDirectory` is the **empty string, not null**, `listOfNotNull` keeps it, `.first()` is `""` and `session.project.basePath` is **never read** — today a default configuration sends `BASEDIR /`, which §0 Probe N2 measured and Risk 1.8 carries. Design §2.3 switches the derivation to `configuration.effectiveWorkDirectory()` (`run/LuaRunConfiguration.kt:229`), which *does* fall back to `basePath` — i.e. the requirement describes the intended behaviour this feature **introduces**, not the one it finds. **No edit to `requirements.md`** — it is frozen input; the row is right about the destination and wrong about the starting point. |
 | `requirements.md` `DEBUG-05-07` | *"mobdebug answers `200 OK` to a breakpoint on a file it will never load"* | **CORRECT** | Design §0, Probe G: `SETB does/not/exist.lua 7` → `200 OK`. |
 | `requirements.md` `DEBUG-05-10` | *"such a frame would fall to `log.error` with its payload left unread… This is latent, not live"* | **CORRECT on the mechanism; the "latent" framing understates it** | Design §0, Probe K measured the exact interleaving: with `OUTPUT` active the `204` frame precedes the in-flight `200 OK` **while paused**, so the branch must be first in `handleLine`, not inside `if (running)`. A plausible implementation that only handles output "while running" reproduces the defect. Nothing to correct in the row — noted so the implementer does not take `if (running)` as sufficient. |
 | `requirements.md` Verification | *"`TestLuaRemoteStackFrames`… paths are 43-character absolutes"* | **CORRECT** | `python3 -c "print(len('/home/mini/Documents/src/lua/test/stack.lua'))"` → `43`; fixture at `TestLuaRemoteStackFrames.kt:15-19`. |
