@@ -80,8 +80,12 @@ class LuaBatchProvisionDialog(
     }
 
     /**
-     * Raises [natural] to the minimum content size — a FLOOR, not a fixed size: capping it would
-     * clip a base directory longer than the minimum, trading BUG-448 #6 for BUG-448 #7.
+     * Raises [natural] to the minimum content size, once, when the panel is built.
+     *
+     * This is a fixed preferred size, not a live minimum — `setMinimumSize` would be that, and the
+     * dialog does not need one. Taking the max of [natural] rather than assigning a constant is what
+     * matters: a base directory wider than the minimum still sets the width, so BUG-448 #6 is not
+     * bought by re-introducing BUG-448 #7.
      */
     private fun atLeastMinimum(natural: Dimension): Dimension =
         Dimension(

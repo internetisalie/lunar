@@ -9,6 +9,7 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
+import net.internetisalie.lunar.LuaBundle
 import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.Icon
@@ -30,7 +31,7 @@ class MatrixResultsToolWindow : ToolWindowFactory {
      * lookup key in [RunMatrixAction] — untouched.
      */
     override fun init(toolWindow: ToolWindow) {
-        toolWindow.stripeTitle = DISPLAY_NAME
+        toolWindow.stripeTitle = displayName()
     }
 
     override fun createToolWindowContent(
@@ -50,7 +51,7 @@ class MatrixResultsToolWindow : ToolWindowFactory {
         const val TOOL_WINDOW_ID = "Lunar.LuaMatrix"
 
         /** What the user sees on the stripe and in View ▸ Tool Windows (BUG-448 #21). */
-        const val DISPLAY_NAME = "Lua Test Matrix"
+        fun displayName(): String = LuaBundle.message("toolwindow.matrix.displayName")
 
         private val LOG = Logger.getInstance(MatrixResultsToolWindow::class.java)
 
