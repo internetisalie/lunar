@@ -95,7 +95,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
 | BUG-449 | The LuaRocks browser's shared detail pane is re-parented by the Installed tab, so the Marketplace tab's detail half is permanently blank | todo | M | — | — | ✓ |
-| BUG-448 | Hand-built settings panels, dialogs and tool windows diverge from the JetBrains Platform UX standard (14 measured findings) | todo | S | — | — | ✓ |
+| BUG-448 | Hand-built settings panels, dialogs and tool windows diverge from the JetBrains Platform UX standard (20 measured findings) | todo | S | — | — | ✓ |
 
 ---
 

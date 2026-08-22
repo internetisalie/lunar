@@ -34,7 +34,7 @@ This document tracks critical stability issues and functional bugs that impact t
 | `BUG-367` | **LuaRocks Packages Empty State** | **L** | **Todo** | Detail panel shows a "(no package selected)" label + blank form instead of a proper empty state (`JBPanelWithEmptyText`). |
 | `BUG-368` | **LuaRocks Packages Deps as Text** | **L** | **Todo** | Dependencies rendered as a `\n`-joined `JTextArea` instead of a `JBList`. |
 | `BUG-369` | **Settings Panels Vertical Spacing** | **L** | **Todo** | Inconsistent vertical spacing across Lua settings panels (mixed Kotlin UI DSL vs legacy `FormBuilder` layouts). |
-| `BUG-448` | **Hand-Built Panels Diverge from Platform UX** | **M** | **Todo** | Fourteen measured divergences across hand-assembled settings pages, dialogs and tool windows (ragged rows, panels that don't fill, bordered buttons, Title-Case labels). Platform-rendered Lua pages are correct. |
+| `BUG-448` | **Hand-Built Panels Diverge from Platform UX** | **M** | **Todo** | Twenty measured divergences across hand-assembled settings pages, dialogs and tool windows (ragged rows, panels that don't fill, bordered buttons, Title-Case labels). Platform-rendered Lua pages are correct. |
 | `BUG-449` | **Rocks Detail Pane Re-Parented by Second Tab** | **H** | **Todo** | One shared `PackageDetailPane` is the `secondComponent` of two splitters, so the Marketplace tab's detail half is permanently blank. |
 ---
 ## Technical Debt Fixes

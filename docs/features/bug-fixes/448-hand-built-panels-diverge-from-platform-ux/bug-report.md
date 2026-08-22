@@ -25,7 +25,7 @@ equivalent platform surface (*Appearance*, *Path Variables*, *Plugins*, *Problem
 
 - **Expected**: Lua surfaces are visually indistinguishable in idiom from platform surfaces —
   sentence-case labels, aligned columns, panels that fill their container, flat action toolbars.
-- **Actual**: fourteen measurable divergences, listed below. They cluster on **hand-assembled** panels.
+- **Actual**: twenty measurable divergences, listed below. They cluster on **hand-assembled** panels.
   Two Lua pages the platform builds for us (*Editor ▸ Code Style ▸ Lua*, via `CustomCodeStyleSettings`;
   *Editor ▸ General ▸ Smart Keys ▸ Lua*, via `BeanConfigurable`) are **correct** — and both use colons
   and sentence case, which our hand-built pages do not. That split is the finding.
@@ -44,10 +44,16 @@ equivalent platform surface (*Appearance*, *Path Variables*, *Plugins*, *Problem
 | 8 | Tools table stops short of the page | **235px** short of the group rules on the same page; `Path`/`Origin` elided to `/usr/loca…`, `Discover…` | `LuaToolchainInventoryTable.kt` — no column-width model |
 | 9 | Label missing its colon | `Arguments` beside `Lua:`, `StyLua:`, `Busted:` | `LuaBundle.properties:86` |
 | 10 | Group titles inconsistent within one page | `Platform Target` / `Toolchain Bindings` / `Resolved Runtime` vs `Advanced tools` | `LuaProjectConfigurable.kt:70-99` |
-| 11 | Run-config editor: no colons; one `ExpandableTextField` at 160px beside two identical ones at 374px | 8/8 labels lack colons while the platform's own `Name:` row in the same dialog has one | `LuaRunConfiguration.kt` (`FormBuilder`) |
+| 11 | Run-config editors: **no label carries a colon**, while the platform's own `Name:` row in the same dialog does | **27/27** labelled rows across all four editors, 0 with a colon | `LuaRunConfiguration.kt` (8), `LuaTestRunConfiguration.kt` (7), `LuaRocksRunConfiguration.kt` (5), `LuaRedisRunConfiguration.kt` (7) — `FormBuilder.addLabeledComponent` does not append one |
 | 12 | Dependency tool window: four bordered `JButton`s where the platform uses a flat `ActionToolbar` | 3 icon-only bordered buttons + a filter field that reads as a fourth, empty button | `DependencyTreePanel.kt:67-86` |
 | 13 | Filter field has no `emptyText` and no search icon, so it renders as a blank bordered box | — | `DependencyTreePanel.kt:83` — `filterField.apply { columns = 16 }` |
 | 14 | Empty state is an HTML italic string in a label, left-aligned at top | platform empty text is centred, dimmed, non-italic, no trailing period | `DependencyInspectorPanel.kt:27` — `"<html><body><i>Select a dependency.</i></body></html>"` |
+| 15 | Raw enum names leak into combos as display values — `BUSTED`, `FILE` | 2 combos on one page | `LuaTestRunConfiguration.kt:301` (`ComboBox(LuaTestFramework.entries…)`, no renderer) and `:302` (`arrayOf("FILE","DIRECTORY","PATTERN")`) |
+| 16 | Checkbox labels carry parenthetical implementation detail and a raw protocol keyword as the label | 3 checkboxes | `LuaRedisRunConfiguration.kt:321,325,326` — e.g. `REPLACE (overwrite existing library)` |
+| 17 | Format hints live in the label rather than in `comment()`/`emptyText` | `KEYS (space-separated)`, `ARGV (space-separated)`, `Function name (FCALL)` | `LuaRedisRunConfiguration.kt` |
+| 18 | `Connection` combo is 72px — the narrowest control on its page, and the only one that must display arbitrary text | 72px vs 360px siblings | `LuaRedisRunConfiguration.kt` |
+| 19 | The same field is labelled inconsistently across editors | `Environment variables` (Lua, Lua Tests) vs `Environment` (LuaRocks) — native Go Build uses `Environment:` | all four editors |
+| 20 | No mnemonics on any label | native Go Build underlines 10/10 (R̲un kind, F̲iles, O̲utput directory…); ours 0/27 | all four editors (`FormBuilder.addLabeledComponent` takes no mnemonic) |
 
 ### The dominant root cause (#2 and #3 are the same defect)
 
@@ -81,7 +87,11 @@ Grouped so each can land independently:
 4. **Text** — sentence-case the two bundle labels, add the missing colon, and settle group-title case
    in one pass (#1, #9, #10). `Advanced tools` is already the sentence-case form TOOLING-08 minted;
    make the rest match it, not the other way round.
-5. **Run config** — add colons and size the three `ExpandableTextField`s alike (#11).
+5. **Run config editors** — add the colon to all 27 labelled rows (#11); give the framework and
+   target-type combos a renderer so enum names stop reaching the user (#15); move parenthetical
+   detail and format hints out of labels into `comment()`/`emptyText` (#16, #17); widen the
+   `Connection` combo (#18); settle on one label for the environment field (#19); and add
+   mnemonics (#20).
 6. **Dependency tool window** — `ActionToolbar` for the three actions, `SearchTextField` (or
    `emptyText`) for the filter, and `JBPanelWithEmptyText` for the inspector's empty state
    (#12, #13, #14). Same shape as group 3.
@@ -107,13 +117,15 @@ theme).
 
 ## 6. Notes
 
-- **Two findings were investigated and dropped**, recorded here so nobody re-opens them: our group
-  indent is **pixel-identical** to the platform (+24 in both), and our control column staggering
-  across groups is **matched by the native Appearance page** (791/904/807/901), so it is platform
-  behaviour rather than our defect.
+- **Three findings were investigated and dropped**, recorded here so nobody re-opens them: our group
+  indent is **pixel-identical** to the platform (+24 in both); our control column staggering
+  across groups is **matched by the native Appearance page** (791/904/807/901); and the environment
+  field's placeholder repeating its own label is **what native Go Build does too**, so only the
+  inconsistent label survives as #19. Each was killed by measuring a native comparator rather than
+  by reasoning about our code.
 - The blank Rocks detail pane found in the same audit is a genuine Swing parenting bug and is filed
   separately as [[bug-report|BUG-449]].
-- **Not exercised**, so unaudited: the Matrix results tool window (needs a matrix run), and the
-  `Lua Tests` / `LuaRocks` / Redis run-config editors (only the `Lua` one was opened). The LuaRocks
-  dependency tool window **was** audited on the second attempt — it is registered under the display
-  name *"LuaRocks Dependencies"*, not *"LuaRocks"*, which is why the first lookup missed it.
+- **Not exercised**, so unaudited: only the Matrix results tool window remains (it needs a real
+  matrix run to populate). Every other Lua surface in the plugin was opened and measured. The
+  LuaRocks dependency tool window is registered under the display name *"LuaRocks Dependencies"*,
+  not *"LuaRocks"* — worth knowing before the next audit.
