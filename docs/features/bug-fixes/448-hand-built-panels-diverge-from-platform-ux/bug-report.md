@@ -25,7 +25,8 @@ equivalent platform surface (*Appearance*, *Path Variables*, *Plugins*, *Problem
 
 - **Expected**: Lua surfaces are visually indistinguishable in idiom from platform surfaces —
   sentence-case labels, aligned columns, panels that fill their container, flat action toolbars.
-- **Actual**: twenty-four measurable divergences, listed below. They cluster on **hand-assembled** panels.
+- **Actual**: twenty-six measurable divergences, listed below — twenty-four from the original
+  audit, plus #25 and #26 found while fixing #5/#12 in batch B. They cluster on **hand-assembled** panels.
   Two Lua pages the platform builds for us (*Editor ▸ Code Style ▸ Lua*, via `CustomCodeStyleSettings`;
   *Editor ▸ General ▸ Smart Keys ▸ Lua*, via `BeanConfigurable`) are **correct** — and both use colons
   and sentence case, which our hand-built pages do not. That split is the finding.
@@ -58,6 +59,8 @@ equivalent platform surface (*Appearance*, *Path Variables*, *Plugins*, *Problem
 | 22 | Run status rendered as bare uppercase text with no icon | `FAIL` | `MatrixResultsToolWindow.kt` — same enum-leak family as #15 |
 | 23 | Column header abbreviated | `Exit` for what is an exit code | `MatrixResultsToolWindow.kt` |
 | 24 | Table columns evenly distributed regardless of content — **second instance of #8** | 231/230/230/229px; the `Exit` column holds one character and gets the same width as a rockspec filename | `MatrixResultsToolWindow.kt` — no column-width model, exactly as `LuaToolchainInventoryTable.kt` |
+| 25 | Raw `javax.swing.JComboBox` where the platform component exists | 1 combo — the connection selector, the panel's only combo | `LuaRedisFunctionsPanel.kt:66` — breaks engineering-contract §6 COMPONENT CHOICE (`ComboBox` over `JComboBox`). Found in batch B while fixing #5; **not fixed** (outside that batch's four findings, and never measured against a native comparator) |
+| 26 | Raw `javax.swing.JSplitPane` for a master-detail split | the tree/inspector split, where the Packages browser next door uses `OnePixelSplitter` for the identical shape | `DependencyTreePanel.kt:65` — breaks engineering-contract §6 PANELS FILL THEIR CONTAINER ("use `OnePixelSplitter`/`JBSplitter` for master-detail"). Found in batch B while fixing #12; **not fixed** (same reason) |
 
 ### The dominant root cause (#2 and #3 are the same defect)
 
@@ -114,11 +117,10 @@ Groups 1 and 2 are what a user actually notices. Group 4 is cheap and touches on
 Deploy and Delete gained icons (`Actions.Upload`, `General.Delete`) because a toolbar renders text
 only for actions that ask for it. **Group 5 (run-config editors) remains.**
 
-One divergence found in batch B but deliberately *not* fixed, since it is outside the four
-findings: `LuaRedisFunctionsPanel`'s connection selector is a raw `JComboBox` rather than the
-platform `ComboBox`, and `DependencyTreePanel` splits with a raw `JSplitPane` rather than
-`OnePixelSplitter`. Both are COMPONENT CHOICE divergences of the same family and neither was
-measured in the audit.
+Batch B also **found two further divergences and deliberately did not fix them**, since they fall
+outside that batch's four findings: they are filed above as **#25** and **#26** so a future audit
+reads them from the findings table rather than from these delivery notes. #26 in particular is a
+live engineering-contract §6 violation in a file batch B edited.
 
 One deviation from the strategy above: #21 is fixed by naming the stripe in
 `MatrixResultsToolWindow.init`, not by changing the `<toolWindow>` id — the id is persisted layout
