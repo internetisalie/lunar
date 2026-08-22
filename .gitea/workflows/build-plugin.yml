@@ -316,15 +316,23 @@ jobs:
     needs: changes
     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/v') || needs.changes.outputs.corpus == 'true' }}
     runs-on: lunar-ci
-    # EXPLICIT PIN — the tagless resolver's documented escape hatch, used deliberately.
-    # Two consecutive dispatches ran 0.1.0 with 0.2.0 verifiably newest in GAR, so the
-    # pool's newest-semver resolution is persistently failing and silently serving its
-    # last-dispatched fallback (the log line that says so is runner-side). This job needs
-    # cc + python3, which only >= 0.2.0 carries; the verify step below fails by name if
-    # this pin ever runs an image without them. Investigate the resolver in
-    # glimmer-gitea-runner and drop this pin once newest-semver provably dispatches.
-    container:
-      image: northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci:0.2.0
+    # NO container: override — this job takes the pool's tagless label exactly as `build`
+    # does, so a newer job image reaches it the moment one is published.
+    #
+    # It carried an explicit `:0.2.0` pin until 2026-08-22. The runner's newest-semver
+    # resolution was broken on controller 0.5.0 and silently served its last-dispatched
+    # fallback: two consecutive dispatches ran 0.1.0 with 0.2.0 verifiably newest in GAR.
+    # Controller 0.8.0 fixed it, and the pin's own stated exit condition — "drop this once
+    # newest-semver provably dispatches" — was met by run 14001, which logged
+    # `resolved newest semver to …/lunar-ci@sha256:57c1db4e`, the digest tagged 0.2.0.
+    #
+    # That log line is CONTROLLER-side and the only place resolution is recorded; the
+    # k8sexec job log carries no image, digest or pull line, so a green run tells you the
+    # toolchain works, never which tag ran:
+    #   kubectl -n lunar-ci logs deploy/lunar-ci-loom-gitea-runner | grep -E 'semver|committed pin'
+    #
+    # The verify step below is the standing guard: this job needs cc + python3, which only
+    # >= 0.2.0 carries, and it fails by name on an image without them.
     env:
       GRADLE_USER_HOME: /cache/lunar/gradle
     steps:
