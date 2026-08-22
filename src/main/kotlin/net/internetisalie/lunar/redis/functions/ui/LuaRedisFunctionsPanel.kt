@@ -1,8 +1,14 @@
 package net.internetisalie.lunar.redis.functions.ui
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionToolbar
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.ScrollPaneFactory
@@ -23,8 +29,9 @@ import net.internetisalie.lunar.util.LunarCoroutineScopeService
 import java.awt.BorderLayout
 import java.awt.Component
 import javax.swing.DefaultComboBoxModel
-import javax.swing.JButton
+import javax.swing.Icon
 import javax.swing.JComboBox
+import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
@@ -37,7 +44,8 @@ private val log = logger<LuaRedisFunctionsPanel>()
  * The "Redis Functions" tool-window panel (design §2.10).
  *
  * Displays a connection selector and a tree of libraries → functions with flag and drift glyphs.
- * Per-library Deploy (FUNCTION LOAD REPLACE) and Delete (with confirmation) actions. Mirrors
+ * Per-library Deploy (FUNCTION LOAD REPLACE) and Delete (with confirmation) actions live on a flat
+ * [ActionToolbar], the idiom every native tool window uses (BUG-448 #5). Mirrors
  * [net.internetisalie.lunar.rocks.ui.DependencyTreePanel]: all network calls on the project's
  * pooled coroutine scope; model published to the EDT via [withContext(Dispatchers.EDT)].
  *
@@ -60,33 +68,30 @@ class LuaRedisFunctionsPanel(
     private var localBodies: Map<String, String> = emptyMap()
 
     init {
-        add(buildToolbar(), BorderLayout.NORTH)
+        add(buildHeader(), BorderLayout.NORTH)
         add(ScrollPaneFactory.createScrollPane(tree), BorderLayout.CENTER)
         add(statusLabel, BorderLayout.SOUTH)
     }
 
-    private fun buildToolbar(): Component {
-        val toolbar = JPanel(BorderLayout())
-        toolbar.add(connectionSelector, BorderLayout.CENTER)
-        val buttons = JPanel()
-        buttons.add(
-            JButton(AllIcons.Actions.Refresh).apply {
-                toolTipText = "Refresh"
-                addActionListener { refresh() }
-            },
-        )
-        buttons.add(
-            JButton("Deploy").apply {
-                addActionListener { onDeploy() }
-            },
-        )
-        buttons.add(
-            JButton("Delete").apply {
-                addActionListener { onDelete() }
-            },
-        )
-        toolbar.add(buttons, BorderLayout.EAST)
-        return toolbar
+    private fun buildHeader(): JComponent {
+        val header = JPanel(BorderLayout())
+        header.add(buildActionToolbar().component, BorderLayout.WEST)
+        header.add(connectionSelector, BorderLayout.CENTER)
+        return header
+    }
+
+    /** The flat action gutter. Constructed on the EDT with the tree as its data-context target. */
+    private fun buildActionToolbar(): ActionToolbar {
+        val group =
+            DefaultActionGroup(
+                PanelAction("Refresh", AllIcons.Actions.Refresh) { refresh() },
+                PanelAction("Deploy", AllIcons.Actions.Upload) { onDeploy() },
+                PanelAction("Delete", AllIcons.General.Delete) { onDelete() },
+            )
+        return ActionManager
+            .getInstance()
+            .createActionToolbar(TOOLBAR_PLACE, group, true)
+            .also { it.targetComponent = tree }
     }
 
     /** Reloads the connection list and triggers a FUNCTION LIST WITHCODE refresh. */
@@ -222,6 +227,20 @@ class LuaRedisFunctionsPanel(
     }
 
     // -----------------------------------------------------------------------
+    // Toolbar action
+    // -----------------------------------------------------------------------
+
+    /** A toolbar entry that delegates to a panel method; icon-only, with its text as the tooltip. */
+    private class PanelAction(
+        text: String,
+        icon: Icon,
+        private val perform: () -> Unit,
+    ) : AnAction(text, text, icon),
+        DumbAware {
+        override fun actionPerformed(event: AnActionEvent) = perform()
+    }
+
+    // -----------------------------------------------------------------------
     // Cell renderer
     // -----------------------------------------------------------------------
 
@@ -272,5 +291,9 @@ class LuaRedisFunctionsPanel(
         val connection: LuaRedisServerConnection,
     ) {
         override fun toString(): String = connection.name
+    }
+
+    private companion object {
+        const val TOOLBAR_PLACE = "LunarRedisFunctionsToolbar"
     }
 }
