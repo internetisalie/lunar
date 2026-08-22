@@ -19,8 +19,8 @@ Lunar provides a seamless experience for running and debugging Lua applications 
 | `DEBUG-02` | **Stack Frames & Variables** | **M** | **Full** | Display the call stack and local/upvalue variables when paused at a breakpoint. |
 | `DEBUG-03` | **Step Over/Into/Out** | **M** | **Full** | Standard execution flow control during a debug session. |
 | [`DEBUG-04`](./04-expression-evaluation/requirements.md) | **Expression Evaluation** | **S** | **Full** | Allow users to evaluate arbitrary Lua expressions in the current context. |
-| `DEBUG-05` | **Remote Debugging** | **S** | **Full** | Support connecting to external Lua processes (e.g., via Mobdebug). |
-| `DEBUG-06` | **Debug Target Configuration** | **S** | **Full** | Validate debug configurations before launching. |
+| [`DEBUG-05`](./05-remote-debugging/requirements.md) | **Remote Debugging** | **S** | **Partial** | Support connecting to external Lua processes (e.g., via Mobdebug). Marked **Full** until 2026-08-22 by a bulk edit. Only loopback attach-back ships — the transport every local session already needed. No host field, attach configuration, or path mapping exists; 5 of 8 `Must` rows are unimplemented. |
+| [`DEBUG-06`](./06-debug-target-configuration/requirements.md) | **Debug Target Configuration** | **S** | **Partial** | Validate debug configurations before launching. Marked **Full** until 2026-08-22 by a bulk edit; false at its own headline — validation throws the non-fatal tier, so nothing it does prevents a launch. See [[BUG-455]]. |
 | [`DEBUG-07`](./07-lazy-remote-stack-evaluation/requirements.md) | **Lazy Remote Stack Evaluation** | **S** | **Not Implemented** | Defer parsing of frame details until explicitly accessed. Marked **Full** until 2026-08-22 by a bulk edit; the parse is eager and always was. See [[BUG-450]]. |
 | `RUN-01` | **Lua Interpreter SDK** | **M** | **Full** | Allow configuring local Lua binaries (5.1-5.4, LuaJIT) as project SDKs. |
 | `RUN-02` | **Run Configurations** | **M** | **Full** | Create and save configurations for script execution. |
