@@ -12,6 +12,16 @@
   matrix dialog is wide enough for its own title; and the matrix tool window is called *Lua Test
   Matrix* rather than `Lunar.LuaMatrix`, with run status shown as `Passed`/`Failed` plus an icon
   instead of the bare enum constant `FAIL`.
+- **Lua settings-panel labels are sentence case, and the LuaCheck arguments row has its colon
+  back** (BUG-448, batch C — text and casing): two checkboxes (`Enable Type Inference`,
+  `Add Additional Completions`) were the only Title-Case controls on a page where every native
+  comparator was sentence case; the LuaCheck arguments label was the only one on its page missing a
+  colon beside `Lua:`/`StyLua:`/`Busted:`; and seven settings-panel group titles across the Project,
+  Application and Toolchain pages (`Toolchain Bindings`, `Resolved Runtime`, `Platform Target`,
+  `Source & Completion`, `Editor Features`, `Global Default Bindings`, and `Luacheck` itself spelled
+  two different ways across two pages) now match the sentence-case form `Advanced tools` already
+  used correctly on the same pages. A new `LuaBundleCasingTest` holds the bundle half of this rule
+  so it cannot regress.
 - **The LuaRocks Packages browser shows package details again** (BUG-449): the Marketplace tab's
   detail half had been blank since the two-tab browser shipped — both tabs were handed the same
   detail pane, and a Swing component has one parent, so the second tab silently took it. Each

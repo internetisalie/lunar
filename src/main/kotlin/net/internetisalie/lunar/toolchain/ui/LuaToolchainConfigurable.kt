@@ -98,7 +98,7 @@ class LuaToolchainConfigurable :
     }
 
     private fun buildGlobalBindings(panelBuilder: Panel) {
-        panelBuilder.group("Global Default Bindings") {
+        panelBuilder.group("Global default bindings") {
             globalBindingCombos.forEach { (kindId, combo) ->
                 row("${kindLabel(kindId)}:") { cell(combo) }
             }

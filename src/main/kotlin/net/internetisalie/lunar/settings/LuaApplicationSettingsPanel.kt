@@ -40,7 +40,7 @@ class LuaApplicationSettingsPanel {
 
     val mainPanel: JPanel =
         com.intellij.ui.dsl.builder.panel {
-            group("Editor Features") {
+            group("Editor features") {
                 row { cell(enableTypeInference) }
                 row { cell(addAdditionalCompletionsCheckBox) }
             }

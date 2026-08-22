@@ -73,7 +73,7 @@ class LuaProjectConfigurable(
             group("Environment") {
                 row("Active environment:") { cell(controls.environmentCombo) }
             }
-            group("Toolchain Bindings") {
+            group("Toolchain bindings") {
                 commonKinds().forEach { kind ->
                     row("${kind.displayName}:") { cell(controls.bindingCombo(kind.id)) }
                 }
@@ -83,18 +83,18 @@ class LuaProjectConfigurable(
                     row("${kind.displayName}:") { cell(controls.bindingCombo(kind.id)) }
                 }
             }
-            group("Resolved Runtime") {
+            group("Resolved runtime") {
                 row("Runtime:") { cell(controls.runtimeLabel) }
                 row("Language level:") { cell(controls.languageLevelLabel) }
                 row { comment("Reflects applied settings") }
             }
-            group("Luacheck") {
+            group("LuaCheck") {
                 row(LuaBundle.message("luacheck.arguments")) { cell(controls.luacheckArgsField) }
             }
             group("LuaRocks") {
                 row("Server URL (project override):") { cell(controls.rocksUrlField) }
             }
-            group("Source & Completion") {
+            group("Source & completion") {
                 row("Source path patterns:") { cell(controls.sourcePathField) }
                 row { cell(controls.underscoreCheckBox) }
             }
@@ -158,7 +158,7 @@ class LuaProjectConfigurable(
     }
 
     private fun buildTargetGroup(panelBuilder: com.intellij.ui.dsl.builder.Panel) {
-        panelBuilder.group("Platform Target") {
+        panelBuilder.group("Platform target") {
             row("Platform target:") { cell(controls.platformCombo) }
             row("Version:") { cell(controls.versionCombo) }
             row { comment("Auto (from runtime) follows the discovered interpreter; pick a platform to pin it") }
