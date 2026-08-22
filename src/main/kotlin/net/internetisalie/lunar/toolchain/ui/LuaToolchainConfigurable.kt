@@ -6,6 +6,7 @@ import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.dsl.builder.Align
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RightGap
 import com.intellij.ui.dsl.builder.bindText
@@ -52,7 +53,10 @@ class LuaToolchainConfigurable :
         val builtPanel =
             panel {
                 row {
-                    cell(inventoryTable.component).resizableColumn()
+                    // BUG-448 #8: resizableColumn widens the CELL, but a cell's content is
+                    // left-aligned by default, so the inventory kept its preferred width and stopped
+                    // 235px short of the group rules below it. Align.FILL stretches the table itself.
+                    cell(inventoryTable.component).align(Align.FILL).resizableColumn()
                 }.resizableRow()
                 buildGlobalBindings(this)
                 group(LuaBundle.message("luacheck.name")) {

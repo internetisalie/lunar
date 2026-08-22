@@ -100,6 +100,10 @@ class LuaProvisionDialog(
     }
 
     private fun configureRootDir() {
+        // BUG-448 #7: the field was narrow enough that a normal project path scrolled out of view
+        // and read as `ome/mini/uiaudit/.lua`. Sizing it in columns makes the field — and, through
+        // the FILL row, the dialog — wide enough to show a real path.
+        rootDirField.textField.columns = PATH_FIELD_COLUMNS
         rootDirField.text = "${targetProject.guessProjectDir()?.path.orEmpty()}/.lua"
         rootDirField.addBrowseFolderListener(
             targetProject,
@@ -252,6 +256,11 @@ class LuaProvisionDialog(
 
     private fun ComboBox<String>.setModelItems(items: List<String>) {
         model = DefaultComboBoxModel(items.toTypedArray())
+    }
+
+    private companion object {
+        /** Wide enough for a project path plus the `/.lua` suffix without scrolling (BUG-448 #7). */
+        const val PATH_FIELD_COLUMNS: Int = 44
     }
 }
 

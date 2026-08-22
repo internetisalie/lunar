@@ -10,9 +10,11 @@ import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.ColumnInfo
 import com.intellij.util.ui.FormBuilder
+import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.ListTableModel
 import net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeed
 import net.internetisalie.lunar.toolchain.provision.feed.LuaToolchainFeedLoader
+import java.awt.Dimension
 import javax.swing.JComponent
 
 /**
@@ -30,8 +32,19 @@ class LuaBatchProvisionDialog(
     private val tableModel = ListTableModel<LuaBatchRow>(kindColumn(), versionColumn())
     private val rowTable = JBTable(tableModel)
 
+    /**
+     * Built once. A Swing component has exactly one parent, so building a second panel over the same
+     * fields would silently empty the live dialog (engineering contract §6, ONE PARENT PER COMPONENT).
+     * Declared ahead of the `init` block because `init()` reaches this through [createCenterPanel].
+     */
+    private val centerPanel: JComponent by lazy { buildCenterPanel() }
+
     init {
         title = "Provision Version Matrix"
+        // BUG-448 #6/#7: the dialog was narrower than its own title (rendered `Provision …on
+        // Matrix`) and clipped the base directory to `/.lua-matrix`. The base-dir field is the
+        // widest control, so sizing it in columns sets the dialog's width for both.
+        baseDirField.textField.columns = PATH_FIELD_COLUMNS
         baseDirField.text = "${targetProject.guessProjectDir()?.path.orEmpty()}/.lua-matrix"
         baseDirField.addBrowseFolderListener(
             targetProject,
@@ -49,7 +62,9 @@ class LuaBatchProvisionDialog(
         return LuaBatchRow(kindId, LuaToolCatalog.defaultVersion(feed, kindId, platform))
     }
 
-    override fun createCenterPanel(): JComponent {
+    override fun createCenterPanel(): JComponent = centerPanel
+
+    private fun buildCenterPanel(): JComponent {
         val tablePanel =
             ToolbarDecorator
                 .createDecorator(rowTable)
@@ -61,7 +76,18 @@ class LuaBatchProvisionDialog(
             .addLabeledComponent("Base directory:", baseDirField)
             .addLabeledComponentFillVertically("Versions:", tablePanel)
             .panel
+            .apply { preferredSize = atLeastMinimum(preferredSize) }
     }
+
+    /**
+     * Raises [natural] to the minimum content size — a FLOOR, not a fixed size: capping it would
+     * clip a base directory longer than the minimum, trading BUG-448 #6 for BUG-448 #7.
+     */
+    private fun atLeastMinimum(natural: Dimension): Dimension =
+        Dimension(
+            maxOf(natural.width, JBUI.scale(MIN_WIDTH)),
+            maxOf(natural.height, JBUI.scale(MIN_HEIGHT)),
+        )
 
     private fun removeSelectedRow() {
         val selected = rowTable.selectedRow
@@ -111,5 +137,23 @@ class LuaBatchProvisionDialog(
     ) {
         val index = tableModel.items.indexOf(oldRow)
         if (index >= 0) tableModel.setItem(index, newRow)
+    }
+
+    /** Exposes the built center panel for width assertions (BUG-448 #6). */
+    internal fun centerPanelForTest(): JComponent = centerPanel
+
+    /** Exposes the base-directory field for width assertions (BUG-448 #7). */
+    internal fun baseDirFieldForTest(): TextFieldWithBrowseButton = baseDirField
+
+    private companion object {
+        /** Wide enough for a project path plus the `/.lua-matrix` suffix (BUG-448 #7). */
+        const val PATH_FIELD_COLUMNS: Int = 44
+
+        /**
+         * Unscaled minimum content size. FormBuilder's natural width came out narrower than the
+         * dialog's own title, which the window then rendered as `Provision …on Matrix` (BUG-448 #6).
+         */
+        const val MIN_WIDTH: Int = 520
+        const val MIN_HEIGHT: Int = 320
     }
 }

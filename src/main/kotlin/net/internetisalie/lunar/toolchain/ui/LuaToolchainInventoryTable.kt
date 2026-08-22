@@ -81,6 +81,9 @@ class LuaToolchainInventoryTable {
 
     internal fun model(): ListTableModel<LuaRegisteredTool> = model
 
+    /** Exposes the table for column-width assertions (BUG-448 #8). */
+    internal fun tableForTest(): TableView<LuaRegisteredTool> = table
+
     private fun registry(): LuaToolchainRegistry = LuaToolchainRegistry.getInstance()
 
     private fun addTool() {
@@ -186,21 +189,35 @@ class LuaToolchainInventoryTable {
 private fun kindDisplayName(tool: LuaRegisteredTool): String =
     LuaToolKindRegistry.findById(tool.kindId)?.displayName ?: tool.kindId
 
+/**
+ * BUG-448 #8: a table with no column-width model splits evenly regardless of content, which cut
+ * `Path` to `/usr/loca…` and `Origin` to `Discover…` while `Kind` got the same width for one short
+ * word. [ColumnInfo.getPreferredStringValue] is what `TableView.updateColumnSizes` measures, so each
+ * column below states the widest value it realistically holds and the surplus goes to the wide ones.
+ */
 private object KindColumn : ColumnInfo<LuaRegisteredTool, String>("Kind") {
     override fun valueOf(item: LuaRegisteredTool): String = kindDisplayName(item)
+
+    override fun getPreferredStringValue(): String = "Lua Language Server"
 }
 
 private object NameColumn : ColumnInfo<LuaRegisteredTool, String>("Name") {
     override fun valueOf(item: LuaRegisteredTool): String =
         item.runtime?.let { "${it.product} ${it.version}" } ?: kindDisplayName(item)
+
+    override fun getPreferredStringValue(): String = "Lua Language Server 3.13.0"
 }
 
 private object PathColumn : ColumnInfo<LuaRegisteredTool, String>("Path") {
     override fun valueOf(item: LuaRegisteredTool): String = item.path
+
+    override fun getPreferredStringValue(): String = "/usr/local/share/lua/5.4/bin/lua-language-server"
 }
 
 private object VersionColumn : ColumnInfo<LuaRegisteredTool, String>("Version") {
     override fun valueOf(item: LuaRegisteredTool): String = item.version ?: "-"
+
+    override fun getPreferredStringValue(): String = "5.4.7-1"
 }
 
 private object OriginColumn : ColumnInfo<LuaRegisteredTool, String>("Origin") {
@@ -210,6 +227,8 @@ private object OriginColumn : ColumnInfo<LuaRegisteredTool, String>("Origin") {
             Origin.MANUAL -> "Manual"
             Origin.PROVISIONED -> "Provisioned"
         }
+
+    override fun getPreferredStringValue(): String = "Provisioned"
 }
 
 internal data class HealthCell(
@@ -234,6 +253,8 @@ private object HealthColumn : ColumnInfo<LuaRegisteredTool, LuaRegisteredTool>("
     override fun valueOf(item: LuaRegisteredTool): LuaRegisteredTool = item
 
     override fun getRenderer(item: LuaRegisteredTool?): TableCellRenderer = HealthRenderer
+
+    override fun getPreferredStringValue(): String = "Not executable"
 }
 
 private object HealthRenderer : DefaultTableCellRenderer() {

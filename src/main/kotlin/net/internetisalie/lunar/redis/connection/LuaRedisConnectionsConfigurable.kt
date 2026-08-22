@@ -7,6 +7,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.Messages
 import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.ui.CollectionListModel
+import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBCheckBox
@@ -23,11 +24,9 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.toolchain.model.LuaToolKind
 import net.internetisalie.lunar.toolchain.registry.LuaToolKindRegistry
 import net.internetisalie.lunar.util.LunarCoroutineScopeService
-import java.awt.BorderLayout
 import java.util.UUID
 import javax.swing.JComponent
 import javax.swing.JList
-import javax.swing.JPanel
 import javax.swing.ListSelectionModel
 
 /**
@@ -65,9 +64,13 @@ class LuaRedisConnectionsConfigurable(
                 .setAddAction { addConnection() }
                 .setRemoveAction { removeSelectedConnection() }
                 .createPanel()
-        val built = JPanel(BorderLayout())
-        built.add(listComponent, BorderLayout.WEST)
-        built.add(form.component, BorderLayout.CENTER)
+        // BUG-448 #4: BorderLayout.WEST hands the master list its *preferred* width and never
+        // stretches it, which left the page filling 35% of the content area against a native
+        // comparator's 95%. A splitter is the platform's master-detail idiom and resizes with the
+        // page (engineering contract §6).
+        val built = OnePixelSplitter(false, LIST_PROPORTION)
+        built.firstComponent = listComponent
+        built.secondComponent = form.component
         rootPanel = built
         reset()
         return built
@@ -302,6 +305,9 @@ class LuaRedisConnectionsConfigurable(
 
     private companion object {
         const val DEFAULT_PORT: Int = 6379
+
+        /** Master/detail split, matching the platform's own list-plus-form settings pages. */
+        const val LIST_PROPORTION: Float = 0.3f
 
         /** Mirrors `LuaRedisConnectionSettings.provisioningOf`'s fallbacks, so a blank field agrees with a blank XML. */
         const val DEFAULT_SERVER_KIND_ID: String = "redis-server"
