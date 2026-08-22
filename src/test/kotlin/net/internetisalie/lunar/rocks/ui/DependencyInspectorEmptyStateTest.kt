@@ -3,6 +3,8 @@ package net.internetisalie.lunar.rocks.ui
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.JBPanelWithEmptyText
 import com.intellij.util.ui.UIUtil
+import net.internetisalie.lunar.rocks.deps.DependencyNode
+import java.awt.Component
 
 /**
  * TC-BUG-448-14: the dependency inspector's empty state is a platform [JBPanelWithEmptyText], not an
@@ -15,7 +17,11 @@ import com.intellij.util.ui.UIUtil
  * empty-state component existed to find.
  *
  * `CardLayout.show` flips child visibility without a peer, so which card is showing is assertable
- * headlessly.
+ * headlessly — but **only a round trip proves the switching path exists.**
+ * `CardLayout.addLayoutComponent` already leaves the first-added card visible and every later one
+ * hidden, so asserting `empty.isVisible` on a freshly built panel observes construction order and
+ * stays green with `show`'s null branch deleted entirely (verified: it did). The test therefore
+ * drives the panel to the detail card first and back.
  */
 class DependencyInspectorEmptyStateTest : BasePlatformTestCase() {
     fun `test the empty state is a platform empty-text panel`() {
@@ -30,15 +36,29 @@ class DependencyInspectorEmptyStateTest : BasePlatformTestCase() {
         assertFalse("platform empty text takes no trailing period; got '$text'", text.endsWith("."))
     }
 
-    fun `test the empty card is the one showing when nothing is selected`() {
+    fun `test selecting then deselecting flips the visible card back to the empty state`() {
         val inspector = DependencyInspectorPanel()
+        val empty = requireNotNull(UIUtil.findComponentOfType(inspector, JBPanelWithEmptyText::class.java))
+        val detail = detailCardOf(inspector, empty)
+
+        inspector.show(DependencyNode(packageName = "inspect", isTransitive = false))
+
+        assertTrue("selecting a node must show the detail card", detail.isVisible)
+        assertFalse("the empty card must hide while a node is selected", empty.isVisible)
+
         inspector.show(null)
 
-        val empty = requireNotNull(UIUtil.findComponentOfType(inspector, JBPanelWithEmptyText::class.java))
+        assertTrue("deselecting must bring the empty card back", empty.isVisible)
+        assertFalse("the detail card must hide once nothing is selected", detail.isVisible)
+    }
 
-        assertTrue("the empty card must be the visible one", empty.isVisible)
+    /** The inspector's other card — the detail body, whichever component that happens to be. */
+    private fun detailCardOf(
+        inspector: DependencyInspectorPanel,
+        empty: Component,
+    ): Component {
         val others = inspector.components.filterNot { it === empty }
-        assertEquals("the inspector must hold a second, hidden detail card", 1, others.size)
-        assertFalse("the detail card must be hidden while nothing is selected", others.first().isVisible)
+        assertEquals("the inspector must hold exactly one detail card beside the empty one", 1, others.size)
+        return others.first()
     }
 }
