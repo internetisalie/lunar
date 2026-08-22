@@ -2,7 +2,7 @@
 id: REFACT-04
 title: "04: Label Refactoring"
 type: feature
-status: "todo"
+status: "planned"
 vf_icon: 📋
 priority: "medium"
 parent_id: REFACT/INTENT
@@ -256,8 +256,9 @@ what the program does is the same defect class as [[REFACT-01]] `-01`.
 **On the front-matter status.** It was corrected from `done` to `todo` on 2026-08-22, and neither
 value is right. `done` was never earned — one `Must` row (`-07`) and four `Should` rows (`-05`,
 `-08`, `-11`, `-13`) are unmet and `-09` is unverified. But `todo` understates a feature whose core
-demonstrably works, and which is the only rename in the plugin that does. The accurate value is
-`in_progress`; `scripts/lint_planning.py` rejects it here because it requires a `design*.md`
-alongside any `planned`/`in_progress` feature, and this feature has none. Read `todo` as "the
-remaining work has not started", which is true, rather than "nothing exists", which is not — and
-treat writing that `design.md` as the first task, since it would let the status tell the truth.
+demonstrably works, and which is the only rename in the plugin that does. `scripts/lint_planning.py`
+rejected anything above `todo` while this feature had no `design*.md`, and writing one was named here
+as the first task. **That task is done**: `design.md`, `implementation-plan.md` and
+`risks-and-gaps.md` landed on 2026-08-22, so the feature moves to `planned` — the unmet rows above
+are specified down to their tests and have not been started. Read `planned` as "the remaining work is
+planned and not yet begun", not "nothing exists", which was never true here.

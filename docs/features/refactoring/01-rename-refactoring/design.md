@@ -126,7 +126,7 @@ REFACT-04 (Label Refactoring) is planned separately and **must reference, not du
 | Owned by REFACT-01 | REFACT-04 layers on it |
 | :--- | :--- |
 | `LuaDeclarationSite` / `LuaDeclarationKind` (§2.1) — `LABEL` is already a member | Add label-specific kinds/behaviour here, do not fork the enum |
-| `LuaRenameCollisionUsageInfo` (§2.5) — the `UnresolvableCollisionUsageInfo` carrier + its bundle keys | Reuse verbatim; only the *detector* differs |
+| `LuaRenameCollisionUsageInfo` (§2.4) — the `UnresolvableCollisionUsageInfo` carrier + its bundle keys | Reuse verbatim; only the *detector* differs |
 | The C1/C2/C3 conflict **shape** (§3.4): "collect candidate sites → run a scope crawl → anchor a collision on the colliding declaration, never on a usage that must still be rewritten" | Substitute `LuaLabelScopeProcessor` + `LuaBlock.processLabelDeclarations` for `LuaScopeProcessor` + `LuaResolveUtil.scopeCrawlUp`; the per-function scope stop is `LuaLabelReference.walkLabelScopes` |
 | `LuaRenameProcessor` (§2.2) | **Not shared.** Labels are `PsiNameIdentifierOwner` and work through the platform default processor; REFACT-01 deliberately does not claim them |
 
@@ -363,7 +363,7 @@ internal data class LuaRenameTarget(
     val newName: String,
 )
 
-object LuaRenameConflictDetector {
+internal object LuaRenameConflictDetector {
     fun collisions(
         target: LuaRenameTarget,
         usages: List<UsageInfo>,
