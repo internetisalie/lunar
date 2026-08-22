@@ -7,14 +7,15 @@ name: Build Plugin
 #   build          branch pushes + PRs -> the `lunar-ci` pool (one n2-standard-4 VM per job).
 #                  Faster and uncontended, but its executor implements no Actions step engine,
 #                  so that job is written without `uses:`, step-level `if:`, or `${{ }}`.
-#   build-release  `v*` tags -> ubuntu-latest, unchanged. Keeps setup-java / cache /
-#                  upload-artifact, which the pool does not run.
+#   build-release  `v*` tags -> act-ci. Builds, tests, AND publishes in one job. Keeps
+#                  setup-java / cache, which the lunar-ci pool does not run.
 #
-# On a `v*` tag push a `release` job runs — gated on `build-release` (so a red build can't cut a
-# release) — that publishes a Gitea Release with the SAME artifact the build already tested (it
-# downloads it; there is no second buildPlugin). The release job self-selects via its `if:` on the
-# tag ref. Keeping the tag lane on the shared runner is what preserves that property: artifact
-# actions are inert on the pool, so there would be nothing for `release` to download.
+# On a `v*` tag push, build-release builds the plugin, runs the full unit suite and ktlintCheck,
+# then publishes a Gitea Release from the SAME workspace — no second buildPlugin, and since
+# 2026-08-21 no artifact hop either. It used to be two jobs joined by upload/download-artifact;
+# publishing from the workspace that built and tested the zip is a stronger form of "ship the exact
+# bytes the suite validated", because there is no transfer left to get wrong. It self-selects via
+# its `if:` on the tag ref.
 #
 # The env-fragile :integrationTest (launches a real GoLand via IDE-Starter, needs a license +
 # display) is intentionally NOT run here — it stays on the local gce-builder. Parser/lexer
@@ -130,9 +131,8 @@ jobs:
   #     dropped (its run #134: 18 skips and a GREEN job); GGR-011 now claims it is
   #     honoured. The two disagree, and job level works either way.
   #
-  # TAG BUILDS DO NOT COME HERE — see build-release. Splitting them is what keeps the
-  # release path (which needs upload/download-artifact to publish the exact bytes it
-  # tested) entirely off this executor, where artifact actions are inert.
+  # TAG BUILDS DO NOT COME HERE — see build-release. The tag lane needs setup-java and
+  # actions/cache, which this executor does not implement, so it runs on act-ci instead.
   build:
     needs: changes
     if: ${{ needs.changes.outputs.code == 'true' && !startsWith(github.ref, 'refs/tags/v') }}
@@ -388,11 +388,12 @@ jobs:
           grep -rho 'failure message="[^"]*"' build/test-results/test/ 2>/dev/null | head -20 || true
           exit 1
 
-  # The RELEASE lane, and the only lane that produces a published artifact. Stays on the
-  # shared runner because it depends on three things the lunar-ci executor does not
-  # implement: setup-java, actions/cache, and above all upload-artifact — which is how
-  # the release job below publishes the exact zip this job tested rather than rebuilding
-  # it. Tag builds are rare, so their slower runner costs nothing worth optimising.
+  # The RELEASE lane: builds, tests and publishes, in one job. It cannot run on lunar-ci
+  # because it needs setup-java and actions/cache, which that executor does not implement.
+  #
+  # It was two jobs until 2026-08-21, joined by upload/download-artifact. Merging them removed
+  # the only reason the release needed an artifact service at all — see the publish section at
+  # the bottom of this job.
   build-release:
     needs: changes
     if: startsWith(github.ref, 'refs/tags/v')
@@ -417,6 +418,10 @@ jobs:
     # trimming here. Quota has headroom (committed peak 40 of 64) and the ceiling is free — only
     # running VMs bill.
     runs-on: act-ci
+    # Releases + asset upload fall under `contents: write`; declare it rather than depending on the
+    # instance's default token scope. Moved here when `release` merged into this job.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -424,8 +429,8 @@ jobs:
         id: version
         # On a v* tag the tag IS the release version (v1.2.3 -> 1.2.3); otherwise keep the
         # gradle.properties value (…-SNAPSHOT) unchanged, so routine branch builds are identical to
-        # before. The tag build therefore produces lunar-<version>.zip, which the release job below
-        # publishes verbatim.
+        # before. The tag build therefore produces lunar-<version>.zip, which the publish steps at
+        # the bottom of this job attach to the release verbatim.
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             V="${GITHUB_REF_NAME#v}"
@@ -529,24 +534,13 @@ jobs:
       # tags) it already would not.
       #
       # Placed here rather than early on purpose: tests, coverage and the analytics ingest have
-      # all run by now, so a formatting failure costs no diagnostics. It still fails the job,
-      # which drops `if: success()` on the upload below — so an unformatted tree cannot be
-      # published, and `release` (needs: build-release) never starts.
+      # all run by now, so a formatting failure costs no diagnostics. It still fails the job, and
+      # the publish steps below it are skipped by default on a failed step — so an unformatted tree
+      # cannot be published.
       #
       # ktlintCheck ALONE, for the reason spelled out in the `build` job above.
       - name: Lint (ktlintCheck)
         run: ./gradlew ktlintCheck --no-daemon --stacktrace
-
-      # Gitea's act_runner rejects the upload-artifact@v4 protocol ("v4+ not supported on
-      # GHES"), and plain @v3 (v3.2.2) is a Node 16 action the Node 20 runner image can't execute.
-      # The @v3.2.2-node20 backport tag is the Gitea-compatible, Node 20 build.
-      - name: Upload plugin artifact
-        if: success()
-        uses: actions/upload-artifact@v3.2.2-node20
-        with:
-          name: lunar-plugin
-          path: build/distributions/*.zip
-          if-no-files-found: error
 
       - name: Upload test reports
         if: always()
@@ -557,55 +551,30 @@ jobs:
           path: build/reports/tests/
           if-no-files-found: ignore
 
-  # Publishes a Gitea Release on a v* tag push. `needs: build` gates it on a green build+test, and
-  # it reuses the EXACT zip the build tested (download-artifact) rather than rebuilding — so the
-  # released bytes are what the suite validated. Marketplace publish (publishPlugin) stays dormant.
-  release:
-    needs: build-release
-    if: startsWith(github.ref, 'refs/tags/v')
-    # act-ci, NOT ubuntu-latest. This job died on v0.21.6 with "Cannot connect to the Docker daemon
-    # at unix:///var/run/docker.sock" — it had drawn runner-runner-0, which carries the label but has
-    # no daemon, so its job container could not start at all. That is the same runner, and the same
-    # failure, that took out the `changes` job earlier the same day.
-    #
-    # No `runs-on` value can dodge it: runner-runner-0 and the healthy runner-runner-1 advertise
-    # IDENTICAL labels (ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-slim). Pinning `ubuntu-heavy`
-    # would only redirect to the two mini-ci runners, whose daemons are equally unverified. Rerunning
-    # does not help either — a job-level rerun re-dispatches the WHOLE run in this Gitea, and both
-    # observed draws landed on runner-runner-0 anyway.
-    #
-    # act-ci runs the act backend with vm.docker: true by construction (its chart refuses to render
-    # otherwise), so the daemon is guaranteed rather than gambled on. The rule in AGENTS.md that keeps
-    # the release lane off "the pool" is about `lunar-ci` specifically — its k8sexec executor cannot
-    # run artifact actions — and does NOT apply here: act runs them, which is what makes
-    # download-artifact@v3-node20 below work. `build-release` deliberately stays on ubuntu-latest;
-    # artifacts are stored server-side, so the cross-runner handoff is unaffected.
-    runs-on: act-ci
-    # Releases + asset upload fall under `contents: write`; declare it so we don't depend on the
-    # instance's default token scope.
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4 # for CHANGELOG.md
-
-      - name: Derive version from tag
-        id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
-
-      # download-artifact only publishes a v3-node20 backport (no v3.2.2-node20 patch tag like
-      # upload-artifact has); v3-node20 is the Gitea-compatible, Node 20 build.
-      - name: Download the tested plugin artifact
-        uses: actions/download-artifact@v3-node20
-        with:
-          name: lunar-plugin
-          path: dist
+      # ── publish ───────────────────────────────────────────────────────────────────────────────
+      # Merged in from the former separate `release` job (2026-08-21). The split existed only so the
+      # zip could travel between them through upload-artifact/download-artifact. That hop is now
+      # gone, and publishing from the SAME workspace that built and tested the zip is a STRONGER
+      # form of "ship the exact bytes the suite validated", not a weaker one — there is no transfer
+      # left to get wrong, and no `needs:` edge that can skip the publish after a green build.
+      #
+      # It also unblocks the tag lane on act-ci, whose artifact service answers 404 ("Create
+      # Artifact Container failed") even though JS actions and actions/cache work there. The plugin
+      # upload carried `if-no-files-found: error`, so it killed the job; `Upload test reports` above
+      # already had continue-on-error and was tolerated, which is why it stays exactly as it was.
+      #
+      # No `if:` on these steps: the whole job is already tag-gated, and a failed gate above skips
+      # them by default — an unformatted or red tree still cannot publish.
 
       - name: Locate the distributable zip
         id: zip
+        # build/distributions, not the old `dist/` — that path only existed because the zip arrived
+        # via download-artifact. This reads what `buildPlugin` actually wrote in this workspace.
         run: |
-          ZIP="$(find dist -name 'lunar-*.zip' | head -1)"
+          ZIP="$(find build/distributions -name 'lunar-*.zip' | head -1)"
           if [ -z "$ZIP" ] || [ ! -f "$ZIP" ]; then
-            echo "::error::no plugin zip found in the downloaded artifact"; ls -lR dist || true; exit 1
+            echo "::error::no plugin zip in build/distributions — buildPlugin produced none"
+            ls -lR build/distributions || true; exit 1
           fi
           echo "path=$ZIP" >> "$GITHUB_OUTPUT"
           echo "name=$(basename "$ZIP")" >> "$GITHUB_OUTPUT"

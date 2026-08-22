@@ -19,8 +19,12 @@ name: Build Plugin
 #     not tier2's shared pool and has none of that pool's Docker problem.
 #   - no `corpus` job: the corpus lane is Gitea-only (it needs the pinned out-of-repo fixtures
 #     the lunar-ci job image provisions).
-#   - the whole tag lane (`build` + `release` here; `build-release` + `release` there) stays on
-#     `ubuntu-latest`, where the Gitea variant moved both to `act-ci`. Same
+#   - the tag lane keeps `build` + `release` as TWO jobs joined by upload/download-artifact. The
+#     Gitea variant merged its equivalents into a single `build-release` that publishes from its own
+#     workspace, because act-ci's artifact service answers 404 and the hop could not survive there.
+#     GitHub's artifact service works, so the split costs nothing here and is left alone —
+#     equivalent in effect: both publish the exact bytes the suite tested.
+#   - that lane also stays on `ubuntu-latest`, where the Gitea variant moved to `act-ci`. Same
 #     reason as `changes` above: that move exists to escape tier2's shared pool, where one runner
 #     advertises the `ubuntu-latest` label with no Docker daemon behind it and killed the v0.21.6
 #     release. GitHub-hosted runners always have one, so there is nothing to escape and no `act-ci`
