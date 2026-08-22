@@ -3,7 +3,7 @@ id: "BUG-448"
 title: "Hand-built settings panels, dialogs and tool windows diverge from the JetBrains Platform UX standard"
 type: "bug"
 parent_id: "BUG"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -115,7 +115,29 @@ Groups 1 and 2 are what a user actually notices. Group 4 is cheap and touches on
 `ActionToolbar` (target component set, actions `DumbAware`), the dependency filter is a
 `SearchTextField` with `emptyText`, and the inspector's empty state is a `JBPanelWithEmptyText`.
 Deploy and Delete gained icons (`Actions.Upload`, `General.Delete`) because a toolbar renders text
-only for actions that ask for it. **Group 5 (run-config editors) remains.**
+only for actions that ask for it.
+
+**Batch D — group 5 is done** (#11, #15, #16, #17, #18, #19, #20), which closes the report. All 27
+labelled rows across the four editors carry a colon and a mnemonic; the Lua Tests framework and
+target-type combos render `Busted`/`File` instead of `BUSTED`/`FILE` while persisting the values
+they always did; the three Redis checkboxes lost their parentheses and the bare `REPLACE` keyword;
+`KEYS`/`ARGV` carry their format hint as `emptyText`; the `Connection` combo is sized to the column;
+and the environment row is worded the same in all three editors that have one.
+
+Batch D's non-obvious finding — and the reason #11/#20 needed more than a string edit —
+is that **`FormBuilder.addLabeledComponent(String, JComponent)` cannot express a mnemonic at all**.
+It runs the text through `UIUtil.replaceMnemonicAmpersand`, which rewrites `&R` to U+001B + `R`, and
+then constructs a bare `JLabel`; nothing in the platform converts that escape back into a mnemonic
+for a plain `JLabel` (only `LabeledComponent` and `DialogUtil` do). Measured on the test platform,
+`addLabeledComponent("&Runtime:", combo)` yields `displayedMnemonic = 0` with the U+001B still in
+the visible text. The naive fix would therefore have been a no-op that also corrupted every label.
+The rows go through a `net.internetisalie.lunar.ui.addMnemonicLabeledComponent` helper that builds a
+`JBLabel` and calls `DialogUtil.registerMnemonic`; a regression test asserts no label contains
+U+001B, so a revert to the `String` overload fails rather than degrading silently.
+
+**#25 and #26 remain found-not-fixed, by design** — both are outside the seven findings of any
+batch, and neither was ever measured against a native comparator, which §6's own rule requires
+before fixing a UI defect. They stay in the findings table for the next audit to pick up.
 
 Batch B also **found two further divergences and deliberately did not fix them**, since they fall
 outside that batch's four findings: they are filed above as **#25** and **#26** so a future audit
@@ -138,6 +160,17 @@ cannot see them. Two things are testable and worth adding:
   `^(?:[A-Z][a-z]+ ){1,}[A-Z][a-z]+$` (Title Case) beyond an allow-list of product names
   (`LuaRocks`, `StyLua`, `LuaCov`, `Lua Language Server`). This catches #1 and future regressions,
   and is the only finding here a CI gate can hold.
+
+Batch D found more of these testable than expected, because a `SettingsEditor`'s panel can be built
+headless and read back: `RunConfigurationEditorLabelTest` and `RunConfigurationEditorControlTest`
+between them hold every one of group 5's seven findings — colons, mnemonics, mnemonic uniqueness,
+the absence of the U+001B escape, one wording for the environment row, the rendered combo text
+against the still-uppercase stored values, checkbox text free of parentheses and protocol keywords,
+`emptyText` on `KEYS`/`ARGV`, and the `Connection` combo's width relative to its neighbour. One of
+the fifteen exists only to keep the other fourteen honest: it pins the labelled-row count at 27, so
+a row silently dropped from a form cannot quietly satisfy every "no offender" assertion. All fifteen
+were mutation-proved, one source line at a time. What they cannot see is whether a mnemonic
+underline *paints* — that stays a screenshot matter.
 
 For the rest, the gate is the `verify-in-ide` screenshot pass. Recommend adding a UI clause to
 [`docs/engineering-contract.md`](../../../engineering-contract.md) — it currently has **no** UI

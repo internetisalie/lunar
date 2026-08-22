@@ -12,6 +12,17 @@
   matrix dialog is wide enough for its own title; and the matrix tool window is called *Lua Test
   Matrix* rather than `Lunar.LuaMatrix`, with run status shown as `Passed`/`Failed` plus an icon
   instead of the bare enum constant `FAIL`.
+- **The four Lua run-configuration editors read like the platform's own** (BUG-448, batch D — run
+  configurations): all 27 labelled rows across the Lua, Lua Tests, LuaRocks and Redis Script editors
+  now end in a colon and carry a mnemonic, matching the `Name:` row the platform draws directly
+  above them in the same dialog. The Lua Tests editor no longer shows the raw stored values
+  `BUSTED` and `FILE` — it renders *Busted* and *File*, while continuing to persist exactly what it
+  always did. The Redis Script editor's checkboxes lost their parenthetical implementation detail
+  and the bare `REPLACE` protocol keyword used as a label, which move to explanatory comments;
+  `KEYS`/`ARGV` say *Space-separated* as placeholder text rather than in the label; and its
+  `Connection` combo — the only control there that has to show an arbitrary name, previously 72px
+  beside 360px siblings — is now as wide as the rest of the column. The environment-variables row is
+  finally called the same thing in every editor.
 - **Lua settings-panel labels are sentence case, and the LuaCheck arguments row has its colon
   back** (BUG-448, batch C — text and casing): two checkboxes (`Enable Type Inference`,
   `Add Additional Completions`) were the only Title-Case controls on a page where every native
