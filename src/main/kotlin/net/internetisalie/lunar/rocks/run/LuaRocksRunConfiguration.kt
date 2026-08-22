@@ -30,6 +30,7 @@ import com.intellij.util.ui.FormBuilder
 import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
 import net.internetisalie.lunar.toolchain.exec.LuaExecutionEnvironmentBuilder
+import net.internetisalie.lunar.ui.addMnemonicLabeledComponent
 import java.io.File
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -307,11 +308,11 @@ class LuaRocksRunSettingsEditor(
         myPanel =
             FormBuilder
                 .createFormBuilder()
-                .addLabeledComponent("Command", commandField)
-                .addLabeledComponent("Arguments", argumentsField)
-                .addLabeledComponent("Rockspec", rockspecField)
-                .addLabeledComponent("Global flags", globalFlagsField)
-                .addLabeledComponent("Environment", environmentVariablesField)
+                .addMnemonicLabeledComponent("&Command:", commandField)
+                .addMnemonicLabeledComponent("&Arguments:", argumentsField)
+                .addMnemonicLabeledComponent("&Rockspec:", rockspecField)
+                .addMnemonicLabeledComponent("&Global flags:", globalFlagsField)
+                .addMnemonicLabeledComponent("Environment &variables:", environmentVariablesField)
                 .panel
     }
 

@@ -34,6 +34,8 @@ import net.internetisalie.lunar.redis.connection.LuaRedisServerConnection
 import net.internetisalie.lunar.redis.debug.LuaRedisDebugMode
 import net.internetisalie.lunar.redis.functions.LuaRedisFunctionLibrary
 import net.internetisalie.lunar.redis.functions.RegisteredNames
+import net.internetisalie.lunar.ui.addMnemonicLabeledComponent
+import net.internetisalie.lunar.ui.withMnemonic
 import java.io.File
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -318,33 +320,39 @@ class LuaRedisSettingsEditor(
     private val execModeCombo =
         ComboBox(arrayOf(LuaRedisExecMode.EVAL, LuaRedisExecMode.EVALSHA, LuaRedisExecMode.FCALL))
     private val debugModeCombo = ComboBox(arrayOf(LuaRedisDebugMode.FORKED, LuaRedisDebugMode.SYNC))
-    private val readOnlyCheckbox = JBCheckBox("Read-only (EVAL_RO / EVALSHA_RO / FCALL_RO)")
+    private val readOnlyCheckbox = JBCheckBox("Read-&only").withMnemonic()
     private val keysField = RawCommandLineEditor()
     private val argvField = RawCommandLineEditor()
     private val functionNameField = JBTextField()
-    private val replaceOnLoadCheckbox = JBCheckBox("REPLACE (overwrite existing library)")
-    private val deployOnlyCheckbox = JBCheckBox("Deploy only (FUNCTION LOAD without FCALL)")
+    private val replaceOnLoadCheckbox = JBCheckBox("Overwrite an existing &library").withMnemonic()
+    private val deployOnlyCheckbox = JBCheckBox("Deploy o&nly").withMnemonic()
     private val noWritesHintLabel = JBLabel("")
 
     init {
         scriptPathField.addBrowseFolderListener(project, FileChooserDescriptorFactory.singleFile())
         debugModeCombo.renderer = SimpleListCellRenderer.create("") { debugModeLabel(it) }
+        keysField.editorField.emptyText.text = SPACE_SEPARATED_HINT
+        argvField.editorField.emptyText.text = SPACE_SEPARATED_HINT
         reloadConnections()
 
         myPanel =
             FormBuilder
                 .createFormBuilder()
-                .addLabeledComponent("Script", scriptPathField)
-                .addLabeledComponent("Connection", connectionCombo)
-                .addLabeledComponent("Execution mode", execModeCombo)
-                .addLabeledComponent("Debug mode", debugModeCombo)
+                .addMnemonicLabeledComponent("&Script:", scriptPathField)
+                .addMnemonicLabeledComponent("&Connection:", connectionCombo)
+                .addMnemonicLabeledComponent("&Execution mode:", execModeCombo)
+                .addMnemonicLabeledComponent("&Debug mode:", debugModeCombo)
                 .addComponent(readOnlyCheckbox)
-                .addLabeledComponent("KEYS (space-separated)", keysField)
-                .addLabeledComponent("ARGV (space-separated)", argvField)
+                .addTooltip("Runs the read-only variant of the chosen execution mode.")
+                .addMnemonicLabeledComponent("&KEYS:", keysField)
+                .addMnemonicLabeledComponent("&ARGV:", argvField)
                 .addSeparator()
-                .addLabeledComponent("Function name (FCALL)", functionNameField)
+                .addMnemonicLabeledComponent("&Function name:", functionNameField)
+                .addTooltip("Used when the execution mode is FCALL.")
                 .addComponent(replaceOnLoadCheckbox)
+                .addTooltip("Loads the library with REPLACE, replacing one already on the server.")
                 .addComponent(deployOnlyCheckbox)
+                .addTooltip("Deploys the library and stops, without calling the function.")
                 .addComponent(noWritesHintLabel)
                 .panel
     }
@@ -421,6 +429,10 @@ class LuaRedisSettingsEditor(
     }
 
     override fun createEditor(): JComponent = myPanel
+
+    private companion object {
+        const val SPACE_SEPARATED_HINT = "Space-separated"
+    }
 }
 
 /** Combo-box row for a connection: its stable id plus a display name. */

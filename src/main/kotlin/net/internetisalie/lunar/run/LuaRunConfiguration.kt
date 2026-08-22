@@ -30,6 +30,7 @@ import net.internetisalie.lunar.toolchain.exec.LuaInterpreterCommandLines
 import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
 import net.internetisalie.lunar.toolchain.ui.LuaRuntimeComboBox
+import net.internetisalie.lunar.ui.addMnemonicLabeledComponent
 import net.internetisalie.lunar.util.LuaFileUtil
 import java.nio.file.Path
 import javax.swing.JComponent
@@ -395,14 +396,14 @@ class LuaRunSettingsEditor(
         myPanel =
             FormBuilder
                 .createFormBuilder()
-                .addLabeledComponent("Runtime", interpreterField)
-                .addLabeledComponent("Script file", scriptPathField)
-                .addLabeledComponent("Working directory", workingDirectoryField)
-                .addLabeledComponent("Source path templates", sourcePathField)
-                .addLabeledComponent("Environment variables", environmentVariablesField)
-                .addLabeledComponent("Runtime arguments", interpreterArgumentsField)
-                .addLabeledComponent("Program arguments", programArgumentsField)
-                .addLabeledComponent("Debug port", debugPortField)
+                .addMnemonicLabeledComponent("&Runtime:", interpreterField)
+                .addMnemonicLabeledComponent("&Script file:", scriptPathField)
+                .addMnemonicLabeledComponent("&Working directory:", workingDirectoryField)
+                .addMnemonicLabeledComponent("Source path &templates:", sourcePathField)
+                .addMnemonicLabeledComponent("&Environment variables:", environmentVariablesField)
+                .addMnemonicLabeledComponent("Runtime &arguments:", interpreterArgumentsField)
+                .addMnemonicLabeledComponent("&Program arguments:", programArgumentsField)
+                .addMnemonicLabeledComponent("&Debug port:", debugPortField)
                 .panel
     }
 

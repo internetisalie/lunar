@@ -30,6 +30,7 @@ import net.internetisalie.lunar.run.resolveConfiguredRuntime
 import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
 import net.internetisalie.lunar.toolchain.ui.LuaRuntimeComboBox
+import net.internetisalie.lunar.ui.addMnemonicLabeledComponent
 import javax.swing.JComponent
 import javax.swing.JPanel
 
@@ -322,13 +323,13 @@ class LuaTestSettingsEditor(
         myPanel =
             FormBuilder
                 .createFormBuilder()
-                .addLabeledComponent("Test framework", frameworkCombo)
-                .addLabeledComponent("Target type", targetTypeCombo)
-                .addLabeledComponent("Test target", testTargetField)
-                .addLabeledComponent("Runtime", interpreterField)
-                .addLabeledComponent("Working directory", workingDirectoryField)
-                .addLabeledComponent("Extra arguments", extraArgsField)
-                .addLabeledComponent("Environment variables", environmentVariablesField)
+                .addMnemonicLabeledComponent("Test &framework:", frameworkCombo)
+                .addMnemonicLabeledComponent("&Target type:", targetTypeCombo)
+                .addMnemonicLabeledComponent("Test t&arget:", testTargetField)
+                .addMnemonicLabeledComponent("&Runtime:", interpreterField)
+                .addMnemonicLabeledComponent("&Working directory:", workingDirectoryField)
+                .addMnemonicLabeledComponent("&Extra arguments:", extraArgsField)
+                .addMnemonicLabeledComponent("Environment &variables:", environmentVariablesField)
                 .panel
     }
 
