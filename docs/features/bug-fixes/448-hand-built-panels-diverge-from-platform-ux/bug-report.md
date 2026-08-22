@@ -25,7 +25,7 @@ equivalent platform surface (*Appearance*, *Path Variables*, *Plugins*, *Problem
 
 - **Expected**: Lua surfaces are visually indistinguishable in idiom from platform surfaces —
   sentence-case labels, aligned columns, panels that fill their container, flat action toolbars.
-- **Actual**: twenty measurable divergences, listed below. They cluster on **hand-assembled** panels.
+- **Actual**: twenty-four measurable divergences, listed below. They cluster on **hand-assembled** panels.
   Two Lua pages the platform builds for us (*Editor ▸ Code Style ▸ Lua*, via `CustomCodeStyleSettings`;
   *Editor ▸ General ▸ Smart Keys ▸ Lua*, via `BeanConfigurable`) are **correct** — and both use colons
   and sentence case, which our hand-built pages do not. That split is the finding.
@@ -54,6 +54,10 @@ equivalent platform surface (*Appearance*, *Path Variables*, *Plugins*, *Problem
 | 18 | `Connection` combo is 72px — the narrowest control on its page, and the only one that must display arbitrary text | 72px vs 360px siblings | `LuaRedisRunConfiguration.kt` |
 | 19 | The same field is labelled inconsistently across editors | `Environment variables` (Lua, Lua Tests) vs `Environment` (LuaRocks) — native Go Build uses `Environment:` | all four editors |
 | 20 | No mnemonics on any label | native Go Build underlines 10/10 (R̲un kind, F̲iles, O̲utput directory…); ours 0/27 | all four editors (`FormBuilder.addLabeledComponent` takes no mnemonic) |
+| 21 | Matrix tool window shows its **raw internal id** as its title | `Lunar.LuaMatrix`, beside `LuaRocks Packages` / `LuaRocks Dependencies` / `Redis Functions` | `plugin.xml:759` — the id doubles as the display name and this one is dotted |
+| 22 | Run status rendered as bare uppercase text with no icon | `FAIL` | `MatrixResultsToolWindow.kt` — same enum-leak family as #15 |
+| 23 | Column header abbreviated | `Exit` for what is an exit code | `MatrixResultsToolWindow.kt` |
+| 24 | Table columns evenly distributed regardless of content — **second instance of #8** | 231/230/230/229px; the `Exit` column holds one character and gets the same width as a rockspec filename | `MatrixResultsToolWindow.kt` — no column-width model, exactly as `LuaToolchainInventoryTable.kt` |
 
 ### The dominant root cause (#2 and #3 are the same defect)
 
@@ -80,8 +84,8 @@ Grouped so each can land independently:
    `LuaProvisionDialog` and `LuaDefinitionLibrariesConfigurable` (#2, #3). For Definition Libraries a
    `JBTable` is the more idiomatic end state, but `PARENT_GRID` is the one-line fix.
 2. **Fill and width** — replace `BorderLayout.WEST` with an `OnePixelSplitter` in
-   `LuaRedisConnectionsConfigurable` (#4); give the toolchain table a column-width model and let it
-   fill (#8); widen the two path fields (#7); give `LuaBatchProvisionDialog` a minimum width that
+   `LuaRedisConnectionsConfigurable` (#4); give **both** tables a column-width model and let them
+   fill (#8, #24 — one change applied twice); widen the two path fields (#7); give `LuaBatchProvisionDialog` a minimum width that
    admits its title (#6).
 3. **Components** — swap the three `JButton`s for an `ActionToolbar` (#5).
 4. **Text** — sentence-case the two bundle labels, add the missing colon, and settle group-title case
@@ -95,6 +99,8 @@ Grouped so each can land independently:
 6. **Dependency tool window** — `ActionToolbar` for the three actions, `SearchTextField` (or
    `emptyText`) for the filter, and `JBPanelWithEmptyText` for the inspector's empty state
    (#12, #13, #14). Same shape as group 3.
+7. **Matrix tool window** — give it a display name instead of `Lunar.LuaMatrix` (#21), render
+   status as icon + sentence case rather than `FAIL` (#22), and spell out `Exit code` (#23).
 
 Groups 1 and 2 are what a user actually notices. Group 4 is cheap and touches only strings.
 
@@ -125,7 +131,10 @@ theme).
   by reasoning about our code.
 - The blank Rocks detail pane found in the same audit is a genuine Swing parenting bug and is filed
   separately as [[bug-report|BUG-449]].
-- **Not exercised**, so unaudited: only the Matrix results tool window remains (it needs a real
-  matrix run to populate). Every other Lua surface in the plugin was opened and measured. The
-  LuaRocks dependency tool window is registered under the display name *"LuaRocks Dependencies"*,
-  not *"LuaRocks"* — worth knowing before the next audit.
+- **Every Lua surface in the plugin was opened and measured** — settings pages, both provisioning
+  dialogs, all four run-config editors, and all four tool windows. The Matrix results window was
+  populated for real (native provisioner built `lua-5.5.0`; a deliberately failing `test` command in
+  the fixture rockspec produced a `FAIL` row) rather than audited empty, which is what exposed #22
+  and #24. Nothing on the surface list is outstanding.
+- Two navigation notes for the next audit: the dependency tool window is registered as *"LuaRocks
+  Dependencies"*, not *"LuaRocks"*; and the matrix window answers only to `Lunar.LuaMatrix` (#21).
