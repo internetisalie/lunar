@@ -625,9 +625,13 @@ in Phase 2, so the idiom lives here.
         half-rename*: the file becomes `M = {}` / `function M.start() end` / `M.run()`. This is why
         TC-09 asserts the whole file — an assertion on the declaration alone is **green** under this
         mutant, and that is the cannot-fail shape that was gone looking for.
-      - Delete §3.1 step 4b (the `METHOD_FUNCTION` branch) → **TC-10 red** on both of its
-        assertions, and TC-19a red with it, confirming the two cases share the branch while
-        entering it from different directions (declaration caret vs. resolved `self`).
+      - Delete §3.1 step 4b (the `METHOD_FUNCTION` branch) → **TC-10 red**, and TC-19a red with it,
+        confirming the two cases share the branch while entering it from different directions
+        (declaration caret vs. resolved `self`). **Correction (Phase-4 review):** this line first
+        claimed TC-10 goes red "on both of its assertions". As executed it aborts at the **first** —
+        the expected `RefactoringErrorHintException` is not thrown, so the case fails before it can
+        reach the unchanged-file assertion. The mutant is still discriminating and the test still
+        goes red for the stated reason; only the "both assertions" detail was wrong.
       - Delete `globalDeclarationsNamed`'s loop-body `checkCanceled` →
         **`testCancellationIsCheckedPerIndexHitNotPerCall` red**, with the counts collapsing from
         5-then-10 to 3-then-3, i.e. delta 0.

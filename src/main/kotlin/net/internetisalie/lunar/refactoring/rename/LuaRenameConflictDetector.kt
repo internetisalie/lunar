@@ -63,16 +63,31 @@ internal class LuaRenameCollisionUsageInfo(
  * **Threading**: called only from `LuaRenameProcessor.findCollisions`, i.e. inside the background
  * read action `BaseRefactoringProcessor` wraps around `findUsages`. Never the EDT.
  *
- * **Cancellation: SEVEN iteration blocks, not six.** The Phase-3 record said six and read as
- * exhaustive; the omitted one was [captures]' `usages.mapNotNull { it.element }`, and it was the
- * only omitted block able to reach PSI and VFS — `UsageInfo.getElement()` goes through a soft
- * `SmartPsiElementPointer`, whose `SelfElementInfo.restoreElement` ends at
- * `PsiManager.findFile(vfile)`, i.e. a parse. It is now guarded like the rest. The three blocks
- * that can load PSI — that one, [shadows]' file-wide `LuaNameRef` scan and
- * [globalDeclarationsNamed]' per-hit normalisation — all check at the top of the body. The
- * remaining four ([globalNameTaken]'s and [ambiguousGlobal]'s message maps and the two
- * identity-set dedupe filters) are allocation over already-materialised, already-guarded lists and
- * are deliberately left unguarded; checks there would dilute the signal without bounding anything.
+ * **Cancellation — the invariant, deliberately not a block count.** *Every iteration block in this
+ * file whose body can **load** PSI (i.e. force a parse), read VFS, or query an index opens with
+ * `ProgressManager.checkCanceled()`. Every other block does bounded work over a list some guarded
+ * block upstream has already materialised — an allocation, an identity test, a message lookup, or a
+ * `UsageInfo` wrapper around PSI already in hand — and is left unguarded on purpose: a check there
+ * would dilute the signal without bounding anything.*
+ *
+ * **The property is stated instead of a count because three successive counts were all wrong.**
+ * Phase 3 recorded six and read as exhaustive. Phase 4 corrected it to seven and read as
+ * exhaustive. A chain-count at the Phase-4 review found nine, and a strict count of every
+ * lambda-bodied operator finds **eleven** — the earlier figures collapse `filter { }.map { }`
+ * chains in [shadows] and [ambiguousGlobal] into one block each, and drop [collisions]' own
+ * closing `.map`. Not one of those revisions changed whether the code was compliant; each only
+ * changed a number that has to be re-derived by hand after every edit, and would be wrong again
+ * after the next one. The invariant above is stable under editing and a reader can check it
+ * without recounting anything.
+ *
+ * **To check it, ask of each lambda body: can this reach PSI, VFS or an index?** Two answers are
+ * counter-intuitive and are the two defects the earlier records were written to close:
+ * - [captures]' `usages.mapNotNull { it.element }` **is a parse**, though it reads like a field
+ *   access. `UsageInfo.getElement()` goes through a soft `SmartPsiElementPointer` whose
+ *   `SelfElementInfo.restoreElement` ends at `PsiManager.findFile(vfile)`.
+ * - [globalDeclarationsNamed]' `.map` **is a parse per stub hit**, though the index read beside it
+ *   looks like the expensive half. `LuaDeclarationSite.identifierLeafOf` reaches a `LuaFuncDecl`'s
+ *   name through `getNode()`, which loads and parses a stub-backed element's file.
  *
  * `LuaRenameConflictTest`'s two `testCancellationIsChecked…` cases pin the per-iteration property
  * differentially — one over stub-hit count, one over usage count — so neither can be satisfied by

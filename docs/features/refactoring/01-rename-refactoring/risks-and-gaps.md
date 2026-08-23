@@ -358,10 +358,20 @@ can be promoted from **(inferred)** to verified.
   `LuaMemberFieldNavigation` returns assignment targets that are not declaration sites by
   `kindOf`'s table. The residual worry is the dotted *function* case, where `M.run` legitimately
   resolves to a `LuaFuncDecl` and renaming is correct and wanted (TC-09).
-- **Resolved by**: **DR-05** — enumerate what `t.field` resolves to for each of the four shapes
-  (`t.field` where `t` is a local table, a global table, a `require`d module, and a `@class`) and
-  confirm each either refuses or lands on a genuine `DOTTED_FUNCTION`. Fold the answer into design
-  §6 before Phase 4 is accepted.
+- **Resolved by**: **DR-05**, executed 2026-08-23 and folded into **design §6.1**, which carries the
+  eight-row measurement table. **The worry did not materialise, and the residual one is real but
+  benign.** Every plain-data-field shape refuses with `refactoring.rename.unresolved`; nothing
+  resolves to something that looks like a declaration site, because `LuaMemberFieldNavigation`
+  returns the member's `LuaNameRef` and `identifierLeafOf`'s `LuaNameRef` branch is gated on
+  `kindOf != null`, which is `null` for a `LuaIndexExpr` grandparent. The dotted *function* case is
+  the only one that reaches a genuine `DOTTED_FUNCTION`, and only when the receiver segment is
+  spelled the same as the declaration's (`local M = require("mod"); M.run()`); an aliased receiver
+  (`local m = require("mod")`) resolves to nothing, because the qualified name `m.run` does not match
+  the `LuaGlobalDeclarationIndex` key `"M.run"`. Two things DR-05 found that Gap 2.3 did not predict
+  are recorded in §6.1 and in a new §6 row: the refusal branch is `unresolved`, not
+  `unsupportedTarget`, and a caret on an `M.run()` **call site** is refused by the *platform*
+  (`error.cannot.be.renamed`) before this processor is consulted at all, because
+  `TargetElementUtil` hands back the whole `LuaFuncDecl`.
 
 ### Gap 2.4: once the colon form is renameable, caret-on-`self` will rename the method
 
@@ -584,6 +594,30 @@ not renamed-usages from an unrenamed declaration. Two consequences worth having 
   gone and the null path is now the contract, with
   `LuaElementFactoryTest.testCreateIdentifierIsNullForANameThatCannotBeAnIdentifier` pinning it.
 
+### Gap 2.14: a caret on an `M.run()` CALL SITE cannot rename the dotted function — the same containment as Gap 2.10, and its cost (OPEN)
+
+Measured by **DR-05** (2026-08-23), which found it while checking the dotted-function control case;
+it is not a `t.field` shape, but it is the shape a user reaches by trying one.
+
+With the caret on the `run` of `M.run()`, `TargetElementUtil.findTargetElement` resolves the
+reference and hands back the whole enclosing **`LuaFuncDecl`** — the same handback Gap 2.10 records
+for the receiver caret. `canProcessElement` does not claim declaration nodes, so
+`RenamePsiElementProcessorBase.forPsiElement` selects no processor and the **platform** refuses with
+`error.cannot.be.renamed`, before `LuaRenameProcessor` is consulted at all. DR-05 called
+`substituteElementToRename` on that element directly and it returned the correct answer — `run`,
+`DOTTED_FUNCTION` — so the machinery is right and simply never runs.
+
+**Safe, and deliberately so: this is the price of Gap 2.10's containment, not a separate defect.**
+Widening `canProcessElement` to admit declaration nodes would close this gap and simultaneously
+reopen Gap 2.10's misdirection, because `identifierLeafOf(LuaFuncDecl)` is the *last* name segment
+either way and cannot tell "the user pointed at `run`" from "the user pointed at `M`". Closing it
+properly needs the caret offset, i.e. a `TargetElementEvaluatorEx2` for Lua — the same instrument
+Gap 2.9 needs for the numeric-`for` declaration, and out of scope here for the same reason.
+
+**User-visible consequence, stated plainly:** renaming a dotted function works from its declaration
+(TC-09) and is refused from its call sites. That is a second reason `REFACT-01-08` is `Partial`
+beyond the colon form, and it is recorded so the row's scope is not read as narrower than it is.
+
 ## Technical Debt & Future Work
 
 - **TBD-1: `REFACT-01-09` — table field / constructor key rename.** Deferred, priority `C`. Two
@@ -617,7 +651,7 @@ not renamed-usages from an unrenamed declaration. Two consequences worth having 
 | `REFACT-01-00-DR-02` | Grep the corpus (`tooling/corpus/`) for a block declaring the same local name twice, to size Gap 2.2 before anyone spends effort on it. | Gap 2.2 | todo |
 | `REFACT-01-00-DR-03` | Size receiver-type method resolution: can `LuaNameReference` resolve `obj:m()` via `LuaTypeManager.resolveType` / `LuaClassType.resolveMember` (see the type-engine notes in `.agents/AGENTS.md`) without a corpus regression? Outcome decides whether `REFACT-01-08`'s colon form is a follow-up feature or a TYPE-epic dependency. **Also owns Gap 2.4**: whatever makes the colon form renameable must simultaneously add a caret-based `self` guard in `substituteElementToRename` (`PsiUtilBase.getElementAtCaret(editor)`), because `self` resolves to the method-name leaf and would otherwise rename the method. | Risk 1.1, RD-2, Gap 2.4 | todo |
 | `REFACT-01-00-DR-04` | Size `@class`/`@alias` rename: prototype rewriting a type name through `LuaCatsTypeNameIndex` and count the surfaces that would need it (docs, completion, inspections). | TBD-2 | todo |
-| `REFACT-01-00-DR-05` | Enumerate what `t.field` resolves to for the four receiver shapes in Gap 2.3 and confirm each refuses or lands on a genuine `DOTTED_FUNCTION`. | Gap 2.3 | todo |
+| `REFACT-01-00-DR-05` | Enumerate what `t.field` resolves to for the four receiver shapes in Gap 2.3 and confirm each refuses or lands on a genuine `DOTTED_FUNCTION`. | Gap 2.3 | **done 2026-08-23 — all four shapes are safe; folded into design §6.1, see below** |
 | `REFACT-01-00-DR-06` | Confirm `LeafElement.replaceWithText` is a legal edit on a `LuaCatsArgName` child inside a `LuaCatsLazyCommentImpl` (a lazy-parseable node) — the one AST operation in this design with no existing precedent in the repo. If it is not, fall back to rebuilding the comment text. | Design §3.6 | todo |
 | `REFACT-01-00-DR-07` | Before writing §2.10's collectors, run one `BasePlatformTestCase` that puts `global count = 0` in `a.lua` and `print(count)` in `b.lua` and asserts what `LuaNameReference.resolve()` returns for `b.lua`'s `count` **on the current tree**. The design asserts it is null (nothing indexes `LuaGlobalVarDecl`) from reading `LuaGlobalAssignmentIndex.kt:95-107`, not from running it. If it already resolves, §2.10 is unnecessary and rows 5/7 alone finish the job. Paste the output into design §1's evidence table either way. | Design §2.10, Gap 2.5 | **done 2026-08-22 — it did NOT already resolve; §2.10 is load-bearing, measured** |
 | `REFACT-01-00-DR-08` | Confirm the file-scope predicate of §3.5 row 14 against real PSI: for `cfg = {}` at file scope, assert `(target.parent as? LuaVarList)?.parent is LuaAssignmentStatement` and that the statement is in `containingFile.blockList.flatMap { it.statementList }`; for `function g() cfg = 1 end`, assert it is **not**. **Also assert the O(1) restatement agrees on both fixtures** — `stmt.parent is LuaBlock && stmt.parent.parent is LuaFile` — because §3.5 clause 3 ships in that form to keep `isBareAssignmentTarget` cheap enough for the indexer to call per target. The equivalence is derived from `LuaPsiImplUtil.kt:67-68` (`getChildrenOfType`, direct children) and `LuaBlockImpl.java:34-36` (`getChildrenOfTypeAsList`, direct children); this task is what makes it measured rather than derived. `LuaFile.getBlockList()` is `LuaPsiImplUtil.getBlockList` (`LuaFile.kt:31`) and the number of blocks a file exposes is read, not measured. | Design §3.5 row 14, §2.10 change 0 | **done 2026-08-22 — subsumed by DR-09's three-pass run, see below** |
@@ -648,6 +682,37 @@ merely fail to look. Note the *limit* of the evidence: clauses 2 and 3 are unrea
 target reached by `map`'s top-down enumeration, so the probe can only detect a predicate that
 **rejects** something the old rule accepted — which is the direction that silently empties an index.
 
+
+### DR-05 result and the iteration-block audit (2026-08-23)
+
+DR-05's own findings live in **design §6.1**; only the by-product is recorded here.
+
+`LuaRenameConflictDetector`'s KDoc asserted a **count** of cancellation-checked iteration blocks, and
+every attempt at that count was wrong: Phase 3 said six, Phase 4 corrected it to seven, the Phase-4
+review chain-counted nine, and a strict count of every lambda-bodied operator at `4458a8b0` finds
+**eleven** — four guarded, seven not. The revisions never disagreed about *compliance*; every block
+omitted from every count was one of the unguarded pure ones. They disagreed only about a number that
+has to be re-derived by hand after each edit.
+
+The KDoc now states the **invariant** instead — every block that can load PSI, read VFS or query an
+index is guarded; the rest are bounded work over already-materialised lists — plus the recipe for
+checking it and the two counter-intuitive cases (`UsageInfo.getElement()` is a parse;
+`identifierLeafOf` over a stub hit is a parse per hit). A reader can verify that without recounting,
+and it does not go stale when a block is added.
+
+The eleven figure above is a **dated audit at one commit**, not a maintained claim; it is here as the
+evidence for dropping the count, and nothing depends on it staying accurate. It was derived
+mechanically rather than by eye, so the next reader can reproduce it:
+
+```bash
+grep -n '\.\(map\|mapNotNull\|filter\|forEach\|flatMap\)\s*{' \
+  src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt
+```
+
+That prints **ten lines** for eleven blocks — `ambiguousGlobal`'s `.filter { … }.map { … }` is a
+single line carrying two lambda bodies. A hand-count reading the same output "correctly" still
+lands on ten, which is the fifth wrong number and the last argument needed for stating the property
+instead.
 
 ### Executed finding: design §3.5's `identifierLeafOf` rows read `@NotNull` getters that log (2026-08-22)
 

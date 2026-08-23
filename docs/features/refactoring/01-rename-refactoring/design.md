@@ -1539,7 +1539,8 @@ and parse rule are pinned in §3.7 steps 1-4.
 | A global declared in two files | Not refused, but **reported**: C4 (§3.4) anchors a collision on every other declaration site, because `LuaNameReference.resolve()` returns null on a multi-result `multiResolve` (`LuaNameReference.kt:228-231`) and reads of that global would otherwise be silently skipped. |
 | Caret on `...` | `canProcessElement` is false — the ELLIPSIS token is neither an IDENTIFIER nor a `LuaNameRef` — so the platform shows `error.wrong.caret.position.symbol.to.rename`. |
 | Caret on `{ field = 1 }` | `field ::= … \| IDENTIFIER '=' expr` (`lua.bnf:319`) is a bare leaf with no `LuaNameRef`; `kindOf` → `null`, `canProcessElement` false → platform refusal. |
-| Caret on `t.field` (member access) | `canProcessElement` true (it is a `LuaNameRef`), but §3.1 step 3 refuses unless resolution lands on a real declaration site. |
+| Caret on `t.field` (member access) | **Enumerated for all four receiver shapes by DR-05 — the table in §6.1 is the answer, and it is measured.** Every plain-data-field shape refuses; the only member access that reaches a rename target at all is a dotted *function* call whose receiver segment is spelled the same as the declaration's. No shape half-applies, and none is misdirected onto the receiver. |
+| Caret on the `run` of an `M.run()` **call site** (a genuine dotted function) | **Not renameable — and the refusal comes from the PLATFORM, not from this processor.** Measured by DR-05. `TargetElementUtil` resolves the reference and hands back the whole enclosing `LuaFuncDecl`; §3.0 does not claim declaration NODES (deliberately — see the `M = {}` row above, whose rationale is the same one), so `RenamePsiElementProcessorBase.forPsiElement` selects no processor and the platform reports `error.cannot.be.renamed`. `substituteElementToRename` would normalise this correctly if it were ever asked — DR-05 called it directly and got the `run` leaf, `DOTTED_FUNCTION` — but it is not asked. Rename from the DECLARATION caret instead (TC-09), which works and does rewrite the call sites. |
 | Caret on `function Obj:m()` | Refused with `refactoring.rename.colonMethod` (§3.1 step 4). |
 | Caret on the **receiver** `M` of `function M.run()` (no other declaration of `M`) | Classified `GLOBAL_FUNCTION` by §3.5 row 9, then refused by §3.1 step 4a with `refactoring.rename.functionNameSegment`: `functionNameLeafOf(funcName)` is the `run` leaf, not this one. Without step 4a the declaration's `M` would be rewritten and every `M.run()` call site left on the old name — resolution cannot redirect, because `LuaBlock.processDeclarations` has no `LuaFuncDecl` branch (`LuaBlockExt.kt:38-77`). TC-34a. |
 | Caret on the receiver `M` of `function M.run()` when `M = {}` also exists | **Refused by step 4a — this row's original claim was measured false in Phase 2.** `resolve()` on the funcName's `M` is still null (nothing redirects it to `M = {}`), so `TargetElementUtilBase` falls through to `ELEMENT_NAME_ACCEPTED`, hands over the `M` leaf, and step 4a refuses with `refactoring.rename.functionNameSegment`. A refusal, not a half-rename, so the outcome is safe — but it is not the redirection this row promised. |
@@ -1550,8 +1551,50 @@ and parse rule are pinned in §3.7 steps 1-4.
 | `local function f` recursing into itself | `LuaLocalFuncDecl.processDeclarations` puts `f` in scope inside its own body (`LuaFunctionExt.kt:95-117`, whose step 3 at lines 115-116 executes the decl itself), so the recursive call is a real reference and is collected like any other. |
 | Renaming to a name that is a Lua keyword | Blocked before the processor runs: `LuaNamesValidator.isIdentifier` (registered `plugin.xml:393-395`) gates the dialog's OK button. |
 | Zero usages found for a claimed target | Not silently accepted: if the target is a `METHOD_FUNCTION` we refuse up front (§3.1 step 4); for every other kind zero usages is a legitimate outcome (an unused local). |
-| Rename cancelled mid-search | Every scan loop in §3.2/§3.4 calls `ProgressManager.checkCanceled()`. |
+| Rename cancelled mid-search | **The invariant is stated over cost, not over a block count** — the count was restated wrongly three times and is now gone from the code (see `LuaRenameConflictDetector`'s KDoc and the block-audit note in `risks-and-gaps.md`). Every iteration block in §3.2/§3.4 whose body can **load** PSI, read VFS or query an index opens with `ProgressManager.checkCanceled()`; the rest do bounded work over lists a guarded block upstream already materialised, and are unguarded on purpose. `LuaRenameConflictTest`'s two `testCancellationIsChecked…` cases pin the property differentially — one over stub-hit count, one over usage count — so neither can be satisfied by an entry check alone. |
 | `require "mod"` (paren-less) | The reference host is `LuaArgs` rather than `LuaTerminalExpr` (`LuaRequireReferenceContributor.kt:70-75`, `requireArgumentString`); §3.7 step 6 reads `element.string` on either. |
+
+### 6.1 `t.field` for the four receiver shapes — DR-05
+
+`canProcessElement` claims every `LuaNameRef`, so a member access reaches this processor and the
+refusal has to be reliable. `risks-and-gaps.md` Gap 2.3 asked whether it is, or whether a member
+access can resolve to something that merely *looks* like a declaration site. **Measured on
+`4458a8b0` with a throwaway `BasePlatformTestCase` probe, one project per shape** (each shape in its
+own `@Test` — a first run that shared one project across shapes leaked `function M.run()` from two
+module fixtures into the control case and made it look broken; that reading was an artefact).
+
+Every row records what `LuaNameReference.resolve()` returned and what
+`substituteElementToRename` then did.
+
+| # | Receiver shape | Fixture (caret on the member) | `resolve()` | Outcome |
+| :-- | :--- | :--- | :--- | :--- |
+| A | **local table** | `local t = {}` / `t.field = 1` / `print(t.fi<caret>eld)` | the `field` `LuaNameRef` of `t.field = 1`, via `LuaMemberFieldNavigation` | **Refused**, `refactoring.rename.unresolved` |
+| B | **global table** | `t = {}` / `t.field = 1` / `print(t.fi<caret>eld)` | same, via `LuaMemberFieldNavigation` | **Refused**, `refactoring.rename.unresolved` |
+| C1 | **`require`d module**, field, receiver renamed | `local m = require("mod")` / `print(m.fi<caret>eld)` | `null` — `multiResolve` empty | **Refused**, `refactoring.rename.unresolved` |
+| C2 | **`require`d module**, dotted fn, receiver renamed | `local m = require("mod")` / `m.r<caret>un()` | `null` — `multiResolve` empty | **Refused**, `refactoring.rename.unresolved` |
+| C3 | **`require`d module**, dotted fn, receiver same name | `local M = require("mod")` / `M.r<caret>un()` | `mod.lua`'s `LuaFuncDecl` | **Genuine `DOTTED_FUNCTION`** — `substituteElementToRename` returns `mod.lua`'s `run` leaf. But the caret cannot get there: see the call-site row in §6. |
+| C4 | **`require`d module**, field, receiver same name | `local M = require("mod")` / `print(M.fi<caret>eld)` | `mod.lua`'s `field` `LuaNameRef` | **Refused**, `refactoring.rename.unresolved` |
+| D1 | **`@class`**, `---@field` only | `---@class Config` / `---@field name string` / `local Config = {}` / `print(Config.na<caret>me)` | `null` | **Refused**, `refactoring.rename.unresolved` |
+| D2 | **`@class`**, field also assigned | as D1 plus `Config.name = "x"` | the `name` `LuaNameRef` of the assignment | **Refused**, `refactoring.rename.unresolved` |
+
+**Gap 2.3 is closed, and its worry did not materialise.** No shape resolves to something that looks
+like a declaration site: `LuaMemberFieldNavigation.find` returns the member's `LuaNameRef`
+(`memberFieldIdentifier`, `LuaMemberFieldNames.kt:24-28`), and `identifierLeafOf`'s `LuaNameRef`
+branch is `element.identifier.takeIf { kindOf(it) != null }` — a member leaf's grandparent is a
+`LuaIndexExpr`, which §3.5's table does not list, so `kindOf` is `null` and the branch yields `null`.
+The dangerous neighbouring branch, `element is LuaVar -> element.nameRef?.identifier`, would have
+returned the **receiver** leaf and renamed `t` when the user asked for `t.field`; it is never reached
+from this path, because what resolution hands back is the `LuaNameRef`, not the `LuaVar`.
+
+**One correction to Gap 2.3's predicted mechanism.** Gap 2.3 expected the general rule of §3.1
+step 3 — "`identifierLeafOf(resolved)` or refuse" — i.e. the `refactoring.rename.unsupportedTarget`
+branch. Measured, **every** refusal above is `refactoring.rename.unresolved` instead, and rows A, B,
+C4 and D2 take a route the gap did not describe: `TargetElementUtil`'s `REFERENCED_ELEMENT_ACCEPTED`
+succeeds and hands the processor the *declaration-site* `LuaNameRef` rather than the caret's usage,
+so step 1's `identifierLeafOf` fails on that element, step 2 takes *its* reference, and step 3's
+`resolve()` is what returns `null` (a member-field write target does not resolve to itself). The
+outcome Gap 2.3 wanted holds; the branch that delivers it is one hop further along.
+
 
 ## 7. Integration Points
 
