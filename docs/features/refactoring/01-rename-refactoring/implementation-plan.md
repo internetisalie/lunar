@@ -485,10 +485,15 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
 
 - **Goal**: renaming a parameter moves its `---@param` tag.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.refactoring.rename.LuaCatsParamRenamer` — realizes design
+  - [x] Create `net.internetisalie.lunar.refactoring.rename.LuaCatsParamRenamer` — realizes design
         §2.8 and §3.6.
-  - [ ] Wire step 5 of `LuaRenameProcessor.renameElement` — realizes design §3.3.
-- **Exit criteria**: `LuaCatsParamRenameTest` passes TC-20a/b/c; full suite green.
+  - [x] Wire step 5 of `LuaRenameProcessor.renameElement` — realizes design §3.3.
+- **Exit criteria**: `LuaCatsParamRenameTest` passes TC-20a/b/c; full suite green. **Met
+  (2026-08-23)**, with four cases added beyond the plan's three: TC-20a/b/c alone leave the
+  behaviour under-pinned, because only TC-20a can fail when the feature is absent. TC-20e (only the
+  matching tag moves) and TC-20f (a `function` expression's comment owner is the enclosing `local`)
+  are the other two gates; TC-20d (a refused rename does not move the tag — Gap 2.13's converse) and
+  TC-20g (a tag naming a *different* parameter is untouched) are guards with executed mutants.
 
 ### Phase 7: In-place rename and non-code search [Could]
 
@@ -638,7 +643,7 @@ in Phase 2, so the idiom lives here.
       reproduce. Do not invent a heavy fixture for this.
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictTest.kt` — TC-14…TC-17, TC-31.
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRequireRenameTest.kt` — TC-18a/b/c, plus TC-18d (the decline path, added in Phase 5).
-- [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaCatsParamRenameTest.kt` — TC-20a/b/c.
+- [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaCatsParamRenameTest.kt` — TC-20a/b/c, plus TC-20d/e/f/g.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaInplaceRenameTest.kt` — TC-12.
 - [x] Extend `LuaFindUsagesTest` — TC-23 only (Phase 1). TC-35 is dropped; the class's existing
       `testLabelUsagesCount` and `testCanFindUsagesForLabel` stay unchanged and must stay green.

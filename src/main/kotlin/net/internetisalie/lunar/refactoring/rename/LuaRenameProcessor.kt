@@ -180,8 +180,21 @@ class LuaRenameProcessor :
      *
      * Usages are still rewritten BEFORE the declaration, matching
      * `RenameUtilBase.doRenameGenericNamedElement`'s own order, so no usage's reference is
-     * invalidated by the declaration edit. §3.3 step 5's `---@param` propagation is wired in
-     * Phase 6 with `LuaCatsParamRenamer`, which is that phase's own task.
+     * invalidated by the declaration edit.
+     *
+     * **Step 5's `---@param` propagation runs last and is safe there** — `risks-and-gaps.md`
+     * Gap 2.13 names it as the first rewrite path that could restore a visible half-apply, since it
+     * edits comment text and so is not covered by the replacement resolved up front.
+     * [LuaCatsParamRenamer] answers that by having no failure outcome at all (its KDoc states the
+     * measurement); every way out of it short of the rewrite means there is no matching tag to
+     * move, which is a correct no-op. It therefore cannot abort a rename that is already applied,
+     * and TC-20d pins the other direction: a REFUSED rename never reaches it, so the tag does not
+     * move on its own.
+     *
+     * [LuaCatsParamRenamer] re-derives the comment owner from [replacement] instead of from a value
+     * captured in step 1, which design §3.3 has it do twice. Measured: `replaceChild` puts the
+     * replacement in the old leaf's slot, so the ancestor chain — and the owner it reaches — is
+     * unchanged by the swap. A pre-captured owner would only restate the renamer's own first step.
      */
     override fun renameElement(
         element: PsiElement,
@@ -189,6 +202,8 @@ class LuaRenameProcessor :
         usages: Array<UsageInfo>,
         listener: RefactoringElementListener?,
     ) {
+        val declarationKind = LuaDeclarationSite.kindOf(element)
+        val oldName = element.text
         val replacement =
             LuaElementFactory.createIdentifier(element.project, newName) ?: refuseRewrite(newName)
         val applyDeclarationRewrite = preparedDeclarationRewrite(element, replacement) ?: refuseRewrite(newName)
@@ -197,6 +212,9 @@ class LuaRenameProcessor :
             RenameUtil.rename(usage, newName)
         }
         applyDeclarationRewrite()
+        if (declarationKind == LuaDeclarationKind.PARAMETER) {
+            LuaCatsParamRenamer.rename(replacement, oldName, newName)
+        }
         listener?.elementRenamed(replacement)
     }
 

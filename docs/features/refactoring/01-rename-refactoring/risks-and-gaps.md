@@ -588,6 +588,18 @@ not renamed-usages from an unrenamed declaration. Two consequences worth having 
   ordering defect: a second rewrite path that does not funnel through this factory — §3.6's
   `LuaCatsParamRenamer` in Phase 6 is the first candidate, editing comment text rather than a
   `LuaNameRef` — restores the visible half-apply immediately.
+
+  **Phase 6 shipped that candidate and it does not restore the half-apply (2026-08-23).** The
+  prediction was right about the mechanism and wrong about the outcome, for a reason worth keeping:
+  `LuaCatsParamRenamer` has **no failure outcome**. Every exit short of the rewrite means "there is
+  no `---@param` tag spelled with the old name", which is a correct no-op the requirement asks for;
+  and the rewrite itself is total, because `ArgName ::= <<child>>` gives an `ARG_NAME` node exactly
+  one child — a `NAME` `LeafElement`, measured — so selecting the tag BY that leaf leaves no branch
+  in which a matching tag is found and cannot be rewritten, and `LeafElement.replaceWithText`
+  neither parses nor validates (`LeafElement.java:137-141`). What *would* have restored the
+  half-apply is placing the call before §3.3 step 2's refusal, and that is now pinned rather than
+  reasoned about: hoisting it was executed and reddens `LuaCatsParamRenameTest`'s TC-20d with a
+  `FileComparisonFailedError` — `---@param end number` beside a parameter still spelled `a`.
 - `LuaElementFactory.createIdentifier` was reachable only as a crash before this commit:
   `createGotoStatement` ended in `!!` (`LuaElementFactory.kt:33`), so an unbuildable name threw a
   `KotlinNullPointerException` from inside the write action instead of returning null. The `!!` is
