@@ -319,7 +319,7 @@ internal object LuaRenameConflictDetector {
      * opens the loop body rather than only the function, per the engineering contract's
      * every-iteration-block rule — the same reasoning [LuaGlobalAssignmentNavigation.find] already
      * applies to its own two loops, and the reason [LuaMemberFieldNavigation.find] gained checks on
-     * its three when this rename-time caller was added.
+     * the two levels whose bodies can force work when this rename-time caller was added.
      *
      * A declaration whose leaf cannot be found falls back to the declaration node rather than being
      * dropped: dropping it would lower C4's count and could turn a real ambiguity into silence,

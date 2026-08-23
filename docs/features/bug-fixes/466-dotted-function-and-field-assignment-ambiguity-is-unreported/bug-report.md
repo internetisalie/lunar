@@ -106,7 +106,7 @@ claim derived from reading, which made shipping a defect look like a considered 
    `LuaAssignmentStatement` as the original sketch proposed. That step existed only to dodge the
    hazard above; with the hazard void, the field is the better anchor — it is the rival declaration
    the user must look at, and it is still rewritten on Continue.
-3. `LuaMemberFieldNavigation.find` gained `ProgressManager.checkCanceled()` on its three loops. It
+3. `LuaMemberFieldNavigation.find` gained `ProgressManager.checkCanceled()` at the two levels whose bodies can force work (parse a file, walk its statements). It
    now has a rename-time caller, which is when users cancel, and its loops parse and then walk a
    whole file each — matching what `LuaGlobalAssignmentNavigation.find` already does.
 4. Tests: `LuaRenameConflictTest.testDottedFunctionBesideAFieldAssignmentIsReported` (the three-file

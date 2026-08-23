@@ -670,7 +670,7 @@ removed, the real usage on the anchor still present — and now pinned end to en
 `LuaMemberFieldNavigation.find`, so C3/C4's candidate set is exactly the set
 `LuaNameReference.doMultiResolve` consults for the same key. No shape guard is needed: each
 navigation lookup is inert for the other's key shape. `LuaMemberFieldNavigation.find` gained
-`ProgressManager.checkCanceled()` on its three loops for the new rename-time caller, matching its
+`ProgressManager.checkCanceled()` at the two levels whose bodies can force work (parse a file, walk its statements) for the new rename-time caller, matching its
 sibling `LuaGlobalAssignmentNavigation.find`. Pinned by
 `LuaRenameConflictTest.testDottedFunctionBesideAFieldAssignmentIsReported`; mutation-proved by
 dropping the new term, which makes both new cases fail — the first with "applied silently", the

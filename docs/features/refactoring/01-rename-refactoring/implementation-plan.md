@@ -413,7 +413,7 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
       `testDottedFunctionBesideAFieldAssignmentIsReported` (the conflict) and
       `testCollisionAnchoredOnAUsageIsStillRewritten` (Continue, via `withIgnoredConflicts`, still
       rewrites the anchor) — and dropping the new term reddens both. `LuaMemberFieldNavigation.find`
-      gained `checkCanceled()` on its three loops for the new rename-time caller.
+      gained `checkCanceled()` at the two levels whose bodies can force work (parse a file, walk its statements) for the new rename-time caller.
 - [x] **The false claim removed everywhere it was written**: `LuaRenameConflictDetector.kt`'s two
       KDocs, `LuaRenameConflictTest`'s TC-14 KDoc, design §2.4 and §3.4, `risks-and-gaps.md`
       Gap 2.15, this plan, [[BUG-466]]'s report, the roadmap row, and REFACT-04 design §2.3, which
