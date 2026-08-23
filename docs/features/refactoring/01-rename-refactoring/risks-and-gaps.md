@@ -965,24 +965,21 @@ the predicate through `kindOf` on a leaf rather than through the indexer's enume
 it to answer `null`.
 
 
-### Gap 2.17 — the usage loop is not write-free from its second iteration
+### Gap 2.17 — cancelling a rename leaves the file inconsistent
 
-`renameElement`'s usage loop calls `RenameUtil.rename` per usage. From iteration *k* > 1 a usage has
-already been rewritten, so a `ProcessCanceledException` raised at the loop's `checkCanceled()` leaves
-the file with some usages renamed and the rest not.
+**Filed as [[BUG-468]].** `renameElement` rewrites every usage before the declaration, so a
+`ProcessCanceledException` at usage *k* leaves *k*-1 usages on the new name and the declaration on
+the old one — [[BUG-457]]'s shape, reached by pressing Cancel. Measured: the enclosing
+`WriteCommandAction` does **not** roll back, and the exception does not surface.
 
-**Measured, not inferred**: Phase 6's review raised a `ProcessCanceledException` inside the rename
-path and observed `thrown = null` with the file left half-applied — the enclosing `WriteCommandAction`
-did **not** roll back. The same mechanism therefore applies here.
+Pre-existing Phase 2/3 code, untouched by Phases 4-6, and no remaining phase touches it.
 
-Bounded, and smaller than the annotation case Gap 2.13 describes: the exposure is one usage per
-cancellation rather than a declaration-versus-annotation split, and a user who cancels a rename
-expects it not to have completed. It **predates this phase** — the loop and its check are Phase 2/3
-code, unchanged by Phase 6 — and is recorded here because Phase 6's KDoc previously asserted the
-loop was write-free, which is false.
-
-Closing it means either draining the usage rewrites into a single atomic step or accepting the
-partial state explicitly in the UI. Neither belongs to REFACT-01's remaining phases.
+**The first version of this paragraph called the damage "bounded at one usage", called it "smaller
+than Gap 2.13", and opened "Measured, not inferred".** All three were wrong: the bound is on latency
+rather than damage, Gap 2.13's residue is a stale comment beside correct code while this is broken
+code, and only the no-rollback half was measured. It is recorded here because a reassurance stated
+with more confidence than its evidence is the defect class this feature spent seven review rounds
+finding in its own artefacts — including, that time, in a supervisor's own writing.
 
 ## Test Case Gaps
 

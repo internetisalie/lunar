@@ -129,7 +129,7 @@ Two consequences run through the whole table, both **(inferred)**:
 | `-15` | `LuaRenameTest.testSearchInCommentsDoesNotLogAnUnknownElementType` — the `getQualifiedNameAfterRename` half only. |
 | `-16` | `LuaCatsParamRenameTest` (7 cases) — the `---@param` half only. **Three are gates** (`testParamTagFollowsParameter`, `testOnlyTheMatchingParamTagMoves`, `testTagOnAFunctionExpressionAssignedToALocal`): unwiring `LuaCatsParamRenamer` reddens exactly those. The other four assert that something does **not** move and are therefore green on the parent commit — recorded as guards, not gates, each with its own executed mutant. |
 | `-14` | `LuaRenameConflictTest` (5 cases, one per rule plus the negative that keeps the detector from crying wolf). |
-| `-09`, `-11`, `-12`, `-18` | **Nothing.** |
+| `-09`, `-11`, `-12` | **Nothing.** |
 
 The *substrate* these rows would be built on is tested, which is worth stating so the remaining work
 is not over-estimated: `LuaFindUsagesTest` and `LuaFindUsagesCrossFileTest` exercise
