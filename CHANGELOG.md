@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Renaming a Lua file now rewrites its `require(...)` callers, and renaming a parameter moves its
+  `---@param` tag** (REFACT-01 Phases 5-6). Quote style and long-bracket delimiters are preserved,
+  and a new name that cannot form a valid string literal is refused rather than silently truncated.
+  Previously, renaming a file a `require` named threw and abandoned the refactoring outright.
+
 - **`function M.run()` renames with its call sites; `function Obj:m()` still declines, by name**
   (REFACT-01 Phase 4). Renaming the `run` of a dotted member function now rewrites every `M.run()`
   call site along with the declaration, leaving the receiver `M` alone. The colon form is unchanged

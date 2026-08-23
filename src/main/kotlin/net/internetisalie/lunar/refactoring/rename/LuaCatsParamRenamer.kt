@@ -49,7 +49,9 @@ object LuaCatsParamRenamer {
      * point here would be the one thing able to abandon the rename between its code edits and its
      * annotation edit, which is precisely the half-apply `risks-and-gaps.md` Gap 2.13 predicts for
      * this path. The cancellation check belongs to the usage loop upstream, where the work is
-     * unbounded and nothing has been written yet.
+     * unbounded. That loop is not write-free either — from its second iteration onward a usage has
+     * already been rewritten — but its exposure is bounded by one usage rather than by the whole
+     * declaration, and it predates this phase (Gap 2.17).
      */
     fun rename(
         parameterIdentifier: PsiElement,
