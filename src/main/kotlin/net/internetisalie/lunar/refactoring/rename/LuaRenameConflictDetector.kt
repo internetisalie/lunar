@@ -61,9 +61,22 @@ internal class LuaRenameCollisionUsageInfo(
  * file per hit and is guarded accordingly.
  *
  * **Threading**: called only from `LuaRenameProcessor.findCollisions`, i.e. inside the background
- * read action `BaseRefactoringProcessor` wraps around `findUsages`. Never the EDT, and
- * `ProgressManager.checkCanceled()` opens every scan loop — including the per-hit normalisation
- * loops, which are the expensive half.
+ * read action `BaseRefactoringProcessor` wraps around `findUsages`. Never the EDT.
+ *
+ * **Cancellation: SEVEN iteration blocks, not six.** The Phase-3 record said six and read as
+ * exhaustive; the omitted one was [captures]' `usages.mapNotNull { it.element }`, and it was the
+ * only omitted block able to reach PSI and VFS — `UsageInfo.getElement()` goes through a soft
+ * `SmartPsiElementPointer`, whose `SelfElementInfo.restoreElement` ends at
+ * `PsiManager.findFile(vfile)`, i.e. a parse. It is now guarded like the rest. The three blocks
+ * that can load PSI — that one, [shadows]' file-wide `LuaNameRef` scan and
+ * [globalDeclarationsNamed]' per-hit normalisation — all check at the top of the body. The
+ * remaining four ([globalNameTaken]'s and [ambiguousGlobal]'s message maps and the two
+ * identity-set dedupe filters) are allocation over already-materialised, already-guarded lists and
+ * are deliberately left unguarded; checks there would dilute the signal without bounding anything.
+ *
+ * `LuaRenameConflictTest`'s two `testCancellationIsChecked…` cases pin the per-iteration property
+ * differentially — one over stub-hit count, one over usage count — so neither can be satisfied by
+ * the entry checks alone.
  */
 internal object LuaRenameConflictDetector {
     /**
@@ -112,7 +125,11 @@ internal object LuaRenameConflictDetector {
         target: LuaRenameTarget,
         usages: List<UsageInfo>,
     ): List<LuaRenameCollision> {
-        val sites = usages.mapNotNull { it.element } + target.identifier
+        val sites =
+            usages.mapNotNull { usage ->
+                ProgressManager.checkCanceled()
+                usage.element
+            } + target.identifier
         return sites.mapNotNull { site ->
             ProgressManager.checkCanceled()
             visibleDeclarationOf(target.newName, site)?.let { capturing ->

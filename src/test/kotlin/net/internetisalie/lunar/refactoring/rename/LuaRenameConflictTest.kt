@@ -1,11 +1,19 @@
 package net.internetisalie.lunar.refactoring.rename
 
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.impl.CoreProgressManager
+import com.intellij.openapi.progress.impl.ProgressManagerImpl
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.usageView.UsageInfo
 import net.internetisalie.lunar.LuaBundle
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
+import net.internetisalie.lunar.lang.psi.LuaNameRef
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * REFACT-01-14 — a rename that would silently **rebind** is reported before it is applied
@@ -25,6 +33,10 @@ import org.junit.runners.JUnit4
  *
  * The counterweight is [testUnrelatedInnerDeclarationIsNotAConflict]: a detector that cries wolf
  * on every rename passes all four positive cases and fails only that one.
+ *
+ * [testCancellationIsCheckedPerIndexHitNotPerCall] and
+ * [testCancellationIsCheckedPerUsageNotPerCollisionsCall] are about the detector's *cost* rather
+ * than its verdicts, and live here because the subject is the same object.
  */
 @RunWith(JUnit4::class)
 class LuaRenameConflictTest : BasePlatformTestCase() {
@@ -115,6 +127,140 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
     }
 
     /**
+     * The engineering contract's cancellation rule, pinned **differentially** — the one property
+     * `LuaRenameConflictDetector.globalDeclarationsNamed`'s loop-body check exists for, which is
+     * that a rename over a large project can be cancelled *between* stub hits rather than only
+     * between calls. Each hit costs a `getNode()` parse of one file, so "once per call" is
+     * unbounded latency.
+     *
+     * **Why the obvious test is not written instead: it cannot fail.** Cancelling an indicator and
+     * asserting `ProcessCanceledException` stays green with the loop-body check deleted, because
+     * `globalDeclarationsNamed`'s entry check and `LuaGlobalAssignmentNavigation.find`'s own two
+     * checks catch a cancelled indicator regardless. Asserting an absolute count is the opposite
+     * error: it couples to every upstream check and reddens on any neighbouring refactor.
+     *
+     * **The delta has neither problem.** Both runs share one project, one target and one empty
+     * usage list, so `captures` and both entry checks contribute the *same* constant and cancel
+     * out of the subtraction; only the number of stub hits differs, 2 versus 7. Attribution is by
+     * immediate caller — a `StackWalker` frame test, not a raw total — because the total is
+     * dominated by the platform's own checks *underneath* the detector (measured: 386 versus 1095,
+     * of which 5 versus 10 are the detector's own), and those scale with file count too, which
+     * would have made a total-based delta insensitive to the mutant.
+     *
+     * Mutation-proved: deleting the `ProgressManager.checkCanceled()` inside
+     * `globalDeclarationsNamed`'s `map` collapses both counts to 3 and the delta to 0.
+     */
+    @Test
+    fun testCancellationIsCheckedPerIndexHitNotPerCall() {
+        myFixture.addFileToProject("b1.lua", "function shared() end\n")
+        myFixture.configureByText("a.lua", "function sha<caret>red() end\n")
+        val target = renameTargetAtCaret("aNameNothingElseDeclares")
+
+        val withTwoDeclarations = detectorCancellationChecks(target, emptyList())
+        (2..6).forEach { myFixture.addFileToProject("b$it.lua", "function shared() end\n") }
+        val withSevenDeclarations = detectorCancellationChecks(target, emptyList())
+
+        assertTrue(
+            "five more stub hits must cost five more cancellation checks; got " +
+                "$withTwoDeclarations then $withSevenDeclarations, i.e. the detector checks once " +
+                "per CALL and a cancelled rename waits for every hit to be parsed",
+            withSevenDeclarations - withTwoDeclarations >= 5,
+        )
+    }
+
+    /**
+     * The seventh iteration block — `captures`' `usages.mapNotNull { it.element }`, which the
+     * Phase-3 audit omitted while describing itself as covering "the remaining six".
+     *
+     * It is the one block there whose body reaches PSI and VFS: `UsageInfo.getElement()` derefs a
+     * **soft** `SmartPsiElementPointer`, and on a miss `SelfElementInfo.restoreElement` ends at
+     * `PsiManager.findFile(vfile)` — a parse. Guarding it was cheap; leaving it unpinned would
+     * have made it deletable by the next refactor with the whole suite still green.
+     *
+     * Same differential shape as the case above, over a different dimension: one project, one
+     * target, one declaration count — so the two `globalDeclarationsNamed` calls contribute an
+     * identical constant — with only the usage-list length differing, 1 versus 6. `captures`
+     * iterates `usages` **twice**, once here and once over `sites`, so the guarded delta is
+     * `2 x 5` and deleting this block's check halves it to 5. That is why the bound is 10 and not
+     * 5: a bound of 5 would be satisfied by the `sites` loop alone and could not fail.
+     */
+    @Test
+    fun testCancellationIsCheckedPerUsageNotPerCollisionsCall() {
+        myFixture.configureByText(
+            "a.lua",
+            "function sha<caret>red() end\n" + "print(shared)\n".repeat(6),
+        )
+        val target = renameTargetAtCaret("aNameNothingElseDeclares")
+        val reads = PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java).map { UsageInfo(it) }
+
+        val withOneUsage = detectorCancellationChecks(target, reads.take(1))
+        val withSixUsages = detectorCancellationChecks(target, reads.take(6))
+
+        assertTrue(
+            "five more usages must cost ten more cancellation checks — two loops over the same " +
+                "list — but cost ${withSixUsages - withOneUsage}, so one of the two runs " +
+                "unguarded, and it is the one that can restore a smart pointer by parsing a file",
+            withSixUsages - withOneUsage >= 10,
+        )
+    }
+
+    /** The declaration under the caret, as the detector's own input record. */
+    private fun renameTargetAtCaret(newName: String): LuaRenameTarget {
+        val caretLeaf =
+            requireNotNull(myFixture.file.findElementAt(myFixture.caretOffset)) {
+                "no leaf at caret in ${myFixture.file.text}"
+            }
+        val declaration =
+            requireNotNull(LuaDeclarationSite.identifierLeafOf(caretLeaf)) {
+                "the caret is not on a declaration site"
+            }
+        val kind =
+            requireNotNull(LuaDeclarationSite.kindOf(declaration)) {
+                "the declaration under the caret is unclassified"
+            }
+        return LuaRenameTarget(declaration, kind, newName)
+    }
+
+    /**
+     * How many `ProgressManager.checkCanceled()` calls one `collisions` run makes **from the
+     * detector itself**. `ProgressManagerImpl`'s check-canceled hook is the only observation point
+     * that does not require the indicator to be cancelled: with no cancelled indicator on the
+     * thread, `CoreProgressManager.doCheckCanceled` takes its `ONLY_HOOKS` branch and an ordinary
+     * counting `ProgressIndicator` would never be consulted at all.
+     */
+    private fun detectorCancellationChecks(
+        target: LuaRenameTarget,
+        usages: List<UsageInfo>,
+    ): Int {
+        val checks = AtomicInteger()
+        val hook =
+            CoreProgressManager.CheckCanceledHook {
+                if (calledDirectlyByTheDetector()) checks.incrementAndGet()
+                false
+            }
+        val progressManager = ProgressManager.getInstance() as ProgressManagerImpl
+        progressManager.runWithHook(hook) {
+            LuaRenameConflictDetector.collisions(target, usages)
+        }
+        return checks.get()
+    }
+
+    /**
+     * True when the innermost frame below this test's own hook and the platform's progress plumbing
+     * is the detector — i.e. the detector called `checkCanceled` itself, rather than some platform
+     * routine running underneath it doing so.
+     */
+    private fun calledDirectlyByTheDetector(): Boolean =
+        StackWalker.getInstance().walk { frames ->
+            frames
+                .limit(FRAME_SEARCH_DEPTH)
+                .filter { !it.className.startsWith(javaClass.name) && !it.className.startsWith(PROGRESS_PACKAGE) }
+                .findFirst()
+                .map { it.className == DETECTOR }
+                .orElse(false)
+        }
+
+    /**
      * The messages the conflicts dialog would have shown. A rename that applies instead of
      * reporting fails here rather than at an assertion further down, because "the file changed
      * silently" is the defect itself and not a detail of it.
@@ -139,4 +285,10 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
             reported.joinToString("\n  "),
         expected in reported,
     )
+
+    private companion object {
+        const val DETECTOR = "net.internetisalie.lunar.refactoring.rename.LuaRenameConflictDetector"
+        const val PROGRESS_PACKAGE = "com.intellij.openapi.progress"
+        const val FRAME_SEARCH_DEPTH = 20L
+    }
 }

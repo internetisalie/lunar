@@ -329,10 +329,39 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
 - **Goal**: `function M.run()` renames with its call sites; `function Obj:m()` is refused loudly
   instead of half-applied.
 - **Tasks**:
-  - [ ] Confirm `LuaDeclarationKind.DOTTED_FUNCTION` flows through
+  - [x] Confirm `LuaDeclarationKind.DOTTED_FUNCTION` flows through
         `substituteElementToRename`/`findReferences`; add the `METHOD_FUNCTION` refusal branch —
         realizes design §3.1 step 4.
 - **Exit criteria**: `LuaRenameTest` passes TC-09 and TC-10; full suite green.
+- **Met 2026-08-23** — full suite **2,822 tests / 455 classes / 0 failures** (Phase-3 baseline
+  2,818 / 455; +4 in two existing classes, none lost, no new class), corpus sweep
+  **2,830 / 458 / 0** (baseline 2,826 / 458, +4), `ktlintCheck` clean. `:integrationTest` is not run for this phase and the skip
+  is deliberate rather than silent: that lane has four classes, none of which mentions rename, so
+  it cannot reach this code, and its single pre-existing failure
+  (`LuaCrossFileCompletionIntegrationTest`, `ExecTimeoutException`) is unchanged since Phase 1.
+- **This phase wrote no production code for its own goal, and that is the finding.** Both halves of
+  §3.1 step 4 were already in the tree: the `METHOD_FUNCTION` refusal branch shipped with Phase 2
+  (`LuaRenameProcessor.substituteElementToRename`, needed there for TC-19a), and `DOTTED_FUNCTION`
+  needs nothing to "flow through" — §3.5 row 10 classifies it, `isFileLocal = false` leaves the
+  scope alone, and `LuaNameReference.declarationIdentifier`'s Phase-1 fix is what makes the call
+  sites resolve. Phase 4 is therefore an **execution** of the claim, not an implementation of it,
+  and the execution was the point: five of this feature's design claims have already been measured
+  false.
+- **Design §3.1 step 4 survived contact with real PSI — measured on the builder, not read.** A
+  throwaway probe drove the two fixtures through `kindOf`, `substituteElementToRename` and
+  `findReferences` before an assertion was written. `function M.<caret>run() end` classifies
+  `DOTTED_FUNCTION`, substitutes to the `run` leaf and finds **1** reference (the `M.run()` call
+  site) — with or without a `M = {}` declaration present, so §3.1 step 4a is inert for this caret
+  in both worlds. `function Obj:<caret>m() end` classifies `METHOD_FUNCTION`, throws
+  `RefactoringErrorHintException`, and — the fact that makes the refusal load-bearing rather than
+  conservative — finds **0** references, so the branch is all that stands between this shape and a
+  half-applied rename.
+- **One measurement worth keeping, from a probe that was accidentally wrong.** The first probe
+  reused one fixture project across three cases, so a second `function M.run()` reached the index
+  and `findReferences` dropped to **0**. That is not a probe artefact, it is C4's ambiguity
+  arriving through resolution: two declarations of one global make `multiResolve` return two
+  results, `resolve()` null and `isReferenceTo` false everywhere. The dotted form is subject to it
+  exactly like the plain global form of TC-31.
 
 ### Phase 5: `require(...)` rewriting on file rename [Should]
 
@@ -491,7 +520,7 @@ in Phase 2, so the idiom lives here.
 
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSiteTest.kt` — TC-21, TC-22, TC-30. TC-21's per-row fixtures must include one for **every** row of design §3.5, the four new ones included (`global x = 1`, `global function f() end`, `function M.run() end`, file-scope `cfg = {}`), plus the negatives: a nested `local` write `function g() cfg = 1 end` and a shadowed `local cfg` at file scope must both give `null` from row 14's predicate.
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameTest.kt` — TC-01…TC-07, TC-09…TC-11, TC-13b, TC-13d (Phase 2), TC-13e (Phase 7), TC-19a/b/c, TC-25, TC-26, TC-34a, TC-34b.
-      **Landed (Phase 2):** TC-01…TC-07, TC-11, TC-13b, TC-13d, TC-19a/b/c, TC-25, TC-26, TC-34a, TC-34b, plus TC-36 and the two pinning cases Gaps 2.9/2.10 required. **Still owed by their own phases:** TC-09 and TC-10 (Phase 4 — dotted/colon declarations; Phase 2's exit criteria exclude them by design) and TC-13e (Phase 7 — non-code search). TC-11, TC-13b and TC-19c were **missing from the Phase-2 commit `84eefb25` and not disclosed**; they were added at the review and all three pass, TC-19c on the first run — the dot form's explicit `self` renames normally, as design §6 said it should.
+      **Landed (Phase 2):** TC-01…TC-07, TC-11, TC-13b, TC-13d, TC-19a/b/c, TC-25, TC-26, TC-34a, TC-34b, plus TC-36 and the two pinning cases Gaps 2.9/2.10 required. **Landed (Phase 4):** TC-09 and TC-10. **Still owed by its own phase:** TC-13e (Phase 7 — non-code search). TC-11, TC-13b and TC-19c were **missing from the Phase-2 commit `84eefb25` and not disclosed**; they were added at the review and all three pass, TC-19c on the first run — the dot form's explicit `self` renames normally, as design §6 said it should.
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameCrossFileTest.kt` — TC-08, TC-13a, TC-27, TC-28, TC-29. Copy the harness from
       `src/test/kotlin/net/internetisalie/lunar/lang/insight/LuaCrossFileGlobalResolutionTest.kt`
       (`BasePlatformTestCase` + `myFixture.addFileToProject("declarer.lua", …)` +
@@ -589,6 +618,44 @@ in Phase 2, so the idiom lives here.
       red**; then delete row 7 and confirm **TC-29 goes red**; restore both. Without this pass the
       Lua 5.5 rows are asserted only by TC-21, which checks `kindOf` in isolation and would not
       notice that `isFileLocal` narrowed the search scope.
+- [x] **Mutation-proof the dotted/colon pair (Phase 4).** Four mutants, all executed on the
+      builder, each reddening exactly the case named:
+      - Revert `LuaNameReference.declarationIdentifier`'s `LuaFuncDecl` branch to
+        `decl.funcName.nameRef.identifier` → **TC-09 red**, and measured to be red *on a silent
+        half-rename*: the file becomes `M = {}` / `function M.start() end` / `M.run()`. This is why
+        TC-09 asserts the whole file — an assertion on the declaration alone is **green** under this
+        mutant, and that is the cannot-fail shape that was gone looking for.
+      - Delete §3.1 step 4b (the `METHOD_FUNCTION` branch) → **TC-10 red** on both of its
+        assertions, and TC-19a red with it, confirming the two cases share the branch while
+        entering it from different directions (declaration caret vs. resolved `self`).
+      - Delete `globalDeclarationsNamed`'s loop-body `checkCanceled` →
+        **`testCancellationIsCheckedPerIndexHitNotPerCall` red**, with the counts collapsing from
+        5-then-10 to 3-then-3, i.e. delta 0.
+      - Delete `captures`' new usage-list `checkCanceled` →
+        **`testCancellationIsCheckedPerUsageNotPerCollisionsCall` red**, delta 5 where 10 is
+        required.
+- [x] **Correct the Phase-3 cancellation audit (Phase 4).** The record said "the remaining **six**
+      iteration blocks were audited"; there are **seven**. The omitted one —
+      `captures`' `usages.mapNotNull { it.element }` — was the only omitted block able to reach PSI
+      and VFS, through `UsageInfo.getElement()` → soft `SmartPsiElementPointer` →
+      `SelfElementInfo.restoreElement` → `PsiManager.findFile`. **Decided on its merits and
+      guarded**, not excused: the "bounded by the next statement's pass" argument is about latency
+      only, the contract's rule is written without a latency exemption, and the fix is one line.
+      The count and the three-guarded/four-deliberately-unguarded split are now stated in
+      `LuaRenameConflictDetector`'s own KDoc, where the next reader will meet them.
+- [x] **Restate the Phase-3 impossibility claim (Phase 4) — by building the test instead.** Phase 3
+      recorded the cancellation fix as "not individually pinnable by a test". It is pinnable; the
+      reviewer's differential construction works and is now
+      `LuaRenameConflictTest.testCancellationIsCheckedPerIndexHitNotPerCall`, with a sibling for
+      the block above. One deviation from the construction as sketched, forced by measurement: a
+      counting `ProgressIndicator` is **inert** here, because `CoreProgressManager.doCheckCanceled`
+      only consults the indicator when a *cancelled* indicator is on the thread
+      (`updateShouldCheckCanceled`, `CoreProgressManager.java:870-874`) and otherwise takes its
+      `ONLY_HOOKS` branch. The observation point is therefore `ProgressManagerImpl.runWithHook`.
+      The raw hook count is also useless — measured 386 vs 1095 for the two fixtures, dominated by
+      the platform's own checks running *underneath* the detector, which scale with file count and
+      would have swamped the mutant — so the hook attributes each check to its **immediate caller**
+      via `StackWalker`, giving the exact 5 vs 10 the construction predicted.
 - [x] **Corpus sweep** after Phase 1: `run "test -PwithCorpus --rerun --no-build-cache"`, and verify
       the three corpus classes have fresh result XML.
 - [ ] **Live IDE verification** (`verify-in-ide` skill) after Phase 7 — unit tests cannot observe the
@@ -624,7 +691,7 @@ in Phase 2, so the idiom lives here.
 | Phase 1: Declaration-site model + global indexing | done | Must |
 | Phase 2: Core rename processor | done | Must |
 | Phase 3: Conflict detection | done | Should |
-| Phase 4: Dotted method declarations | todo | Should |
+| Phase 4: Dotted method declarations | done | Should |
 | Phase 5: `require(...)` rewriting on file rename | todo | Should |
 | Phase 6: LuaCATS `@param` propagation | todo | Should |
 | Phase 7: In-place rename and non-code search | todo | Could |

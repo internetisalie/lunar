@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **`function M.run()` renames with its call sites; `function Obj:m()` still declines, by name**
+  (REFACT-01 Phase 4). Renaming the `run` of a dotted member function now rewrites every `M.run()`
+  call site along with the declaration, leaving the receiver `M` alone. The colon form is unchanged
+  and still refused: `obj:m()` calls are not resolved to `function Obj:m()`, so renaming it would
+  rewrite the declaration and leave every call behind — measured as **zero** findable references,
+  which is why declining is the correct answer until method resolution by receiver type exists.
+  No behaviour was added for the dotted case; it was verified, and the verification is the change.
+
 - **Rename warns before it changes meaning.** Renaming `x` to `y` in Lua does not *collide* the way
   it would in Java — it silently **rebinds**: the file still parses, still runs, and reads a
   different value. Lunar now reports four of those cases in the conflicts dialog before anything is

@@ -234,6 +234,64 @@ class LuaRenameTest : BasePlatformTestCase() {
     }
 
     /**
+     * TC-09 — REFACT-01-08, the dotted form. `function M.run()` classifies its LAST segment
+     * `DOTTED_FUNCTION`, which design §3.1 step 4 lets through: `run` is the segment the
+     * declaration actually names, so `functionNameLeafOf`'s round trip admits it and every
+     * `M.run()` call site is found.
+     *
+     * **The whole file is asserted, and `M.run()` is what makes the assertion worth writing.**
+     * A test checking only that the declaration became `M.start()` is green for the exact defect
+     * this case exists against: reverting `LuaNameReference.declarationIdentifier`'s `LuaFuncDecl`
+     * branch to the bare `decl.funcName.nameRef.identifier` it used before REFACT-01 makes
+     * `isReferenceTo` false for every call site, and the rename half-applies — declaration on the
+     * new name, call sites on the old one, success reported. Measured, not predicted: that mutant
+     * produces `function M.start() end` / `M.run()` and reddens this case at the `checkResult`.
+     *
+     * `M = {}` is present because it is the ordinary shape; the receiver being declared or not
+     * changes nothing here, which was measured too — the caret is on `run`, so §3.1 step 4a is
+     * inert either way and the call site resolves through the `"M.run"` stub key.
+     */
+    @Test
+    fun testRenameDottedFunctionDeclaration() {
+        myFixture.configureByText("test.lua", "M = {}\nfunction M.ru<caret>n() end\nM.run()\n")
+
+        myFixture.renameElementAtCaret("start")
+
+        myFixture.checkResult("M = {}\nfunction M.start() end\nM.start()\n")
+    }
+
+    /**
+     * TC-10 — REFACT-01-08, the colon form, refused by design §3.1 step 4b.
+     *
+     * Two assertions, because either alone is weak. The first names **which** refusal fired: with
+     * the caret on the declaration `m`, `functionNameLeafOf` returns that very leaf, so step 4a is
+     * inert and only the `METHOD_FUNCTION` branch can decline — a test asserting merely "something
+     * was refused" would stay green if step 4a fired instead, which is the failure shape this
+     * feature has produced twelve times.
+     *
+     * The second drives the registered rename end to end and asserts the file is **byte-for-byte
+     * unchanged**, which is the assertion that makes the refusal worth having: `findReferences` on
+     * this fixture returns **zero** references — measured on the builder, the mechanism being that
+     * `o:m()` puts the name under a `LuaMethodExpr`, for which `LuaNameReference.getQualifiedName`
+     * returns null, while the declaration is stub-keyed `"Obj:m"` — so deleting
+     * the branch does not merely allow the rename, it half-applies one — `function Obj:renamed()`
+     * with `o:m()` left behind. That mutant reddens both assertions.
+     *
+     * TC-19a covers the same branch from the caret-on-`self` direction and asserts no file text;
+     * this covers the declaration caret and does.
+     */
+    @Test
+    fun testColonMethodDeclarationIsRefused() {
+        val source = "Obj = {}\nfunction Obj:m() end\nlocal o = Obj\no:m()\n"
+        myFixture.configureByText("test.lua", source.replace("Obj:m", "Obj:<caret>m"))
+
+        assertRefusedWith("function Obj:method()", myFixture.elementAtCaret)
+
+        assertNotNull("the end-to-end rename must decline too, not only the substitution", renameFailure("renamed"))
+        myFixture.checkResult(source)
+    }
+
+    /**
      * TC-11 — REFACT-01-10. The new-name gate is delegated to `LuaNamesValidator` (registered
      * `plugin.xml:393-395`), which the rename dialog consults before this processor ever runs. It
      * is pinned from here as well as from `LuaNamesValidatorTest` because it is the FIRST of the
