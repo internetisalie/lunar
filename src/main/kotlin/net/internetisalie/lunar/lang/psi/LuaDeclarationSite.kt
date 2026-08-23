@@ -59,18 +59,10 @@ object LuaDeclarationSite {
             element is LuaLabelName -> element.identifier
             kindOf(element) != null -> element
             element is LuaNameRef -> element.identifier.takeIf { kindOf(it) != null }
-            element is LuaAttName -> element.nameRef.identifier
-            element is LuaLocalVarDecl ->
-                element.attNameList
-                    .firstOrNull()
-                    ?.nameRef
-                    ?.identifier
-            element is LuaGlobalVarDecl ->
-                element.attNameList
-                    .firstOrNull()
-                    ?.nameRef
-                    ?.identifier
-            element is LuaLocalFuncDecl -> element.nameRef.identifier
+            element is LuaAttName -> nameRefLeafOf(element)
+            element is LuaLocalVarDecl -> element.attNameList.firstOrNull()?.let { nameRefLeafOf(it) }
+            element is LuaGlobalVarDecl -> element.attNameList.firstOrNull()?.let { nameRefLeafOf(it) }
+            element is LuaLocalFuncDecl -> nameRefLeafOf(element)
             element is LuaGlobalFuncDecl -> element.nameRef?.identifier
             element is LuaFuncDecl -> functionNameLeafOf(element.funcName)
             element is LuaAssignmentStatement ->
@@ -188,6 +180,26 @@ object LuaDeclarationSite {
             .findChildByType(LuaElementTypes.NAME_REF)
             ?.psi
             ?.text
+
+    /**
+     * The IDENTIFIER leaf of [declaration]'s own `nameRef`, read through the AST node rather than a
+     * generated getter, for the same reason [boundName] is (SYNTAX-18): `LuaAttName.getNameRef()`
+     * and `LuaLocalFuncDecl.getNameRef()` are declared `@NotNull` but return null for a partially
+     * parsed decl — `local function repeat(...)`, where a keyword sits in the name slot — and the
+     * platform LOGS AN ERROR rather than returning null.
+     *
+     * Measured, not assumed. [identifierLeafOf] is reached from
+     * `LuaSafeDeleteProcessor.handlesElement` for whatever element the platform offers, so the
+     * getter form made `handlesElement` on such a decl raise a `TestLoggerAssertionError` — an
+     * internal-error balloon in production — where it previously answered plainly. Design §3.5
+     * writes these rows with the generated getters; that is the one place it is wrong.
+     */
+    private fun nameRefLeafOf(declaration: PsiElement): PsiElement? =
+        (
+            declaration.node
+                .findChildByType(LuaElementTypes.NAME_REF)
+                ?.psi as? LuaNameRef
+        )?.identifier
 
     private fun kindFromLeafParent(parent: PsiElement): LuaDeclarationKind? =
         if (parent is LuaNumericForStatement) LuaDeclarationKind.NUMERIC_FOR_VARIABLE else null

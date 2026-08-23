@@ -15,6 +15,7 @@ import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaLabelName
+import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.settings.LuaProjectSettings
@@ -285,6 +286,33 @@ class LuaSafeDeleteTest : BasePlatformTestCase() {
         assertFalse(
             "The used declaration must survive when a conflict is raised: ${myFixture.file.text}",
             PsiTreeUtil.findChildrenOfType(myFixture.file, survivingType).isEmpty(),
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // SYNTAX-18 regression (REFACT-01 Phase 1): handlesElement is reached for whatever element the
+    // platform offers, so it must survive a partially parsed declaration. `LuaLocalFuncDecl`'s
+    // `getNameRef()` is declared @NotNull but returns null when a keyword sits in the name slot,
+    // and the platform LOGS AN ERROR rather than returning null — which under BasePlatformTestCase
+    // is a TestLoggerAssertionError and in production an internal-error balloon. Measured: with the
+    // generated getter in `identifierLeafOf`, this fixture raised one where the pre-REFACT-01
+    // predicate answered plainly.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun testPartiallyParsedLocalFunctionIsHandledWithoutLoggingAnError() {
+        myFixture.configureByText("test.lua", "local function repeat() end\n")
+        val decl =
+            requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaLocalFuncDecl::class.java)) {
+                "Expected a LuaLocalFuncDecl even though its name slot holds a keyword"
+            }
+        assertFalse(
+            "A nameless declaration is not an elevated declaration — and asking must not log",
+            processor.handlesElement(decl),
+        )
+        assertNull(
+            "identifierLeafOf must answer null for a decl with no nameRef, not raise",
+            LuaDeclarationSite.identifierLeafOf(decl),
         )
     }
 

@@ -512,6 +512,35 @@ target reached by `map`'s top-down enumeration, so the probe can only detect a p
 **rejects** something the old rule accepted — which is the direction that silently empties an index.
 
 
+### Executed finding: design §3.5's `identifierLeafOf` rows read `@NotNull` getters that log (2026-08-22)
+
+Rows 4-7 of the `identifierLeafOf` table are written with the generated getters
+(`element.nameRef.identifier`, `attNameList.firstOrNull()?.nameRef?.identifier`). Those getters are
+declared `@NotNull` and return null for a partially parsed declaration — the SYNTAX-18 case this
+design already cites as the reason `boundName` reads through the AST node — and the platform
+**logs an error** rather than returning null.
+
+That was harmless while the rows were private to `LuaSafeDeleteProcessor`, because the old
+`isElevatedDeclaration` was a four-way `is` enumeration that never touched a getter. §2.6a's round
+trip changes that: `handlesElement` now calls `identifierLeafOf` on **whatever element the platform
+offers**. Measured on the builder, one fixture, `local function repeat() end`:
+
+| Build | `LuaSafeDeleteProcessor().handlesElement(theLocalFuncDecl)` |
+| :--- | :--- |
+| `28efcbe7` (pre-REFACT-01) | `true`, nothing logged |
+| §3.5 rows as written | **`TestLoggerAssertionError: local function / parent=local function repeat`** — an IDE internal-error balloon in production |
+| rows 4-7 through a node-based `nameRefLeafOf` | `false`, nothing logged |
+
+Fixed in the Phase 1 follow-up commit by giving rows 4-7 a `nameRefLeafOf` helper alongside
+`boundName`; row 9 keeps `functionNameLeafOf`, whose non-null return type Phase 2 depends on.
+`LuaSafeDeleteTest.testPartiallyParsedLocalFunctionIsHandledWithoutLoggingAnError` is the gate, and
+the pre-fix run *is* its mutation proof: the same fixture raised on the same call.
+
+**Design action for Phase 2:** §3.5's `identifierLeafOf` table should be restated in terms of the
+node read, and `functionNameLeafOf` re-examined — `funcName.nameRef` is `@NotNull` too, so
+`function repeat() end` may reach the same logger through row 9, which this phase did not execute.
+
+
 ## Test Case Gaps
 
 - **Undo.** No test asserts that a rename is undoable as a single command. The platform provides it
