@@ -519,6 +519,71 @@ renaming **`run`**. `LuaRenameTest.testCaretOnAGlobalShadowedByADottedDeclaratio
 is the guard and the widening is its proven mutant. Design §6 previously claimed this fixture
 redirected to `M = {}` and renamed successfully; it does not.
 
+### Gap 2.11: `goto` to a label that does not exist is renamed by the platform default (OPEN — REFACT-04 owns the closure)
+
+**Opened by this commit, and it ships as-is by decision at the Phase-2 review.** §3.0 rule 1 excludes
+`LuaLabelName` **and** `LuaLabelRef` so that REFACT-04's working label rename keeps the platform
+default processor. A `LuaLabelRef` whose label does not exist is therefore not claimed by anything
+Lua-specific: `goto miss<caret>ing` with no `::missing::` in the function reaches
+`RenameUtilBase.doRenameGenericNamedElement`, which rewrites that single leaf and collects no usages
+— measured: `goto missing` → `goto renamed`.
+
+**Why it is not the BUG-457 shape, and why no guard is added here.** BUG-457 is a rename that leaves
+*resolvable* occurrences bound to the old name. Here nothing resolves, so there is nothing to leave
+behind, and the file is invalid Lua before and after. Claiming `LuaLabelRef` to refuse this case
+would put `LuaRenameProcessor` first in `forPsiElement`'s extension order for the label pair — the
+exact mutation TC-25 exists to redden — and cost the one refactoring the plugin ships today. The
+exposure closes with **REFACT-04** (`planned`), which owns label rename end to end and can refuse an
+unresolved `goto` from inside the processor that already claims labels.
+
+### Gap 2.12: Find Usages and Safe Delete now depend on Gap 2.8's guard, and no test of THEIRS exercises it (OPEN)
+
+`LuaNameReference.shadowsRatherThanUses` (Gap 2.8) sits in `isReferenceTo`, which is the shared
+oracle for rename, `ReferencesSearch`, Find Usages and Safe Delete. Gap 2.8's measured blast radius
+records the consequence precisely: with the guard removed, **TC-03 is the only failure** across 69
+tests spanning `LuaFindUsagesTest`, `LuaFindUsagesCrossFileTest`, `LuaSafeDeleteTest` and
+`ShadowingVariableInspectionTest`. Those subsystems over-reported a shadowing inner declaration as a
+usage before Phase 2 and now do not — a **behaviour change in two shipped surfaces whose correctness
+is pinned by a rename test alone**.
+
+Nothing is known to be broken; the risk is that a future edit to the guard is gated only by a rename
+case, so a Find Usages or Safe Delete regression would land green. Closing it is one fixture per
+surface — a `LuaFindUsagesTest` case asserting the shadowed inner `local x` is **not** among the
+outer `x`'s usages, and a `LuaSafeDeleteTest` case asserting an outer `local x` shadowed by an inner
+one is still reported as used by its own reads only. Not written in this phase because it is
+coverage for the *existing* surfaces rather than for the phase's deliverable; recorded so it is
+scheduled rather than rediscovered.
+
+### Gap 2.13: `LuaNameRef.setName` fails silently, which is why the atomicity invariant is pinned by a refusal and not by a text assertion (CONTAINED)
+
+`renameElement` mutates twice — the usages, then the declaration — and the reviewed Phase-2 code
+discovered the declaration half's two failure conditions *after* the usage loop had run
+(`element.parent ?: return`, `createIdentifier(…) ?: return`). Had either fired, every usage would
+carry the new name and the declaration the old one: **BUG-457 inverted**. Closed by resolving the
+replacement and the declaration's AST swap before the first edit and refusing the whole rename with
+`refactoring.rename.rewriteUnavailable` (an `IncorrectOperationException`, which
+`RenameProcessor.performRefactoring` reports); TC-36 is the gate and the reviewed ordering is its
+proven mutant.
+
+**The limit, stated rather than glossed.** With the pre-check in place the two halves cannot
+disagree, because both build their replacement from `LuaElementFactory.createIdentifier` with the
+same name and project. That is also why the mutant does not produce a *visible* half-rename:
+`LuaNameRefElementImpl.setName` (`LuaBaseElements.kt:83-92`) skips its `replaceChild` when the
+factory returns null and returns `this` regardless, so under the old ordering an unbuildable name
+made every usage a silent no-op too. TC-36 therefore distinguishes **refusal from silent success**,
+not renamed-usages from an unrenamed declaration. Two consequences worth having in writing:
+
+- That silent `setName` no-op is pre-existing and wider than rename (`LuaValkeyToRedisQuickFix` and
+  any future caller share it). It is out of REFACT-01's scope and is **not** a licence to keep the
+  ordering defect: a second rewrite path that does not funnel through this factory — §3.6's
+  `LuaCatsParamRenamer` in Phase 6 is the first candidate, editing comment text rather than a
+  `LuaNameRef` — restores the visible half-apply immediately.
+- `LuaElementFactory.createIdentifier` was reachable only as a crash before this commit:
+  `createGotoStatement` ended in `!!` (`LuaElementFactory.kt:33`), so an unbuildable name threw a
+  `KotlinNullPointerException` from inside the write action instead of returning null. The `!!` is
+  gone and the null path is now the contract, with
+  `LuaElementFactoryTest.testCreateIdentifierIsNullForANameThatCannotBeAnIdentifier` pinning it.
+
 ## Technical Debt & Future Work
 
 - **TBD-1: `REFACT-01-09` — table field / constructor key rename.** Deferred, priority `C`. Two

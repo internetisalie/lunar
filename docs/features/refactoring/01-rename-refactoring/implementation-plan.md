@@ -215,6 +215,36 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
   (TC-24) still green; full suite green.
 - **Met 2026-08-23** — full suite **2,808 tests / 454 classes / 0 failures** (baseline 2,792 / 453;
   +22 new cases in two classes, −6 with `LuaUnsupportedRenameProcessorTest`), `ktlintCheck` clean.
+- **Phase-2 review (2026-08-23) — FAILED on first submission, then closed.** Recorded here because
+  two of the four findings were defects in what shipped, not in how it was described:
+  1. **The declaration rewrite ran after the usage rewrites, behind two unguarded `?: return`s**
+     (`LuaRenameProcessor.kt:143-151` as committed in `84eefb25`). If either had fired, every usage
+     would carry the new name and the declaration the old one — **BUG-457 inverted**, inside the
+     method written to eliminate it. It was not an implementation slip: design §3.3's own steps 2-4
+     specified that order and its edge-handling bullet dismissed the consequence as "cannot happen
+     in practice because `LuaNamesValidator` gates the dialog". Fixed by resolving the replacement
+     and the prepared AST swap before the first edit and refusing the whole rename otherwise
+     (`refactoring.rename.rewriteUnavailable`); §3.3 and Gap 2.13 rewritten; TC-36 added with the
+     reviewed ordering as its executed mutant.
+  2. **`LuaElementFactory.createGotoStatement` ended in `!!`** (`LuaElementFactory.kt:33`), directly
+     upstream of that rewrite — so the failure path it was supposed to have was a
+     `KotlinNullPointerException` thrown from inside the platform's write action. The factory now
+     returns null and `LuaElementFactoryTest` pins both directions.
+  3. **Gate 3 (`!!` in a test):** `LuaRenameTest.kt:230,232` used `labelName!!`/`labelRef!!` where
+     the same file already used `requireNotNull(...)`. Replaced.
+  4. **Gate 8 (a table that renders a lie):** eleven rows of `requirements.md` gained a **6th cell
+     against a 5-column header**, so GFM dropped every one of the Phase-2 evidence cells on render
+     and `REFACT-01-01` displayed **Full** beside a description reading "no `renamePsiElementProcessor`
+     … grep is empty". Rows repaired to five columns with the evidence inside the Description cell,
+     and the pre-Phase-2 audit prose in those rows is now dated rather than present-tense.
+  Also delivered at the review: **TC-11, TC-13b and TC-19c**, three plan test cases the phase had
+  silently dropped (see Verification Tasks), and three new gaps — 2.11 (`goto` exposure, owned by
+  REFACT-04), 2.12 (Find Usages / Safe Delete now depend on Gap 2.8's guard with no test of their
+  own) and 2.13.
+  **Re-gated after the fixes:** full suite **2,813 tests / 454 classes / 0 failures** (+5 on the
+  2,808 the phase shipped: TC-11, TC-13b, TC-19c, TC-36 and the factory's null case), `ktlintCheck`
+  clean, `lint_docs` and `lint_planning` 0 errors; corpus sweep **2,821 / 457 / 0** (baseline
+  2,816 / 457, +5, none lost).
 - **Four plan/design claims were measured false while executing this phase.** They are corrected in
   `design.md` §1/§6 and `risks-and-gaps.md` Gaps 2.8-2.10, and each is now a passing test:
   1. **TC-03 does not come for free.** Design §6 said nested same-named locals were "handled by
@@ -417,11 +447,13 @@ in Phase 2, so the idiom lives here.
 | TC-34b | -08 | `LuaRenameTest.testIntermediateFunctionNameSegmentIsRefused` | `function A.<caret>B.run() end` | `LuaRenameProcessor().substituteElementToRename(myFixture.elementAtCaret, null)`; repeat with the caret on `A` | both throw `RefactoringErrorHintException` containing the `refactoring.rename.functionNameSegment` text. Then with the caret on `run`, `substituteElementToRename` returns the `run` leaf (**not** a throw) — `functionNameLeafOf` picks the last `funcNameProperty`. This is the case that proves step 4a is a round trip against `functionNameLeafOf` and not a "grandparent is `LuaFuncName`" enumeration. |
 | ~~TC-35~~ | — | **DROPPED — do not write this test.** | — | — | An earlier draft specified `LuaFindUsagesTest.testSearcherStillSkipsLabels` as the guard on design §3.8 step ①. It was **tautological**: a `::retry:: / goto retry` fixture contains **no** `LuaNameRef` at all (`label ::= '::' labelName '::'` / `labelName ::= IDENTIFIER`, `lua.bnf:163,251`; `gotoStatement ::= GOTO labelRef` / `labelRef ::= IDENTIFIER`, `:125,247` — neither goes through `nameRef`), so its assertion held even with `processQuery`'s entire gate deleted. Its mutation check was **unsatisfiable**: guard ③ rejects a normalised label anyway (`kindOf` of a `LuaLabelName`'s IDENTIFIER child is null, §3.5 row 4), so the reorder is behaviour-preserving and no input distinguishes the orders. §3.8 ① now records guard ① as unreachable defence-in-depth. The label path's real coverage is the **existing** `LuaFindUsagesTest.testLabelUsagesCount` (`:95-108`, asserts exactly one label reference via both `myFixture.findUsages` and `ReferencesSearch.search`) and `LuaLabelRenameTest`, both already Phase 1 exit criteria; `canProcessElement`'s label exclusion — which *is* reachable — stays gated by TC-24/TC-25. |
 | TC-33 | — | `LuaSafeDeleteTest.testEveryElevatedDeclarationNodeRoundTrips` | one fixture each: `global x = 1`, `global function f() end`, `function M.run() end`, `cfg = {}`, plus the multi-target shapes `local a, b = 1, 2` and file-scope `a, b = 1, 2`, plus the negative `print(x)` | for each, `node = LuaDeclarationSite.declarationNodeOf(leaf)`; assert `LuaDeclarationSite.identifierLeafOf(node) === leaf` **and** `LuaSafeDeleteProcessor().handlesElement(node)` | `true` for all four positives. For `local a, b = 1, 2` the node is the `LuaAttName` and the round trip still holds (pre-existing). For file-scope `a, b = 1, 2` — **newly Safe-Deletable via §3.5 row 14** — the node is the `LuaVar`, the round trip holds, and `handlesElement` is `true`; the test then drives `SafeDeleteHandler` on it and asserts the **residual text is `, b = 1, 2`**, pinning the known granularity gap (`risks-and-gaps.md` Gap 2.6) rather than leaving it to be discovered as a regression. For the read `x` in `print(x)` the node **is** the leaf and `handlesElement` on the enclosing `LuaVar` is `false`. This is the direct unit guard on design §2.6a — TC-32 proves the user-visible outcome, TC-33 proves why. |
+| TC-36 | -01 | `LuaRenameTest.testUnbuildableNewNameRefusesBeforeAnythingIsRewritten` | `local coun<caret>ter = 0`<br>`counter = counter + 1`<br>`print(counter)` | `myFixture.renameElementAtCaret("end")` | the rename **throws** (an `IncorrectOperationException` carrying `refactoring.rename.rewriteUnavailable`, rethrown wrapped by `RenameUtil.showErrorMessage` under a test application) and the file text is **byte-identical**. **Added by the Phase-2 review**, which found `renameElement` discovering the declaration half's two failure conditions AFTER the usage loop had already run — every usage on the new name, the declaration on the old one, i.e. BUG-457 inverted. Mutation (executed): restore that ordering and this goes red at the refusal assertion — the rename returns normally having written nothing and reports success. Design §3.3 step 2 and risks-and-gaps Gap 2.13 are the record; TC-11 is the first defence, this is the second. |
 
 ## Verification Tasks
 
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSiteTest.kt` — TC-21, TC-22, TC-30. TC-21's per-row fixtures must include one for **every** row of design §3.5, the four new ones included (`global x = 1`, `global function f() end`, `function M.run() end`, file-scope `cfg = {}`), plus the negatives: a nested `local` write `function g() cfg = 1 end` and a shadowed `local cfg` at file scope must both give `null` from row 14's predicate.
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameTest.kt` — TC-01…TC-07, TC-09…TC-11, TC-13b, TC-13d (Phase 2), TC-13e (Phase 7), TC-19a/b/c, TC-25, TC-26, TC-34a, TC-34b.
+      **Landed (Phase 2):** TC-01…TC-07, TC-11, TC-13b, TC-13d, TC-19a/b/c, TC-25, TC-26, TC-34a, TC-34b, plus TC-36 and the two pinning cases Gaps 2.9/2.10 required. **Still owed by their own phases:** TC-09 and TC-10 (Phase 4 — dotted/colon declarations; Phase 2's exit criteria exclude them by design) and TC-13e (Phase 7 — non-code search). TC-11, TC-13b and TC-19c were **missing from the Phase-2 commit `84eefb25` and not disclosed**; they were added at the review and all three pass, TC-19c on the first run — the dot form's explicit `self` renames normally, as design §6 said it should.
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameCrossFileTest.kt` — TC-08, TC-13a, TC-27, TC-28, TC-29. Copy the harness from
       `src/test/kotlin/net/internetisalie/lunar/lang/insight/LuaCrossFileGlobalResolutionTest.kt`
       (`BasePlatformTestCase` + `myFixture.addFileToProject("declarer.lua", …)` +

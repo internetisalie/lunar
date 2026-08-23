@@ -178,22 +178,34 @@ line, or the language level. Design §9 Alternative B is the full argument.
 
 `REFACT-04-07` says *"No `renamePsiElementProcessor` is registered, so `findExistingNameConflicts` is
 the platform's empty default"*, citing `grep -rn 'RenamePsiElementProcessor\|renamePsiElementProcessor' src/`
-as empty. It is not: `plugin.xml:389-390` registers `LuaUnsupportedRenameProcessor`, added by BUG-457
-in `b2cb211c`, one commit before `requirements.md` was written.
+as empty. It is not, and the registered class has since **changed identity**:
 
-The **conclusion still holds for labels** — `LuaUnsupportedRenameProcessor.canProcessElement`
-excludes `LuaLabelName` (`LuaUnsupportedRenameProcessor.kt:37-41`), so a label still reaches
-`RenamePsiElementProcessorBase.DEFAULT`, whose conflict hooks are empty
-(`RenamePsiElementProcessorBase.java:129-147`, `:248-252`). Only the stated reason is stale.
+| When | Registered at `plugin.xml:389-390` | Treatment of the label pair |
+| :--- | :--- | :--- |
+| BUG-457 (`b2cb211c`) → REFACT-01 Phase 2 | `LuaUnsupportedRenameProcessor` — a blanket refusal | excluded `LuaLabelName` only, so it **claimed** `LuaLabelRef` and refused a `goto` as a side effect of the blanket refusal (the overlap window design §6 E-1 records) |
+| REFACT-01 Phase 2 (`2026-08-23`) onwards | `LuaRenameProcessor` — a real rename | excludes **both** `LuaLabelName` and `LuaLabelRef` (REFACT-01 design §3.0 rule 1), so the whole label pair reaches the platform default |
 
-It matters for two reasons, both handled: the registered processor **does** claim `LuaLabelRef` (it
-excludes only `LuaLabelName`), which is the overlap window design §6 E-1 records; and the epic's
-"nothing is registered" framing would mislead an implementer into thinking the `plugin.xml` block is
-empty.
+`LuaUnsupportedRenameProcessor` and its test were **deleted** in that commit; do not write new work
+against either. This section previously described the deleted class as the registered processor.
+
+The **conclusion still holds for labels**, and now for a simpler reason: `LuaRenameProcessor`
+excludes the label pair outright, so a label reaches `RenamePsiElementProcessorBase.DEFAULT`, whose
+conflict hooks are empty (`RenamePsiElementProcessorBase.java:129-147`, `:248-252`). Only the stated
+reason is stale.
+
+**What the identity change costs REFACT-04**, and it is a real inheritance rather than a wording
+fix: the old processor's incidental claim on `LuaLabelRef` was the only thing refusing a `goto` whose
+label does not exist. With it gone, `goto miss<caret>ing` reaches the platform default, which
+rewrites that one leaf and collects no usages — measured `goto missing` → `goto renamed`. REFACT-01
+records this as its `risks-and-gaps.md` **Gap 2.11** and deliberately does **not** guard it (claiming
+`LuaLabelRef` would put `LuaRenameProcessor` first in `forPsiElement`'s order for the label pair and
+take REFACT-04's working rename away — the mutation `LuaRenameTest.testLabelsAreNotClaimed` exists to
+redden). **REFACT-04 §3.1 owns the closure**, and its design already assumes this ordering.
 
 - **Proposed requirement edit** (not applied): replace the parenthetical with *"the only registered
-  processor, `LuaUnsupportedRenameProcessor` (`plugin.xml:389-390`), excludes `LuaLabelName`, so a
-  label reaches the platform default, whose conflict hooks are empty"*.
+  processor, `LuaRenameProcessor` (`plugin.xml:389-390`), excludes both `LuaLabelName` and
+  `LuaLabelRef`, so the whole label pair reaches the platform default, whose conflict hooks are
+  empty — and an unresolved `goto` is renamed by it until §3.1 lands"*.
 
 ### RD-4: `REFACT-04-13`'s fix is delegated, and [[BUG-458]]'s stated fix strategy is incomplete
 

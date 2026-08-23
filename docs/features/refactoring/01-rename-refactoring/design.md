@@ -421,6 +421,15 @@ override fun handleElementRename(newElementName: String): PsiElement {
   one line, needs no new extension point, and mirrors `LuaLabelReference.handleElementRename`
   (`LuaLabelReference.kt:45-48`), which has worked in production since REFACT-04.
 - Also fix `declarationIdentifier` per §3.5 so dotted declarations resolve their own name segment.
+- **Add `shadowsRatherThanUses`, consulted from `isReferenceTo`** (Phase 2, ratified at that phase's
+  review — §6's "two locals of the same name in nested blocks" row carries the measurement and the
+  reasoning). A **file-local** declaration site's own name introduces a new lexical binding and is
+  never a usage of the binding it shadows; without it `scopeCrawlUp`'s deliberate exclusion of a
+  reference's own declaring statement makes an inner `local x` resolve outward and be rewritten as a
+  usage of the outer one. `isFileLocal` is the predicate because shadowing is lexical: a second
+  *global* declaration site is the same `_ENV` variable and stays in the rename set, to be reported
+  by §3.4 C4. This is shared machinery — `isReferenceTo` is also the oracle for `ReferencesSearch`,
+  Find Usages and Safe Delete (`risks-and-gaps.md` Gap 2.12).
 
 ### 2.6 `net.internetisalie.lunar.lang.insight.LuaRefactoringSupportProvider` (edit)
 
@@ -1001,14 +1010,24 @@ override fun canProcessElement(element: PsiElement): Boolean {
      `val kind = LuaDeclarationSite.kindOf(element)` (step 5's branch condition),
      `val oldName = element.text` (step 5's tag selector, §3.6), and
      `val catsOwner = PsiTreeUtil.getParentOfType(element, LuaCatsCommentOwner::class.java, false)`.
-  2. For each `usage in usages`: `ProgressManager.checkCanceled()`; `RenameUtil.rename(usage, newName)`.
+  2. **Resolve everything that can fail, before the first edit** — the ATOMICITY rule, corrected at
+     the Phase-2 review after the original steps 2-4 shipped in the opposite order (see the
+     edge-handling bullet, and `risks-and-gaps.md` Gap 2.13):
+     `val replacement = LuaElementFactory.createIdentifier(element.project, newName)` and the
+     declaration's AST swap, prepared but not applied — its parent node, the leaf's node and the
+     replacement's node. If **any** of them is unavailable, refuse the whole rename by throwing
+     `IncorrectOperationException(LuaBundle.message("refactoring.rename.rewriteUnavailable", newName))`,
+     which `RenameProcessor.performRefactoring` catches and reports through
+     `RenameUtil.showErrorMessage` (`RenameProcessor.java:432-435`, `RenameUtil.java:264-268`).
+     (`LuaElementFactory.createIdentifier` returns null for a name that cannot be an identifier —
+     `goto end` does not parse, `lua.bnf:125` — and is covered in both directions by
+     `LuaElementFactoryTest`.)
+  3. For each `usage in usages`: `ProgressManager.checkCanceled()`; `RenameUtil.rename(usage, newName)`.
      (`RenameUtilBase.rename` → `usage.reference?.handleElementRename(newName)`, which is §2.5.)
-     Usages are rewritten first, matching `RenameUtilBase.doRenameGenericNamedElement`'s own order,
-     so that no usage's reference is invalidated by the declaration edit.
-  3. `val replacement = LuaElementFactory.createIdentifier(element.project, newName) ?: return`.
-     (`LuaElementFactory.createIdentifier` exists and is covered by
-     `LuaElementFactoryTest.testCreateIdentifierProducesNamedElement`.)
-  4. `element.parent.node.replaceChild(element.node, replacement.node)`.
+     Usages are rewritten before the declaration, matching
+     `RenameUtilBase.doRenameGenericNamedElement`'s own order, so that no usage's reference is
+     invalidated by the declaration edit.
+  4. Apply the swap prepared in step 2: `parentNode.replaceChild(targetNode, replacementNode)`.
      This is the repo's proven leaf-swap idiom — the body of both
      `LuaNameDeclElementImpl.setName` and `LuaNameRefElementImpl.setName`
      (`LuaBaseElements.kt:61-70` and `:83-92`). It works uniformly for the `LuaNameRef` parent of
@@ -1018,9 +1037,17 @@ override fun canProcessElement(element: PsiElement): Boolean {
   5. If `kind == LuaDeclarationKind.PARAMETER && catsOwner != null`:
      `LuaCatsParamRenamer.rename(replacement, oldName, newName)` (§3.6).
   6. `listener?.elementRenamed(replacement)`.
-- **Edge handling**: step 3 returning `null` (parse failure of the new name) aborts before any
+- **Edge handling — this bullet was WRONG as written, and the code that followed it was wrong with
+  it.** It read: *"step 3 returning `null` (parse failure of the new name) aborts before any
   declaration edit; usages are already renamed at that point, which cannot happen in practice
-  because `LuaNamesValidator.isIdentifier` gates the dialog first (REFACT-01-10).
+  because `LuaNamesValidator.isIdentifier` gates the dialog first"*. The first clause states the
+  defect and the second dismisses it with the wrong argument: the dialog is not the only caller of
+  `renameElement`, and "the declaration keeps the old name while every usage carries the new one" is
+  **BUG-457 inverted** — the failure class this whole feature exists to remove, produced inside the
+  method that removes it. A refusal is the correct outcome and a half-rename in either direction is
+  not, so the ordering above makes the half-state unrepresentable rather than unlikely.
+  `LuaNamesValidator` remains the first defence (REFACT-01-10, TC-11); step 2 is the second, and
+  TC-36 is its gate with the reviewed ordering as its proven mutant.
 
 ### 3.4 Conflict detection (REFACT-01-14)
 
@@ -1508,7 +1535,7 @@ and parse rule are pinned in §3.7 steps 1-4.
 | Caret on `M = {}` when `function M.run() end` also exists | **Not renameable**, measured. `TargetElementUtil` hands back the whole enclosing `LuaFuncDecl`, which §3.0 does not claim, so the platform reports `error.cannot.be.renamed`. That refusal is load-bearing: `identifierLeafOf` is total over declaration NODES (Safe Delete needs it so) and maps a `LuaFuncDecl` to its LAST name segment, so a `canProcessElement` widened to admit declaration nodes would answer a rename of `M` by renaming **`run`**. `LuaRenameTest.testCaretOnAGlobalShadowedByADottedDeclarationIsRefusedNotMisdirected`, mutation-proved. |
 | Caret on the numeric-`for` variable `for <caret>i = 1, 3` | **No rename target at all**, measured. `numericForStatement ::= FOR IDENTIFIER '=' …` (`lua.bnf:152`) hangs the leaf directly off the statement, so it carries no reference and `LuaNumericForStatement` is no `PsiNamedElement`; `TargetElementUtilBase.getNamedElement` finds nothing and `findTargetElement` returns null. The leaf itself IS renameable — rename from a usage (`print(<caret>i)`) rewrites the `for` header correctly (TC-05). Closing the caret gap needs a `TargetElementEvaluatorEx2` for Lua, which is not in this feature's scope; `LuaRenameTest.testNumericForDeclarationCaretHasNoRenameTargetAtAll` pins it. |
 | Caret on an intermediate segment `B` of `function A.B.run()` | Refused by §3.1 step 4a (`DOTTED_FUNCTION` by row 10, but not the funcName's last segment). TC-34b. |
-| Two locals of the same name in nested blocks | **This row was WRONG until Phase 2 measured it, and it is the one that cost something.** Re-resolving is necessary but not sufficient: `LuaResolveUtil.scopeCrawlUp` excludes the reference's own declaring statement from scope (deliberately, so `local x = x`'s RHS reads the outer `x`), so an INNER `local x`'s own name resolves outward to the outer `x` and `isReferenceTo` reported it as a usage. Renaming the outer `x` of `local x = 1 / do local x = 2; print(x) end / print(x)` produced `local y = 1 / do local y = 2; print(x) end / print(y)` — the inner DECLARATION rewritten, its own usage left behind. Fixed by `LuaNameReference.shadowsRatherThanUses`: a **file-local** declaration site's own name is a new binding, never a use of the one it shadows. Restricted to file-local kinds because shadowing is lexical; a global declaration site is left alone, being §3.4 C4's ambiguity to report. TC-03, mutation-proved (it is the only test in 69 across rename/Find Usages/Safe Delete/shadowing that catches this). |
+| Two locals of the same name in nested blocks | **This row was WRONG until Phase 2 measured it, and it is the one that cost something.** Re-resolving is necessary but not sufficient: `LuaResolveUtil.scopeCrawlUp` excludes the reference's own declaring statement from scope (deliberately, so `local x = x`'s RHS reads the outer `x`), so an INNER `local x`'s own name resolves outward to the outer `x` and `isReferenceTo` reported it as a usage. Renaming the outer `x` of `local x = 1 / do local x = 2; print(x) end / print(x)` produced `local y = 1 / do local y = 2; print(x) end / print(y)` — the inner DECLARATION rewritten, its own usage left behind. Fixed by `LuaNameReference.shadowsRatherThanUses`: a **file-local** declaration site's own name is a new binding, never a use of the one it shadows. Restricted to file-local kinds because shadowing is lexical; a global declaration site is left alone, being §3.4 C4's ambiguity to report. TC-03, mutation-proved (it is the only test in 69 across rename/Find Usages/Safe Delete/shadowing that catches this). **RATIFIED at the Phase-2 review (2026-08-23):** the reviewer reproduced the defect and accepted `shadowsRatherThanUses` as this design's rule rather than an implementation workaround — the change is two logic lines, and `isFileLocal` is the *correct* predicate, not merely a convenient one: a Lua global is `_ENV.x`, so a second global declaration site is the SAME variable and must stay in the rename set (§3.4 C4 reports the ambiguity instead of dropping it), while the only forms that can introduce a shadowing binding — `local`, a parameter, a `for` variable and `local function` — are all file-local. This row is now the design; §2.5 carries the component. |
 | `local function f` recursing into itself | `LuaLocalFuncDecl.processDeclarations` puts `f` in scope inside its own body (`LuaFunctionExt.kt:95-117`, whose step 3 at lines 115-116 executes the decl itself), so the recursive call is a real reference and is collected like any other. |
 | Renaming to a name that is a Lua keyword | Blocked before the processor runs: `LuaNamesValidator.isIdentifier` (registered `plugin.xml:393-395`) gates the dialog's OK button. |
 | Zero usages found for a claimed target | Not silently accepted: if the target is a `METHOD_FUNCTION` we refuse up front (§3.1 step 4); for every other kind zero usages is a legitimate outcome (an unused local). |

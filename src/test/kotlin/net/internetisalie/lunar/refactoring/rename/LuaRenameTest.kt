@@ -8,10 +8,12 @@ import com.intellij.refactoring.rename.RenamePsiElementProcessor
 import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.testFramework.DumbModeTestUtils
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.lang.psi.LuaElementFactory
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
 import net.internetisalie.lunar.lang.psi.LuaLabelName
 import net.internetisalie.lunar.lang.psi.LuaLabelRef
+import net.internetisalie.lunar.refactoring.LuaNamesValidator
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -213,6 +215,57 @@ class LuaRenameTest : BasePlatformTestCase() {
     }
 
     /**
+     * TC-19c — REFACT-01-19, and the case that keeps the `self` refusal honest. Lua makes `self`
+     * implicit only for the COLON form; in `function Obj.m(self, x)` it is an ordinary parameter
+     * with a real declaration site, so it must rename like any other. A `self` guard written
+     * against the name TEXT — which design §3.1 records as having been removed for exactly this
+     * reason — would refuse this and be wrong.
+     */
+    @Test
+    fun testExplicitSelfParameterRenamesNormally() {
+        myFixture.configureByText(
+            "test.lua",
+            "Obj = {}\nfunction Obj.m(<caret>self, x)\n  return self\nend\n",
+        )
+
+        myFixture.renameElementAtCaret("this")
+
+        myFixture.checkResult("Obj = {}\nfunction Obj.m(this, x)\n  return this\nend\n")
+    }
+
+    /**
+     * TC-11 — REFACT-01-10. The new-name gate is delegated to `LuaNamesValidator` (registered
+     * `plugin.xml:393-395`), which the rename dialog consults before this processor ever runs. It
+     * is pinned from here as well as from `LuaNamesValidatorTest` because it is the FIRST of the
+     * two defences against an unbuildable name; the second is TC-36, which covers every
+     * programmatic caller that does not consult a dialog.
+     */
+    @Test
+    fun testKeywordIsNotAValidNewName() {
+        val validator = LuaNamesValidator()
+
+        assertFalse("a reserved word cannot be a new name", validator.isIdentifier("end", project))
+        assertFalse("nor can a digit-initial string", validator.isIdentifier("2x", project))
+        assertTrue("an ordinary identifier can", validator.isIdentifier("total", project))
+    }
+
+    /**
+     * TC-13b — REFACT-01-13. The preview pane is platform-supplied and costs no code, but only if
+     * the processor keeps offering the button; overriding `showRenamePreviewButton` to `false`
+     * would remove the one place a user can inspect a best-effort Lua rename before it is applied
+     * (REFACT-01-20 records why that matters here more than in a statically sound language).
+     */
+    @Test
+    fun testPreviewButtonIsOffered() {
+        myFixture.configureByText("test.lua", "local <caret>x = 1\n")
+
+        assertTrue(
+            "the preview pane is the user's only check on a best-effort rename",
+            LuaRenameProcessor().showRenamePreviewButton(leafAtCaret()),
+        )
+    }
+
+    /**
      * TC-25 — REFACT-01-17 / REFACT-04. The direct unit guard on design §3.0 rule 1.
      * `LuaDeclarationSite.kindOf(LuaLabelName)` is `LABEL`, not null, so folding the exclusion into
      * the `kindOf` test would claim labels — and because `forPsiElement` returns the FIRST matching
@@ -225,11 +278,11 @@ class LuaRenameTest : BasePlatformTestCase() {
         val labelName = PsiTreeUtil.findChildOfType(myFixture.file, LuaLabelName::class.java)
         val labelRef = PsiTreeUtil.findChildOfType(myFixture.file, LuaLabelRef::class.java)
 
-        assertNotNull("fixture should contain a label declaration", labelName)
-        assertNotNull("fixture should contain a goto reference", labelRef)
-        assertFalse("the declaration belongs to the platform default", processor.canProcessElement(labelName!!))
-        assertFalse("and so does its IDENTIFIER child", processor.canProcessElement(labelName.identifier))
-        assertFalse("and so does the goto side of the pair", processor.canProcessElement(labelRef!!))
+        val declaration = requireNotNull(labelName) { "fixture should contain a label declaration" }
+        val gotoReference = requireNotNull(labelRef) { "fixture should contain a goto reference" }
+        assertFalse("the declaration belongs to the platform default", processor.canProcessElement(declaration))
+        assertFalse("and so does its IDENTIFIER child", processor.canProcessElement(declaration.identifier))
+        assertFalse("and so does the goto side of the pair", processor.canProcessElement(gotoReference))
     }
 
     /**
@@ -260,6 +313,42 @@ class LuaRenameTest : BasePlatformTestCase() {
             refusal?.message.orEmpty().contains("Cannot determine which declaration"),
         )
         myFixture.checkResult("print(undefined_name)\n")
+    }
+
+    /**
+     * TC-36 — REFACT-01-01, added by the Phase-2 review. The ATOMICITY invariant of design §3.3:
+     * the usage rewrites and the declaration rewrite succeed together or neither runs.
+     *
+     * `renameElement` edits two independent places, and both go through
+     * [LuaElementFactory.createIdentifier] with the same name and project — so a name that cannot
+     * be built is a failure of BOTH halves, discovered once. Discovering it after the usage loop
+     * has run leaves every usage on the new name and the declaration on the old one: **BUG-457
+     * inverted**, inside the function written to eliminate BUG-457. Resolving the replacement
+     * before the first edit is what makes that unrepresentable.
+     *
+     * `end` is such a name: `gotoStatement ::= GOTO labelRef` is unpinned (`lua.bnf:125`), so the
+     * factory's synthetic `goto end` parses to nothing and yields no identifier PSI
+     * (`LuaElementFactoryTest.testCreateIdentifierIsNullForANameThatCannotBeAnIdentifier`).
+     * `LuaNamesValidator` (TC-11) stops a user reaching this from the dialog; this covers the
+     * programmatic callers that do not consult it, and pins the invariant rather than the caller.
+     *
+     * Mutation (executed): restore the reviewed ordering — usage loop first, then
+     * `element.parent ?: return` and `createIdentifier(…) ?: return` — and this goes RED, because
+     * the rename then returns normally having written nothing and reports success.
+     */
+    @Test
+    fun testUnbuildableNewNameRefusesBeforeAnythingIsRewritten() {
+        val source = "local coun<caret>ter = 0\ncounter = counter + 1\nprint(counter)\n"
+        myFixture.configureByText("test.lua", source)
+
+        val failure = renameFailure("end")
+
+        assertNotNull("a rename that cannot be applied must fail loudly, not report success", failure)
+        assertTrue(
+            "and name why, so no caller mistakes it for a no-op: " + causeMessages(failure),
+            causeMessages(failure).contains("cannot be written as a Lua identifier"),
+        )
+        myFixture.checkResult(source.replace("<caret>", ""))
     }
 
     /**
@@ -360,6 +449,26 @@ class LuaRenameTest : BasePlatformTestCase() {
             )
         }
     }
+
+    /**
+     * Drives the registered rename end to end and returns whatever it threw, or `null` if it
+     * completed. `RenameProcessor.performRefactoring` catches an [IncorrectOperationException] and
+     * hands it to `RenameUtil.showErrorMessage`, which rethrows it wrapped under a test
+     * application (`RenameUtil.java:264-268`) instead of painting a dialog — so the refusal
+     * arrives as a [RuntimeException] whose CAUSE carries the message.
+     */
+    private fun renameFailure(newName: String): Throwable? =
+        try {
+            myFixture.renameElementAtCaret(newName)
+            null
+        } catch (thrown: RuntimeException) {
+            thrown
+        }
+
+    private fun causeMessages(failure: Throwable?): String =
+        generateSequence(failure) { it.cause }
+            .mapNotNull { it.message }
+            .joinToString(" | ")
 
     private fun leafAtCaret(): PsiElement =
         requireNotNull(myFixture.file.findElementAt(myFixture.caretOffset)) {

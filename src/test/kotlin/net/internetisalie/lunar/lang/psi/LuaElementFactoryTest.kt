@@ -25,7 +25,7 @@ class LuaElementFactoryTest : BasePlatformTestCase() {
         runReadAction {
             val labelRef = LuaElementFactory.createLabelRef(project, "lbl")
             assertNotNull("LabelRef should not be null", labelRef)
-            assertEquals("lbl", labelRef.text)
+            assertEquals("lbl", labelRef?.text)
         }
     }
 
@@ -43,7 +43,22 @@ class LuaElementFactoryTest : BasePlatformTestCase() {
         runReadAction {
             val gotoStmt = LuaElementFactory.createGotoStatement(project, "lbl")
             assertNotNull("GotoStatement should not be null", gotoStmt)
-            assertEquals("goto lbl", gotoStmt.text)
+            assertEquals("goto lbl", gotoStmt?.text)
+        }
+    }
+
+    /**
+     * The null half of [LuaElementFactory.createIdentifier]'s contract, and the reason the `!!` it
+     * used to carry was a defect rather than a shortcut: `goto end` cannot parse
+     * (`gotoStatement ::= GOTO labelRef` is unpinned, `lua.bnf:125`), so no `LuaGotoStatement`
+     * reaches the tree. A caller that has already edited the file by the time it learns this leaves
+     * a half-applied edit behind — see `LuaRenameTest.testRenameRefusesWholesaleWhenTheNewName...`.
+     */
+    @Test
+    fun testCreateIdentifierIsNullForANameThatCannotBeAnIdentifier() {
+        runReadAction {
+            assertNull("a reserved word is not an identifier", LuaElementFactory.createIdentifier(project, "end"))
+            assertNull("and neither is an empty name", LuaElementFactory.createIdentifier(project, ""))
         }
     }
 

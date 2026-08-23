@@ -16,6 +16,7 @@ import com.intellij.refactoring.rename.RenamePsiElementProcessor
 import com.intellij.refactoring.rename.RenameUtil
 import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.usageView.UsageInfo
+import com.intellij.util.IncorrectOperationException
 import net.internetisalie.lunar.LuaBundle
 import net.internetisalie.lunar.lang.LuaLanguage
 import net.internetisalie.lunar.lang.psi.LuaDeclarationKind
@@ -38,9 +39,12 @@ import net.internetisalie.lunar.lang.psi.LuaNameRef
  *
  * **Where a correct rewrite does not exist, this refuses.** A rename that half-applies is BUG-457
  * verbatim — measured live: the declaration rewritten, four usages left bound to the old name, no
- * warning of any kind — and it is strictly worse than declining. The three refusals are an
- * unresolvable usage, a `function Obj:method()` declaration and a function-name receiver segment;
- * each names its reason rather than aborting silently.
+ * warning of any kind — and it is strictly worse than declining. Three refusals are decided in
+ * [substituteElementToRename], before the refactoring starts: an unresolvable usage, a
+ * `function Obj:method()` declaration and a function-name receiver segment. A fourth is decided in
+ * [renameElement], where the cost of being wrong is highest — a new name with no identifier PSI is
+ * refused outright rather than applied to the usages and abandoned at the declaration. Each names
+ * its reason rather than aborting silently.
  *
  * **`DumbAware` is load-bearing, not decoration**, and it is inherited from the class this replaces.
  * `RenamePsiElementProcessorBase.forPsiElement` skips any processor failing
@@ -130,7 +134,19 @@ class LuaRenameProcessor :
      * documents `renameElement` as called "in a command, on EDT, inside a Write Action"), so it
      * opens no `WriteCommandAction` of its own.
      *
-     * Usages are rewritten BEFORE the declaration, matching
+     * **Everything that can fail is resolved BEFORE the first edit, and a failure refuses the whole
+     * rename.** This method mutates two independent places — every usage, then the declaration leaf
+     * — and an early `return` between them would leave every usage on the new name with the
+     * declaration still on the old one: BUG-457 inverted, silently, inside the method written to
+     * eliminate BUG-457. Both halves rewrite through [LuaElementFactory.createIdentifier] with the
+     * same name and project (usages via `LuaNameReference.handleElementRename` → `LuaNameRef.setName`,
+     * `LuaBaseElements.kt:83-92`), so building the replacement once up front decides both: if it
+     * builds here it builds for every usage, and if it does not, nothing is written at all. An
+     * [IncorrectOperationException] is the platform's own channel for that verdict —
+     * `RenameProcessor.performRefactoring` catches it and reports it through
+     * `RenameUtil.showErrorMessage`. TC-36, mutation-proved against the previous ordering.
+     *
+     * Usages are still rewritten BEFORE the declaration, matching
      * `RenameUtilBase.doRenameGenericNamedElement`'s own order, so no usage's reference is
      * invalidated by the declaration edit. §3.3 step 5's `---@param` propagation is wired in
      * Phase 6 with `LuaCatsParamRenamer`, which is that phase's own task.
@@ -141,13 +157,14 @@ class LuaRenameProcessor :
         usages: Array<UsageInfo>,
         listener: RefactoringElementListener?,
     ) {
+        val replacement =
+            LuaElementFactory.createIdentifier(element.project, newName) ?: refuseRewrite(newName)
+        val applyDeclarationRewrite = preparedDeclarationRewrite(element, replacement) ?: refuseRewrite(newName)
         usages.forEach { usage ->
             ProgressManager.checkCanceled()
             RenameUtil.rename(usage, newName)
         }
-        val parent = element.parent ?: return
-        val replacement = LuaElementFactory.createIdentifier(element.project, newName) ?: return
-        parent.node.replaceChild(element.node, replacement.node)
+        applyDeclarationRewrite()
         listener?.elementRenamed(replacement)
     }
 
@@ -203,6 +220,30 @@ class LuaRenameProcessor :
         if (LuaDeclarationSite.functionNameLeafOf(funcName) === leaf) return null
         return LuaBundle.message("refactoring.rename.functionNameSegment", leaf.text)
     }
+
+    /**
+     * The declaration's AST swap, fully resolved but NOT yet applied — or `null` if it cannot be
+     * expressed, which is the whole point: every node this edit needs is read before
+     * [renameElement] writes anything, so the swap can no longer fail halfway through a rename
+     * whose usages are already rewritten.
+     */
+    private fun preparedDeclarationRewrite(
+        element: PsiElement,
+        replacement: PsiElement,
+    ): (() -> Unit)? {
+        val parentNode = element.parent?.node ?: return null
+        val targetNode = element.node ?: return null
+        val replacementNode = replacement.node ?: return null
+        return { parentNode.replaceChild(targetNode, replacementNode) }
+    }
+
+    /**
+     * Refuses an already-approved rename that cannot be applied. Returns [Nothing], so it reads as
+     * an Elvis fallback while remaining a refusal: the alternative — returning early — is the
+     * half-applied rename this processor exists to make impossible.
+     */
+    private fun refuseRewrite(newName: String): Nothing =
+        throw IncorrectOperationException(LuaBundle.message("refactoring.rename.rewriteUnavailable", newName))
 
     /** Always null, so a caller can `return refuse(...)`: refusing IS returning no target. */
     private fun refuse(

@@ -9,28 +9,35 @@ import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.run.LuaCodeFragment
 
 object LuaElementFactory {
+    /**
+     * The identifier PSI for [name], or `null` when [name] cannot be written as a Lua identifier.
+     *
+     * Null is a real outcome, not a defensive branch: the synthetic text is `goto <name>`, and
+     * `gotoStatement ::= GOTO labelRef` is UNPINNED (`lua.bnf:125`), so a `name` the lexer does not
+     * produce an IDENTIFIER for — a reserved word such as `end`, or an empty name — rolls the whole
+     * statement back and leaves no [LuaGotoStatement] in the tree at all. Callers that mutate a file
+     * on the strength of this must resolve it BEFORE their first edit; see
+     * `LuaRenameProcessor.renameElement`.
+     */
     fun createIdentifier(
         project: Project,
         name: String?,
     ): PsiElement? {
-        val luaLabelRef = createLabelRef(project, name)
+        val luaLabelRef = createLabelRef(project, name) ?: return null
         return luaLabelRef.identifier ?: luaLabelRef.firstChild
     }
 
     fun createLabelRef(
         project: Project,
         name: String?,
-    ): LuaLabelRef {
-        val luaGotoStatement = createGotoStatement(project, name)
-        return luaGotoStatement.getLabelRef()
-    }
+    ): LuaLabelRef? = createGotoStatement(project, name)?.getLabelRef()
 
     fun createGotoStatement(
         project: Project,
         name: String?,
-    ): LuaGotoStatement {
+    ): LuaGotoStatement? {
         val luaFile = createFile(project, "goto " + name)
-        return PsiTreeUtil.findChildOfType(luaFile, LuaGotoStatement::class.java)!!
+        return PsiTreeUtil.findChildOfType(luaFile, LuaGotoStatement::class.java)
     }
 
     fun createLabel(
