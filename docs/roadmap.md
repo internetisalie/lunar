@@ -89,6 +89,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-456 | The debug listener binds all interfaces and offers EXEC | todo | S | — | one-argument fix; exposure rather than exploit chain | ✓ |
 | BUG-461 | Tests that cannot fail — 4 uncollected, 3 pinning defects, 2 vacuous | todo | S | — | the durable half is a build-time guard | ✓ |
 | BUG-463 | Step/watchpoint pauses have never had a source position — every non-breakpoint pause renders `<internal C>` | todo | S | — | shipped defect, no requirement row; DEBUG-05 Phase 1 fixes it incidentally — do not fix twice | — |
+| BUG-464 | Ragged requirement tables render the wrong status — 36 rows, 11 files | todo | C | — | REFACT-01's own table rendered **Full** beside "grep is empty"; the durable half is a `lint_docs.py` table-shape check | ✓ |
 | BUG-458 | Safe Delete of a label leaves `::::`, unparseable on every Lua version | todo | C | — | — | ✓ |
 | BUG-460 | Naming two indent options hides tabs/tab-width and suppresses 4 `.editorconfig` properties | todo | C | — | — | ✓ |
 
