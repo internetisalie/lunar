@@ -45,9 +45,10 @@ import java.util.concurrent.atomic.AtomicInteger
 class LuaRenameConflictTest : BasePlatformTestCase() {
     /**
      * TC-14 — C1. `print(x)` sits where `local y = 2` is already visible, so rewriting it to `y`
-     * would bind it to that declaration instead. Note the conflict is anchored on the *capturing*
-     * declaration, never on `print(x)` itself: the platform deletes collision infos from the usage
-     * set, so anchoring on a usage would skip rewriting it if the user pressed Continue.
+     * would bind it to that declaration instead. The conflict is anchored on the *capturing*
+     * declaration rather than on `print(x)` because that is the element the user must look at —
+     * not, as this KDoc said through Phase 4, because anchoring on a usage would skip rewriting it
+     * (see [testCollisionAnchoredOnAUsageIsStillRewritten]: it does not).
      */
     @Test
     fun testCaptureOfRenamedUsageIsReported() {
@@ -156,6 +157,81 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
         val reported = conflictsFromRenamingTo("start")
 
         assertReports(LuaBundle.message("refactoring.rename.conflict.ambiguousGlobal", "M.run", 2), reported)
+    }
+
+    /**
+     * TC-41 / **BUG-466** — a dotted function beside a same-named *field assignment*. C4's third
+     * candidate source, and the one whose absence let a measured data-loss path ship.
+     *
+     * `LuaNameReference.doMultiResolve`'s qualified branch consults **two** sources for `M.run`:
+     * `LuaGlobalDeclarationIndex` (the stub of `function M.run()`) and
+     * `LuaMemberFieldNavigation.find` (the assignment in `b.lua`). With both present `multiResolve`
+     * yields two results, `resolve()` is null, and `isReferenceTo` is false — so `c.lua`'s call
+     * site is not a findable reference. Measured by *printing* each reference rather than counting
+     * them: `ReferencesSearch` returns **one** either way, but with `b.lua` present that one is
+     * `b.lua`'s assignment target and the call site is gone. A count-based assertion cannot see
+     * this, which is why the assertion is on the rule that must fire.
+     *
+     * Before the fix C4 read the stub index alone, counted one declaration, returned early, and the
+     * rename rewrote both declarations while `c.lua` kept calling a name that now resolves to
+     * nothing. Mutation-proved: dropping the `LuaMemberFieldNavigation.find` term from
+     * `globalDeclarationsNamed` makes this case apply silently and `conflictsFromRenamingTo` fails
+     * with its own "applied silently" message.
+     */
+    @Test
+    fun testDottedFunctionBesideAFieldAssignmentIsReported() {
+        myFixture.addFileToProject("b.lua", "M.run = function() end\n")
+        myFixture.addFileToProject("c.lua", "M.run()\n")
+        myFixture.configureByText("a.lua", "function M.r<caret>un() end\n")
+
+        val reported = conflictsFromRenamingTo("start")
+
+        assertReports(LuaBundle.message("refactoring.rename.conflict.ambiguousGlobal", "M.run", 2), reported)
+    }
+
+    /**
+     * TC-42 — the platform fact [testDottedFunctionBesideAFieldAssignmentIsReported] rests on,
+     * pinned directly, because the belief that it was the *opposite* fact is what kept BUG-466 open.
+     *
+     * Phase 4 recorded, in five documents and two KDocs, that anchoring a collision on an element
+     * that is also a usage would make the platform skip rewriting that usage on Continue, and
+     * deferred BUG-466 for that reason alone. It is false.
+     * `RenameUtil.removeConflictUsages` (`RenameUtil.java:297-307`) iterates the usage set and
+     * removes only `usageInfo instanceof UnresolvableCollisionUsageInfo` — collision *objects*, not
+     * every info sharing an anchor element — and `UsageInfo.equals` (`UsageInfo.java:348-359`)
+     * opens with `!getClass().equals(o.getClass())`, so a real usage and a collision on the same
+     * element are never equal and cannot displace one another in the `LinkedHashSet`.
+     *
+     * This is TC-41's fixture with the conflict acknowledged rather than asserted:
+     * `withIgnoredConflicts` is the platform's own "user pressed Continue" path
+     * (`BaseRefactoringProcessor.java:539`).
+     *
+     * **The anchor is asserted before the rename, not assumed**, which is also what keeps this case
+     * from being green on the parent commit: without the member-field candidate there are *zero*
+     * collisions, `withIgnoredConflicts` suppresses nothing, and a test that only checked the files
+     * afterwards would pass while proving nothing about anchoring at all. `c.lua` is asserted
+     * **unchanged** on purpose: it is the residual BUG-466 reports and does not repair, and quietly
+     * expecting it to be rewritten would be asserting a fix nobody wrote.
+     */
+    @Test
+    fun testCollisionAnchoredOnAUsageIsStillRewritten() {
+        val fieldAssignment = myFixture.addFileToProject("b.lua", "M.run = function() end\n")
+        val callSite = myFixture.addFileToProject("c.lua", "M.run()\n")
+        myFixture.configureByText("a.lua", "function M.r<caret>un() end\n")
+        val anchors = LuaRenameConflictDetector.collisions(renameTargetAtCaret("start"), emptyList())
+        assertEquals(
+            "the conflict must be anchored on b.lua's field assignment for this case to mean anything",
+            listOf("b.lua"),
+            anchors.mapNotNull { it.element?.containingFile?.name },
+        )
+
+        BaseRefactoringProcessor.ConflictsInTestsException.withIgnoredConflicts<RuntimeException> {
+            myFixture.renameElementAtCaret("start")
+        }
+
+        assertEquals("the collision anchor was skipped", "M.start = function() end\n", fieldAssignment.text)
+        myFixture.checkResult("function M.start() end\n")
+        assertEquals("BUG-466's residual is reported, not repaired", "M.run()\n", callSite.text)
     }
 
     /**

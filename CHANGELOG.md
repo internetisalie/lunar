@@ -10,6 +10,14 @@
   which is why declining is the correct answer until method resolution by receiver type exists.
   No behaviour was added for the dotted case; it was verified, and the verification is the change.
 
+- **A `function M.run()` beside an `M.run = function() end` no longer loses its call sites in
+  silence** (REFACT-01 Phase 4, BUG-466). Lua lets the same qualified name be bound as a function
+  declaration in one file and as a field assignment in another; when both exist, `M.run` resolves to
+  neither, so `M.run()` stops being a findable reference and a rename rewrote the two declarations
+  and left every call behind — reporting success. The conflicts dialog now says `'M.run' is declared
+  in 2 places` before anything is written. It reports the ambiguity rather than repairing it: the
+  call sites are still not rewritten, but you see it coming and can cancel.
+
 - **Rename warns before it changes meaning.** Renaming `x` to `y` in Lua does not *collide* the way
   it would in Java — it silently **rebinds**: the file still parses, still runs, and reads a
   different value. Lunar now reports four of those cases in the conflicts dialog before anything is

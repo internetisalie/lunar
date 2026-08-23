@@ -394,14 +394,27 @@ internal class LuaRenameCollisionUsageInfo(
 }
 ```
 
-**Why `UnresolvableCollisionUsageInfo` and why the anchor is never a usage.**
-`RenameProcessor.preprocessUsages` calls `RenameUtil.addConflictDescriptions` (which turns each
-`UnresolvableCollisionUsageInfo` into a conflicts-dialog entry keyed on `usage.getElement()`) and
-then `RenameUtil.removeConflictUsages`, which **deletes those infos from the usage set**
-(`RenameProcessor.java:248-252`). Anchoring a collision on a usage that still needs rewriting would
-therefore skip rewriting it when the user presses Continue — reproducing the exact silent-partial
-defect this feature exists to remove. Every anchor produced by §3.4 is a *colliding declaration or a
-foreign reference named `newName`*, never a member of the renamed symbol's own usage set.
+**Why `UnresolvableCollisionUsageInfo`.** `RenameProcessor.preprocessUsages` calls
+`RenameUtil.addConflictDescriptions` (which turns each `UnresolvableCollisionUsageInfo` into a
+conflicts-dialog entry keyed on `usage.getElement()`) and then `RenameUtil.removeConflictUsages`,
+which **deletes those collision infos from the usage set** (`RenameProcessor.java:246-252`) so the
+rename does not try to rewrite a warning.
+
+**An anchor MAY be an element that is also a usage.** Through the Phase-4 review this design stated
+the opposite as an invariant — that anchoring on a usage would make Continue skip rewriting it and
+so re-create BUG-457's silent partial rename. **It is false**, and while it stood it was the sole
+stated reason [[BUG-466]]'s measured data-loss path was left open. `RenameUtil.removeConflictUsages`
+(`RenameUtil.java:297-307`) iterates the usage set and removes only
+`usageInfo instanceof UnresolvableCollisionUsageInfo` — collision *objects*, not every info sharing
+an anchor *element*. It could not do otherwise: `UsageInfo.equals` (`UsageInfo.java:348-359`) opens
+with `!getClass().equals(o.getClass())`, so a real usage and a collision on the same element are
+never equal and both survive the `LinkedHashSet`. Measured against that call, and pinned by
+`LuaRenameConflictTest.testCollisionAnchoredOnAUsageIsStillRewritten`.
+
+What remains is a **legibility** rule, not a correctness one: prefer the *colliding declaration* or
+the *foreign reference named `newName`* as the anchor, because that is the element the user must
+look at. §3.4's C4 filters the renamed declaration out of its own collision list for that reason,
+and anchors member-field hits on the field itself, which is both a rival declaration and a usage.
 
 ### 2.5 `net.internetisalie.lunar.lang.LuaNameReference` (edit)
 
@@ -1146,12 +1159,20 @@ its own last one, so its prefix is empty; `config = {}` and the Lua 5.5 `global`
 untouched — are the check. The messages carry the key, so C4 reports `'M.run' is declared in 2
 places` rather than naming a `run` that is declared nowhere.
 
-**What this does NOT cover, deliberately.** `LuaNameReference` resolves a dotted name through *two*
-sources — the stub index and `LuaMemberFieldNavigation` — so a `function M.run()` beside an
-`M.run = function() end` is ambiguous too, and unreported. `risks-and-gaps.md` Gap 2.15 / [[BUG-466]]
-carry it: counting member-field hits would anchor a collision on an element that is itself a
-**usage** (measured), which §2.4's anchoring invariant forbids, so closing it is an anchor-rule
-change rather than a wider lookup.
+**The candidate set is the resolver's, not a subset of it.** `LuaNameReference.doMultiResolve`
+resolves a dotted name through *two* sources — the stub index and `LuaMemberFieldNavigation` — so
+C3/C4 read both, and `LuaGlobalAssignmentNavigation` for the bare shape. Each navigation lookup is
+inert for the other's key shape (`LuaGlobalAssignmentIndex` records undotted names only,
+`LuaMemberFieldIndex` dotted only), so neither needs a guard. Counting only the stub index was
+[[BUG-466]]: `function M.run()` beside `M.run = function() end` makes `multiResolve` ambiguous,
+every call site stops being a findable reference, and C4 saw one declaration and said nothing.
+`risks-and-gaps.md` Gap 2.15 records the measurement and the correction — including that this was
+first deferred on a **false** platform claim about collision anchors (see §2.4).
+
+**What this does NOT cover, deliberately.** C4 *reports* the ambiguity; it does not repair it. A
+call site that `multiResolve` cannot resolve is not a findable reference and is not rewritten, so
+the user is warned and can cancel. Repairing it would mean changing resolution, not conflict
+detection.
 
 **Complexity**: C1 is O(|usages| × scope depth). C2 is one PSI pass over one file. C3 and C4 are two
 index lookups each. Nothing scans the project's PSI.

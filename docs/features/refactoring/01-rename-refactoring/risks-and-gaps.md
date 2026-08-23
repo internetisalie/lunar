@@ -627,11 +627,11 @@ requirement this feature has already delivered elsewhere rather than an unbuilt 
 bug carries the mechanism, the containment argument and the fix sketch; a roadmap row carries the
 priority.
 
-### Gap 2.15: `function M.run()` beside `M.run = function() end` — the call sites unresolve and nothing reports it (OPEN, filed as [[BUG-466]])
+### Gap 2.15: `function M.run()` beside `M.run = function() end` — the call sites unresolve and it went unreported (CLOSED in Phase 4; [[BUG-466]] resolved)
 
 Found 2026-08-23 while executing the Phase-4 remediation of C3/C4's dotted blindness, with its own
-fixture set per case. **This is the residual that fix deliberately leaves open**, and it is recorded
-here rather than closed because closing it changes an invariant, not a lookup.
+fixture set per case. First recorded as deliberately left open, then **closed in the same phase**
+once the reason for leaving it open turned out to be false (below).
 
 `LuaNameReference.doMultiResolve`'s qualified branch reads **two** sources — the stub index under
 `"M.run"` and `LuaMemberFieldNavigation.find(project, "M.run")`. A project carrying both a
@@ -649,15 +649,37 @@ rewrites the declaration and the assignment and silently leaves `M.run()` behind
 `LuaRenameConflictDetector.collisions` returns **0** for the second project, because C4 counts only
 stub hits for the qualified key and finds one.
 
-**Why the Phase-4 fix stopped short of it.** Adding member-field hits to C4's candidate set would
-report it — and would anchor the collision on the field's `LuaNameRef`, which the table above proves
-is a member of the renamed symbol's **usage set**. The platform deletes collision anchors from that
-set (`RenameUtil.removeConflictUsages`), so Continue would then skip rewriting it: a second silent
-partial rename, produced by the machinery meant to warn about the first. Design §2.4 and
-`LuaRenameCollisionUsageInfo`'s KDoc state that anchoring rule as an invariant. Respecting it needs
-a different anchor for these hits — plausibly the enclosing `LuaAssignmentStatement` — which is a
-design change with its own correctness argument, not a phase-local edit. [[BUG-466]] carries the
-sketch.
+**Why the fix first stopped short of it, and why that reason was wrong.** The recorded objection was
+that adding member-field hits to C4's candidate set would anchor the collision on the field's
+`LuaNameRef` — which the table above proves is in the renamed symbol's **usage set** — and that the
+platform deletes collision anchors from that set, so Continue would skip rewriting it: a second
+silent partial rename. **That is false, and it was the sole stated reason a measured data-loss path
+was shipping.**
+
+`RenameUtil.removeConflictUsages` (`RenameUtil.java:297-307`) iterates the usage set and removes
+only `usageInfo instanceof UnresolvableCollisionUsageInfo` — collision *objects*, not every info
+that shares an anchor *element*. It could not do otherwise: `UsageInfo.equals`
+(`UsageInfo.java:348-359`) opens with `!getClass().equals(o.getClass())`, so a real usage and a
+collision on the same element are never equal and both survive the `LinkedHashSet` in
+`RenameProcessor.preprocessUsages` (`:246-252`). Measured against that exact call — one info
+removed, the real usage on the anchor still present — and now pinned end to end by
+`LuaRenameConflictTest.testCollisionAnchoredOnAUsageIsStillRewritten`, which anchors a collision on
+`b.lua`'s field, presses Continue via `withIgnoredConflicts`, and asserts `b.lua` is rewritten.
+
+**How it was actually closed.** `globalDeclarationsNamed` gained a third candidate source,
+`LuaMemberFieldNavigation.find`, so C3/C4's candidate set is exactly the set
+`LuaNameReference.doMultiResolve` consults for the same key. No shape guard is needed: each
+navigation lookup is inert for the other's key shape. `LuaMemberFieldNavigation.find` gained
+`ProgressManager.checkCanceled()` on its three loops for the new rename-time caller, matching its
+sibling `LuaGlobalAssignmentNavigation.find`. Pinned by
+`LuaRenameConflictTest.testDottedFunctionBesideAFieldAssignmentIsReported`; mutation-proved by
+dropping the new term, which makes both new cases fail — the first with "applied silently", the
+second with zero anchors.
+
+**What is still not repaired, and is not claimed to be.** The conflict is *reported*; `c.lua`'s call
+site is still not rewritten, because it is not a findable reference while `multiResolve` is
+ambiguous. Reporting is what C4 exists to do — the user sees the ambiguity and can cancel — and the
+"reported, not repaired" boundary is asserted in the test rather than left implicit.
 
 ## Technical Debt & Future Work
 

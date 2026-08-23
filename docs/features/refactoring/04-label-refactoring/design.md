@@ -336,12 +336,21 @@ internal object LuaLabelConflictDetector {
   its `findCollisions` override.
 - Two values folded into `LuaLabelRenameTarget` so `collisions` takes one argument. Private helpers
   `collides(target, other)` and `messageFor(target, other)` take two each.
-- **Why the anchor is never a `goto`**: `RenameUtil.removeConflictUsages` (`RenameUtil.java:297-307`)
-  deletes every `UnresolvableCollisionUsageInfo` from the usage set before the rename is applied, so
-  anchoring on a usage that still needs rewriting would skip rewriting it when the user presses
-  Continue. Every anchor produced by §3.3 is a **colliding `LuaLabelName`**, which is never a member
-  of the renamed label's usage set (a label declaration is not a reference to another label). This is
-  REFACT-01 §2.4's rule, applied unchanged.
+- **Why the anchor is a `LuaLabelName` and not a `goto`**: it is the element the user must look at —
+  the rival declaration, not one of the jumps that would be rebound. Every anchor produced by §3.3 is
+  a **colliding `LuaLabelName`**, which also happens never to be a member of the renamed label's
+  usage set (a label declaration is not a reference to another label).
+
+  **This bullet previously gave a different, false reason** — that
+  `RenameUtil.removeConflictUsages` deletes collision *anchors* from the usage set, so anchoring on
+  a usage would skip rewriting it on Continue — inherited verbatim from REFACT-01 §2.4 as "REFACT-01
+  §2.4's rule, applied unchanged". `removeConflictUsages` (`RenameUtil.java:297-307`) removes only
+  `usageInfo instanceof UnresolvableCollisionUsageInfo`, i.e. the collision objects themselves, and
+  `UsageInfo.equals` (`UsageInfo.java:348-359`) opens with a `getClass()` test so a real usage and a
+  collision on the same element never displace one another. Corrected in REFACT-01 alongside
+  [[BUG-466]], where the false claim was the sole stated reason a measured data-loss path shipped.
+  **Nothing in §3.3 changes** — the anchors were already right — but a future implementer must not
+  read this as a correctness constraint on where a collision may be anchored.
 
 ### 2.4 `net.internetisalie.lunar.lang.psi.LuaNameDeclElementImpl` (edit) — REFACT-04-11
 

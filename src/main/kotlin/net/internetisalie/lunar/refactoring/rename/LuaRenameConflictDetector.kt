@@ -11,6 +11,7 @@ import net.internetisalie.lunar.LuaBundle
 import net.internetisalie.lunar.lang.LuaScopeProcessor
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.navigation.LuaGlobalAssignmentNavigation
+import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.lang.psi.LuaDeclarationKind
 import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
@@ -30,14 +31,25 @@ internal data class LuaRenameTarget(
 /**
  * A conflict the platform must show before anything is written (design §2.4).
  *
- * `UnresolvableCollisionUsageInfo` is the carrier because
- * `RenameProcessor.preprocessUsages` turns each one into a conflicts-dialog entry keyed on
- * `usage.element` (`RenameUtil.addConflictDescriptions`) and then **removes it from the usage set**
- * (`RenameUtil.removeConflictUsages`, `RenameProcessor.java:248-252`). Anchoring a collision on a
- * usage that still needs rewriting would therefore skip rewriting it when the user presses
- * Continue — the silent-partial rename of BUG-457, reintroduced by the machinery meant to warn
- * about it. Every anchor [LuaRenameConflictDetector] produces is a *colliding declaration* or a
- * *foreign reference already named `newName`*, never a member of the renamed symbol's usage set.
+ * `UnresolvableCollisionUsageInfo` is the carrier because `RenameProcessor.preprocessUsages` turns
+ * each one into a conflicts-dialog entry keyed on `usage.element`
+ * (`RenameUtil.addConflictDescriptions`) and then **removes the collision infos themselves** from
+ * the usage set (`RenameUtil.removeConflictUsages`, `RenameProcessor.java:246-252`) so that the
+ * rename does not try to rewrite a warning.
+ *
+ * **The anchor may freely be an element that is also a usage.** `removeConflictUsages`
+ * (`RenameUtil.java:297-307`) iterates the `LinkedHashSet<UsageInfo>` and removes only
+ * `usageInfo instanceof UnresolvableCollisionUsageInfo` — collision *objects*, never every info
+ * sharing an anchor *element*. It could not do otherwise: `UsageInfo.equals`
+ * (`UsageInfo.java:348-359`) opens with `!getClass().equals(o.getClass())`, so a real usage and a
+ * collision on the same element are never equal and both survive in the set. Measured on the
+ * builder against this exact call — one info removed, the real usage on the anchor still present —
+ * and pinned by `LuaRenameConflictTest.testCollisionAnchoredOnAUsageIsStillRewritten`.
+ *
+ * This corrects a claim that stood in five documents and two KDocs through Phase 4: that anchoring
+ * a collision on a usage would skip rewriting it and so re-create BUG-457's silent partial rename.
+ * That hazard does not exist, and while it was believed to, it was the sole stated reason BUG-466's
+ * measured data-loss path was left open.
  */
 internal class LuaRenameCollisionUsageInfo(
     anchor: PsiElement,
@@ -272,15 +284,28 @@ internal object LuaRenameConflictDetector {
      * all.
      *
      * [key] is an index key, not a user-facing name: for a dotted function it is the qualified
-     * `"M.run"` that [searchKeyOf] builds, because that is what the stub sinks. The second lookup,
-     * [LuaGlobalAssignmentNavigation.find], is keyed on undotted names only — `dottedMemberName`
-     * returns null for a bare target and `LuaGlobalAssignmentIndex` records nothing else — so for a
-     * dotted key it is an index read that cannot hit, and the dotted candidate set is the stub
-     * index alone. A dotted *field assignment* (`M.run = function() end`) is therefore not counted,
-     * although `LuaNameReference` does resolve through it; that residual is measured and recorded
-     * as `risks-and-gaps.md` Gap 2.15 rather than closed here, because counting it would anchor a
-     * collision on an element that is also a **usage** — which the platform then deletes from the
-     * usage set (see [LuaRenameCollisionUsageInfo]).
+     * `"M.run"` that [searchKeyOf] builds, because that is what the stub sinks.
+     *
+     * **The three lookups are the set `LuaNameReference.doMultiResolve` itself consults**, which is
+     * what makes C4's count agree with the resolve that produced the ambiguity it reports. Its
+     * qualified branch reads `LuaGlobalDeclarationIndex` under the dotted key and then
+     * [LuaMemberFieldNavigation.find]; its bare branch reaches the assignment forms
+     * [LuaGlobalAssignmentNavigation.find] re-collects. Neither navigation call needs a shape guard
+     * because each is inert for the other's shape: `LuaGlobalAssignmentIndex` records undotted
+     * names only, and `LuaMemberFieldIndex` dotted names only, so exactly one of the two can hit
+     * for any given [key] and the other is an index read that returns nothing.
+     *
+     * **Without the member-field read this was BUG-466.** `function M.run()` beside
+     * `M.run = function() end` makes `multiResolve` yield two results, so `resolve()` is null,
+     * `isReferenceTo` is false, and every call site stops being a findable reference — yet C4
+     * counted the stub alone, found one declaration, and reported nothing while the rename rewrote
+     * the two declarations and left the call sites behind. Pinned by
+     * `LuaRenameConflictTest.testDottedFunctionBesideAFieldAssignmentIsReported`.
+     *
+     * A member-field hit is normally *also* a usage of the renamed symbol, and anchoring a
+     * collision on it is safe: the platform removes collision infos from the usage set by class,
+     * not by anchor element, so the real usage on that element is still rewritten
+     * (see [LuaRenameCollisionUsageInfo]).
      *
      * Both *candidate sets* come from indexes, so nothing scans the project to find them, and both
      * C3 and C4 share this one lookup — C4 against the old name, C3 against the new one — which is
@@ -292,9 +317,9 @@ internal object LuaRenameConflictDetector {
      * parses its file (`StubBasedPsiElementBase`). So this `map` parses one file per stub hit,
      * twice per rename, unbounded by project size. `ProgressManager.checkCanceled()` therefore
      * opens the loop body rather than only the function, per the engineering contract's
-     * every-iteration-block rule — the same reasoning
-     * [net.internetisalie.lunar.lang.navigation.LuaGlobalAssignmentNavigation.find] already
-     * applies to its own two loops.
+     * every-iteration-block rule — the same reasoning [LuaGlobalAssignmentNavigation.find] already
+     * applies to its own two loops, and the reason [LuaMemberFieldNavigation.find] gained checks on
+     * its three when this rename-time caller was added.
      *
      * A declaration whose leaf cannot be found falls back to the declaration node rather than being
      * dropped: dropping it would lower C4's count and could turn a real ambiguity into silence,
@@ -314,7 +339,11 @@ internal object LuaRenameConflictDetector {
                     ProgressManager.checkCanceled()
                     LuaDeclarationSite.identifierLeafOf(declaration) ?: declaration
                 }
-        return distinctElements(stubbed + LuaGlobalAssignmentNavigation.find(targetProject, key, projectScope))
+        return distinctElements(
+            stubbed +
+                LuaGlobalAssignmentNavigation.find(targetProject, key, projectScope) +
+                LuaMemberFieldNavigation.find(targetProject, key, projectScope),
+        )
     }
 
     /** The declaration of [name] that is lexically visible at [site], or null when there is none. */

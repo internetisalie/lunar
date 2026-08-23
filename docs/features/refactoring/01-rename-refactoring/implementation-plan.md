@@ -314,10 +314,10 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
     if the filter's identity comparison ever fails to match — and that comparison was *measured*
     (`identity=true` on a probe), which makes it an assumption, not a guarantee.
   - **The filter** is the only thing preventing a collision anchored on the renamed declaration
-    itself when `size >= 2`. That would breach the anchor invariant stated at
-    `LuaRenameConflictDetector.kt:38-39`, because the platform deletes collision anchors from the
-    usage set (`RenameProcessor.java:248-252`) — i.e. it would resurrect BUG-457's silent partial
-    rename through the very machinery meant to warn about it.
+    itself when `size >= 2` — i.e. the conflicts dialog telling the user that the very declaration
+    they put the caret on is a rival of itself. **Not, as this bullet said through the Phase-4
+    review, because anchoring on a usage would make the platform skip rewriting it:** that claim was
+    false (see below), and the anchor is a legibility rule, not a correctness one.
 
   Removing either half to "pin" the other would therefore delete a distinct protection. **Do not
   treat the absent single-mutant as dead weight.** If the filter is wanted individually pinned, that
@@ -400,10 +400,24 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
       cases, no class added and none lost), corpus sweep **2,834 / 458 / 0** (baseline 2,830 / 458 /
       0), `ktlintCheck` clean, `lint_docs` and `lint_planning` 0 errors. The single `skipped` in both
       counts is `LuaCompletionTest`'s pre-existing ignored COMP-03 case.
-- [x] **Gaps 2.14 and 2.15 filed as [[BUG-465]] and [[BUG-466]]** with roadmap rows. Gap 2.15 is
-      new, found during F1: a dotted function beside a same-named field assignment loses its call
-      sites the same way, and F1 does **not** close it — reporting it would anchor a collision on an
-      element the same probe proves is in the usage set, which design §2.4 forbids.
+- [x] **Gap 2.14 filed as [[BUG-465]]** with a roadmap row.
+- [x] **Gap 2.15 ([[BUG-466]]) closed in this phase, after its deferral reason was disproved.** It
+      was first filed as deferred on the grounds that reporting it would anchor a collision on an
+      element the probe proves is in the usage set, which design §2.4 forbade. **That platform claim
+      is false.** `RenameUtil.removeConflictUsages` (`RenameUtil.java:297-307`) removes only
+      `UnresolvableCollisionUsageInfo` *instances*, not every usage sharing an anchor element, and
+      `UsageInfo.equals` (`UsageInfo.java:348-359`) opens with a `getClass()` test so the two can
+      never displace one another in the set. With the objection void the fix is one term:
+      `globalDeclarationsNamed` adds `LuaMemberFieldNavigation.find`, making C3/C4's candidate set
+      the one `LuaNameReference.doMultiResolve` already consults. Two cases added —
+      `testDottedFunctionBesideAFieldAssignmentIsReported` (the conflict) and
+      `testCollisionAnchoredOnAUsageIsStillRewritten` (Continue, via `withIgnoredConflicts`, still
+      rewrites the anchor) — and dropping the new term reddens both. `LuaMemberFieldNavigation.find`
+      gained `checkCanceled()` on its three loops for the new rename-time caller.
+- [x] **The false claim removed everywhere it was written**: `LuaRenameConflictDetector.kt`'s two
+      KDocs, `LuaRenameConflictTest`'s TC-14 KDoc, design §2.4 and §3.4, `risks-and-gaps.md`
+      Gap 2.15, this plan, [[BUG-466]]'s report, the roadmap row, and REFACT-04 design §2.3, which
+      had inherited it verbatim as "REFACT-01 §2.4's rule, applied unchanged".
 
 ### Phase 5: `require(...)` rewriting on file rename [Should]
 
