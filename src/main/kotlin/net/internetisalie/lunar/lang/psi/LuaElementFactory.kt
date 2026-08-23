@@ -56,6 +56,26 @@ object LuaElementFactory {
         return PsiTreeUtil.findChildOfType(luaFile, LuaExpr::class.java)
     }
 
+    /**
+     * The STRING leaf for [literalText], or `null` when [literalText] is not exactly one Lua string
+     * literal.
+     *
+     * The round trip against [literalText] is what makes the null real rather than defensive.
+     * `createExpression` wraps the text in `local _ = <literalText>` and returns the FIRST
+     * [LuaExpr] in the tree, so text that merely *starts* with a string literal parses: a file
+     * renamed to `he"lpers.lua` builds the source `local _ = "he"lpers"`, whose first expression is
+     * the complete-looking `"he"` with the remainder left as an error element. Returning that would
+     * rewrite a caller's `require("util")` to `require("he")` — a silent, unrequested edit rather
+     * than the no-op the caller can detect and decline.
+     */
+    fun createStringLiteral(
+        project: Project,
+        literalText: String,
+    ): PsiElement? {
+        val terminalExpr = createExpression(project, literalText) as? LuaTerminalExpr
+        return terminalExpr?.string?.takeIf { it.text == literalText }
+    }
+
     fun createNewLine(project: Project): PsiElement =
         PsiParserFacade.getInstance(project).createWhiteSpaceFromText("\n")
 

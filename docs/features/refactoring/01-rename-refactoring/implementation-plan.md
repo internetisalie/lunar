@@ -423,11 +423,63 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
 
 - **Goal**: renaming `util.lua` rewrites `require("app.util")`.
 - **Tasks**:
-  - [ ] Add `LuaElementFactory.createStringLiteral(project, literalText)` — realizes design §3.7
+  - [x] Add `LuaElementFactory.createStringLiteral(project, literalText)` — realizes design §3.7
         step 5.
-  - [ ] Add `LuaRequireReference.handleElementRename` — realizes design §2.7 and §3.7 steps 1-7.
+  - [x] Add `LuaRequireReference.handleElementRename` — realizes design §2.7 and §3.7 steps 1-7.
 - **Exit criteria**: `LuaRequireRenameTest` passes TC-18a/b/c; `LuaElementFactoryTest` extended and
   green; full suite green.
+
+#### Phase 5 record (2026-08-23)
+
+- [x] **The requirement's `(inferred)` claim was executed, and it held.** On the parent commit
+      `a8424c14`, `myFixture.renameElement(utilLuaFile, "helpers.lua")` throws
+      `com.intellij.diagnostic.PluginException: No ElementManipulator instance registered for
+      TERMINAL_EXPR [LuaTerminalExprImpl]` — and the `ARGS` variant for the two paren-less shapes —
+      with the consuming file left untouched. So this phase does not merely add a rewrite: it
+      repairs a file rename that **failed outright** whenever any `require` named the file.
+      That is also the baseline red for TC-18a/b/c.
+- [x] **Design §3.7's seven steps survived contact with real PSI, with one correction and one
+      simplification.** Measured by probe before implementing: all three call shapes contribute
+      exactly one `LuaRequireReference` and `ReferencesSearch.search(targetFile)` finds it —
+      `TERMINAL_EXPR:(0,6)` for `require("util")`, `ARGS:(0,10)` for `require 'app.util'`,
+      `ARGS:(0,8)` for `require [[util]]` — so §3.7's "why the file is found at all" is confirmed
+      rather than assumed. `createExpression` yields a `LuaTerminalExpr` whose `getString()` is a
+      single `STRING` token for `"x"`, `'x'`, `[[x]]` **and** `[==[x]==]`, so the merging lexer
+      adapters need no special handling. **Correction:** step 5 as written returns a *truncated*
+      literal for text that merely starts with a string — see the next item. **Simplification:**
+      step 1 reads the literal off `rangeInElement`; the module string PSI is needed anyway for
+      step 6, so its `text` is used directly and the two steps share one lookup.
+- [x] **Step 5 gained a round trip, and TC-18d with it.** `createStringLiteral` returns the STRING
+      leaf only when its text equals the requested text. Without that, a file renamed to
+      `he"lpers.lua` builds `local _ = "he"lpers"`, whose first `LuaExpr` is the complete-looking
+      `"he"` — and `require("util")` would be rewritten to `require("he")`. A double quote is a
+      legal POSIX file-name character and the rename **does** reach `handleElementRename` with one
+      (measured on the parent commit), so this is a reachable silent corruption, not a defensive
+      branch. TC-18d drives the real file rename and asserts both that the file *was* renamed and
+      that the `require` was left alone.
+- [x] **TC-18b and TC-18c's fixtures were incomplete in the TC table above** and were corrected in
+      the test: both name a rename of `util.lua` / `app/util.lua` but list only `main.lua` in the
+      Input column. The target has to exist — there is nothing to rename otherwise, and
+      `CachesBasedRefSearcher` only reports the usage because `LuaRequireReference.resolve()`
+      reaches the file. Each case builds its own fixture set; no fixture is shared between cases.
+- [x] **`LuaRequireReferenceContributor.requireArgumentString` moved to
+      `LuaRequireReference.moduleStringOf`** rather than being duplicated. The host dispatch
+      (`LuaTerminalExpr.string` vs `LuaArgs.string`) is now read by both the contributor that
+      creates the reference and the rename that rewrites it, so the two cannot drift apart.
+      `LuaRequireStringCallReferenceTest` (`exactlyOneReferenceIsContributedPerCall` included) and
+      `LuaRequireTypeFlowTest` stay green.
+- [x] **Five mutants, all executed, each reddening a different set.** M1 drop the round trip →
+      TC-18d + `testCreateStringLiteralIsNullWhenTheTextIsNotOneLiteral` (2 of 14). M2 emit `"…"`
+      instead of the captured delimiters → TC-18b + TC-18c. M3 drop the dotted prefix → TC-18b
+      alone. M4 keep the `.lua` suffix in the module name → TC-18a + TC-18b + TC-18c. M5 normalise
+      the delimiters inside the factory → `testCreateStringLiteralKeepsEveryDelimiterForm` +
+      `testCreateStringLiteralIsNullWhen…` + TC-18b + TC-18c. The cannot-fail case searched for and
+      found: TC-18d as first written asserted only that the consuming file was unchanged, which is
+      green for a rename that never happened at all; the `target.name` assertion is what
+      distinguishes "declined the literal" from "did nothing". A second was found and removed
+      outright — an `assertNull` on the unterminated literal `"helpers`, which asserted a false
+      claim about the lexer (it lexes to a STRING covering the remainder, round-trips, and is
+      returned); `renamedLiteral` cannot produce one, so the case was dropped rather than inverted.
 
 ### Phase 6: LuaCATS `@param` propagation [Should]
 
@@ -585,7 +637,7 @@ in Phase 2, so the idiom lives here.
       a nested `function f() nested = 1 end`) are the same negatives §3.5 row 14's predicate must
       reproduce. Do not invent a heavy fixture for this.
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictTest.kt` — TC-14…TC-17, TC-31.
-- [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRequireRenameTest.kt` — TC-18a/b/c.
+- [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRequireRenameTest.kt` — TC-18a/b/c, plus TC-18d (the decline path, added in Phase 5).
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaCatsParamRenameTest.kt` — TC-20a/b/c.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaInplaceRenameTest.kt` — TC-12.
 - [x] Extend `LuaFindUsagesTest` — TC-23 only (Phase 1). TC-35 is dropped; the class's existing
@@ -752,6 +804,6 @@ in Phase 2, so the idiom lives here.
 | Phase 2: Core rename processor | done | Must |
 | Phase 3: Conflict detection | done | Should |
 | Phase 4: Dotted method declarations | done | Should |
-| Phase 5: `require(...)` rewriting on file rename | todo | Should |
+| Phase 5: `require(...)` rewriting on file rename | done | Should |
 | Phase 6: LuaCATS `@param` propagation | todo | Should |
 | Phase 7: In-place rename and non-code search | todo | Could |

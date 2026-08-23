@@ -681,6 +681,39 @@ site is still not rewritten, because it is not a findable reference while `multi
 ambiguous. Reporting is what C4 exists to do — the user sees the ambiguity and can cancel — and the
 "reported, not repaired" boundary is asserted in the test rather than left implicit.
 
+### Gap 2.16: design §3.7 step 5 builds a TRUNCATED literal for a file name that is not a Lua string body (CLOSED in Phase 5)
+
+Design §3.7's step 5 is
+`LuaElementFactory.createStringLiteral(project, prefix + newModule + suffix) ?: return element`,
+and §3.7's own definition of the factory is
+`(createExpression(project, literalText) as? LuaTerminalExpr)?.string`. Its `?:` reads as the
+failure branch, but for the case that matters it never fires.
+
+`createExpression` wraps the text in `local _ = <literalText>` and returns the **first** `LuaExpr`
+in the tree. A file renamed to `he"lpers.lua` therefore builds `local _ = "he"lpers"`, whose first
+expression is the perfectly well-formed `"he"` with the remainder left as an error element. Step 5
+would take that as success and step 6 would replace a caller's `require("util")` with
+`require("he")` — a silent, unrequested edit to a file the user did not ask to touch, which is
+BUG-457's category in a smaller costume.
+
+**Reachable, not theoretical.** A double quote is a legal character in a POSIX file name, and the
+rename **does** reach `handleElementRename` carrying one: on the parent commit `a8424c14` a probe
+renaming `util.lua` to `he"lpers.lua` failed at the missing `ElementManipulator`, i.e. inside the
+reference, with no earlier name validation having rejected it.
+
+**Closed by making the factory's null real.** `createStringLiteral` returns the STRING leaf only
+when `it.text == literalText`, so text that merely *starts* with a literal yields null and
+`handleElementRename` declines, leaving the literal untouched. TC-18d drives the whole file rename
+and asserts both halves — the file **was** renamed, and the `require` was **not** rewritten. Two
+mutants confirm it: dropping the round trip reddens TC-18d and the factory's null case; a factory
+that normalises delimiters reddens those plus TC-18b and TC-18c.
+
+**What is deliberately not asserted.** An *unterminated* literal is not a null case: `local _ =
+"helpers` lexes to a STRING covering the remainder, so it round-trips and is returned. That costs
+nothing here, because `renamedLiteral` re-emits the captured opening delimiter run as the closing
+one and so cannot produce an unterminated literal. An `assertNull` on that input was written, ran
+red, and was removed rather than inverted — it asserted a false claim about the lexer.
+
 ## Technical Debt & Future Work
 
 - **TBD-1: `REFACT-01-09` — table field / constructor key rename.** Deferred, priority `C`. Two

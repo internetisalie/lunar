@@ -71,6 +71,45 @@ class LuaElementFactoryTest : BasePlatformTestCase() {
         }
     }
 
+    /**
+     * Every delimiter form Lua admits, because [LuaElementFactory.createStringLiteral] exists to
+     * let `LuaRequireReference.handleElementRename` re-emit the user's own delimiters. A factory
+     * that normalised `\'x\'` or `[[x]]` to `"x"` would turn a rename into an unrequested edit.
+     */
+    @Test
+    fun testCreateStringLiteralKeepsEveryDelimiterForm() {
+        runReadAction {
+            for (literal in listOf("\"app.helpers\"", "'app.helpers'", "[[helpers]]", "[==[helpers]==]")) {
+                val stringLiteral = LuaElementFactory.createStringLiteral(project, literal)
+                assertNotNull("$literal should build a string literal", stringLiteral)
+                assertEquals(literal, stringLiteral?.text)
+                assertEquals(LuaElementTypes.STRING, stringLiteral?.node?.elementType)
+            }
+        }
+    }
+
+    /**
+     * The null half of the contract. `local _ = "he"lpers"` parses its FIRST expression as the
+     * complete-looking `"he"`, so without the round trip against the requested text the factory
+     * would hand a caller a truncated literal and a `require("util")` would silently become
+     * `require("he")`.
+     *
+     * An *unterminated* literal is deliberately not asserted here: `local _ = "helpers` lexes to a
+     * STRING whose text is the whole remainder, so it round-trips and is returned. That costs
+     * nothing — `renamedLiteral` re-emits the opening delimiter run as the closing one, so it
+     * cannot produce an unterminated literal to begin with.
+     */
+    @Test
+    fun testCreateStringLiteralIsNullWhenTheTextIsNotOneLiteral() {
+        runReadAction {
+            assertNull(
+                "a truncating literal is not one literal",
+                LuaElementFactory.createStringLiteral(project, "\"he\"lpers\""),
+            )
+            assertNull("nor a non-string expression", LuaElementFactory.createStringLiteral(project, "1 + 2"))
+        }
+    }
+
     @Test
     fun testCreateFileParsesWithoutErrorElements() {
         runReadAction {
