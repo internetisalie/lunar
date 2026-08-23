@@ -1,10 +1,12 @@
 package net.internetisalie.lunar.lang.psi
 
 import com.intellij.psi.PsiElement
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.LuaLanguageLevel
+import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,6 +20,8 @@ import org.junit.runners.JUnit4
  * TC-22 — `identifierLeafOf` normalises a declaration node and a `LuaNameRef` to the same leaf.
  * TC-30 — `declarationNodeOf` covers the four kinds Phase 1 adds; without it Safe Delete, which
  *   this phase widens in the same commit, deletes the bare identifier and leaves `global  = 1`.
+ * TC-40 — the guard that makes DR-05's whole result hold: what member-field resolution hands back,
+ *   and `identifierLeafOf`'s refusal of it.
  */
 @RunWith(JUnit4::class)
 class LuaDeclarationSiteTest : BasePlatformTestCase() {
@@ -184,6 +188,51 @@ class LuaDeclarationSiteTest : BasePlatformTestCase() {
             "a single-target file-scope assignment must elevate to the whole statement",
             PsiTreeUtil.findChildOfType(myFixture.file, LuaAssignmentStatement::class.java),
             LuaDeclarationSite.declarationNodeOf(identifier("cfg")),
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // TC-40 — the two-part coupling DR-05 rests on
+    // -------------------------------------------------------------------------
+
+    /**
+     * TC-40 — REFACT-01 DR-05. A `t.field` member access must NOT normalise to a declaration site,
+     * and the reason it does not is a conjunction of two facts in two files. DR-05 measured both
+     * and then deleted its probe, leaving the result recorded in prose and enforced by nothing.
+     *
+     * 1. `LuaMemberFieldNavigation.find` hands back the field's own `LuaNameRef`
+     *    (`memberFieldIdentifier`, `LuaMemberFieldNames.kt:23-28`) — not the enclosing `LuaVar`.
+     * 2. `identifierLeafOf`'s `LuaNameRef` branch is guarded — `element.identifier.takeIf
+     *    { kindOf(it) != null }` — and a member leaf's grandparent is a `LuaIndexExpr`, which
+     *    design §3.5 does not classify, so the branch yields null.
+     *
+     * **Drop the guard in fact 2 and rename stops refusing `t.field`**: `substituteElementToRename`
+     * would take the field leaf as a declaration and rename a member access as though it were a
+     * global, with no receiver to constrain it. That is what this case reddens on.
+     *
+     * Fact 1 is asserted rather than assumed because it is what keeps the dangerous neighbouring
+     * branch out of reach: `element is LuaVar -> element.nameRef?.identifier` answers with the
+     * **receiver** — measured, `identifierLeafOf` of this fixture's `t.field` `LuaVar` is `t` — so
+     * a navigation result that arrived as a `LuaVar` would offer to rename `t` when the user asked
+     * for `t.field`. If fact 1 ever changes, re-derive fact 2's answer rather than adjusting this
+     * expectation.
+     */
+    @Test
+    fun testAMemberFieldAccessNormalisesToNoDeclarationLeaf() {
+        configure("local t = {}\nt.field = 1\nprint(t.field)\n")
+        val resolved = LuaMemberFieldNavigation.find(project, "t.field", GlobalSearchScope.projectScope(project))
+
+        assertEquals("t.field is assigned exactly once, so navigation has one result", 1, resolved.size)
+        val declarationSite = resolved.single()
+        assertTrue(
+            "member-field navigation must hand back the field's LuaNameRef, not its LuaVar; got " +
+                declarationSite.javaClass.simpleName,
+            declarationSite is LuaNameRef,
+        )
+        assertNull(
+            "identifierLeafOf must refuse a member access: it names a table field, which is not a " +
+                "Lua declaration site, and treating it as one renames it as a global",
+            LuaDeclarationSite.identifierLeafOf(declarationSite),
         )
     }
 }

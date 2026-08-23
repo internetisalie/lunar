@@ -594,7 +594,7 @@ not renamed-usages from an unrenamed declaration. Two consequences worth having 
   gone and the null path is now the contract, with
   `LuaElementFactoryTest.testCreateIdentifierIsNullForANameThatCannotBeAnIdentifier` pinning it.
 
-### Gap 2.14: a caret on an `M.run()` CALL SITE cannot rename the dotted function — the same containment as Gap 2.10, and its cost (OPEN)
+### Gap 2.14: a caret on an `M.run()` CALL SITE cannot rename the dotted function — the same containment as Gap 2.10, and its cost (OPEN, filed as [[BUG-465]])
 
 Measured by **DR-05** (2026-08-23), which found it while checking the dotted-function control case;
 it is not a `t.field` shape, but it is the shape a user reaches by trying one.
@@ -617,6 +617,47 @@ Gap 2.9 needs for the numeric-`for` declaration, and out of scope here for the s
 **User-visible consequence, stated plainly:** renaming a dotted function works from its declaration
 (TC-09) and is refused from its call sites. That is a second reason `REFACT-01-08` is `Partial`
 beyond the colon form, and it is recorded so the row's scope is not read as narrower than it is.
+
+**Filed as [[BUG-465]] (2026-08-23), on the Phase-4 reviewer's judgement, and the reason is the
+`TargetElementEvaluatorEx2`.** A gap recorded only inside this feature's own document closes when
+the feature does; this one does not close with it. It is the **second** gap needing that one absent
+extension — Gap 2.9's numeric-`for` declaration caret is the first — and rename-from-usage
+(`REFACT-01-02`) works for every other declaration kind, so the limitation is a defect against a
+requirement this feature has already delivered elsewhere rather than an unbuilt piece of it. The
+bug carries the mechanism, the containment argument and the fix sketch; a roadmap row carries the
+priority.
+
+### Gap 2.15: `function M.run()` beside `M.run = function() end` — the call sites unresolve and nothing reports it (OPEN, filed as [[BUG-466]])
+
+Found 2026-08-23 while executing the Phase-4 remediation of C3/C4's dotted blindness, with its own
+fixture set per case. **This is the residual that fix deliberately leaves open**, and it is recorded
+here rather than closed because closing it changes an invariant, not a lookup.
+
+`LuaNameReference.doMultiResolve`'s qualified branch reads **two** sources — the stub index under
+`"M.run"` and `LuaMemberFieldNavigation.find(project, "M.run")`. A project carrying both a
+`function M.run() end` and an `M.run = function() end` therefore has a two-result `multiResolve`,
+a null `resolve()`, and no findable call sites. Measured, printing each reference rather than
+counting them:
+
+| Project | `ReferencesSearch` on the declaration leaf |
+| :-- | :-- |
+| decl + `M.run()` call site | **1** — the call site |
+| decl + `M.run = function() end` + `M.run()` call site | **1** — the *assignment target*; the call site is gone |
+
+The count is identical in both rows, which is why this needed the elements printed: renaming
+rewrites the declaration and the assignment and silently leaves `M.run()` behind.
+`LuaRenameConflictDetector.collisions` returns **0** for the second project, because C4 counts only
+stub hits for the qualified key and finds one.
+
+**Why the Phase-4 fix stopped short of it.** Adding member-field hits to C4's candidate set would
+report it — and would anchor the collision on the field's `LuaNameRef`, which the table above proves
+is a member of the renamed symbol's **usage set**. The platform deletes collision anchors from that
+set (`RenameUtil.removeConflictUsages`), so Continue would then skip rewriting it: a second silent
+partial rename, produced by the machinery meant to warn about the first. Design §2.4 and
+`LuaRenameCollisionUsageInfo`'s KDoc state that anchoring rule as an invariant. Respecting it needs
+a different anchor for these hits — plausibly the enclosing `LuaAssignmentStatement` — which is a
+design change with its own correctness argument, not a phase-local edit. [[BUG-466]] carries the
+sketch.
 
 ## Technical Debt & Future Work
 

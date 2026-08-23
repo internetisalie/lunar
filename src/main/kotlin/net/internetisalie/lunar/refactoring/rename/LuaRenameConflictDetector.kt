@@ -14,6 +14,7 @@ import net.internetisalie.lunar.lang.navigation.LuaGlobalAssignmentNavigation
 import net.internetisalie.lunar.lang.psi.LuaDeclarationKind
 import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaFuncName
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaResolveUtil
 import java.util.Collections
@@ -89,9 +90,11 @@ internal class LuaRenameCollisionUsageInfo(
  *   looks like the expensive half. `LuaDeclarationSite.identifierLeafOf` reaches a `LuaFuncDecl`'s
  *   name through `getNode()`, which loads and parses a stub-backed element's file.
  *
- * `LuaRenameConflictTest`'s two `testCancellationIsChecked…` cases pin the per-iteration property
- * differentially — one over stub-hit count, one over usage count — so neither can be satisfied by
- * the entry checks alone.
+ * `LuaRenameConflictTest`'s three `testCancellationIsChecked…` cases pin the per-iteration property
+ * differentially — one over stub-hit count, one over usage count, one over the file's name-ref count
+ * — so none can be satisfied by the entry checks alone. Three, not two, because the first two both
+ * use a global target: [shadows] runs only for a file-local kind and was pinned by nothing until a
+ * case with a `local` target existed.
  */
 internal object LuaRenameConflictDetector {
     /**
@@ -190,10 +193,12 @@ internal object LuaRenameConflictDetector {
      * **C3** — the global name is already taken, so renaming would merge two distinct globals into
      * one `_ENV` entry. Non-file-local kinds only.
      */
-    private fun globalNameTaken(target: LuaRenameTarget): List<LuaRenameCollision> =
-        globalDeclarationsNamed(target, target.newName).map { existing ->
-            LuaRenameCollision(existing, LuaBundle.message("refactoring.rename.conflict.globalExists", target.newName))
+    private fun globalNameTaken(target: LuaRenameTarget): List<LuaRenameCollision> {
+        val newKey = searchKeyOf(target, target.newName)
+        return globalDeclarationsNamed(target, newKey).map { existing ->
+            LuaRenameCollision(existing, LuaBundle.message("refactoring.rename.conflict.globalExists", newKey))
         }
+    }
 
     /**
      * **C4** — the global being renamed is declared in more than one place, so its usages do not
@@ -208,16 +213,74 @@ internal object LuaRenameConflictDetector {
      * these lookups on the EDT.
      */
     private fun ambiguousGlobal(target: LuaRenameTarget): List<LuaRenameCollision> {
-        val oldName = target.identifier.text
-        val declarations = globalDeclarationsNamed(target, oldName)
+        val oldKey = searchKeyOf(target, target.identifier.text)
+        val declarations = globalDeclarationsNamed(target, oldKey)
         if (declarations.size < 2) return emptyList()
-        val message = LuaBundle.message("refactoring.rename.conflict.ambiguousGlobal", oldName, declarations.size)
+        val message = LuaBundle.message("refactoring.rename.conflict.ambiguousGlobal", oldKey, declarations.size)
         return declarations.filter { it !== target.identifier }.map { LuaRenameCollision(it, message) }
     }
 
     /**
-     * Every project-wide declaration of [name], normalised to its IDENTIFIER leaf so that the two
-     * lookups are comparable and C4's `!== target.identifier` test can fire at all.
+     * The `LuaGlobalDeclarationIndex` key under which [segment] would be declared *as a name of the
+     * same thing [target] names* — i.e. [segment] carrying [target]'s own receiver prefix.
+     *
+     * **Without this, C3 and C4 are inert for every dotted function**, which is the shape of defect
+     * this whole feature exists against. Measured on the builder, two files each declaring
+     * `function M.run() end`: `LuaFuncStubElementType.indexStub` sinks that decl under the
+     * FUNC_NAME node's text `"M.run"` and — via `substringBefore('.')` — under the receiver `"M"`,
+     * but **never** under `"run"`; `LuaDeclarationSite.identifierLeafOf` hands rename the LAST
+     * segment, so the bare `target.identifier.text` these two rules used to search is a key nothing
+     * writes. Both stub reads returned 0, both rules stayed silent, and the rename rewrote the
+     * declaration while `ReferencesSearch` found **0** of its call sites — BUG-457's shape inside
+     * the feature that closed BUG-457.
+     *
+     * The prefix is taken by TEXT OFFSET rather than by `substringBeforeLast('.')` because the key
+     * is the FUNC_NAME node's text verbatim: this reproduces whatever separators and spacing that
+     * node carries, so `function A.B.run()` searches `"A.B.run"` and the colon form searches
+     * `"Obj:m"` with no per-shape rule. Measured for all three: prefixes `"M."`, `"A.B."` and `""`.
+     *
+     * **Bare globals are unaffected, by construction and by measurement.** `function greet() end`
+     * has a `funcName` whose only segment IS the leaf, so the prefix is empty; `config = {}` and
+     * the Lua 5.5 `global` forms have no `LuaFuncName` ancestor at all. Both return [segment]
+     * unchanged, which is what these rules searched before.
+     */
+    private fun searchKeyOf(
+        target: LuaRenameTarget,
+        segment: String,
+    ): String = receiverPrefixOf(target.identifier) + segment
+
+    /**
+     * Everything the declaration's own name chain carries in front of its last segment — `"M."` for
+     * `function M.run()`, `""` for `function greet()` and for any leaf that is not part of a
+     * function name.
+     *
+     * Non-strict `getParentOfType` because the leaf is inside the `funcName`, and length-guarded
+     * rather than `substring`-and-hope: an offset outside the node would be a `StringIndexOutOfBounds`
+     * inside a background read action, and an empty prefix degrades to exactly the pre-existing
+     * bare-name lookup.
+     */
+    private fun receiverPrefixOf(leaf: PsiElement): String {
+        val funcName = PsiTreeUtil.getParentOfType(leaf, LuaFuncName::class.java, /* strict = */ false) ?: return ""
+        val prefixLength = leaf.textRange.startOffset - funcName.textRange.startOffset
+        if (prefixLength <= 0 || prefixLength > funcName.textLength) return ""
+        return funcName.text.substring(0, prefixLength)
+    }
+
+    /**
+     * Every project-wide declaration filed under the index key [key], normalised to its IDENTIFIER
+     * leaf so that the two lookups are comparable and C4's `!== target.identifier` test can fire at
+     * all.
+     *
+     * [key] is an index key, not a user-facing name: for a dotted function it is the qualified
+     * `"M.run"` that [searchKeyOf] builds, because that is what the stub sinks. The second lookup,
+     * [LuaGlobalAssignmentNavigation.find], is keyed on undotted names only — `dottedMemberName`
+     * returns null for a bare target and `LuaGlobalAssignmentIndex` records nothing else — so for a
+     * dotted key it is an index read that cannot hit, and the dotted candidate set is the stub
+     * index alone. A dotted *field assignment* (`M.run = function() end`) is therefore not counted,
+     * although `LuaNameReference` does resolve through it; that residual is measured and recorded
+     * as `risks-and-gaps.md` Gap 2.15 rather than closed here, because counting it would anchor a
+     * collision on an element that is also a **usage** — which the platform then deletes from the
+     * usage set (see [LuaRenameCollisionUsageInfo]).
      *
      * Both *candidate sets* come from indexes, so nothing scans the project to find them, and both
      * C3 and C4 share this one lookup — C4 against the old name, C3 against the new one — which is
@@ -239,19 +302,19 @@ internal object LuaRenameConflictDetector {
      */
     private fun globalDeclarationsNamed(
         target: LuaRenameTarget,
-        name: String,
+        key: String,
     ): List<PsiElement> {
         ProgressManager.checkCanceled()
         val targetProject = target.identifier.project
         val projectScope = GlobalSearchScope.projectScope(targetProject)
         val stubbed =
             StubIndex
-                .getElements(LuaGlobalDeclarationIndex.KEY, name, targetProject, projectScope, LuaFuncDecl::class.java)
+                .getElements(LuaGlobalDeclarationIndex.KEY, key, targetProject, projectScope, LuaFuncDecl::class.java)
                 .map { declaration ->
                     ProgressManager.checkCanceled()
                     LuaDeclarationSite.identifierLeafOf(declaration) ?: declaration
                 }
-        return distinctElements(stubbed + LuaGlobalAssignmentNavigation.find(targetProject, name, projectScope))
+        return distinctElements(stubbed + LuaGlobalAssignmentNavigation.find(targetProject, key, projectScope))
     }
 
     /** The declaration of [name] that is lexically visible at [site], or null when there is none. */

@@ -339,7 +339,9 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
   is deliberate rather than silent: that lane has four classes, none of which mentions rename, so
   it cannot reach this code, and its single pre-existing failure
   (`LuaCrossFileCompletionIntegrationTest`, `ExecTimeoutException`) is unchanged since Phase 1.
-- **This phase wrote no production code for its own goal, and that is the finding.** Both halves of
+- **This phase wrote no production code for its own goal, and that is the finding** — *until its
+  review, which found that the dotted form reached conflict detection blind; see the remediation
+  section below, which does write production code.* Both halves of
   §3.1 step 4 were already in the tree: the `METHOD_FUNCTION` refusal branch shipped with Phase 2
   (`LuaRenameProcessor.substituteElementToRename`, needed there for TC-19a), and `DOTTED_FUNCTION`
   needs nothing to "flow through" — §3.5 row 10 classifies it, `isFileLocal = false` leaves the
@@ -356,12 +358,52 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
   `RefactoringErrorHintException`, and — the fact that makes the refusal load-bearing rather than
   conservative — finds **0** references, so the branch is all that stands between this shape and a
   half-applied rename.
-- **One measurement worth keeping, from a probe that was accidentally wrong.** The first probe
-  reused one fixture project across three cases, so a second `function M.run()` reached the index
-  and `findReferences` dropped to **0**. That is not a probe artefact, it is C4's ambiguity
-  arriving through resolution: two declarations of one global make `multiResolve` return two
-  results, `resolve()` null and `isReferenceTo` false everywhere. The dotted form is subject to it
-  exactly like the plain global form of TC-31.
+- **One measurement worth keeping, from a probe that was accidentally wrong — and the sentence it
+  was originally written with was false.** The first probe reused one fixture project across three
+  cases, so a second `function M.run()` reached the index and `findReferences` dropped to **0**.
+  Discarding that *run* was right; concluding the observation was an artefact was not. It is C4's
+  ambiguity arriving through resolution: two declarations of one global make `multiResolve` return
+  two results, `resolve()` null and `isReferenceTo` false everywhere.
+  **What this plan first wrote next — "the dotted form is subject to it exactly like the plain
+  global form of TC-31" — was wrong, and the Phase-4 review caught it.** TC-31's form is *reported*;
+  the dotted form was not, because C3 and C4 searched the target's bare last segment while
+  `LuaFuncStubElementType.indexStub` files a dotted decl under its qualified `"M.run"` and its
+  receiver `"M"` and never under `"run"`. Re-measured on the builder with a fixture set of its own:
+  `"run"` → **0** stub hits, `"M.run"` → 2, `"M"` → 2, `ReferencesSearch` → **0** references, and
+  `LuaRenameConflictDetector.collisions` → **0 conflicts**. The rename applied silently — BUG-457's
+  shape inside the feature that closed BUG-457.
+
+### Phase 4 remediation (2026-08-23) — the dotted key, and three owed items
+
+- [x] **F1 — C3 and C4 search the qualified key.** `LuaRenameConflictDetector.searchKeyOf` prefixes
+      the searched segment with whatever the target's own `funcName` carries in front of its last
+      segment, taken **by text offset** so the key reproduces the FUNC_NAME node text the stub sinks
+      verbatim. Measured prefixes: `"M."` for `function M.run()`, `"A.B."` for
+      `function A.B.run()`, `""` for `function greet()`, and no `LuaFuncName` ancestor at all for
+      `config = {}` or the Lua 5.5 `global` forms — so **bare globals are unchanged by
+      construction**, which the untouched TC-17/TC-31 confirm. A deviation from design §3.4, whose
+      C3/C4 steps write `newName` and `dLeaf.text`; recorded in §3.4 itself.
+- [x] **TC-37 / TC-38 pin it**, and their mutant is the code as it stood: restoring the bare-segment
+      lookup reddens both at `conflictsFromRenamingTo`'s "applied silently" assertion, with the
+      other eight cases in the class green.
+- [x] **TC-39 pins the fourth iteration block.** The two Phase-4 cancellation cases both use a
+      `GLOBAL_FUNCTION` target, so `shadows` — which runs only for a file-local kind — was pinned by
+      nothing. The third case is differential over file size: 3 name refs → 4 checks, 13 → 14.
+      Deleting the check collapses both to 1.
+- [x] **TC-40 restores DR-05's deleted probe as coverage.** DR-05's result rests on a two-part
+      coupling — member-field navigation hands back a `LuaNameRef`, and `identifierLeafOf`'s
+      `LuaNameRef` branch is guarded by `kindOf` — and nothing enforced either. Dropping the guard
+      reddens it; a *guard* was rejected instead, being production code outside the plan and shared
+      with Safe Delete.
+- **Gate, counted from the builder's result XML rather than a Gradle summary line:** full suite
+      **2,826 tests / 455 classes / 0 failures** (Phase-4 baseline 2,822 / 455 / 0; +4, all four new
+      cases, no class added and none lost), corpus sweep **2,834 / 458 / 0** (baseline 2,830 / 458 /
+      0), `ktlintCheck` clean, `lint_docs` and `lint_planning` 0 errors. The single `skipped` in both
+      counts is `LuaCompletionTest`'s pre-existing ignored COMP-03 case.
+- [x] **Gaps 2.14 and 2.15 filed as [[BUG-465]] and [[BUG-466]]** with roadmap rows. Gap 2.15 is
+      new, found during F1: a dotted function beside a same-named field assignment loses its call
+      sites the same way, and F1 does **not** close it — reporting it would anchor a collision on an
+      element the same probe proves is in the usage set, which design §2.4 forbids.
 
 ### Phase 5: `require(...)` rewriting on file rename [Should]
 

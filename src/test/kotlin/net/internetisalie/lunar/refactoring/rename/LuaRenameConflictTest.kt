@@ -34,9 +34,12 @@ import java.util.concurrent.atomic.AtomicInteger
  * The counterweight is [testUnrelatedInnerDeclarationIsNotAConflict]: a detector that cries wolf
  * on every rename passes all four positive cases and fails only that one.
  *
- * [testCancellationIsCheckedPerIndexHitNotPerCall] and
- * [testCancellationIsCheckedPerUsageNotPerCollisionsCall] are about the detector's *cost* rather
- * than its verdicts, and live here because the subject is the same object.
+ * [testCancellationIsCheckedPerIndexHitNotPerCall],
+ * [testCancellationIsCheckedPerUsageNotPerCollisionsCall] and
+ * [testCancellationIsCheckedPerFileNameRefNotPerCollisionsCall] are about the detector's *cost*
+ * rather than its verdicts, and live here because the subject is the same object. Between them
+ * they pin the three guarded iteration blocks over three independent dimensions — stub hits,
+ * usages, and the file's name refs — which is one dimension per block and no fewer.
  */
 @RunWith(JUnit4::class)
 class LuaRenameConflictTest : BasePlatformTestCase() {
@@ -127,6 +130,54 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
     }
 
     /**
+     * TC-37 — C4 for a **dotted** function, the case TC-31's `config = {}` fixture cannot reach.
+     *
+     * Same defect as TC-31 and a different key. `LuaFuncStubElementType.indexStub` files
+     * `function M.run() end` under the FUNC_NAME text `"M.run"` and, via `substringBefore('.')`,
+     * under the receiver `"M"` — **never** under `"run"`, which is the last segment
+     * `LuaDeclarationSite.identifierLeafOf` hands rename as the target. So while C3/C4 searched
+     * `target.identifier.text` they searched a key nothing writes, and every dotted rename passed
+     * conflict detection in silence: measured on this exact fixture, `ReferencesSearch` finds
+     * **0** references (two `M.run` decls make `multiResolve` ambiguous and `resolve()` null), so
+     * the declaration is rewritten and `M.run()` is left behind with no warning — BUG-457's shape
+     * inside the feature that closed BUG-457.
+     *
+     * The assertion names `"M.run"` rather than `"run"` because the qualified key is what was
+     * searched and what is ambiguous; a message naming `run` would be reporting a name that is not
+     * declared anywhere. Mutation-proved: restoring either rule's bare `target.identifier.text`
+     * lookup drops this to zero conflicts and the rename applies silently.
+     */
+    @Test
+    fun testDottedFunctionDeclaredTwiceIsReported() {
+        myFixture.addFileToProject("b.lua", "function M.run() end\n")
+        myFixture.addFileToProject("c.lua", "M.run()\n")
+        myFixture.configureByText("a.lua", "function M.r<caret>un() end\n")
+
+        val reported = conflictsFromRenamingTo("start")
+
+        assertReports(LuaBundle.message("refactoring.rename.conflict.ambiguousGlobal", "M.run", 2), reported)
+    }
+
+    /**
+     * TC-38 — C3 for a dotted function: the *new* name is what has to carry the receiver prefix.
+     *
+     * `function M.run()` renamed to `go` becomes `M.go`, so the name that would merge is `M.go`
+     * and not `go`. A bare-`newName` lookup finds nothing here — measured: `"go"` has 0 stub hits
+     * while `"M.go"` has 1 — which is the same blindness as TC-37 arriving through the other rule,
+     * and it is why [searchKeyOf][LuaRenameConflictDetector] is applied to both names rather than
+     * only to the old one.
+     */
+    @Test
+    fun testExistingDottedFunctionOfTheNewNameIsReported() {
+        myFixture.addFileToProject("b.lua", "function M.go() end\n")
+        myFixture.configureByText("a.lua", "function M.r<caret>un() end\n")
+
+        val reported = conflictsFromRenamingTo("go")
+
+        assertReports(LuaBundle.message("refactoring.rename.conflict.globalExists", "M.go"), reported)
+    }
+
+    /**
      * The engineering contract's cancellation rule, pinned **differentially** — the one property
      * `LuaRenameConflictDetector.globalDeclarationsNamed`'s loop-body check exists for, which is
      * that a rename over a large project can be cancelled *between* stub hits rather than only
@@ -201,6 +252,39 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
                 "list — but cost ${withSixUsages - withOneUsage}, so one of the two runs " +
                 "unguarded, and it is the one that can restore a smart pointer by parsing a file",
             withSixUsages - withOneUsage >= 10,
+        )
+    }
+
+    /**
+     * TC-39 — the **third** guarded iteration block, [LuaRenameConflictDetector.shadows]' filter,
+     * which neither cancellation case above can reach: both use a `GLOBAL_FUNCTION` target, and
+     * `collisions` runs `shadows` only for a file-local kind, so between them they pinned three
+     * blocks and left this one deletable with the whole suite green.
+     *
+     * It is a block that must be guarded on the invariant's own terms: it walks **every**
+     * `LuaNameRef` in the file, and its body's `visibleDeclarationOf` runs a scope crawl over
+     * loaded PSI per candidate. Cost scales with file size, which is precisely when a user cancels.
+     *
+     * Same differential shape as the two above, over the third dimension — file size. One usage
+     * list (empty) and one file-local target in both runs, so `captures` contributes the same
+     * single check and cancels out of the subtraction; only the `LuaNameRef` count differs, 3
+     * versus 13. Measured: 4 checks then 14. Mutation-proved: deleting the
+     * `ProgressManager.checkCanceled()` inside `shadows`' filter collapses both to 1 and the delta
+     * to 0.
+     */
+    @Test
+    fun testCancellationIsCheckedPerFileNameRefNotPerCollisionsCall() {
+        myFixture.configureByText("small.lua", "local <caret>x = 1\nprint(x)\n")
+        val withThreeNameRefs = detectorCancellationChecks(renameTargetAtCaret("aNameNothingElseDeclares"), emptyList())
+        myFixture.configureByText("large.lua", "local <caret>x = 1\n" + "print(x)\n".repeat(6))
+        val withThirteenNameRefs =
+            detectorCancellationChecks(renameTargetAtCaret("aNameNothingElseDeclares"), emptyList())
+
+        assertTrue(
+            "ten more name refs in the file must cost ten more cancellation checks, but cost " +
+                "${withThirteenNameRefs - withThreeNameRefs}, so the shadow rule scans a whole " +
+                "file's references without ever offering to stop",
+            withThirteenNameRefs - withThreeNameRefs >= 10,
         )
     }
 

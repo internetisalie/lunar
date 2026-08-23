@@ -1127,6 +1127,32 @@ usages will change, and the user can cancel — whereas a refusal inside `substi
 would have to run these lookups on the EDT (§2.2), which §9 Alternative D rejects for
 `findExistingNameConflicts` for the same reason.
 
+**C3 and C4 search an index KEY, not the name the user sees** (corrected during the Phase-4 review,
+which is when a dotted target was first put through them). The steps above write `newName` and
+`dLeaf.text`; for a dotted function both are the **last segment**, and
+`LuaFuncStubElementType.indexStub` files `function M.run() end` under the FUNC_NAME node's text
+`"M.run"` and — via `substringBefore('.')` — under the receiver `"M"`, **never** under `"run"`. Both
+rules therefore searched a key nothing writes and were inert for every dotted declaration: measured,
+two files each declaring `function M.run()` give 0 hits for `"run"`, 2 for `"M.run"`, **0**
+references from `ReferencesSearch` and **0** conflicts, so the rename rewrote the declaration and
+left every call site behind — the defect this feature exists against, inside its own conflict
+detector.
+
+Both rules now search `searchKeyOf(target, segment)` = the target's own receiver prefix + `segment`,
+the prefix taken **by text offset** within the enclosing `funcName` so that it reproduces that
+node's text verbatim rather than re-deriving separators. `function greet() end`'s only segment is
+its own last one, so its prefix is empty; `config = {}` and the Lua 5.5 `global` forms have no
+`LuaFuncName` ancestor at all. **Bare globals are unchanged by construction**, and TC-17/TC-31 —
+untouched — are the check. The messages carry the key, so C4 reports `'M.run' is declared in 2
+places` rather than naming a `run` that is declared nowhere.
+
+**What this does NOT cover, deliberately.** `LuaNameReference` resolves a dotted name through *two*
+sources — the stub index and `LuaMemberFieldNavigation` — so a `function M.run()` beside an
+`M.run = function() end` is ambiguous too, and unreported. `risks-and-gaps.md` Gap 2.15 / [[BUG-466]]
+carry it: counting member-field hits would anchor a collision on an element that is itself a
+**usage** (measured), which §2.4's anchoring invariant forbids, so closing it is an anchor-rule
+change rather than a wider lookup.
+
 **Complexity**: C1 is O(|usages| × scope depth). C2 is one PSI pass over one file. C3 and C4 are two
 index lookups each. Nothing scans the project's PSI.
 

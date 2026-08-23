@@ -89,7 +89,9 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-461 | Tests that cannot fail — 4 uncollected, 3 pinning defects, 2 vacuous | todo | S | — | the durable half is a build-time guard | ✓ |
 | BUG-463 | Step/watchpoint pauses have never had a source position — every non-breakpoint pause renders `<internal C>` | todo | S | — | shipped defect, no requirement row; DEBUG-05 Phase 1 fixes it incidentally — do not fix twice | — |
 | BUG-464 | Ragged requirement tables render the wrong status — 36 rows, 11 files | todo | C | — | REFACT-01's own table rendered **Full** beside "grep is empty"; the durable half is a `lint_docs.py` table-shape check | ✓ |
+| BUG-466 | A dotted function beside a same-named field assignment unresolves every call site, and rename reports no conflict | todo | S | — | REFACT-01 Gap 2.15; needs an anchor rule that is usage-set-aware, not just a wider candidate set | ✓ |
 | BUG-458 | Safe Delete of a label leaves `::::`, unparseable on every Lua version | todo | C | — | — | ✓ |
+| BUG-465 | Rename from an `M.run()` call site is refused — `TargetElementUtil` returns the whole `LuaFuncDecl` | todo | C | — | REFACT-01 Gap 2.14; second gap needing the same absent `TargetElementEvaluatorEx2` (Gap 2.9 is the first) | ✓ |
 | BUG-460 | Naming two indent options hides tabs/tab-width and suppresses 4 `.editorconfig` properties | todo | C | — | — | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
