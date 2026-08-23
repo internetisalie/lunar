@@ -2,6 +2,18 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Rename warns before it changes meaning.** Renaming `x` to `y` in Lua does not *collide* the way
+  it would in Java — it silently **rebinds**: the file still parses, still runs, and reads a
+  different value. Lunar now reports four of those cases in the conflicts dialog before anything is
+  written (REFACT-01 Phase 3). A usage that would be captured by a `y` already visible where it
+  sits; an existing reference to `y` that the renamed declaration would shadow; a global whose new
+  name another file already declares, which would merge the two into one `_ENV` entry; and a global
+  declared in more than one place, where — because such a name resolves to nothing — the rename
+  would rewrite the declaration you picked and leave every reader of it behind. You can still
+  press Continue; the preview pane shows exactly what will change. A `do local y = 3 end` further
+  down the file is *not* reported, because a new declaration shadowing the renamed one changes
+  nothing that was already there.
+
 - **Rename works.** Shift+F6 on a local, a parameter, a `for` variable, a `local function` or a
   global now rewrites the declaration **and every usage Lua's scoping rules bind to it** — in the
   file, and across the whole project for a global (all four forms: `function greet()`, `config = {}`,
@@ -16,8 +28,8 @@
   reason** instead of half-applying — a `function Obj:method()` declaration, the receiver part of a
   `function M.run()` name, and a name whose declaration cannot be determined each explain why. Two
   limits worth knowing: renaming from the caret on a numeric `for`'s own variable (`for i = 1, 3`) is
-  not offered — rename from a use of `i` instead — and conflict detection, `require(...)` rewriting on
-  file rename and `---@param` propagation are still to come.
+  not offered — rename from a use of `i` instead — and `require(...)` rewriting on file rename and
+  `---@param` propagation are still to come.
 
 - **A declaration is a declaration everywhere now — `function M.run()` is findable, Lua 5.5
   `global`s resolve across files, and Safe Delete stops leaving `global  = 1` behind** (REFACT-01

@@ -275,16 +275,44 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
 
 - **Goal**: a rename that would silently rebind is reported before it is applied.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.refactoring.rename.LuaRenameConflictDetector`,
+  - [x] Create `net.internetisalie.lunar.refactoring.rename.LuaRenameConflictDetector`,
         `LuaRenameTarget` and `LuaRenameCollisionUsageInfo` in
         `LuaRenameConflictDetector.kt` — realizes design §2.3, §2.4, §3.4 (rules C1/C2/**C3/C4**
         exactly as written, including C2 step 3's declaration-site skip).
-  - [ ] Implement `LuaRenameProcessor.findCollisions` to snapshot `result`, call the detector, and
+  - [x] Implement `LuaRenameProcessor.findCollisions` to snapshot `result`, call the detector, and
         append — realizes design §2.2 and §3.4.
-  - [ ] Add the bundle keys `refactoring.rename.conflict.capture`, `.shadow`, `.globalExists`,
+  - [x] Add the bundle keys `refactoring.rename.conflict.capture`, `.shadow`, `.globalExists`,
         `.ambiguousGlobal` — realizes design §7.
 - **Exit criteria**: `LuaRenameConflictTest` passes TC-14, TC-15, TC-16, TC-17 and TC-31; full suite
   green.
+- **Met 2026-08-23** — full suite **2,818 tests / 455 classes / 0 failures** (baseline 2,813 / 454;
+  +5 in one new class, none lost), corpus sweep **2,826 / 458 / 0** (baseline 2,821 / 457, +5),
+  `ktlintCheck` clean. `:integrationTest` still fails on the one pre-existing case it failed on
+  through Phases 1 and 2 (`LuaCrossFileCompletionIntegrationTest > recursive cross-file completion
+  offers transitively required globals()`), unchanged by this phase.
+- **C1-C4 were executed against real PSI before a line of the detector was written**, because four
+  claims in this feature's design have already been measured false. A throwaway probe drove
+  `scopeCrawlUp`, `LuaDeclarationSite.kindOf`, `StubIndex` and `LuaGlobalAssignmentNavigation.find`
+  over the five test fixtures and printed what each rule would see. **All four survived** — and the
+  probe is what makes the C2-step-3 mutant a prediction rather than a hope: it showed the inner
+  `do local y = 3 end` crawling up to the renamed `x` with `identity=true`, i.e. a false conflict,
+  the moment the declaration-site skip is removed.
+- **Two deliberate deviations from design §3.4, both of them narrowing a way to lose a conflict.**
+  1. **C3 normalises its stub-index hits to the IDENTIFIER leaf, as C4 already does.** As written,
+     C3 step 1 anchors on the `LuaFuncDecl` while step 2 anchors on a leaf, so step 2's "excluding
+     any element already emitted by step 1" can never match — the two lookups return disjoint PSI
+     types. Normalising both makes that exclusion live and lets C3 and C4 share one lookup helper.
+  2. **A declaration whose leaf cannot be resolved falls back to the declaration node, where the
+     design says `mapNotNull`.** Dropping it would lower C4's count and could turn a real ambiguity
+     into silence — the one outcome the rule exists to prevent, and an Elvis fallback that silently
+     drops a conflict is exactly what the engineering contract forbids.
+- **One design element is present but has no mutant that reddens a test**, disclosed rather than
+  removed: C4's `declarations.size < 2` guard is redundant with the `!== target.identifier` filter
+  that follows it, because a single declaration is always the renamed one. Deleting *either* alone
+  leaves the suite green; deleting *both* reddens all four `LuaRenameCrossFileTest` cases. The guard
+  stays because it is the semantic statement of the rule and the filter's identity comparison is the
+  weaker of the two — but nothing here proves the guard is load-bearing, and this note is that
+  admission rather than a claim of coverage.
 
 ### Phase 4: Dotted method declarations [Should]
 
@@ -461,7 +489,7 @@ in Phase 2, so the idiom lives here.
       `LuaGlobalAssignmentIndex` cross-file — and whose existing cases (`local shadowed\nshadowed = 2`,
       a nested `function f() nested = 1 end`) are the same negatives §3.5 row 14's predicate must
       reproduce. Do not invent a heavy fixture for this.
-- [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictTest.kt` — TC-14…TC-17, TC-31.
+- [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictTest.kt` — TC-14…TC-17, TC-31.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRequireRenameTest.kt` — TC-18a/b/c.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaCatsParamRenameTest.kt` — TC-20a/b/c.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaInplaceRenameTest.kt` — TC-12.
@@ -493,10 +521,20 @@ in Phase 2, so the idiom lives here.
       Without this pass, nothing distinguishes "Safe Delete searched usages" from "Safe Delete found
       none", and those are the same green.
 - [x] Delete `LuaUnsupportedRenameProcessorTest` with its subject (Phase 2).
-- [ ] **Mutation-proof the conflict tests.** TC-14/TC-15/TC-17 assert an exception is thrown; a
+- [x] **Mutation-proof the conflict tests.** TC-14/TC-15/TC-17 assert an exception is thrown; a
       detector that reports *everything* would pass all three. Delete C2's declaration-site skip
       (design §3.4 C2 step 3) and confirm **TC-16 goes red**; restore it. Without that pass, TC-16 is
       the only thing standing between this feature and a detector that cries wolf on every rename.
+      **Executed (Phase 3, 2026-08-23) — and the required mutant was not sufficient on its own.**
+      Deleting C2 step 3 reddens TC-16 as specified. But "an exception is thrown" was not the whole
+      hazard: on TC-15's fixture **C1 and C2 both fire**, so a suite asserting only that a conflict
+      was raised is green with C2 missing entirely. The tests therefore assert the *specific* rule's
+      bundle message, and the discriminating mutant is the one that proves it: disabling C1, C3 and
+      C4 together reddens TC-14, TC-17 and TC-31 while **TC-15 stays green**, so TC-15's assertion
+      rides on C2 alone. Five further mutants, all executed and restored: C2 off → TC-15 red, TC-14
+      green; C1 off → TC-14 red; C3 off → TC-17 red; C4 off → TC-31 red; C4's single-declaration
+      protection removed → all four `LuaRenameCrossFileTest` cases red, which is what pins the
+      detector against reporting an ambiguity on a global declared once.
 - [x] **Mutation-proof `canProcessElement`'s label exclusion.** Delete the
       `element is LuaLabelName || element is LuaLabelRef` line from design §3.0's predicate and
       confirm **TC-25 goes red and TC-24 (`LuaLabelRenameTest`) goes red**; restore it. This is the

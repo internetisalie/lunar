@@ -97,6 +97,7 @@ behaviour:
 | Safe Delete drops the delegate for an elevated node no delegate `handlesElement`, and searches no usages at all when that node is not a `PsiNamedElement` | **Read, from three sources that agree** — `SafeDeleteProcessor.java:138-166` (the delegate loop, then `if (!handled && element instanceof PsiNamedElement)`); `LuaStatement.java:8` + `LuaStatementImpl` → `LuaBaseElement` → `ASTWrapperPsiElement` (`LuaBaseElements.kt:29-31`), so none of the three new elevation nodes qualifies; and `LuaSafeDeleteProcessor.kt:46-52`, whose KDoc states the outcome verbatim from when REFACT-03 hit it. **TC-32 executes it** — with the enumerated `isElevatedDeclaration` restored it must fail on a *silent delete*, not on a text assertion (plan's mutation-proof list). |
 | The non-code *replacement* string is derived from the renamed leaf and hits `LOG.error("Unknown element type")` unless `getQualifiedNameAfterRename` is overridden | **Read, and it is the defect the third Step 9 review found.** `RenameUtil.java:145-155` passes `element` (the leaf) to `getStringToReplace`; `:209-228` calls `getQualifiedNameAfterRename` first, whose base returns null (`RenamePsiElementProcessorBase.java:106-108`), then tests `instanceof PsiNamedElement`, then logs. The null reaches `document.replaceString(…, newText)` at `RenameUtil.java:377`. **EXECUTED 2026-08-23** — TC-13d, driven with `searchInComments = true`. With the override deleted the test fails with `TestLoggerFactory$TestLoggerAssertionError: Unknown element type : PsiElement(LuaTokenType.IDENTIFIER)` from `RenameUtil`, so the plan's open question is settled in the direction that made the override Phase-2 work: `stringToSearch.isEmpty()` does **not** short-circuit, and the hazard is reachable in Phase 2 rather than Phase 7. |
 | Caret on the RECEIVER `M` of `function M.run() end`, with no other declaration of `M`, is classified `GLOBAL_FUNCTION`, is not redirected by resolution, and finds zero usages | **Read, from four sources that agree** — §3.5 row 9 matches the `LuaFuncName` grandparent (`lua.bnf:164`); `LuaBlock.processDeclarations` has no `LuaFuncDecl` branch (`LuaBlockExt.kt:38-77`), so Phase 1 resolution never sees the enclosing declaration from outside its body; `getQualifiedName` returns null for a `LuaFuncName` parent (`LuaNameReference.kt:173-176`) and `LuaGlobalDeclarationIndex` keys the declaration under `funcName.text` = `"M.run"`; `isReferenceTo` is false on a null resolve (`:239`). **TC-34a executes it**, and the plan's mutation-proof list requires deleting §3.1 step 4a and seeing it go red on a *silent half-rename*, not on a message assertion. |
+| C1-C4 behave on real PSI as §3.4 specifies | **Executed 2026-08-23**, before the detector was written, because four claims in this design have already been measured false. A throwaway probe ran `scopeCrawlUp`, `LuaDeclarationSite.kindOf`, `StubIndex` and `LuaGlobalAssignmentNavigation.find` over TC-14/15/16/17/31's fixtures. **All four survived.** The load-bearing readings: C1 finds `local y = 2` from `print(x)` and nothing from the declaration leaf, so *both* site sets are needed; C2's candidate in `do local y = 3 end` classifies as `LOCAL_VARIABLE` and crawls up to the renamed `x` with `identity=true`, so step 3's skip is the difference between TC-16 and a false conflict; `LuaGlobalAssignmentNavigation.find` returns the caret file's own leaf as the *identical* instance, so C4's `!== dLeaf` filter fires. Two rows of §3.4 were corrected by the same run — C3 step 1's anchor and C4 step 1's `mapNotNull`. |
 | A shadowing inner `local x` is not collected as a usage of the outer `x` | **Was READ and was WRONG. Executed 2026-08-23 and it failed.** §6's "handled by resolution" row asserted this without a test; measured, renaming the outer `x` rewrote the inner DECLARATION and left its own usage behind. `scopeCrawlUp` excludes a reference's own declaring statement, so the inner declaration's name resolves outward and `isReferenceTo` matches. Closed by `LuaNameReference.shadowsRatherThanUses`; TC-03 executes it and is the ONLY test of 69 across rename / Find Usages / Safe Delete / shadowing that catches it. |
 | Caret on the receiver `M` of `function M.run()` is REDIRECTED when `M = {}` exists | **Was READ and was WRONG. Executed 2026-08-23.** It is refused by step 4a instead — `resolve()` on the funcName's `M` is null regardless of `M = {}`. Safe (a refusal, not a half-rename), but §6 has been rewritten to say what happens rather than what was expected. |
 | `canProcessElement` claims every Lua `LuaNameRef`, including a usage that resolves to nothing | **Executed 2026-08-23, after a first attempt that could not have detected it.** TC-26 as specified called `substituteElementToRename` directly, which bypasses `canProcessElement` entirely: narrowing the predicate to `kindOf(element) != null` left the whole suite green. TC-26 now asserts `RenamePsiElementProcessor.forElement(...)` and drives `renameElementAtCaret`, and the narrowing mutant reddens it. |
@@ -1089,11 +1090,21 @@ Only when `kind.isFileLocal`. For each `r` in
 **C3 — the global name is already taken.**
 Only when `!kind.isFileLocal`. With `scope = GlobalSearchScope.projectScope(project)`:
 1. `StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, newName, project, scope, LuaFuncDecl::class.java)`
-   — one collision per element, anchored on it.
+   — one collision per element, **normalised to `LuaDeclarationSite.identifierLeafOf(it) ?: it`** and
+   anchored on that.
 2. `LuaGlobalAssignmentNavigation.find(project, newName, scope)` — one collision per element,
    anchored on it, excluding any element already emitted by step 1.
 Message: `refactoring.rename.conflict.globalExists` with parameter `newName`.
 Both lookups are index reads, so this is cheap enough to run project-wide.
+
+*Why step 1 normalises* (corrected during Phase 3, which is when it was first executed): an earlier
+draft anchored step 1 on the `LuaFuncDecl` itself. The two lookups then return disjoint PSI types —
+a declaration node and an IDENTIFIER leaf — so step 2's exclusion clause could never match and was
+dead. Normalising both to the leaf makes it live and makes C3 and C4 the *same* lookup against
+different names, which is what their shared cost argument already assumed. The `?: it` fallback is
+deliberate and applies to C4 step 1 as well, where the design previously wrote `mapNotNull`: a
+declaration silently dropped for want of a leaf lowers C4's count and can turn a real ambiguity into
+silence, which is the single outcome C4 exists to prevent.
 
 **C4 — the global being renamed is declared in more than one place.**
 Only when `!kind.isFileLocal`. This rule exists because of a specific, grounded property of
@@ -1104,8 +1115,8 @@ result (`LuaNameReference.kt:228-231`), and `isReferenceTo` returns false on a n
 declaration and nothing else — the silent-partial defect, arriving through resolution rather than
 through classification. Steps, with `oldName = dLeaf.text` and `scope = GlobalSearchScope.projectScope(project)`:
 1. `val declarations = StubIndex.getElements(LuaGlobalDeclarationIndex.KEY, oldName, project, scope, LuaFuncDecl::class.java)`
-   `.mapNotNull { LuaDeclarationSite.identifierLeafOf(it) } + LuaGlobalAssignmentNavigation.find(project, oldName, scope)`,
-   de-duplicated by element identity.
+   `.map { LuaDeclarationSite.identifierLeafOf(it) ?: it } + LuaGlobalAssignmentNavigation.find(project, oldName, scope)`,
+   de-duplicated by element identity. (`map`/`?: it`, not `mapNotNull` — see C3's note.)
 2. If `declarations.size > 1`, emit **one** collision per element other than `dLeaf`, anchored on
    that element, message `refactoring.rename.conflict.ambiguousGlobal` with parameters
    `(oldName, declarations.size)`.

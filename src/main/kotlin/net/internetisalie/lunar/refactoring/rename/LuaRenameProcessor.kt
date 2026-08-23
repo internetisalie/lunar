@@ -130,6 +130,38 @@ class LuaRenameProcessor :
     }
 
     /**
+     * Design §3.4 — a Lua rename does not collide, it silently **rebinds**, so the four rules of
+     * [LuaRenameConflictDetector] are the difference between "rename works" and "rename tells you
+     * when it will change meaning".
+     *
+     * `RenameUtil.findUsages` hands this the very list `processUsages` just filled
+     * (`RenameUtil.java:97-103`), so [result] is **snapshotted** before anything is appended: the
+     * detector reads the usages as C1's sites, and appending while reading would feed it the
+     * collisions it is producing.
+     *
+     * Runs inside `BaseRefactoringProcessor`'s background read action, never the EDT — which is
+     * why conflict detection lives here and not in `findExistingNameConflicts`, whose hook the
+     * requirement names but which the platform calls from `preprocessUsages` on the EDT.
+     *
+     * An element that names no Lua declaration site yields no collisions, which is a statement
+     * about Lua rather than a dropped result: every rule below is defined over a declaration and
+     * its visibility, and there is neither for an element [LuaDeclarationSite] does not recognise.
+     * [substituteElementToRename] has already refused anything that would reach here in that
+     * state.
+     */
+    override fun findCollisions(
+        element: PsiElement,
+        newName: String,
+        allRenames: Map<out PsiElement, String>,
+        result: MutableList<UsageInfo>,
+    ) {
+        val declarationLeaf = LuaDeclarationSite.identifierLeafOf(element) ?: return
+        val kind = LuaDeclarationSite.kindOf(declarationLeaf) ?: return
+        val target = LuaRenameTarget(declarationLeaf, kind, newName)
+        result.addAll(LuaRenameConflictDetector.collisions(target, result.toList()))
+    }
+
+    /**
      * Design §3.3 — runs inside the platform's own write action (`BaseRefactoringProcessor`
      * documents `renameElement` as called "in a command, on EDT, inside a Write Action"), so it
      * opens no `WriteCommandAction` of its own.
