@@ -11,6 +11,7 @@ import net.internetisalie.lunar.lang.indexing.*
 import net.internetisalie.lunar.lang.navigation.LuaGlobalAssignmentNavigation
 import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.lang.path.PathConfiguration
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
@@ -243,12 +244,15 @@ class LuaNameReference(
         return resolved === element || declarationIdentifier(resolved) === element
     }
 
+    /**
+     * REFACT-01: the function branch goes through [LuaDeclarationSite.functionNameLeafOf], so a
+     * dotted `function M.run()` normalises to `run` — the segment the declaration actually names.
+     * It used to fall through to the bare `nameRef`, i.e. the RECEIVER `M`, which made
+     * [isReferenceTo] false for every `M.run()` call site.
+     */
     private fun declarationIdentifier(decl: PsiElement): PsiElement? =
         when (decl) {
-            is LuaFuncDecl ->
-                decl.funcName.funcNameMethod
-                    ?.nameRef
-                    ?.identifier ?: decl.funcName.nameRef.identifier
+            is LuaFuncDecl -> LuaDeclarationSite.functionNameLeafOf(decl.funcName)
             is LuaLocalVarDecl ->
                 decl.attNameList
                     .firstOrNull()

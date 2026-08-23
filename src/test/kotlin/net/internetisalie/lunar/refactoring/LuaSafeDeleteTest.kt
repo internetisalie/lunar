@@ -1,13 +1,23 @@
 package net.internetisalie.lunar.refactoring
 
+import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.safeDelete.SafeDeleteHandler
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.lang.insight.LuaFindUsagesProvider
+import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaAttName
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
+import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaLabelName
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaVar
+import net.internetisalie.lunar.settings.LuaProjectSettings
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -168,4 +178,121 @@ class LuaSafeDeleteTest : BasePlatformTestCase() {
             processor.handlesElement(labelName),
         )
     }
+
+    // -------------------------------------------------------------------------
+    // TC-32 (REFACT-01 Phase 1, Risk 1.6): Safe Delete of a USED global must raise a conflict.
+    //
+    // Phase 1 widened isSafeDeleteAvailable to every LuaDeclarationSite kind, which newly reaches
+    // the three declaration nodes below. None of them is a PsiNamedElement, so if the elevation
+    // predicate does not admit them the platform drops this delegate, runs no generic search
+    // either, finds zero usages, raises no conflict and deletes the declaration outright.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun testUsedGlobalRaisesConflict() {
+        assertSafeDeleteRaisesConflict("config = {}\nprint(config)\n", "config", LuaAssignmentStatement::class.java)
+
+        LuaProjectSettings.getInstance(project).state.languageLevel = LuaLanguageLevel.LUA55
+        assertSafeDeleteRaisesConflict("global count = 0\nprint(count)\n", "count", LuaGlobalVarDecl::class.java)
+        assertSafeDeleteRaisesConflict("global function f() end\nf()\n", "f", LuaGlobalFuncDecl::class.java)
+    }
+
+    // -------------------------------------------------------------------------
+    // TC-33: every node declarationNodeOf can produce must round-trip back through
+    // identifierLeafOf, and handlesElement must admit it. TC-32 proves the user-visible outcome;
+    // this proves why.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun testEveryElevatedDeclarationNodeRoundTrips() {
+        assertElevationRoundTrips("cfg = {}\n", "cfg")
+        assertElevationRoundTrips("M = {}\nfunction M.run() end\n", "run")
+        // Pre-existing multi-name shape: the node is the LuaAttName, not the whole `local`.
+        assertElevationRoundTrips("local a, b = 1, 2\n", "a")
+        // Newly Safe-Deletable via design §3.5 row 14: the node is the LuaVar.
+        assertElevationRoundTrips("a, b = 1, 2\n", "a")
+
+        LuaProjectSettings.getInstance(project).state.languageLevel = LuaLanguageLevel.LUA55
+        assertElevationRoundTrips("global x = 1\n", "x")
+        assertElevationRoundTrips("global function f() end\n", "f")
+
+        assertReadIsNotADeclaration()
+        assertMultiTargetDeleteLeavesTheSeparator()
+    }
+
+    /**
+     * The known granularity gap (`risks-and-gaps.md` Gap 2.6), pinned rather than assumed: nothing
+     * removes the separating comma, so deleting one target of a multi-target assignment leaves it.
+     * Comma-aware deletion is REFACT-03's business — REFACT-01 changes what Safe Delete *finds*,
+     * not what it *removes*.
+     */
+    private fun assertMultiTargetDeleteLeavesTheSeparator() {
+        myFixture.configureByText("test.lua", "a, b = 1, 2\n")
+        SafeDeleteHandler.invoke(project, arrayOf(declarationLeaf("a")), true)
+        assertEquals("multi-target deletion granularity", ", b = 1, 2\n", myFixture.file.text)
+    }
+
+    private fun assertReadIsNotADeclaration() {
+        myFixture.configureByText("test.lua", "print(x)\n")
+        val readLeaf = declarationLeaf("x")
+        assertSame(
+            "a read must not elevate: declarationNodeOf returns the leaf itself",
+            readLeaf,
+            LuaDeclarationSite.declarationNodeOf(readLeaf),
+        )
+        val enclosingVar =
+            requireNotNull(
+                PsiTreeUtil
+                    .findChildrenOfType(myFixture.file, LuaVar::class.java)
+                    .firstOrNull { it.nameRef?.text == "x" },
+            ) { "Expected a LuaVar around the read `x`" }
+        assertFalse(
+            "handlesElement must be false for the LuaVar around a read",
+            processor.handlesElement(enclosingVar),
+        )
+    }
+
+    private fun assertElevationRoundTrips(
+        text: String,
+        declaredName: String,
+    ) {
+        myFixture.configureByText("test.lua", text)
+        val leaf = declarationLeaf(declaredName)
+        val node = LuaDeclarationSite.declarationNodeOf(leaf)
+        assertSame(
+            "declarationNodeOf/identifierLeafOf must round-trip for `$text`",
+            leaf,
+            LuaDeclarationSite.identifierLeafOf(node),
+        )
+        assertTrue(
+            "handlesElement must be true for the elevated node of `$text`, or Safe Delete skips usage search",
+            processor.handlesElement(node),
+        )
+    }
+
+    private fun assertSafeDeleteRaisesConflict(
+        text: String,
+        declaredName: String,
+        survivingType: Class<out PsiElement>,
+    ) {
+        myFixture.configureByText("test.lua", text)
+        try {
+            SafeDeleteHandler.invoke(project, arrayOf(declarationLeaf(declaredName)), true)
+            fail("Safe Delete of a used declaration must raise a conflict, not delete: ${myFixture.file.text}")
+        } catch (expected: BaseRefactoringProcessor.ConflictsInTestsException) {
+            // expected: the usage is reported as a conflict
+        }
+        assertFalse(
+            "The used declaration must survive when a conflict is raised: ${myFixture.file.text}",
+            PsiTreeUtil.findChildrenOfType(myFixture.file, survivingType).isEmpty(),
+        )
+    }
+
+    /** The FIRST IDENTIFIER leaf of that name — the declaration, in every fixture here. */
+    private fun declarationLeaf(name: String): PsiElement =
+        requireNotNull(
+            PsiTreeUtil
+                .collectElements(myFixture.file) { it.elementType == LuaElementTypes.IDENTIFIER && it.text == name }
+                .firstOrNull(),
+        ) { "No IDENTIFIER leaf '$name' in ${myFixture.file.text}" }
 }

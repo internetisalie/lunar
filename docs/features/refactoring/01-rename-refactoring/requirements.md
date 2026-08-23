@@ -2,7 +2,7 @@
 id: REFACT-01
 title: "01: Rename Refactoring"
 type: feature
-status: "planned"
+status: "in_progress"
 vf_icon: 📋
 priority: "medium"
 parent_id: REFACT/INTENT
@@ -141,3 +141,12 @@ defect, and it should be executed against a live IDE before anyone decides how u
 
 The front-matter status was corrected from `done` to `todo` on 2026-08-22 for the same reason
 [[DEBUG-07]]'s was: it was never earned.
+
+**Phase 1 landed on 2026-08-22** (implementation-plan Phase 1: declaration-site model + global
+indexing). No row above changes status yet — rename itself arrives in Phase 2, and every `Not
+Implemented` row here is about renaming. What Phase 1 delivers is the shared classifier those rows
+will be built on (`LuaDeclarationSite`), plus two effects a user can see today and neither of which
+is a rename: `function M.run()` became a findable, safe-deletable declaration (`REFACT-01-08`'s
+search half), and Lua 5.5 `global x = 1` / `global function f() end` are indexed and resolvable
+across files (`REFACT-01-07`'s cross-file half — without it a 5.5 global rename would have rewritten
+one file and silently left every other bound to the old name).

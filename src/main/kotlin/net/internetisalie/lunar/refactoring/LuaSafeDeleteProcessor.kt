@@ -11,13 +11,7 @@ import com.intellij.refactoring.safeDelete.usageInfo.SafeDeleteReferenceSimpleDe
 import com.intellij.usageView.UsageInfo
 import com.intellij.util.IncorrectOperationException
 import net.internetisalie.lunar.lang.insight.LuaFindUsagesProvider
-import net.internetisalie.lunar.lang.psi.LuaAttName
-import net.internetisalie.lunar.lang.psi.LuaFuncDecl
-import net.internetisalie.lunar.lang.psi.LuaFuncName
-import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
-import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
-import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
-import net.internetisalie.lunar.lang.psi.LuaNameRef
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 
 /**
  * Safe Delete processor delegate for Lua declarations (REFACT-03).
@@ -26,8 +20,11 @@ import net.internetisalie.lunar.lang.psi.LuaNameRef
  * variables, parameters, for-loop variables, local/global functions, methods, and labels.
  *
  * [getElementsToSearch] elevates the raw IDENTIFIER leaf to the nearest whole-declaration
- * node (e.g. [LuaLocalVarDecl]) so that the platform's [com.intellij.ide.util.DeleteHandler]
- * removes the complete statement rather than just the token (REFACT-03-01).
+ * node (e.g. [net.internetisalie.lunar.lang.psi.LuaLocalVarDecl]) so that the platform's
+ * [com.intellij.ide.util.DeleteHandler] removes the complete statement rather than just the token
+ * (REFACT-03-01). Both directions of that normalisation live in [LuaDeclarationSite] (REFACT-01),
+ * shared with Find Usages and reference search so the three cannot disagree about what a Lua
+ * declaration site is.
  *
  * [findUsages] extracts the IDENTIFIER leaf from whichever element it receives so that
  * [com.intellij.psi.search.searches.ReferencesSearch] — driven by [LuaNameReferenceSearcher] and
@@ -47,14 +44,19 @@ class LuaSafeDeleteProcessor : SafeDeleteProcessorDelegateBase() {
      * True for the whole-declaration nodes [getElementsToSearch] elevates a leaf to. The platform
      * re-dispatches `handlesElement` on the elevated element before calling [findUsages]; if this
      * returned false the delegate would be dropped and the declaration deleted with NO usage
-     * search (silently orphaning references). [canFindUsagesFor] only accepts IDENTIFIER leaves,
-     * so the elevated nodes must be admitted explicitly.
+     * search (silently orphaning references) — none of those nodes is a `PsiNamedElement`, so the
+     * platform's generic fallback does not fire either. `canFindUsagesFor` only accepts IDENTIFIER
+     * leaves, so the elevated nodes must be admitted explicitly.
+     *
+     * A round trip, not an enumeration (REFACT-01 design §2.6a): an element is an elevated
+     * declaration **iff** it is what [LuaDeclarationSite.declarationNodeOf] elevates its own
+     * identifier leaf to. That admits exactly the nodes [getElementsToSearch] can produce, and it
+     * cannot fall behind `declarationNodeOf` the way a hand-maintained list does.
      */
-    private fun isElevatedDeclaration(element: PsiElement): Boolean =
-        element is LuaLocalVarDecl ||
-            element is LuaLocalFuncDecl ||
-            element is LuaFuncDecl ||
-            element is LuaAttName
+    private fun isElevatedDeclaration(element: PsiElement): Boolean {
+        val declarationLeaf = LuaDeclarationSite.identifierLeafOf(element) ?: return false
+        return LuaDeclarationSite.declarationNodeOf(declarationLeaf) === element
+    }
 
     // -------------------------------------------------------------------------
     // Elements to search / delete (REFACT-03-02)
@@ -67,7 +69,7 @@ class LuaSafeDeleteProcessor : SafeDeleteProcessorDelegateBase() {
         element: PsiElement,
         module: Module?,
         allElementsToDelete: Collection<PsiElement>,
-    ): Collection<PsiElement> = listOf(declarationNodeFor(element))
+    ): Collection<PsiElement> = listOf(LuaDeclarationSite.declarationNodeOf(element))
 
     // -------------------------------------------------------------------------
     // Usage discovery (REFACT-03-02 / REFACT-03-03)
@@ -83,7 +85,7 @@ class LuaSafeDeleteProcessor : SafeDeleteProcessorDelegateBase() {
         allElementsToDelete: Array<PsiElement>,
         result: MutableList<in UsageInfo>,
     ): NonCodeUsageSearchInfo {
-        val searchTarget = identifierLeafFor(element) ?: element
+        val searchTarget = LuaDeclarationSite.identifierLeafOf(element) ?: element
         ReferencesSearch.search(searchTarget, searchTarget.useScope).forEach { ref ->
             result.add(SafeDeleteReferenceSimpleDeleteUsageInfo(ref.element, searchTarget, false))
         }
@@ -136,59 +138,6 @@ class LuaSafeDeleteProcessor : SafeDeleteProcessorDelegateBase() {
         element: PsiElement,
         enabled: Boolean,
     ) {}
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Walks from the IDENTIFIER leaf up to the most appropriate whole-declaration
-     * node.  The platform's [com.intellij.ide.util.DeleteHandler.deleteElementImpl]
-     * calls [PsiElement.delete] on whatever we return here, so we return the
-     * statement-level container rather than the raw token.
-     *
-     * - `IDENTIFIER → LuaNameRef → LuaAttName` (local var):
-     *     single-name `local x = …` → [LuaLocalVarDecl]; multi-name → [LuaAttName]
-     * - `IDENTIFIER → LuaNameRef → LuaLocalFuncDecl`: [LuaLocalFuncDecl]
-     * - `IDENTIFIER → LuaNameRef → LuaFuncName/LuaFuncNameMethod`: [LuaFuncDecl]
-     * - All other cases (labels, for-vars, parameters): return [element] itself
-     */
-    private fun declarationNodeFor(element: PsiElement): PsiElement {
-        val parent = element.parent
-        if (parent !is LuaNameRef) return element
-        return when (val grandParent = parent.parent) {
-            is LuaAttName -> {
-                val decl = grandParent.parent as? LuaLocalVarDecl ?: return grandParent
-                if (decl.attNameList.size == 1) decl else grandParent
-            }
-            is LuaLocalFuncDecl -> grandParent
-            is LuaFuncName ->
-                grandParent.parent as? LuaFuncDecl ?: grandParent
-            is LuaFuncNameMethod ->
-                grandParent.parent?.parent as? LuaFuncDecl ?: grandParent
-            else -> element
-        }
-    }
-
-    /**
-     * Extracts the IDENTIFIER leaf from a declaration node so that
-     * [ReferencesSearch] can locate usages via [LuaNameReferenceSearcher].
-     * Returns null if [element] is already a leaf (or an unrecognised node).
-     */
-    private fun identifierLeafFor(element: PsiElement): PsiElement? =
-        when (element) {
-            is LuaLocalVarDecl ->
-                element.attNameList
-                    .firstOrNull()
-                    ?.nameRef
-                    ?.identifier
-            is LuaLocalFuncDecl -> element.nameRef.identifier
-            is LuaFuncDecl -> {
-                val funcName = element.funcName
-                funcName.funcNameMethod?.nameRef?.identifier ?: funcName.nameRef.identifier
-            }
-            else -> null
-        }
 
     private companion object {
         val findUsagesProvider = LuaFindUsagesProvider()

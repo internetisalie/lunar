@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.lang.indexing
 
-import com.intellij.psi.PsiElement
 import com.intellij.util.indexing.DataIndexer
 import com.intellij.util.indexing.DefaultFileTypeSpecificInputFilter
 import com.intellij.util.indexing.FileBasedIndex
@@ -12,12 +11,13 @@ import com.intellij.util.io.EnumeratorStringDescriptor
 import com.intellij.util.io.KeyDescriptor
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFuncName
-import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
-import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
 import org.jetbrains.annotations.NonNls
 import java.io.DataInput
 import java.io.DataOutput
@@ -55,7 +55,11 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
     // 2 -> 3 (BUG-436): the filter widened, so the index CONTENT changed. Without the bump a
     // persisted index keeps its `.lua`-only entries and the fix is invisible on any machine
     // that has indexed before it.
-    override fun getVersion(): Int = 3
+    // 3 -> 4 (REFACT-01): the Lua 5.5 `global` declaration forms are indexed now, so the content
+    // changed again. Skipping the bump would leave a `global` classified project-wide by
+    // LuaDeclarationSite while resolution still could not see it across files — a rename would
+    // rewrite the declaring file and silently leave every other file bound to the old name.
+    override fun getVersion(): Int = 4
 
     override fun dependsOnFileContent(): Boolean = true
 
@@ -90,20 +94,30 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
             // Only file-scope statements: a bare assignment nested inside a function may well be
             // writing to an enclosing local, and an indexer must not attempt scope resolution.
             val topLevel = psiFile.getBlockList().flatMap { it.statementList }
-            val fileLocals = fileScopeLocalNames(topLevel)
+            // The uncached body, never the CachedValuesManager accessor: this runs on the indexing
+            // thread over a FileContent PSI copy that is discarded after the run.
+            val fileLocals = LuaDeclarationSite.computeFileScopeLocalNames(psiFile)
             val result = mutableMapOf<String, String>()
             topLevel.filterIsInstance<LuaAssignmentStatement>().forEach { stmt ->
                 stmt.varList.varList.forEach { target ->
-                    val name = target.nameRef?.text
                     // A dotted target belongs to LuaMemberFieldIndex; a name also declared local at
                     // file scope is a local write, not a global declaration.
-                    if (name != null && target.varSuffixList.isEmpty() && name !in fileLocals) {
-                        result[name] = ""
-                    }
+                    if (!LuaDeclarationSite.isBareAssignmentTarget(target)) return@forEach
+                    val name = target.nameRef?.text ?: return@forEach
+                    if (name !in fileLocals) result[name] = ""
                 }
             }
             topLevel.filterIsInstance<LuaFuncDecl>().forEach { decl ->
                 declaredGlobalName(decl)?.takeIf { it !in fileLocals }?.let { result[it] = "" }
+            }
+            // Lua 5.5 (SYNTAX-09): `global x = 1` and `global function f() end` declare globals as
+            // plainly as the two forms above, and are not reachable through either of them —
+            // `globalFuncDecl` has no funcName node at all (`lua.bnf:229`).
+            topLevel.filterIsInstance<LuaGlobalVarDecl>().flatMap { it.attNameList }.forEach { attName ->
+                LuaDeclarationSite.boundName(attName)?.takeIf { it !in fileLocals }?.let { result[it] = "" }
+            }
+            topLevel.filterIsInstance<LuaGlobalFuncDecl>().forEach { decl ->
+                LuaDeclarationSite.boundName(decl)?.takeIf { it !in fileLocals }?.let { result[it] = "" }
             }
             return result
         }
@@ -120,36 +134,8 @@ class LuaGlobalAssignmentIndex : FileBasedIndexExtension<String, String>() {
         private fun declaredGlobalName(decl: LuaFuncDecl): String? {
             val funcName = decl.node.findChildByType(LuaElementTypes.FUNC_NAME)?.psi as? LuaFuncName ?: return null
             if (funcName.funcNamePropertyList.isNotEmpty() || funcName.funcNameMethod != null) return null
-            return boundName(funcName)
+            return LuaDeclarationSite.boundName(funcName)
         }
-
-        /**
-         * SYNTAX-18: read the bound name through the AST node, not the generated getter.
-         * `LuaLocalFuncDecl.getNameRef()` is declared `@NotNull` but returns null for a partially
-         * parsed decl — `local function repeat(...)`, where a keyword sits in the name slot — and the
-         * platform *logs an error* rather than returning null, which surfaces as a
-         * `TestLoggerAssertionError` in any test that indexes such a file.
-         */
-        private fun fileScopeLocalNames(topLevel: List<Any?>): Set<String> {
-            val names = mutableSetOf<String>()
-            topLevel.forEach { stmt ->
-                when (stmt) {
-                    is LuaLocalVarDecl ->
-                        stmt.attNameList.forEach { attName ->
-                            boundName(attName)?.let { names += it }
-                        }
-                    is LuaLocalFuncDecl -> boundName(stmt)?.let { names += it }
-                    else -> Unit
-                }
-            }
-            return names
-        }
-
-        private fun boundName(declaration: PsiElement): String? =
-            declaration.node
-                .findChildByType(LuaElementTypes.NAME_REF)
-                ?.psi
-                ?.text
     }
 
     companion object {

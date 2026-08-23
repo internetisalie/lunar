@@ -52,7 +52,7 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
   declaration, and Lua 5.5 `global` declarations become cross-file resolvable (§2.10) — the second
   is what makes REFACT-01-07 true for 5.5 rather than a same-file half-measure.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.psi.LuaDeclarationKind` +
+  - [x] Create `net.internetisalie.lunar.lang.psi.LuaDeclarationKind` +
         `net.internetisalie.lunar.lang.psi.LuaDeclarationSite` in
         `src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSite.kt` — realizes design
         §2.1 and **all three** tables in §3.5 (`kindOf` rows 1-15, `identifierLeafOf` rows 1-12,
@@ -61,7 +61,7 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
         so the funcName three-way precedence has exactly one implementation. Decompose `kindOf` into the three one-argument private helpers named in
         §2.1 (`kindFromLeafParent`, `kindFromNameRefGrandParent`, `kindFromAssignmentTarget`) to stay
         inside the tripwires.
-  - [ ] Implement `LuaDeclarationSite.computeFileScopeLocalNames(file)` +
+  - [x] Implement `LuaDeclarationSite.computeFileScopeLocalNames(file)` +
         `fileScopeLocalNames(file)` (the latter behind `CachedValuesManager.getCachedValue`) and
         `boundName(declaration)`, moving `LuaGlobalAssignmentIndex.Indexer.fileScopeLocalNames` +
         `boundName` (`LuaGlobalAssignmentIndex.kt:133-152`) with the single signature change design
@@ -71,14 +71,14 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
         `computeFileScopeLocalNames` (never the cached accessor — it runs on the indexing thread) and
         `declaredGlobalName` calls `boundName` (`LuaGlobalAssignmentIndex.kt:123`). Delete the index's
         private copies; do not leave two.
-  - [ ] Implement `LuaDeclarationSite.isBareAssignmentTarget(target)` (§3.5 clauses 1-3, in the O(1)
+  - [x] Implement `LuaDeclarationSite.isBareAssignmentTarget(target)` (§3.5 clauses 1-3, in the O(1)
         `stmt.parent is LuaBlock && stmt.parent.parent is LuaFile` form) and
         `isGlobalAssignmentTarget(target)` (clauses 1-4), then **rewrite
         `LuaGlobalAssignmentIndex.Indexer.map`'s assignment collector to call
         `isBareAssignmentTarget`** — realizes design §2.10 change 0. This is what makes §3.5 row 14 a
         reuse instead of a second copy of the index's rule; the previous draft claimed the rule was
         shared "verbatim" when only the file-scope-locals clause actually was. Run DR-09 first.
-  - [ ] Move `declarationNodeFor` (`LuaSafeDeleteProcessor.kt:156-171`) and `identifierLeafFor`
+  - [x] Move `declarationNodeFor` (`LuaSafeDeleteProcessor.kt:156-171`) and `identifierLeafFor`
         (`:178-191`) out of `net.internetisalie.lunar.refactoring.LuaSafeDeleteProcessor` into
         `LuaDeclarationSite`; have the processor call `LuaDeclarationSite.declarationNodeOf` /
         `identifierLeafOf`. Add the `LuaFuncNameProperty`, `LuaGlobalVarDecl`, `LuaGlobalFuncDecl` and
@@ -88,7 +88,7 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
         widens `isSafeDeleteAvailable`, a `declarationNodeOf` row with no `identifierLeafOf` return
         leg breaks the §2.6a round trip, and a kind with neither deletes the bare identifier and
         leaves `global  = 1`.
-  - [ ] **Replace `LuaSafeDeleteProcessor.isElevatedDeclaration` (`:53-57`) with the round-trip test
+  - [x] **Replace `LuaSafeDeleteProcessor.isElevatedDeclaration` (`:53-57`) with the round-trip test
         of design §2.6a** — `LuaDeclarationSite.declarationNodeOf(identifierLeafOf(element)) === element`
         — in the **same commit** as the two tasks above. This is not a Phase 7 nicety and not
         REFACT-03 scope creep: `isSafeDeleteAvailable` delegates to `canFindUsagesFor`
@@ -99,19 +99,19 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
         deletes the declaration **with no usage search at all** — the outcome
         `LuaSafeDeleteProcessor.kt:46-52` describes verbatim, and strictly worse than the current
         tree. TC-32 and TC-33 are the gates; risks-and-gaps Risk 1.6 is the record.
-  - [ ] Extend `net.internetisalie.lunar.lang.indexing.LuaGlobalAssignmentIndex` with the Lua 5.5
+  - [x] Extend `net.internetisalie.lunar.lang.indexing.LuaGlobalAssignmentIndex` with the Lua 5.5
         `LuaGlobalVarDecl` / `LuaGlobalFuncDecl` declaration forms and bump `getVersion()` **3 → 4**;
         extend `LuaGlobalAssignmentNavigation.find` with the matching collectors — realizes design
         §2.10 changes 1-3. The version bump is not optional (`LuaGlobalAssignmentIndex.kt:54-58`
         records why). Without this, §3.5 rows 5 and 7 classify a `global` as project-wide while
         resolution cannot see it across files, and the rename half-applies silently.
-  - [ ] Rewrite `net.internetisalie.lunar.lang.insight.LuaFindUsagesProvider.canFindUsagesFor` as
+  - [x] Rewrite `net.internetisalie.lunar.lang.insight.LuaFindUsagesProvider.canFindUsagesFor` as
         `LuaDeclarationSite.kindOf(element) != null` and `getType` as
         `LuaDeclarationSite.kindOf(element)?.usageViewType ?: ""` — realizes design §2.1.
-  - [ ] Fix `LuaNameReference.declarationIdentifier` (`LuaNameReference.kt:246-258`) to call
+  - [x] Fix `LuaNameReference.declarationIdentifier` (`LuaNameReference.kt:246-258`) to call
         `LuaDeclarationSite.functionNameLeafOf(decl.funcName)` for its `LuaFuncDecl` branch — i.e.
         `funcNameMethod` → last `funcNameProperty` → `nameRef` — realizes design §3.5.
-  - [ ] Rewrite `LuaNameReferenceSearcher.processQuery` **exactly as design §3.8 writes it**,
+  - [x] Rewrite `LuaNameReferenceSearcher.processQuery` **exactly as design §3.8 writes it**,
         deleting `isNameDeclarationLeaf` (`:84-88`) and leaving `candidateFiles` (`:63-77`)
         untouched. Three things need care, each with a named rationale in §3.8 — (b) and (c) are
         load-bearing with real failure modes; (a) deliberately is **not**:
@@ -126,7 +126,7 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
         (`:53`) — `LuaNameReference.isReferenceTo` compares identity against `resolve()`'s result,
         which is always a leaf, so a composite makes every candidate false and the widening silently
         returns zero usages.
-  - [ ] Point `LuaRefactoringSupportProvider.isSafeDeleteAvailable` at
+  - [x] Point `LuaRefactoringSupportProvider.isSafeDeleteAvailable` at
         `LuaDeclarationSite.kindOf(element) != null` and correct its KDoc's REFACT-01→REFACT-04
         attribution for labels — realizes design §2.6.
 - **Exit criteria**:
@@ -393,7 +393,7 @@ in Phase 2, so the idiom lives here.
 
 ## Verification Tasks
 
-- [ ] Add `src/test/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSiteTest.kt` — TC-21, TC-22, TC-30. TC-21's per-row fixtures must include one for **every** row of design §3.5, the four new ones included (`global x = 1`, `global function f() end`, `function M.run() end`, file-scope `cfg = {}`), plus the negatives: a nested `local` write `function g() cfg = 1 end` and a shadowed `local cfg` at file scope must both give `null` from row 14's predicate.
+- [x] Add `src/test/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSiteTest.kt` — TC-21, TC-22, TC-30. TC-21's per-row fixtures must include one for **every** row of design §3.5, the four new ones included (`global x = 1`, `global function f() end`, `function M.run() end`, file-scope `cfg = {}`), plus the negatives: a nested `local` write `function g() cfg = 1 end` and a shadowed `local cfg` at file scope must both give `null` from row 14's predicate.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameTest.kt` — TC-01…TC-07, TC-09…TC-11, TC-13b, TC-13d (Phase 2), TC-13e (Phase 7), TC-19a/b/c, TC-25, TC-26, TC-34a, TC-34b.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameCrossFileTest.kt` — TC-08, TC-13a, TC-27, TC-28, TC-29. Copy the harness from
       `src/test/kotlin/net/internetisalie/lunar/lang/insight/LuaCrossFileGlobalResolutionTest.kt`
@@ -406,9 +406,9 @@ in Phase 2, so the idiom lives here.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRequireRenameTest.kt` — TC-18a/b/c.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaCatsParamRenameTest.kt` — TC-20a/b/c.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaInplaceRenameTest.kt` — TC-12.
-- [ ] Extend `LuaFindUsagesTest` — TC-23 only (Phase 1). TC-35 is dropped; the class's existing
+- [x] Extend `LuaFindUsagesTest` — TC-23 only (Phase 1). TC-35 is dropped; the class's existing
       `testLabelUsagesCount` and `testCanFindUsagesForLabel` stay unchanged and must stay green.
-- [ ] Extend `src/test/kotlin/net/internetisalie/lunar/refactoring/LuaSafeDeleteTest.kt` — TC-32 and
+- [x] Extend `src/test/kotlin/net/internetisalie/lunar/refactoring/LuaSafeDeleteTest.kt` — TC-32 and
       TC-33 (Phase 1). The class has **six** `@Test` methods today — `testUnusedLocalIsDeleted`
       (`:39`), `testUsedLocalReturnsUsages` (`:71`), `testUnavailableOnKeyword` (`:92`),
       `testHandlesElevatedDeclaration` (`:113`), `testUsedLocalRaisesConflict` (`:137`),
@@ -416,7 +416,7 @@ in Phase 2, so the idiom lives here.
       `testUsedLocalRaisesConflict` (`LuaSafeDeleteTest.kt:136-153`), which is already the correct
       shape; the class simply has no global or dotted fixture
       (`grep -n 'global\|function M\.' …LuaSafeDeleteTest.kt` → empty).
-- [ ] **Mutation-proof the Safe Delete elevation set (Risk 1.6).** Revert
+- [x] **Mutation-proof the Safe Delete elevation set (Risk 1.6).** Revert
       `LuaSafeDeleteProcessor.isElevatedDeclaration` to its enumerated form
       (`element is LuaLocalVarDecl || element is LuaLocalFuncDecl || element is LuaFuncDecl ||
       element is LuaAttName`) and confirm **TC-32 goes red for the `config = {}` fixture** — it must
@@ -482,7 +482,7 @@ in Phase 2, so the idiom lives here.
       red**; then delete row 7 and confirm **TC-29 goes red**; restore both. Without this pass the
       Lua 5.5 rows are asserted only by TC-21, which checks `kindOf` in isolation and would not
       notice that `isFileLocal` narrowed the search scope.
-- [ ] **Corpus sweep** after Phase 1: `run "test -PwithCorpus --rerun --no-build-cache"`, and verify
+- [x] **Corpus sweep** after Phase 1: `run "test -PwithCorpus --rerun --no-build-cache"`, and verify
       the three corpus classes have fresh result XML.
 - [ ] **Live IDE verification** (`verify-in-ide` skill) after Phase 7 — unit tests cannot observe the
       conflicts dialog, the preview pane, or the inline-rename template:
@@ -514,7 +514,7 @@ in Phase 2, so the idiom lives here.
 
 | Phase | Status | Priority |
 | :--- | :--- | :--- |
-| Phase 1: Declaration-site model + global indexing | todo | Must |
+| Phase 1: Declaration-site model + global indexing | done | Must |
 | Phase 2: Core rename processor | todo | Must |
 | Phase 3: Conflict detection | todo | Should |
 | Phase 4: Dotted method declarations | todo | Should |

@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.insight
 
 import com.intellij.openapi.application.QueryExecutorBase
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiReference
@@ -10,9 +11,8 @@ import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.UsageSearchContext
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.psi.util.elementType
 import com.intellij.util.Processor
-import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaLabelName
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 
@@ -35,21 +35,40 @@ import net.internetisalie.lunar.lang.psi.LuaNameRef
  *
  * Labels are skipped: [LuaLabelName] is a `PsiNamedElement` whose reference the default searcher
  * already drives.
+ *
+ * The gate is [LuaDeclarationSite] (REFACT-01 design §3.8): the search target is normalised to a
+ * declaration IDENTIFIER leaf first, so a `LuaNameRef` composite (what in-place rename hands the
+ * platform) and an elevated declaration node (what Safe Delete passes) are searchable too, and
+ * anything that is not a declaration site still returns nothing.
  */
 class LuaNameReferenceSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.SearchParameters>(true) {
     override fun processQuery(
         parameters: ReferencesSearch.SearchParameters,
         consumer: Processor<in PsiReference>,
     ) {
-        val target = parameters.elementToSearch
-        if (!isNameDeclarationLeaf(target)) return
+        val requested = parameters.elementToSearch
+        // Labels are the default named-element searcher's business. This guard is UNREACHABLE
+        // defence-in-depth: the kindOf gate below already rejects a normalised label, because
+        // kindOf of a LuaLabelName's IDENTIFIER child is null (its parent is a LuaLabelName, not a
+        // LuaNameRef). Keep it and keep it HERE — it becomes the only exclusion the moment
+        // LuaDeclarationSite gains a row that classifies a label's leaf. Do not delete it as dead
+        // code and do not fold it after the normalisation.
+        if (requested is LuaLabelName) return
+        val target = LuaDeclarationSite.identifierLeafOf(requested) ?: return
+        if (LuaDeclarationSite.kindOf(target) == null) return
+        // Read from the NORMALISED leaf: a composite's text is the whole declaration
+        // ("local x = 1"), which matches no identifier and asks the word index for a word with
+        // spaces in it — zero usages, looking healthy.
         val name = target.text
         if (name.isEmpty()) return
 
         for (file in candidateFiles(target, name, parameters.effectiveSearchScope)) {
+            ProgressManager.checkCanceled()
             for (nameRef in PsiTreeUtil.findChildrenOfType(file, LuaNameRef::class.java)) {
                 if (nameRef.identifier?.text != name) continue
                 val reference = nameRef.reference ?: continue
+                // Against the normalised leaf, never `requested`: isReferenceTo compares identity
+                // against resolve(), which always returns a leaf.
                 if (reference.isReferenceTo(target) && !consumer.process(reference)) return
             }
         }
@@ -75,19 +94,4 @@ class LuaNameReferenceSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
                 scope.scope.mapNotNull { it.containingFile }.distinct()
             else -> emptyList()
         }
-
-    /**
-     * True when [element] is a Lua declaration IDENTIFIER leaf that
-     * [LuaFindUsagesProvider.canFindUsagesFor] accepts — but NOT a [LuaLabelName],
-     * which the default named-element searcher already covers.
-     */
-    private fun isNameDeclarationLeaf(element: PsiElement): Boolean {
-        if (element is LuaLabelName) return false
-        if (element.elementType != LuaElementTypes.IDENTIFIER) return false
-        return usagesProvider.canFindUsagesFor(element)
-    }
-
-    private companion object {
-        val usagesProvider = LuaFindUsagesProvider()
-    }
 }

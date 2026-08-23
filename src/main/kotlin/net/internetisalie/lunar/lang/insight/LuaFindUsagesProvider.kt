@@ -5,17 +5,7 @@ import com.intellij.lang.cacheBuilder.WordsScanner
 import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.lang.lexer.LuaLexer
-import net.internetisalie.lunar.lang.psi.LuaAttName
-import net.internetisalie.lunar.lang.psi.LuaElementTypes
-import net.internetisalie.lunar.lang.psi.LuaFuncName
-import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
-import net.internetisalie.lunar.lang.psi.LuaGenericForStatement
-import net.internetisalie.lunar.lang.psi.LuaLabelName
-import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
-import net.internetisalie.lunar.lang.psi.LuaNameList
-import net.internetisalie.lunar.lang.psi.LuaNameRef
-import net.internetisalie.lunar.lang.psi.LuaNumericForStatement
-import net.internetisalie.lunar.lang.psi.LuaParList
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.syntax.LuaSyntax
 
 /**
@@ -38,53 +28,13 @@ class LuaFindUsagesProvider : FindUsagesProvider {
         )
 
     /**
-     * Returns true when [element] is a declaration-site identifier leaf
-     * that LuaNameReference.resolve() can return.
-     *
-     * Accepted declaration sites (in PSI parent-chain terms):
-     *   - LuaLabelName           — label declaration (NAV-02-03)
-     *   - IDENTIFIER → LuaNameRef → LuaAttName          — local variable
-     *   - IDENTIFIER → LuaNameRef → LuaLocalFuncDecl    — local function
-     *   - IDENTIFIER → LuaNameRef → LuaFuncName         — global function
-     *   - IDENTIFIER → LuaNameRef → LuaFuncNameMethod   — method (self-receiver)
-     *   - IDENTIFIER → LuaNameRef → LuaNameList → LuaParList              — parameter
-     *   - IDENTIFIER → LuaNameRef → LuaNameList → LuaGenericForStatement  — generic-for var
-     *   - IDENTIFIER → LuaNumericForStatement            — numeric-for var
+     * Returns true when [element] is a declaration site — one rule, shared with Safe Delete,
+     * reference search and rename, and owned by [LuaDeclarationSite] (REFACT-01 design §2.1).
+     * Before that, this method *was* the rule and three other predicates copied it.
      */
-    override fun canFindUsagesFor(element: PsiElement): Boolean {
-        if (element is LuaLabelName) return true
-        if (element.node?.elementType != LuaElementTypes.IDENTIFIER) return false
-        val parent = element.parent
-        if (parent is LuaNumericForStatement) return true
-        if (parent !is LuaNameRef) return false
-        return when (val grandParent = parent.parent) {
-            is LuaAttName -> true
-            is LuaLocalFuncDecl -> true
-            is LuaFuncName -> true
-            is LuaFuncNameMethod -> true
-            is LuaNameList -> grandParent.parent is LuaParList || grandParent.parent is LuaGenericForStatement
-            else -> false
-        }
-    }
+    override fun canFindUsagesFor(element: PsiElement): Boolean = LuaDeclarationSite.kindOf(element) != null
 
-    override fun getType(element: PsiElement): String =
-        when {
-            element is LuaLabelName -> "label"
-            element.parent is LuaNumericForStatement -> "local variable"
-            else -> typeFromNameRefGrandparent(element)
-        }
-
-    private fun typeFromNameRefGrandparent(element: PsiElement): String {
-        val grandParent = element.parent?.parent ?: return ""
-        return when {
-            grandParent is LuaAttName -> "local variable"
-            grandParent is LuaLocalFuncDecl -> "local function"
-            grandParent is LuaFuncName || grandParent is LuaFuncNameMethod -> "global function"
-            grandParent is LuaNameList && grandParent.parent is LuaParList -> "parameter"
-            grandParent is LuaNameList && grandParent.parent is LuaGenericForStatement -> "local variable"
-            else -> ""
-        }
-    }
+    override fun getType(element: PsiElement): String = LuaDeclarationSite.kindOf(element)?.usageViewType ?: ""
 
     override fun getDescriptiveName(element: PsiElement): String = element.text
 

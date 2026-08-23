@@ -51,6 +51,28 @@ class LuaFindUsagesTest : BasePlatformTestCase() {
     }
 
     @Test
+    fun testCanFindUsagesForDottedFunction() {
+        // REFACT-01-08 / TC-23: `funcName ::= nameRef funcNameProperty* funcNameMethod?`, so the
+        // `run` leaf's grandparent is a LuaFuncNameProperty — a shape the old hand-written
+        // predicate did not accept, leaving `function M.run()` neither findable nor safe-deletable.
+        val file = myFixture.configureByText("test.lua", "M = {}\nfunction M.run() end\nM.run()\n")
+        val funcDecl =
+            requireNotNull(PsiTreeUtil.findChildOfType(file, LuaFuncDecl::class.java)) {
+                "Expected a LuaFuncDecl in test.lua"
+            }
+        val runLeaf =
+            funcDecl.funcName.funcNamePropertyList
+                .last()
+                .nameRef.identifier
+
+        assertTrue("Should accept a dotted function-name IDENTIFIER", provider.canFindUsagesFor(runLeaf))
+        assertEquals("global function", provider.getType(runLeaf))
+
+        val refs = ReferencesSearch.search(runLeaf).findAll()
+        assertEquals("Expected exactly 1 reference to M.run", 1, refs.size)
+    }
+
+    @Test
     fun testCanFindUsagesForLabel() {
         val file = myFixture.configureByText("test.lua", "::done:: goto done")
         val labelName = PsiTreeUtil.findChildOfType(file, LuaLabelName::class.java)!!

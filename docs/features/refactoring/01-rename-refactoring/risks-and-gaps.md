@@ -484,7 +484,33 @@ can be promoted from **(inferred)** to verified.
 | `REFACT-01-00-DR-06` | Confirm `LeafElement.replaceWithText` is a legal edit on a `LuaCatsArgName` child inside a `LuaCatsLazyCommentImpl` (a lazy-parseable node) — the one AST operation in this design with no existing precedent in the repo. If it is not, fall back to rebuilding the comment text. | Design §3.6 | todo |
 | `REFACT-01-00-DR-07` | Before writing §2.10's collectors, run one `BasePlatformTestCase` that puts `global count = 0` in `a.lua` and `print(count)` in `b.lua` and asserts what `LuaNameReference.resolve()` returns for `b.lua`'s `count` **on the current tree**. The design asserts it is null (nothing indexes `LuaGlobalVarDecl`) from reading `LuaGlobalAssignmentIndex.kt:95-107`, not from running it. If it already resolves, §2.10 is unnecessary and rows 5/7 alone finish the job. Paste the output into design §1's evidence table either way. | Design §2.10, Gap 2.5 | todo |
 | `REFACT-01-00-DR-08` | Confirm the file-scope predicate of §3.5 row 14 against real PSI: for `cfg = {}` at file scope, assert `(target.parent as? LuaVarList)?.parent is LuaAssignmentStatement` and that the statement is in `containingFile.blockList.flatMap { it.statementList }`; for `function g() cfg = 1 end`, assert it is **not**. **Also assert the O(1) restatement agrees on both fixtures** — `stmt.parent is LuaBlock && stmt.parent.parent is LuaFile` — because §3.5 clause 3 ships in that form to keep `isBareAssignmentTarget` cheap enough for the indexer to call per target. The equivalence is derived from `LuaPsiImplUtil.kt:67-68` (`getChildrenOfType`, direct children) and `LuaBlockImpl.java:34-36` (`getChildrenOfTypeAsList`, direct children); this task is what makes it measured rather than derived. `LuaFile.getBlockList()` is `LuaPsiImplUtil.getBlockList` (`LuaFile.kt:31`) and the number of blocks a file exposes is read, not measured. | Design §3.5 row 14, §2.10 change 0 | todo |
-| `REFACT-01-00-DR-09` | Before landing §2.10 change 0, run `LuaCrossFileGlobalResolutionTest` against a build in which `LuaGlobalAssignmentIndex.Indexer.map`'s assignment collector has been swapped for the `LuaDeclarationSite.isBareAssignmentTarget` form, and confirm its `local shadowed\nshadowed = 2` and `function f() nested = 1 end` fixtures still behave identically. The claim that the delegation is behaviour-preserving (clauses 2 and 3 are unconditionally true for a target reached by that enumeration) is currently **derived from reading**, and the index is the one component here whose defects are invisible until a user's persisted index is wrong. | Design §2.10 change 0, §3.5 row 14 | todo |
+| `REFACT-01-00-DR-09` | Before landing §2.10 change 0, run `LuaCrossFileGlobalResolutionTest` against a build in which `LuaGlobalAssignmentIndex.Indexer.map`'s assignment collector has been swapped for the `LuaDeclarationSite.isBareAssignmentTarget` form, and confirm its `local shadowed\nshadowed = 2` and `function f() nested = 1 end` fixtures still behave identically. The claim that the delegation is behaviour-preserving (clauses 2 and 3 are unconditionally true for a target reached by that enumeration) is currently **derived from reading**, and the index is the one component here whose defects are invisible until a user's persisted index is wrong. | Design §2.10 change 0, §3.5 row 14 | **done 2026-08-22 — delegation is behaviour-preserving, measured** |
+
+### DR-09 result (2026-08-22)
+
+Run rather than read, in three `gce-builder` passes over
+`LuaCrossFileGlobalResolutionTest` plus a throwaway index probe
+(`LuaGlobalAssignmentIndexProbeTest`, deleted after the run) that asserts
+`FileBasedIndex.getContainingFiles(LuaGlobalAssignmentIndex.KEY, …)` for 15 names across nine
+fixture files — `config = {}`, `local shadowed / shadowed = 2`, a nested
+`local function f() nested = 1 end`, `alpha, beta = 1, 2`, `t.dottedField = 1`,
+`function greet() end` + `function M.run() end`, `local mixedName = 1 / mixedName = 2 / plainName = 3`,
+`do inBlock = 1 end` and `if true then inIf = 1 end`:
+
+| Pass | Index collector | Probe | `LuaCrossFileGlobalResolutionTest` |
+| :-- | :--- | :-- | :-- |
+| Baseline | the existing inline rule | 1 test, 0 failures | 7 tests, 0 failures |
+| Swapped | `LuaDeclarationSite.isBareAssignmentTarget` | 1 test, 0 failures | 7 tests, 0 failures |
+| Mutant | `isBareAssignmentTarget` with clause 3 broken (`block.parent is LuaFuncDecl`) | **FAILED** | **3 of 7 FAILED** |
+
+The two forms produce byte-identical index contents on every probed shape, and the two fixtures the
+DR names (`local shadowed` / `shadowed = 2`, and the nested `nested = 1`) stay unindexed under both.
+The third pass is what makes the first two mean something: with clause 3 mutated, the probe and
+three resolution cases go red, so the comparison was capable of detecting a difference and did not
+merely fail to look. Note the *limit* of the evidence: clauses 2 and 3 are unreachable-false for a
+target reached by `map`'s top-down enumeration, so the probe can only detect a predicate that
+**rejects** something the old rule accepted — which is the direction that silently empties an index.
+
 
 ## Test Case Gaps
 
