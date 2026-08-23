@@ -362,6 +362,11 @@ class LuaSafeDeleteTest : BasePlatformTestCase() {
                 "function M.repeat() end\n",
                 "local repeat = 1\n",
                 "repeat = 1\n",
+                // globalFuncDecl carries pin = 2 (`lua.bnf:229`), so a GLOBAL_FUNC_DECL node
+                // exists with no nameRef child. It was the one pinned broken-declaration form
+                // with no fixture here, safe only because the generated getter happens to be
+                // @Nullable — one generator annotation away from being uncaught.
+                "global function repeat() end\n",
             )
         brokenFixtures.forEach { text ->
             myFixture.configureByText("test.lua", text)

@@ -387,7 +387,7 @@
     <refactoring.safeDeleteProcessor
             implementation="net.internetisalie.lunar.refactoring.LuaSafeDeleteProcessor"/>
     <renamePsiElementProcessor
-            implementation="net.internetisalie.lunar.refactoring.rename.LuaUnsupportedRenameProcessor"/>
+            implementation="net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor"/>
     <nameSuggestionProvider
             implementation="net.internetisalie.lunar.refactoring.rename.LuaNameSuggestionProvider"/>
     <lang.namesValidator

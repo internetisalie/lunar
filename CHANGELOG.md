@@ -2,6 +2,23 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Rename works.** Shift+F6 on a local, a parameter, a `for` variable, a `local function` or a
+  global now rewrites the declaration **and every usage Lua's scoping rules bind to it** — in the
+  file, and across the whole project for a global (all four forms: `function greet()`, `config = {}`,
+  and Lua 5.5's `global x` / `global function f`). It works from a usage as well as from the
+  declaration, and an inner `local x` that shadows an outer one is left alone, as are `goto` labels,
+  which keep the rename they already had (REFACT-01 Phase 2).
+
+  This **replaces the interim refusal** shipped for BUG-457, which declined to rename anything but a
+  label. That refusal existed because rename used to *appear* to work: measured in a live IDE, it
+  renamed the declaration, left four usages bound to the old name, reported success, and `print(counter)`
+  started printing nil. Where a correct rewrite still does not exist, Lunar now **declines with a
+  reason** instead of half-applying — a `function Obj:method()` declaration, the receiver part of a
+  `function M.run()` name, and a name whose declaration cannot be determined each explain why. Two
+  limits worth knowing: renaming from the caret on a numeric `for`'s own variable (`for i = 1, 3`) is
+  not offered — rename from a use of `i` instead — and conflict detection, `require(...)` rewriting on
+  file rename and `---@param` propagation are still to come.
+
 - **A declaration is a declaration everywhere now — `function M.run()` is findable, Lua 5.5
   `global`s resolve across files, and Safe Delete stops leaving `global  = 1` behind** (REFACT-01
   Phase 1). Lunar models no declaration PSI — apart from `::labels::`, every declared name is just a

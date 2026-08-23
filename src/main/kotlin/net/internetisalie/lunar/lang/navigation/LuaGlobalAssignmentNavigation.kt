@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.lang.navigation
 
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
@@ -37,9 +38,14 @@ object LuaGlobalAssignmentNavigation {
         val psiManager = PsiManager.getInstance(project)
         val results = mutableListOf<PsiElement>()
         for (virtualFile in index.getContainingFiles(LuaGlobalAssignmentIndex.KEY, name, scope)) {
+            // REFACT-01 Phase 2 drives this from a rename search, which is exactly when a user
+            // cancels; the engineering contract wants a check at the start of EVERY iteration
+            // block, and the inner one is the expensive half (a whole file's statements).
+            ProgressManager.checkCanceled()
             val luaFile = psiManager.findFile(virtualFile) as? LuaFile ?: continue
             // File-scope statements only, matching what the indexer recorded.
             luaFile.getBlockList().flatMap { it.statementList }.forEach { statement ->
+                ProgressManager.checkCanceled()
                 when (statement) {
                     is LuaAssignmentStatement -> collectTargets(statement, name, results)
                     is LuaGlobalVarDecl -> collectGlobalVarNames(statement, name, results)

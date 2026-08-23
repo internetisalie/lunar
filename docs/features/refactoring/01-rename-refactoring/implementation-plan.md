@@ -157,12 +157,12 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
 - **Goal**: rename works end to end for locals, parameters, `for` variables, local functions and
   globals — from a declaration and from a usage — and the interim refusal is gone.
 - **Tasks**:
-  - [ ] Add `LuaNameReference.handleElementRename` — realizes design §2.5.
-  - [ ] Create `net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor` with
+  - [x] Add `LuaNameReference.handleElementRename` — realizes design §2.5.
+  - [x] Create `net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor` with
         `canProcessElement`, `substituteElementToRename`, `findReferences`, `renameElement` —
         realizes design §2.2, **§3.0**, §3.1 (**steps 1-5, step 4a included**), §3.2, §3.3. Leave
         `findCollisions` unimplemented until Phase 3.
-  - [ ] Implement **§3.1 step 4a**, the funcName receiver-segment refusal:
+  - [x] Implement **§3.1 step 4a**, the funcName receiver-segment refusal:
         `PsiTreeUtil.getParentOfType(leaf, LuaFuncName::class.java, false)` and, when that is
         non-null and `LuaDeclarationSite.functionNameLeafOf(it) !== leaf`, refuse with
         `refactoring.rename.functionNameSegment`. This is **not** Phase 4 scope even though it reads
@@ -172,7 +172,7 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
         (resolution cannot redirect: `LuaBlock.processDeclarations` has no `LuaFuncDecl` branch,
         `LuaBlockExt.kt:38-77`). TC-34a and TC-34b are the gates; risks-and-gaps Risk 1.1 shape 6 is
         the record.
-  - [ ] Implement **`getQualifiedNameAfterRename(element, newName, nonJava) = newName`** (design
+  - [x] Implement **`getQualifiedNameAfterRename(element, newName, nonJava) = newName`** (design
         §2.9). This is **not** Phase 7 scope even though it is one of §2.9's six accessors:
         `RenameDialog.createCheckboxes` adds the "Search in comments and strings" checkbox
         unconditionally (`RenameDialog.java:279-282`) and `createRenameProcessor` passes
@@ -182,18 +182,18 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
         (`RenamePsiElementProcessorBase.java:106-108`) and the `else` branch logs
         `LOG.error("Unknown element type : …")` (`RenameUtil.java:226`) and returns null into
         `document.replaceString` (`:377`). TC-13d is the gate.
-  - [ ] Implement `canProcessElement` **exactly as design §3.0 writes it**, in that order. The
+  - [x] Implement `canProcessElement` **exactly as design §3.0 writes it**, in that order. The
         `LuaLabelName`/`LuaLabelRef` exclusion must come first and must not be replaced by a
         `kindOf(...) != null` test: `kindOf(LuaLabelName)` is `LABEL`, not null, and
         `RenamePsiElementProcessorBase.forPsiElement` returns the first matching extension
         (`RenamePsiElementProcessorBase.java:153-161`), so claiming labels aborts the one refactoring
         that works today. TC-24 and TC-25 are the guards.
-  - [ ] Add the bundle keys `refactoring.rename.unresolved`, `.unsupportedTarget`, `.colonMethod`,
+  - [x] Add the bundle keys `refactoring.rename.unresolved`, `.unsupportedTarget`, `.colonMethod`,
         `.functionNameSegment` to `LuaBundle.properties`; remove `refactoring.rename.unsupported`
         (currently `LuaBundle.properties:145`) — realizes design §7.
         There is **no** `refactoring.rename.implicitSelf` key: the `self` guard it belonged to was
         removed as dead and wrong (design §3.1, the note after step 5).
-  - [ ] **Correct the epic status table** in `docs/features/refactoring/requirements.md`. Line 33
+  - [x] **Correct the epic status table** in `docs/features/refactoring/requirements.md`. Line 33
         reads *"**Status**: **Implemented** (`LuaNameReference.handleElementRename`)"* — that method
         does not exist (`grep -n handleElementRename src/main/kotlin/net/internetisalie/lunar/lang/LuaNameReference.kt`
         → empty), and the false claim is why this feature was believed shipped. Line 36 attributes
@@ -205,7 +205,7 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
         `LuaFindUsagesProvider` + `LuaLabelReference.handleElementRename` +
         `LuaRefactoringSupportProvider.isMemberInplaceRenameAvailable`. Do this in the same commit as
         the `plugin.xml` swap, so the table is never describing a state that does not exist.
-  - [ ] **Delete** `src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaUnsupportedRenameProcessor.kt`
+  - [x] **Delete** `src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaUnsupportedRenameProcessor.kt`
         and `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaUnsupportedRenameProcessorTest.kt`,
         and repoint the single `<renamePsiElementProcessor>` line in `plugin.xml` (currently
         lines 389-390) at `LuaRenameProcessor` — realizes design §7. Both processors must never be
@@ -213,6 +213,33 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
 - **Exit criteria**: `LuaRenameTest` passes TC-01…TC-07, TC-13d, TC-19a/b, TC-25, TC-26 and
   TC-34a/TC-34b; `LuaRenameCrossFileTest` passes TC-08, TC-27, TC-28 and TC-29; `LuaLabelRenameTest`
   (TC-24) still green; full suite green.
+- **Met 2026-08-23** — full suite **2,808 tests / 454 classes / 0 failures** (baseline 2,792 / 453;
+  +22 new cases in two classes, −6 with `LuaUnsupportedRenameProcessorTest`), `ktlintCheck` clean.
+- **Four plan/design claims were measured false while executing this phase.** They are corrected in
+  `design.md` §1/§6 and `risks-and-gaps.md` Gaps 2.8-2.10, and each is now a passing test:
+  1. **TC-03 does not come for free.** Design §6 said nested same-named locals were "handled by
+     resolution"; measured, the inner DECLARATION was rewritten and its own usage left behind. Fixed
+     by `LuaNameReference.shadowsRatherThanUses` — see Gap 2.8, blast radius measured at zero.
+  2. **TC-05 cannot use the declaration caret.** `TargetElementUtil.findTargetElement` returns null
+     on `for <caret>i` — the leaf has no `LuaNameRef` and no `PsiNamedElement` ancestor. TC-05 is
+     driven from a usage; the limitation is Gap 2.9 and has its own pinning test.
+  3. **TC-26 as specified could not detect what it claimed to guard.** It called
+     `substituteElementToRename` directly, bypassing `canProcessElement`; narrowing the predicate to
+     `kindOf(element) != null` left the whole suite green. TC-26 now asserts
+     `RenamePsiElementProcessor.forElement(...)` and drives `renameElementAtCaret`.
+  4. **Design §6's `M = {}` row is false in both halves.** The funcName's `M` is refused by step 4a
+     rather than redirected, and a caret on `M = {}` itself yields a `LuaFuncDecl` that
+     `canProcessElement` (correctly) declines — Gap 2.10.
+- **One deviation from the design's class shape, deliberate**: `LuaRenameProcessor` is `DumbAware`,
+  which §2.2 does not list. `LuaUnsupportedRenameProcessor` carried the marker precisely so its
+  refusal could not evaporate during indexing (`forPsiElement` skips a processor failing
+  `isUsableInCurrentContext`, `:156`, while `RenameElementAction` is a `DumbAwareAction`), and
+  dropping it here would have silently regressed that protection into a platform-default half-rename.
+  `LuaRenameTest.testSurvivesDumbMode` asserts the selection inside
+  `DumbModeTestUtils.runInDumbModeSynchronously`, not merely the marker.
+- **Step 5 of §3.3 (`---@param` propagation) is NOT wired here**, and design §3.3 step 1 exists only
+  to serve it: Phase 6's own task list owns "Wire step 5 of `LuaRenameProcessor.renameElement`", so
+  capturing `kind`/`oldName`/`catsOwner` in Phase 2 would have produced three unused values.
 
 ### Phase 3: Conflict detection [Should]
 
@@ -394,8 +421,8 @@ in Phase 2, so the idiom lives here.
 ## Verification Tasks
 
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSiteTest.kt` — TC-21, TC-22, TC-30. TC-21's per-row fixtures must include one for **every** row of design §3.5, the four new ones included (`global x = 1`, `global function f() end`, `function M.run() end`, file-scope `cfg = {}`), plus the negatives: a nested `local` write `function g() cfg = 1 end` and a shadowed `local cfg` at file scope must both give `null` from row 14's predicate.
-- [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameTest.kt` — TC-01…TC-07, TC-09…TC-11, TC-13b, TC-13d (Phase 2), TC-13e (Phase 7), TC-19a/b/c, TC-25, TC-26, TC-34a, TC-34b.
-- [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameCrossFileTest.kt` — TC-08, TC-13a, TC-27, TC-28, TC-29. Copy the harness from
+- [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameTest.kt` — TC-01…TC-07, TC-09…TC-11, TC-13b, TC-13d (Phase 2), TC-13e (Phase 7), TC-19a/b/c, TC-25, TC-26, TC-34a, TC-34b.
+- [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameCrossFileTest.kt` — TC-08, TC-13a, TC-27, TC-28, TC-29. Copy the harness from
       `src/test/kotlin/net/internetisalie/lunar/lang/insight/LuaCrossFileGlobalResolutionTest.kt`
       (`BasePlatformTestCase` + `myFixture.addFileToProject("declarer.lua", …)` +
       `myFixture.configureByText`), which already proves a light fixture exercises
@@ -433,22 +460,22 @@ in Phase 2, so the idiom lives here.
       makes possible — which is why design §3.5 row 10 uses `singleOrNull()`. Restore both.
       Without this pass, nothing distinguishes "Safe Delete searched usages" from "Safe Delete found
       none", and those are the same green.
-- [ ] Delete `LuaUnsupportedRenameProcessorTest` with its subject (Phase 2).
+- [x] Delete `LuaUnsupportedRenameProcessorTest` with its subject (Phase 2).
 - [ ] **Mutation-proof the conflict tests.** TC-14/TC-15/TC-17 assert an exception is thrown; a
       detector that reports *everything* would pass all three. Delete C2's declaration-site skip
       (design §3.4 C2 step 3) and confirm **TC-16 goes red**; restore it. Without that pass, TC-16 is
       the only thing standing between this feature and a detector that cries wolf on every rename.
-- [ ] **Mutation-proof `canProcessElement`'s label exclusion.** Delete the
+- [x] **Mutation-proof `canProcessElement`'s label exclusion.** Delete the
       `element is LuaLabelName || element is LuaLabelRef` line from design §3.0's predicate and
       confirm **TC-25 goes red and TC-24 (`LuaLabelRenameTest`) goes red**; restore it. This is the
       one edit that silently breaks the only refactoring the plugin ships today, and
       `RenamePsiElementProcessorBase.forPsiElement` makes the breakage invisible to any test that
       instantiates `LuaRenameProcessor` directly.
-- [ ] **Mutation-proof the `self` resolution claim.** In TC-19a, change part (a)'s expectation to
+- [x] **Mutation-proof the `self` resolution claim.** In TC-19a, change part (a)'s expectation to
       `target.text == "Obj"` and confirm it goes **red**. The original design asserted `self`
       resolved to the class leaf; nothing in the artifact set could have contradicted it, because no
       test looked at what the resolved target *was*.
-- [ ] **Mutation-proof the funcName receiver-segment refusal (Risk 1.1 shape 6).** Delete design
+- [x] **Mutation-proof the funcName receiver-segment refusal (Risk 1.1 shape 6).** Delete design
       §3.1 step 4a and confirm **TC-34a goes red**. It must be re-run in its end-to-end form for this
       pass — drive `myFixture.renameElementAtCaret("N")` over TC-34a's fixture and assert the two
       `M.run()` call sites are unchanged — so the mutation is shown to produce a **silent half-rename**,
@@ -456,7 +483,7 @@ in Phase 2, so the idiom lives here.
       TC-34b still returns the leaf, proving the guard is a round trip against `functionNameLeafOf`
       and not a blanket refusal of every `LuaFuncName` grandparent (which would also kill TC-08's
       plain `function greet()`).
-- [ ] **Mutation-proof the non-code replacement hook.** Delete
+- [x] **Mutation-proof the non-code replacement hook.** (Phase-2 half only; the Phase-7 half stays open.) Delete
       `LuaRenameProcessor.getQualifiedNameAfterRename` and confirm **TC-13d goes red with a
       `TestLoggerAssertionError` carrying `"Unknown element type : "`** — not with a text assertion.
       Then, in Phase 7, delete `getElementToSearchInStringsAndComments` and confirm **TC-13e goes
@@ -515,7 +542,7 @@ in Phase 2, so the idiom lives here.
 | Phase | Status | Priority |
 | :--- | :--- | :--- |
 | Phase 1: Declaration-site model + global indexing | done | Must |
-| Phase 2: Core rename processor | todo | Must |
+| Phase 2: Core rename processor | done | Must |
 | Phase 3: Conflict detection | todo | Should |
 | Phase 4: Dotted method declarations | todo | Should |
 | Phase 5: `require(...)` rewriting on file rename | todo | Should |

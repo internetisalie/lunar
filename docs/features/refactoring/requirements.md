@@ -30,8 +30,28 @@ Lunar provides tools to safely restructure code and perform automated transforma
 ## Detailed Implementation Status
 
 ### REFACT-01: Rename Refactoring
-- **Status**: **Implemented** (`LuaNameReference.handleElementRename`)
+- **Status**: **Partial** — locals, parameters, `for` variables, local functions and globals rename
+  end to end, in this file and across the project, via
+  `net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor` (registered
+  `plugin.xml`, `<renamePsiElementProcessor>`) plus `LuaNameReference.handleElementRename` and the
+  `LuaDeclarationSite` classifier. `function Obj:method()` and function-name receiver segments are
+  **refused with a reason** rather than half-applied; conflict detection, `require(...)` rewriting,
+  `---@param` propagation and in-place rename are not shipped. See [[REFACT-01]] for the row-level
+  status.
+- This line read *"**Implemented** (`LuaNameReference.handleElementRename`)"* from `47df3605` until
+  2026-08-23. That method **did not exist** at any point before REFACT-01 Phase 2 created it, and the
+  false claim is why the feature was believed shipped while renaming an identifier silently corrupted
+  the file (BUG-457).
 
 ### REFACT-04: Label Refactoring
-- **Status**: **Implemented** (`LuaLabelFindUsagesProvider`, `LuaLabelRefactoringSupportProvider`)
+- **Status**: **Implemented** — `LuaLabelName` is the codebase's only `PsiNameIdentifierOwner`,
+  `LuaLabelReference.handleElementRename` rewrites the `goto` side, `LuaFindUsagesProvider` reports
+  labels, and `LuaRefactoringSupportProvider.isMemberInplaceRenameAvailable` enables the in-place
+  template for them. Rename itself is the platform default's:
+  `LuaRenameProcessor.canProcessElement` excludes `LuaLabelName`/`LuaLabelRef` first and
+  unconditionally so that it stays that way.
+- The classes this line named until 2026-08-23 — `LuaLabelFindUsagesProvider` and
+  `LuaLabelRefactoringSupportProvider` — **do not exist** and never did
+  (`grep -rn LuaLabelRefactoringSupportProvider src/` is empty; the only `LuaLabelFindUsagesProvider`
+  hit is a historical note in `LuaFindUsagesProvider.kt:15`).
 

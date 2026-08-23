@@ -447,6 +447,78 @@ can be promoted from **(inferred)** to verified.
 - **Resolved by**: design §3.8 ①; nothing deferred. Kept in this document rather than deleted
   because the false premise is an easy one to re-derive from `identifierLeafOf` row 1 alone.
 
+### Gap 2.8: a shadowing inner declaration was collected as a usage of the binding it shadows (CLOSED in Phase 2)
+
+**Found by TC-03 failing, not by review.** Design §6 asserted that nested same-named locals were
+"handled by resolution, not by rename … which is why REFACT-01-03 costs nothing extra". Measured on
+the builder, renaming the outer `x` of
+
+```lua
+local x = 1
+do
+  local x = 2
+  print(x)
+end
+print(x)
+```
+
+to `y` produced `local y = 1 / do local y = 2; print(x) end / print(y)` — the **inner declaration
+rewritten and its own usage left behind**, which breaks the file silently. That is BUG-457's failure
+class reintroduced by the rename built to remove it, on a **Must** requirement.
+
+Mechanism: `LuaResolveUtil.scopeCrawlUp` passes the child ascended from as `lastParent`, excluding a
+reference's own declaring statement from scope. That is deliberate and correct — it is what makes the
+RHS of `local x = x` read the outer `x` — but it also means the inner declaration's **own name**
+resolves outward to the outer `x`, and `LuaNameReference.isReferenceTo`'s identity test then matches.
+The pre-existing self-exclusion guard (`self.identifier === element`) only covers a declaration being
+its own usage, not a *different* declaration.
+
+**Closed by `LuaNameReference.shadowsRatherThanUses`**: a **file-local** declaration site's own name
+is a new lexical binding and is never a use of the one it shadows. Restricted to file-local kinds on
+purpose — shadowing is lexical, and a *global* declaration site is deliberately untouched, because
+multiple declarations of one global are the ambiguity design §3.4 C4 exists to report, not something
+to drop silently from a search.
+
+Measured blast radius: **zero**. The full suite is green at 2,808 tests, and with the guard removed
+TC-03 is the only failure across 69 tests spanning `LuaRenameTest`, `LuaRenameCrossFileTest`,
+`LuaFindUsagesTest`, `LuaFindUsagesCrossFileTest`, `LuaSafeDeleteTest` and
+`ShadowingVariableInspectionTest`. This means the same over-report existed in **Find Usages** and
+**Safe Delete** before Phase 2 and no test observed it; those subsystems now agree with rename.
+
+### Gap 2.9: the numeric-`for` declaration has no caret-reachable rename target (OPEN)
+
+`numericForStatement ::= FOR IDENTIFIER '=' …` (`lua.bnf:152`) hangs the control variable's leaf
+directly off the statement — the one declaration kind with no `LuaNameRef`. The leaf therefore
+carries no `PsiReference`, and `LuaNumericForStatement` is a plain `ASTWrapperPsiElement`, so
+`TargetElementUtilBase.getNamedElement` finds no `PsiNamedElement` ancestor and
+`TargetElementUtil.findTargetElement` returns **null**. Measured: Shift+F6 with the caret on
+`for <caret>i` reports "cannot rename", where every other declaration kind renames.
+
+**Impact is bounded and the feature still works**: `canProcessElement` claims the leaf, and rename
+from a *usage* (`print(<caret>i)`) redirects to it and rewrites the `for` header correctly — TC-05 is
+written that way and passes. Only the declaration-caret entry point is unavailable.
+
+**Closing it needs a `TargetElementEvaluatorEx2` for Lua** (a new `targetElementEvaluator` extension
+point), which is outside REFACT-01's design — §7 states that exactly one `plugin.xml` line changes.
+`LuaRenameTest.testNumericForDeclarationCaretHasNoRenameTargetAtAll` pins the current behaviour so
+that closing the gap goes red here and forces this section to be updated rather than silently
+diverging. REFACT-01-05 is recorded **Partial** for this reason.
+
+### Gap 2.10: `TargetElementUtil` can hand rename a declaration NODE, and `identifierLeafOf` would misdirect it (CONTAINED)
+
+Measured while checking Gap 2.8's fix: with the caret on `M` of `M = {}` in a file that also contains
+`function M.run() end`, `TargetElementUtil` hands back the whole enclosing **`LuaFuncDecl`**, not the
+`M` leaf. `canProcessElement` does not claim declaration nodes (§3.0 admits a `LuaNameRef` or a
+declaration *leaf*), so the platform reports `error.cannot.be.renamed` and nothing happens.
+
+That refusal is load-bearing rather than incidental, which is why it is recorded here rather than
+left implicit. `LuaDeclarationSite.identifierLeafOf` is deliberately **total over declaration nodes**
+because Safe Delete passes them, and it maps a `LuaFuncDecl` to its **last** name segment — so a
+`canProcessElement` widened to `identifierLeafOf(element) != null` would answer a rename of `M` by
+renaming **`run`**. `LuaRenameTest.testCaretOnAGlobalShadowedByADottedDeclarationIsRefusedNotMisdirected`
+is the guard and the widening is its proven mutant. Design §6 previously claimed this fixture
+redirected to `M = {}` and renamed successfully; it does not.
+
 ## Technical Debt & Future Work
 
 - **TBD-1: `REFACT-01-09` — table field / constructor key rename.** Deferred, priority `C`. Two
@@ -573,6 +645,20 @@ instead — *no element of a partially parsed file makes `identifierLeafOf` / `d
 `handlesElement` raise* — over every element of each broken declaration form that carries a `pin`,
 so a future `identifierLeafOf` row that reaches a generated `@NotNull` getter fails without anyone
 remembering to add a fixture for it.
+
+**That claim was an overclaim when written, and Phase 2 made it true rather than softening it.**
+The sweep's five fixtures covered `localFuncDecl`, `funcDecl` (bare and dotted), `localVarDecl` and a
+bare assignment — but **not** `globalFuncDecl`, which carries `pin = 2` (`lua.bnf:229`) and is the
+only other pinned declaration form. It was safe purely because `LuaGlobalFuncDecl.getNameRef()`
+happens to be generated `@Nullable`, i.e. one generator annotation away from being uncaught, and a
+sweep that misses a pinned form is exactly the kind of false coverage statement this feature exists
+to remove. `"global function repeat() end\n"` was added as a sixth fixture and **mutation-proved**:
+rewriting `identifierLeafOf`'s `globalFuncDecl` row as `requireNotNull(element.nameRef).identifier`
+makes `testNoElementOfAPartiallyParsedDeclarationMakesTheProcessorLog` fail. The other two `global`
+forms are **not** reachable this way and no fixture is claimed for them: `globalVarDecl` and
+`globalModeDecl` are unpinned (`lua.bnf:217`, `:223`), and `global repeat = 1` does not even remap the
+soft keyword — `repeat` is not in `LuaParserUtil.DECLARATION_FOLLOWERS`, so `global` stays an ordinary
+identifier and no `GLOBAL_VAR_DECL` node is built.
 
 **Design action for Phase 2 (restated):** §3.5's `identifierLeafOf` table should be written in terms
 of the node read, not the generated getters. That is a documentation debt only — no row still

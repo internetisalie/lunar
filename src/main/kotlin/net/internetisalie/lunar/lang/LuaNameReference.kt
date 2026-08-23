@@ -165,6 +165,32 @@ class LuaNameReference(
         return results.distinctBy { it.element }.toTypedArray()
     }
 
+    /**
+     * True when [host] is a FILE-LOCAL declaration site — a `local`, a parameter, a `for` variable
+     * or a `local function`. Such a name introduces a NEW lexical binding; it is never a use of the
+     * outer binding of the same name that it shadows.
+     *
+     * Without this, [resolve] makes it look like one. [LuaResolveUtil.scopeCrawlUp] excludes the
+     * reference's own declaring statement from scope — deliberately, so the RHS of `local x = x`
+     * reads the OUTER `x` — but that also means an inner `local x`'s own name resolves outward to
+     * the outer `x`, and the identity test below then reports it as a usage.
+     *
+     * Measured on REFACT-01 Phase 2, not inferred. Renaming the outer `x` of
+     * `local x = 1 / do local x = 2; print(x) end / print(x)` produced
+     * `local y = 1 / do local y = 2; print(x) end / print(y)`: the inner DECLARATION rewritten and
+     * its own usage left behind, which is BUG-457's silent-corruption shape reintroduced by the
+     * rename that exists to remove it. Design §6 claimed this case was "handled by resolution, not
+     * by rename"; it was not, and REFACT-01-03 is the requirement it fails.
+     *
+     * Restricted to file-local kinds because shadowing is lexical. A global declaration site is
+     * left exactly as it was: multiple declarations of one global are an ambiguity for the rename
+     * conflict detector to report (design §3.4 C4), not something to silently drop from a search.
+     */
+    private fun shadowsRatherThanUses(host: LuaNameRef): Boolean {
+        val declaredLeaf = host.identifier ?: return false
+        return LuaDeclarationSite.kindOf(declaredLeaf)?.isFileLocal == true
+    }
+
     /** `x` in `x = 1` — the assignment target itself, as opposed to a read of `x`. */
     private fun isBareWriteTarget(element: PsiElement): Boolean {
         val luaVar = element.parent as? LuaVar ?: return false
@@ -236,6 +262,7 @@ class LuaNameReference(
         // (otherwise the declaration site, which resolves to itself, is counted as a usage).
         val self = myElement
         if (self is LuaNameRef && self.identifier === element) return false
+        if (self is LuaNameRef && shadowsRatherThanUses(self)) return false
         if (element.elementType != LuaElementTypes.IDENTIFIER || element.text != name) return false
         val resolved = resolve() ?: return false
         // Phase-1 (local) resolution returns the IDENTIFIER leaf; Phase-2 (stub-index, cross-file)
@@ -249,6 +276,15 @@ class LuaNameReference(
      * dotted `function M.run()` normalises to `run` — the segment the declaration actually names.
      * It used to fall through to the bare `nameRef`, i.e. the RECEIVER `M`, which made
      * [isReferenceTo] false for every `M.run()` call site.
+     *
+     * `decl.funcName` is the one generated `@NotNull` getter still dereferenced on a node whose
+     * child `funcDecl ::= FUNCTION funcName funcBody`'s `pin = 1` (`lua.bnf:189-190`) allows to be
+     * absent — and it is unreachable, which is why it stays. A nameless `funcDecl` stubs under the
+     * key `""` (`LuaFuncStubElementType.kt:24`, which reads the node precisely so it does not
+     * raise), and every `decl` arriving here came from `StubIndex.getElements(…, referenceName, …)`
+     * with `referenceName` taken from a `LuaNameRef`'s IDENTIFIER text, which is never empty. The
+     * reasoning lived nowhere in the code before REFACT-01 Phase 2; a grammar change that lets an
+     * empty name be indexed is what invalidates it.
      */
     private fun declarationIdentifier(decl: PsiElement): PsiElement? =
         when (decl) {
@@ -260,6 +296,23 @@ class LuaNameReference(
                     ?.identifier
             else -> null
         }
+
+    /**
+     * REFACT-01 §2.5 — rewrite this usage's name in place. `RenameUtil.rename` reaches every
+     * collected usage through here, so without it a rename rewrites the declaration and leaves
+     * every usage bound to the old name (BUG-457).
+     *
+     * An override rather than a registered `elementManipulator`: `PsiReferenceBase.getRangeInElement`
+     * returns the range given to the constructor, so a manipulator is reached only from this method
+     * and `bindToElement`. The host is always a [LuaNameRef] — the sole construction site is
+     * `LuaNameRefBaseImpl.getReference` (`LuaBaseElements.kt:98-104`), and its `setName` already
+     * performs the correct AST swap (`:83-92`) — which is what makes the cast total and mirrors
+     * [LuaLabelReference.handleElementRename], in production since REFACT-04.
+     */
+    override fun handleElementRename(newElementName: String): PsiElement {
+        val host = myElement ?: error("LuaNameReference outlived its host element")
+        return (host as? PsiNamedElement)?.setName(newElementName) ?: host
+    }
 
     override fun getVariants(): Array<Any> {
         // Code completion: return empty for now
