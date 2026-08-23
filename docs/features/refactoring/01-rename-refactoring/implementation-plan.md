@@ -306,13 +306,23 @@ Seven phases. Phases 1-2 together are the shippable core (every `Must` requireme
      design says `mapNotNull`.** Dropping it would lower C4's count and could turn a real ambiguity
      into silence — the one outcome the rule exists to prevent, and an Elvis fallback that silently
      drops a conflict is exactly what the engineering contract forbids.
-- **One design element is present but has no mutant that reddens a test**, disclosed rather than
-  removed: C4's `declarations.size < 2` guard is redundant with the `!== target.identifier` filter
-  that follows it, because a single declaration is always the renamed one. Deleting *either* alone
-  leaves the suite green; deleting *both* reddens all four `LuaRenameCrossFileTest` cases. The guard
-  stays because it is the semantic statement of the rule and the filter's identity comparison is the
-  weaker of the two — but nothing here proves the guard is load-bearing, and this note is that
-  admission rather than a claim of coverage.
+- **C4's `declarations.size < 2` guard and its `!== target.identifier` filter are jointly pinned,
+  not redundant — keep both.** Deleting *either* alone leaves the suite green; deleting *both*
+  reddens all four `LuaRenameCrossFileTest` cases. That is the signature of two protections against
+  two *different* failure modes, not of one protection written twice:
+  - **The guard** is the only thing preventing a false `"'config' is declared in 1 places"` report
+    if the filter's identity comparison ever fails to match — and that comparison was *measured*
+    (`identity=true` on a probe), which makes it an assumption, not a guarantee.
+  - **The filter** is the only thing preventing a collision anchored on the renamed declaration
+    itself when `size >= 2`. That would breach the anchor invariant stated at
+    `LuaRenameConflictDetector.kt:38-39`, because the platform deletes collision anchors from the
+    usage set (`RenameProcessor.java:248-252`) — i.e. it would resurrect BUG-457's silent partial
+    rename through the very machinery meant to warn about it.
+
+  Removing either half to "pin" the other would therefore delete a distinct protection. **Do not
+  treat the absent single-mutant as dead weight.** If the filter is wanted individually pinned, that
+  is a *test* change and not a code change: TC-31 asserts membership, so an added count assertion
+  would redden it. That addition is optional; this record of why both exist is not.
 
 ### Phase 4: Dotted method declarations [Should]
 
@@ -613,7 +623,7 @@ in Phase 2, so the idiom lives here.
 | :--- | :--- | :--- |
 | Phase 1: Declaration-site model + global indexing | done | Must |
 | Phase 2: Core rename processor | done | Must |
-| Phase 3: Conflict detection | todo | Should |
+| Phase 3: Conflict detection | done | Should |
 | Phase 4: Dotted method declarations | todo | Should |
 | Phase 5: `require(...)` rewriting on file rename | todo | Should |
 | Phase 6: LuaCATS `@param` propagation | todo | Should |

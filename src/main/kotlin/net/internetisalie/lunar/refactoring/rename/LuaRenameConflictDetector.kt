@@ -52,11 +52,18 @@ internal class LuaRenameCollisionUsageInfo(
  * Lua has no compiler to catch a rename that changes meaning: the file still parses, still runs,
  * and reads a different value. Four rules, all expressed as existing lookups — two
  * [LuaResolveUtil.scopeCrawlUp] crawls and two index reads — so no new scope model is introduced
- * and nothing scans the project's PSI.
+ * and no rule walks the project's PSI looking for candidates.
+ *
+ * That is a statement about *how candidates are found*, not a claim that no PSI is loaded:
+ * normalising an index hit to its identifier leaf goes through `getNode()`, which loads and parses
+ * a stub-backed element's file (`StubBasedPsiElementBase`: "occasionally expensive `getNode()`
+ * calls that have to load and parse the AST anew"). [globalDeclarationsNamed] therefore parses one
+ * file per hit and is guarded accordingly.
  *
  * **Threading**: called only from `LuaRenameProcessor.findCollisions`, i.e. inside the background
  * read action `BaseRefactoringProcessor` wraps around `findUsages`. Never the EDT, and
- * `ProgressManager.checkCanceled()` opens every scan loop.
+ * `ProgressManager.checkCanceled()` opens every scan loop — including the per-hit normalisation
+ * loops, which are the expensive half.
  */
 internal object LuaRenameConflictDetector {
     /**
@@ -180,8 +187,19 @@ internal object LuaRenameConflictDetector {
      * Every project-wide declaration of [name], normalised to its IDENTIFIER leaf so that the two
      * lookups are comparable and C4's `!== target.identifier` test can fire at all.
      *
-     * Both are index reads, so this is cheap enough to run project-wide, and both C3 and C4 use it
-     * — C4 against the old name, C3 against the new one — which is why C4 adds no new cost class.
+     * Both *candidate sets* come from indexes, so nothing scans the project to find them, and both
+     * C3 and C4 share this one lookup — C4 against the old name, C3 against the new one — which is
+     * why C4 adds no new cost class.
+     *
+     * **The normalisation is not free, and the index read is the cheap half.**
+     * [LuaDeclarationSite.identifierLeafOf] reaches a `LuaFuncDecl`'s name through
+     * `funcDeclNameLeafOf` → `declaration.node`, and `getNode()` on a stub-backed element loads and
+     * parses its file (`StubBasedPsiElementBase`). So this `map` parses one file per stub hit,
+     * twice per rename, unbounded by project size. `ProgressManager.checkCanceled()` therefore
+     * opens the loop body rather than only the function, per the engineering contract's
+     * every-iteration-block rule — the same reasoning
+     * [net.internetisalie.lunar.lang.navigation.LuaGlobalAssignmentNavigation.find] already
+     * applies to its own two loops.
      *
      * A declaration whose leaf cannot be found falls back to the declaration node rather than being
      * dropped: dropping it would lower C4's count and could turn a real ambiguity into silence,
@@ -197,7 +215,10 @@ internal object LuaRenameConflictDetector {
         val stubbed =
             StubIndex
                 .getElements(LuaGlobalDeclarationIndex.KEY, name, targetProject, projectScope, LuaFuncDecl::class.java)
-                .map { LuaDeclarationSite.identifierLeafOf(it) ?: it }
+                .map { declaration ->
+                    ProgressManager.checkCanceled()
+                    LuaDeclarationSite.identifierLeafOf(declaration) ?: declaration
+                }
         return distinctElements(stubbed + LuaGlobalAssignmentNavigation.find(targetProject, name, projectScope))
     }
 
