@@ -3,7 +3,7 @@ id: "BUG-457"
 title: "Rename is offered on ordinary identifiers and silently rewrites only the declaration, leaving every usage bound to the old name"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "critical"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
