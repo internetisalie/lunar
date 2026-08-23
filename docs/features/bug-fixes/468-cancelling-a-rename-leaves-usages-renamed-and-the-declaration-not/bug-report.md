@@ -30,9 +30,18 @@ A cancel at usage *k* therefore leaves *k*−1 usages on the **new** name and th
 **old** one. That is [[BUG-457]]'s shape — declaration and usages disagreeing, the file silently
 broken — reached by pressing Cancel rather than by a defect in the rewrite.
 
-**And the write action does not roll it back.** Measured: raising a `ProcessCanceledException` inside
-the rename path yields `thrown = null` and leaves the file half-applied. The enclosing
-`WriteCommandAction` neither restores the earlier edits nor surfaces the exception.
+**And nothing rolls it back.** Measured: raising a `ProcessCanceledException` inside the rename path
+yields `thrown = null` and leaves the file half-applied.
+
+*Corrected 2026-08-23 — the original wording named the wrong mechanism twice.* There is no
+`WriteCommandAction` on this path: the write action is `ApplicationImpl.runEdtProgressWriteAction`'s
+`lock.runWriteActionBlocking`, and the command is `CommandProcessor.executeCommand` opened at
+`BaseRefactoringProcessor.java:453-458`. And "did not roll back" implies rollback is something a
+write action does — **no IntelliJ write action ever rolls back**. The exception dies in
+`PotemkinProgress.runInSwingThread`, which is `try { … } catch (ProcessCanceledException ignore) {}`
+(`PotemkinProgress.java:151-162`); `BaseRefactoringProcessor.doRefactoring` then simply `return`s.
+Undo *is* recorded — one `EditorChangeAction` per `DocumentEvent` — and restores the file
+byte-for-byte, but nothing invokes it and the user is told nothing.
 
 ## 2. What this is not
 
@@ -55,8 +64,13 @@ look like a considered decision. Recording it here rather than paraphrasing it a
 
 ## 4. Scope
 
-Pre-existing — the loop and its `checkCanceled()` are Phase 2/3 code, unchanged by Phases 4-6, and no
-remaining REFACT-01 phase touches them. Every rename of a symbol with more than one usage is exposed.
+Written by **Phase 2 of this feature** (`84eefb25`), not pre-existing to REFACT-01 — an earlier
+version of this section said otherwise, using "pre-existing to Phase 6" to license the broader claim.
+It falsifies `REFACT-01-01` (**Must**), now corrected from Full to Partial.
+
+**Exposure starts at the *second* cancellation check, not the first** — corrected 2026-08-23. A
+cancel at the first check leaves the file untouched, because the parse inside `setName` throws before
+usage 1 is written. "Every rename of a symbol with more than one usage" overstated it.
 
 ## 5. Fix strategy
 
@@ -65,6 +79,13 @@ Two candidates, and the choice is a real design decision rather than a patch:
 1. **Drain the rewrites into one atomic step** — resolve every edit, then apply them with no
    cancellation point in between. Matches what Phase 2's remediation already did for the
    *resolution* half.
+
+   **As written this is insufficient, measured 2026-08-23.** Removing *our* cancellation point is not
+   enough: with all edits prepared and the loop unwrapped, cancelling after the first `replaceChild`
+   still splits the file, because `ASTNode.replaceChild` reaches a cancellation point of its own
+   before `PomModelImpl.runTransaction`'s non-cancelable section (`PomModelImpl.java:112`). The
+   cancellation points are not only ours. `ProgressManager.executeNonCancelableSection` around the
+   apply phase is what actually closes it.
 2. **Make the partial state explicit** — if a cancel between edits is unavoidable, the refactoring
    must fail loudly rather than return with the file inconsistent.
 

@@ -103,6 +103,13 @@ behaviour:
 | `canProcessElement` claims every Lua `LuaNameRef`, including a usage that resolves to nothing | **Executed 2026-08-23, after a first attempt that could not have detected it.** TC-26 as specified called `substituteElementToRename` directly, which bypasses `canProcessElement` entirely: narrowing the predicate to `kindOf(element) != null` left the whole suite green. TC-26 now asserts `RenamePsiElementProcessor.forElement(...)` and drives `renameElementAtCaret`, and the narrowing mutant reddens it. |
 | The index's assignment rule and §3.5 row 14 are the same rule | **Read, and it was wrong the first time** — the previous draft claimed `LuaGlobalAssignmentIndex.Indexer.map:92-104` "verbatim"; the index is top-down over `topLevel.filterIsInstance<LuaAssignmentStatement>()` and only its file-scope-locals clause was genuinely shared. §2.10 change 0 makes them one rule in code; **DR-09** executes `LuaCrossFileGlobalResolutionTest` against the delegated form before it lands. |
 | Clause 3's O(1) form is equivalent to the index's membership test | **Read** — `LuaPsiImplUtil.kt:67-68` and `LuaBlockImpl.java:34-36` are both direct-children-only. **DR-08** executes both forms on the same two fixtures and requires them to agree. |
+| `renameElement`'s `ProgressManager.checkCanceled()` is reachable — a cancellable indicator IS on the thread | **Executed 2026-08-23**, and it settles the question the Phase-6 review left open. A `CoreProgressManager.CheckCanceledHook` filtered by `StackWalker` to checks whose immediate caller is `LuaRenameProcessor` fires exactly three times for a three-usage rename, each reporting `indicator=com.intellij.openapi.progress.util.PotemkinProgress`, `isCanceled=false`, `isInNonCancelableSection=false`. So the check is a real cancellation point, not dead code, and §3.3's cost for moving it is real rather than theoretical. (An earlier probe read `NonCancelableIndicator` / `nonCancelable=true` and was measuring the wrong instant — it sampled from a `DocumentListener`, which fires *inside* `PomModelImpl.runTransaction`'s own non-cancelable section, `PomModelImpl.java:112`.) |
+| Cancelling that indicator mid-loop leaves the file half-applied, silently | **Executed 2026-08-23** on `5b7c6ca4`, fixture `local counter = 0` / `counter = counter + 1` / `print(counter)`. Cancel at the processor's 2nd check → `local counter = 0` / `counter = total + 1` / `print(counter)`; at the 3rd → two usages moved, declaration not; `thrown = null` both times. **Cancel at the 1st check leaves the file untouched**, which is why [[BUG-468]] §6's trap is real in a second way: a test that cancels at the first check is green on the defect. |
+| The `ProcessCanceledException` is swallowed, not lost | **Read, from one place** — `PotemkinProgress.runInSwingThread` is `try { ProgressManager.getInstance().runProcess(action, this) } catch (ProcessCanceledException ignore) {} finally { progressFinished(); }` (`PotemkinProgress.java:151-162`). `ApplicationImpl.runEdtProgressWriteAction` (`:1135-1154`) then returns `!indicator.isCanceled()`, and `BaseRefactoringProcessor.doRefactoring` `return`s on false (`:659-662`). The executed half is the `thrown = null` in the row above. |
+| The write action does not roll back because **no write action ever rolls back** | **Read, from the undo machinery** — a write action is not a transaction. `DocumentUndoProvider.documentChanged` turns each `DocumentEvent` into an `EditorChangeAction` appended to the command `BaseRefactoringProcessor.execute` opened (`DocumentUndoProvider.java:74-92, 126-129`; `BaseRefactoringProcessor.java:453-458`). Undo is **recorded**, never deferred, so nothing reverses the earlier edits when a later one throws. **Executed**: after the half-apply above, `UndoManager.isUndoAvailable` is `true`, the action is named `Undo Renaming local variable counter`, and undoing restores the file byte-for-byte — so the platform supplies *recovery*, not rollback, and the user is told nothing that would make them reach for it. |
+| Precomputing every edit is NOT sufficient on its own | **Executed 2026-08-23.** With all three usage swaps prepared as `(hostNode, identifierNode, replacementNode)` and the live indicator cancelled from a `DocumentListener` after the **first** `replaceChild`, the unwrapped apply loop throws `ProcessCanceledException` and leaves `print(total)` alone on the new name. The identical run wrapped in `ProgressManager.getInstance().executeNonCancelableSection { … }` throws nothing and applies all three. Cancelling *before* the first swap aborts with the file untouched. This is what makes §3.3 step 4's section load-bearing rather than defensive, and it is the measurement that rules out the naive reading of [[BUG-468]] §5 candidate 1 ("no cancellation point in between") — the cancellation points are not only ours. |
+| A parse under a cancelled indicator throws, and a non-cancelable section stops it | **Executed 2026-08-23.** `LuaElementFactory.createIdentifier(project, "total")` under a cancelled `ProgressIndicatorBase` → `ProcessCanceledException`; the same call inside `executeNonCancelableSection` → success. This is why `RenameUtil.rename` in a usage loop is interruptible even with our own `checkCanceled` deleted: `handleElementRename` → `LuaNameRefElementImpl.setName` → `createIdentifier` parses. |
+| With non-code search on, a `NonCodeUsageInfo` reaches `renameElement`'s usage array | **Executed 2026-08-23.** `RenameProcessor(project, leaf, "total", true, true).findUsages()` over `-- counter tracks the total` + `local counter = 0` + two usages returns four: three `MoveRenameUsageInfo` with a `LuaNameReference` over a `LuaNameRefImpl`, and one `NonCodeUsageInfo` over a `PsiCommentImpl` with `getReference() == null`. §3.3 step 3's first two nulls are therefore a live branch, not a theoretical one, and skipping it matches `RenameUtilBase.rename` exactly. |
 | `getElementToSearchInStringsAndComments` returning the leaf makes the non-code search inert | **Read** — `RenamePsiElementProcessorBase.java:264-266` (default returns `element`), `RenameUtil.java:145-155` (the search string comes from *that* element), `DefaultNonCodeSearchElementDescriptionProvider.java:37-40` (only `PsiNamedElement` has a general branch), `ElementDescriptionUtil.java:26` (falls back to `toString()`). **TC-13c executes it** by asserting the description is exactly `"counter"`. |
 
 ### Prior Art in This Repo
@@ -303,11 +310,20 @@ object LuaDeclarationSite {
   earlier "no I/O" claim was false. `canProcessElement` (§3.0) does **not** resolve and must not.
   `renameElement` is called by `BaseRefactoringProcessor` "in a
   command, on EDT, inside a Write Action" (its own javadoc, line 272) — so it must **not** open a
-  second `WriteCommandAction`.
+  second `WriteCommandAction`. **Measured, and the measurement is what §3.3 turns on:** the
+  indicator on the thread throughout `renameElement` is a live, cancellable
+  `com.intellij.openapi.progress.util.PotemkinProgress`
+  (`ApplicationImpl.runEdtProgressWriteAction:1135-1154`), *not* a `NonCancelableIndicator`, so a
+  `ProgressManager.checkCanceled()` there really can throw. §3.3 step 4 therefore declares its own
+  non-cancelable region explicitly rather than assuming one.
 - **Collaborators**: `LuaDeclarationSite`, `LuaRenameConflictDetector`, `LuaCatsParamRenamer`,
   `LuaElementFactory.createIdentifier`, `com.intellij.refactoring.rename.RenameUtil.rename`,
   `CommonRefactoringUtil.showErrorHint`, `LuaBundle.message`, and — for §3.1 step 4a —
   `com.intellij.psi.util.PsiTreeUtil.getParentOfType` with `net.internetisalie.lunar.lang.psi.LuaFuncName`.
+  §3.3 adds three more: `com.intellij.openapi.progress.ProgressManager.executeNonCancelableSection`,
+  `net.internetisalie.lunar.lang.LuaNameReference` (the usage-rewrite discriminator) and
+  `net.internetisalie.lunar.lang.psi.LuaElementTypes.IDENTIFIER` (the child the swap targets, the
+  same constant `LuaNameRefElementImpl.setName` uses at `LuaBaseElements.kt:84`).
 
 Each override's behaviour is specified in §3: `canProcessElement` in **§3.0**,
 `substituteElementToRename` in §3.1, `findReferences` in §3.2, `renameElement` in §3.3,
@@ -347,6 +363,13 @@ class LuaRenameProcessor : RenamePsiElementProcessor() {
     override fun setToSearchInComments(element: PsiElement, enabled: Boolean)
     override fun isToSearchForTextOccurrences(element: PsiElement): Boolean
     override fun setToSearchForTextOccurrences(element: PsiElement, enabled: Boolean)
+
+    // Private, and specified in full by §3.3. Both are within the engineering-contract §3
+    // parameter cap; the four-argument `renameElement` above is a platform override and is not.
+    private fun preparedDeclarationRewrite(element: PsiElement, replacement: PsiElement): (() -> Unit)?
+    private fun preparedUsageRewrites(usages: Array<UsageInfo>, newName: String): List<() -> Unit>
+    private fun preparedUsageRewrite(usage: UsageInfo, newName: String): (() -> Unit)?
+    private fun refuseRewrite(newName: String): Nothing
 }
 ```
 
@@ -1016,52 +1039,150 @@ override fun canProcessElement(element: PsiElement): Boolean {
 
 ### 3.3 Applying the rename — `renameElement`
 
-- **Input → Output**: `(leaf, newName, usages, listener) → Unit`. Runs inside the platform's write
-  action; opens no `WriteCommandAction` of its own.
-- **Steps**:
-  1. Capture, **before** any mutation, the three values later steps read — the declaration leaf is
-     replaced in step 4 and none of them can be recovered afterwards:
-     `val kind = LuaDeclarationSite.kindOf(element)` (step 5's branch condition),
-     `val oldName = element.text` (step 5's tag selector, §3.6), and
-     `val catsOwner = PsiTreeUtil.getParentOfType(element, LuaCatsCommentOwner::class.java, false)`.
-  2. **Resolve everything that can fail, before the first edit** — the ATOMICITY rule, corrected at
-     the Phase-2 review after the original steps 2-4 shipped in the opposite order (see the
-     edge-handling bullet, and `risks-and-gaps.md` Gap 2.13):
-     `val replacement = LuaElementFactory.createIdentifier(element.project, newName)` and the
-     declaration's AST swap, prepared but not applied — its parent node, the leaf's node and the
-     replacement's node. If **any** of them is unavailable, refuse the whole rename by throwing
+- **Input → Output**: `(leaf, newName, usages, listener) → Unit`. Runs on the EDT inside the
+  platform's write action, under a live, cancellable `PotemkinProgress` (measured — see the
+  reachability row below); opens no `WriteCommandAction` of its own.
+- **The invariant this method must hold**: when it returns *or* throws, the file is either fully
+  renamed or byte-identical to what it was. There is no third state, on any path, including
+  cancellation.
+- **Steps** (the Phase-8 shape; the Phase-2 shape and exactly what `d8e571e2` did and did not make
+  atomic are recorded below):
+  1. Capture, **before** any mutation, the two values later steps read — the declaration leaf is
+     replaced in step 4 and neither can be recovered afterwards:
+     `val declarationKind = LuaDeclarationSite.kindOf(element)` (step 4's branch condition) and
+     `val oldName = element.text` (step 4's tag selector, §3.6).
+  2. **Resolve the declaration's rewrite, before the first edit** — the ATOMICITY rule, introduced
+     at the Phase-2 review (`d8e571e2`):
+     `val replacement = LuaElementFactory.createIdentifier(element.project, newName)` and
+     `val applyDeclarationRewrite = preparedDeclarationRewrite(element, replacement)` — the parent
+     node, the leaf's node and the replacement's node read but **not** swapped. If either is
+     unavailable, refuse the whole rename by throwing
      `IncorrectOperationException(LuaBundle.message("refactoring.rename.rewriteUnavailable", newName))`,
      which `RenameProcessor.performRefactoring` catches and reports through
      `RenameUtil.showErrorMessage` (`RenameProcessor.java:432-435`, `RenameUtil.java:264-268`).
      (`LuaElementFactory.createIdentifier` returns null for a name that cannot be an identifier —
      `goto end` does not parse, `lua.bnf:125` — and is covered in both directions by
      `LuaElementFactoryTest`.)
-  3. For each `usage in usages`: `ProgressManager.checkCanceled()`; `RenameUtil.rename(usage, newName)`.
-     (`RenameUtilBase.rename` → `usage.reference?.handleElementRename(newName)`, which is §2.5.)
-     Usages are rewritten before the declaration, matching
-     `RenameUtilBase.doRenameGenericNamedElement`'s own order, so that no usage's reference is
-     invalidated by the declaration edit.
-  4. Apply the swap prepared in step 2: `parentNode.replaceChild(targetNode, replacementNode)`.
-     This is the repo's proven leaf-swap idiom — the body of both
-     `LuaNameDeclElementImpl.setName` and `LuaNameRefElementImpl.setName`
-     (`LuaBaseElements.kt:61-70` and `:83-92`). It works uniformly for the `LuaNameRef` parent of
-     every declaration kind in §3.5 except one **and** for the `LuaNumericForStatement` parent of
-     that one — the numeric-`for` variable, which has no `LuaNameRef` and therefore no
-     `PsiNamedElement` at all (`lua.bnf:152`).
-  5. If `kind == LuaDeclarationKind.PARAMETER && catsOwner != null`:
-     `LuaCatsParamRenamer.rename(replacement, oldName, newName)` (§3.6).
-  6. `listener?.elementRenamed(replacement)`.
-- **Edge handling — this bullet was WRONG as written, and the code that followed it was wrong with
-  it.** It read: *"step 3 returning `null` (parse failure of the new name) aborts before any
-  declaration edit; usages are already renamed at that point, which cannot happen in practice
-  because `LuaNamesValidator.isIdentifier` gates the dialog first"*. The first clause states the
-  defect and the second dismisses it with the wrong argument: the dialog is not the only caller of
-  `renameElement`, and "the declaration keeps the old name while every usage carries the new one" is
-  **BUG-457 inverted** — the failure class this whole feature exists to remove, produced inside the
-  method that removes it. A refusal is the correct outcome and a half-rename in either direction is
-  not, so the ordering above makes the half-state unrepresentable rather than unlikely.
-  `LuaNamesValidator` remains the first defence (REFACT-01-10, TC-11); step 2 is the second, and
-  TC-36 is its gate with the reviewed ordering as its proven mutant.
+  3. **Resolve every USAGE's rewrite too, and do it cancellably** —
+     `val applyUsageRewrites = preparedUsageRewrites(usages, newName)`, which is
+     `usages.mapNotNull { usage -> ProgressManager.checkCanceled(); preparedUsageRewrite(usage, newName) }`.
+     `ProgressManager.checkCanceled()` is called **first in every iteration**, satisfying
+     engineering-contract §2 CANCELLATION EXHAUSTIVENESS, and it is safe here for the reason it was
+     never safe in step 4: this loop writes nothing. It is also where the whole per-usage cost
+     lives — a `SmartPsiElementPointer` deref that can restore a file (`UsageInfo.getElement()`),
+     and a parse per usage (`LuaElementFactory.createIdentifier` builds `goto <newName>`).
+     `preparedUsageRewrite(usage, newName): (() -> Unit)?` decides one usage, in this order:
+     1. `val host = usage.element ?: return null`.
+     2. `val reference = usage.reference ?: return null`. These two nulls are **exactly**
+        `RenameUtilBase.rename`'s own two early returns (`RenameUtilBase.java:90-95`), so skipping
+        them is what today's code already does, not a new omission. This is the branch a
+        `NonCodeUsageInfo` takes: measured with "Search in comments and strings" on, the usage array
+        for `-- counter tracks the total` + `local counter = 0` + two usages holds three
+        `MoveRenameUsageInfo`/`LuaNameReference` entries and one `NonCodeUsageInfo` over a
+        `PsiCommentImpl` whose `getReference()` is `null`. That comment is rewritten later and
+        elsewhere — `RenameUtil.renameNonCodeUsages` from `performPsiSpoilingRefactoring` — never
+        here.
+     3. `val hostNode = host.node` and, **only when `reference is LuaNameReference`**,
+        `val identifierNode = hostNode?.findChildByType(LuaElementTypes.IDENTIFIER)`. If either is
+        null, return the delegating closure `{ RenameUtil.rename(usage, newName) }` — a closure, not
+        an immediate call, so it still runs inside step 4's section. It is unreachable today and is
+        written as a fallback rather than a `return null` because a silent skip is the half-apply
+        class this method exists to remove: the only `PsiReference` implementations in `src/main/`
+        are `LuaNameReference` (`lang/LuaNameReference.kt:29`), `LuaLabelReference` (`:22`, which
+        resolves to a `LuaLabelName` and is excluded by §3.0) and `LuaRequireReference` (`:11`,
+        which resolves to a `PsiFile`), so only the first can be a usage of a declaration
+        IDENTIFIER leaf.
+     4. `val replacementNode = LuaElementFactory.createIdentifier(host.project, newName)?.node ?: refuseRewrite(newName)`.
+        **No test pins that Elvis and none can**: `createIdentifier` is a pure function of
+        `(project, newName)` and step 2 already got a non-null answer for the same pair two
+        statements earlier, so a null here is unreachable rather than merely unlikely. It is written
+        as a refusal instead of `return null` so that if the factory ever becomes non-deterministic
+        the outcome is a refusal and not a skipped usage. Recorded as unpinnable rather than
+        given a decorative test.
+     5. Return `{ hostNode.replaceChild(identifierNode, replacementNode) }` — the same AST swap
+        `LuaNameRefElementImpl.setName` performs (`LuaBaseElements.kt:83-92`), with the parse hoisted
+        out of it. This is also the point at which Gap 2.13's silent half of `setName` stops
+        applying to every usage this processor can express as a leaf swap: `setName` skips its
+        `replaceChild` when the factory returns null and says nothing, while sub-step 4 above refuses
+        before anything is written. The delegating closure of sub-step 3 still goes through
+        `setName`, and Gap 2.13 still describes it — that branch is unreachable today.
+  4. **Apply everything in one non-cancelable section**:
+     ```kotlin
+     ProgressManager.getInstance().executeNonCancelableSection {
+         applyUsageRewrites.forEach { applyRewrite -> applyRewrite() }
+         applyDeclarationRewrite()
+         if (declarationKind == LuaDeclarationKind.PARAMETER) {
+             LuaCatsParamRenamer.rename(replacement, oldName, newName)
+         }
+     }
+     ```
+     Usages stay ahead of the declaration, matching `RenameUtilBase.doRenameGenericNamedElement`'s
+     own order (`RenameUtilBase.java:43-59`). With every reference already resolved in step 3 the
+     order no longer *has* to be that way — it is kept because changing it would change behaviour
+     for no reason. The `---@param` propagation is **inside** the section for the same reason as
+     everything else: it is an edit, and an edit outside the section can be separated from the ones
+     before it.
+     **Two corrections to what this design said before, both aligning it with the code that
+     actually shipped in Phase 6 rather than quietly rewriting history**: the guard is
+     `declarationKind == LuaDeclarationKind.PARAMETER` alone, not the `&& catsOwner != null` this
+     section used to specify, and there is no `catsOwner` captured in step 1 at all — the renamer
+     re-derives the owner from `replacement`, because `replaceChild` puts the replacement in the old
+     leaf's slot and the ancestor chain is unchanged by the swap (measured in Phase 6; stated in
+     `LuaRenameProcessor.renameElement`'s KDoc). A pre-captured owner would only restate the
+     renamer's own first step.
+  5. `listener?.elementRenamed(replacement)` — outside the section; it writes nothing.
+- **Why the section is not belt-and-braces.** Precomputing the swaps is necessary and **not
+  sufficient**, measured: with all three swaps prepared and the live indicator cancelled after the
+  first `replaceChild`, the unwrapped loop throws `ProcessCanceledException` and leaves
+  `local counter = 0` / `counter = counter + 1` / `print(total)` — one usage moved, the declaration
+  and the other two not. The identical run wrapped in `executeNonCancelableSection` throws nothing
+  and applies all three. `ASTNode.replaceChild` reaches a cancellation point of its own before it
+  enters `PomModelImpl.runTransaction`'s section (`PomModelImpl.java:112`), so removing *our*
+  `checkCanceled` from the apply path does not make the apply path uninterruptible.
+- **Why the section does not violate engineering-contract §2.** The rule's purpose is stated in the
+  contract itself — "to prevent locking the IDE when a user cancels an action". Step 3 keeps a
+  cancellation point at the start of every iteration of the loop that carries the cost (a pointer
+  deref plus a parse per usage). Step 4 is a bounded run of `ASTNode.replaceChild` calls with no
+  parse, no index read and no VFS access, which cannot lock the IDE, and it is strictly *more*
+  cancellable than the platform's own generic rename: `RenameUtilBase.doRenameGenericNamedElement`
+  has **no** `checkCanceled` anywhere, and parses inside its usage loop
+  (`RenameUtilBase.java:43-51` → `:90-95` → `handleElementRename`).
+- **What the user sees.** Nothing, which is correct and is a change only in what the file looks like
+  afterwards. A cancelled refactoring is silent by platform convention:
+  `runWriteActionWithCancellableProgressInDispatchThread` returns `false` and `doRefactoring` simply
+  returns (`BaseRefactoringProcessor.java:659-662`). Today that silence sits on top of a broken
+  file; after this phase it sits on top of an untouched one. **The residual is the mirror image**:
+  a Cancel that arrives after step 3 has finished is *ignored* — the rename completes. That is the
+  deliberate trade (an ignored Cancel with a correct file beats an honoured Cancel with a broken
+  one), it is bounded by the length of step 4, and the result is a single undoable command:
+  measured, `UndoManager.isUndoAvailable` is true, the action is named
+  `Undo Renaming local variable counter`, and undoing it restores the file byte-for-byte.
+
+#### What `d8e571e2` made atomic, and what it did not
+
+`d8e571e2`'s subject line is *"make the rename atomic"* and its body says *"everything that can fail
+now resolves before the first edit"*. Both are true of **resolution** and neither is true of
+**application**, and the sentence has been read as the broader claim — including by this design,
+whose §3.3 said the ordering "makes the half-state unrepresentable rather than unlikely". It did no
+such thing. What that commit closed is the path where `renameElement` discovered a *failure* between
+its two edits. What it left open is the path where the *user* interrupts between them, which is
+[[BUG-468]], and the loop it shipped is the mechanism:
+
+```kotlin
+usages.forEach { usage ->
+    ProgressManager.checkCanceled()
+    RenameUtil.rename(usage, newName)
+}
+applyDeclarationRewrite()
+```
+
+Measured on the parent commit `5b7c6ca4`, fixture `local counter = 0` / `counter = counter + 1` /
+`print(counter)`, cancelling the live indicator at the processor's **second** `checkCanceled`: the
+file becomes `local counter = 0` / `counter = total + 1` / `print(counter)` — one usage on the new
+name, the declaration and the rest on the old — and `renameElementAtCaret` returns normally, with
+`thrown = null`. At the **third** check: two usages moved, declaration not. The scope of the
+atomicity claim is corrected here, in §1's evidence table, and in `REFACT-01-01`'s status, which is
+`Partial` until this phase ships.
 
 ### 3.4 Conflict detection (REFACT-01-14)
 
@@ -1706,7 +1827,7 @@ refactoring.rename.conflict.ambiguousGlobal=''{0}'' is declared in {1} places; w
 
 | Requirement | Priority | Implemented by |
 | :--- | :---: | :--- |
-| `REFACT-01-01` Rename a local + all references | M | §2.2, §3.1, §3.2, §3.3 |
+| `REFACT-01-01` Rename a local + all references | M | §2.2, §3.1, §3.2, §3.3. **Not complete until §3.3's Phase-8 steps 3-4 ship**: the uncancelled path landed in Phase 2, and the cancelled path leaves the file half-renamed ([[BUG-468]], Gap 2.17), which the requirement's own Verification section calls a data-loss-class defect. |
 | `REFACT-01-02` Invoked from a usage site | M | §3.1 steps 2-3 |
 | `REFACT-01-03` Scope-exact under shadowing | M | §3.2 (search delegates isolation to `LuaNameReference.isReferenceTo`); §6 |
 | `REFACT-01-04` Rename a parameter | M | §3.5 row 12, §3.3 |
@@ -1767,6 +1888,50 @@ violation of the engineering contract §1.
 Rejected as scope: it requires `LuaTypeManager.resolveType` / `LuaClassType.resolveMember` plumbing
 into `LuaNameReference`, which is type-engine work with its own corpus-sweep exposure. Refusing the
 colon form loudly is correct and cheap; DR-03 tracks the follow-up.
+
+**F. Keep the cancellation point where it is and make the partial state explicit** —
+[[BUG-468]] §5 candidate 2: catch the `ProcessCanceledException` in `renameElement` and rethrow it as
+an `IncorrectOperationException` so the refactoring fails loudly instead of returning with the file
+inconsistent. **Rejected on the measurement, not on taste.** It does change what the user is told:
+`RenameProcessor.performRefactoring` catches `IncorrectOperationException` and reports it
+(`RenameProcessor.java:432-435`), which the `PotemkinProgress` `catch (ProcessCanceledException
+ignore)` at `PotemkinProgress.java:151-162` does not. But it leaves the file broken and merely
+announces it, and it announces it *for the user's own Cancel* — an error dialog is the wrong reply to
+a deliberate Cancel. It also cannot restore consistency: there is no rollback to invoke (see
+Alternative G), so the honest message would have to be "your file is now half-renamed, press Ctrl+Z",
+which is a worse product than not breaking the file. Candidate 1 was chosen because it removes the
+partial state instead of describing it.
+
+**G. Let the platform's undo close it** — do nothing in `renameElement` and rely on the fact that the
+half-applied edits are a single undoable command. **Rejected, and this one was measured before it was
+rejected**, because if it had held it was free: after a cancel-induced half-apply,
+`UndoManager.isUndoAvailable(fileEditor)` is `true`, the command is named `Undo Renaming local
+variable counter`, and `UndoManager.undo` restores the file byte-for-byte. So the recovery genuinely
+exists. It is not a fix for two reasons. First, undo is **recorded, not deferred** —
+`DocumentUndoProvider.documentChanged` appends an `EditorChangeAction` per `DocumentEvent`
+(`DocumentUndoProvider.java:74-92, 126-129`) — so nothing invokes it on the failure path; the user
+must. Second, the user is told nothing: `thrown = null`, no balloon, no status-bar message, and the
+progress dialog simply disappears. A recovery the user has no signal to reach for does not make the
+defect not a defect. What this measurement *does* buy is the residual in §3.3: the Cancel that
+arrives too late is safe precisely because the completed rename is one undoable command.
+
+**H. Delete the `ProgressManager.checkCanceled()` from the usage loop.**
+[[BUG-468]] §5 rules this out on the contract, and the measurement rules it out on the facts as well
+— it would not even work. With the check deleted the loop is still interruptible: `RenameUtil.rename`
+→ `LuaNameReference.handleElementRename` → `LuaNameRefElementImpl.setName` →
+`LuaElementFactory.createIdentifier` parses, and a parse under a cancelled indicator throws
+(executed; §1's evidence table). The interruption would simply move from a place we wrote to a place
+we did not, which is worse. The apply path is made uninterruptible by declaring it so
+(`executeNonCancelableSection`), not by removing our own checks from it.
+
+**I. Reuse `RenameUtilBase.doRenameGenericNamedElement` instead of writing the apply logic.**
+It is the platform's own atomic-by-construction rename — no `checkCanceled` anywhere, usages then
+`setName` then bindables (`RenameUtilBase.java:28-71`) — and it is the pattern §3.3 follows.
+Rejected as a *call*: it requires the renamed element to be a `PsiNamedElement`, and this processor's
+target is an IDENTIFIER **leaf** by design (§3.1). Handing it the leaf hits
+`LOG.error("Unknown element type:" + namedElement)` at `RenameUtilBase.java:39-41` — the same
+`Unknown element type` hazard §2.9 already documents on the other route. The platform supplies the
+shape here, not the path.
 
 ## 10. Open Questions
 

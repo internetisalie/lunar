@@ -965,14 +965,16 @@ the predicate through `kindOf` on a leaf rather than through the indexer's enume
 it to answer `null`.
 
 
-### Gap 2.17 — cancelling a rename leaves the file inconsistent
+### Gap 2.17 — cancelling a rename leaves the file inconsistent (OWNED BY PHASE 8)
 
-**Filed as [[BUG-468]].** `renameElement` rewrites every usage before the declaration, so a
-`ProcessCanceledException` at usage *k* leaves *k*-1 usages on the new name and the declaration on
-the old one — [[BUG-457]]'s shape, reached by pressing Cancel. Measured: the enclosing
-`WriteCommandAction` does **not** roll back, and the exception does not surface.
+**Filed as [[BUG-468]]. Owned by implementation-plan Phase 8, which realizes design §3.3 steps 3-4.**
+`renameElement` rewrites every usage before the declaration, so a `ProcessCanceledException` at usage
+*k* leaves *k*-1 usages on the new name and the declaration on the old one — [[BUG-457]]'s shape,
+reached by pressing Cancel. Measured: the enclosing `WriteCommandAction` does **not** roll back, and
+the exception does not surface.
 
-Pre-existing Phase 2/3 code, untouched by Phases 4-6, and no remaining phase touches it.
+Pre-existing Phase 2/3 code, untouched by Phases 4-6. Phase 8 is now the phase that touches it, and
+it precedes Phase 7 because this is the last open half of a `Must` while Phase 7 is a `Could`.
 
 **The first version of this paragraph called the damage "bounded at one usage", called it "smaller
 than Gap 2.13", and opened "Measured, not inferred".** All three were wrong: the bound is on latency
@@ -981,22 +983,104 @@ code, and only the no-rollback half was measured. It is recorded here because a 
 with more confidence than its evidence is the defect class this feature spent seven review rounds
 finding in its own artefacts — including, that time, in a supervisor's own writing.
 
+**What Phase-8 planning added by measurement**, all executed on `5b7c6ca4` and recorded in design §1:
+
+- **`checkCanceled()` there is reachable** — the Phase-6 review flagged this as unestablished, and it
+  is now established the other way: three checks per three-usage rename, each under a live
+  `PotemkinProgress` with `isInNonCancelableSection = false`. So option 2 had something real to fix
+  and option 1 had a real contract cost to justify. (One earlier probe read `NonCancelableIndicator`
+  and was sampling from a `DocumentListener`, which fires inside `PomModelImpl.runTransaction`'s own
+  non-cancelable section — the wrong instant, not a different answer.)
+- **The no-rollback mechanism is that nothing rolls back, ever.** A write action is not a
+  transaction. `PotemkinProgress.runInSwingThread` swallows the `ProcessCanceledException`
+  (`PotemkinProgress.java:151-162`), `ApplicationImpl.runEdtProgressWriteAction` reports it only as
+  `!indicator.isCanceled()` (`:1135-1154`), `BaseRefactoringProcessor.doRefactoring` `return`s on
+  that (`:659-662`), and undo is **recorded** rather than deferred —
+  `DocumentUndoProvider.documentChanged` appends one `EditorChangeAction` per `DocumentEvent`
+  (`:74-92, 126-129`). There is no compensating action anywhere on the path.
+- **The damage does not begin at the first usage.** Cancelling at the processor's *first* check
+  leaves the file untouched, because the parse inside `setName` throws before usage 1 is written.
+  This matters twice: [[BUG-468]] §4's "every rename of a symbol with more than one usage is
+  exposed" is right about exposure but the *first* interruption point is harmless, and a test that
+  cancels at the first check is green on the defect — a second edge to §6's trap.
+- **Draining the rewrites is necessary but not sufficient.** With every swap precomputed, an
+  unwrapped apply loop still splits under a cancel arriving after the first `replaceChild`. The
+  design closes it with `ProgressManager.getInstance().executeNonCancelableSection`, which is
+  measured to neutralise exactly that. This is also why *deleting* the `checkCanceled()` would not
+  have worked: with it gone the loop is still interruptible, at `RenameUtil.rename` →
+  `LuaNameRefElementImpl.setName` → `LuaElementFactory.createIdentifier`, which parses.
+
+**What Phase-8 planning did NOT establish, stated so it is not read as established:**
+
+- **That a user can reach this in a live IDE.** Every measurement drives cancellation
+  programmatically. A real user cancels through `PotemkinProgress`'s **Stop** button, and that
+  dialog is only shown after a delay and only steals input events once shown
+  (`PotemkinProgress.updateUI` / `interact`). For a rename fast enough that the dialog never paints,
+  the user may have no way to cancel at all — which would make [[BUG-468]] unreachable in practice
+  for small renames while remaining exactly as real for large ones. **Read, not run.** The
+  implementation-plan's live-IDE item for Phase 8 is the first thing that will test it, and the fix
+  does not depend on the answer: the failure mode is data loss, and a mechanism that is hard to
+  trigger is not a mechanism that is safe.
+- **How long the uncancellable window is.** See Gap 2.18.
+- **Whether a multi-file rename undoes as one command.** See the Undo bullet under Test Case Gaps.
+
+### Gap 2.18 — a Cancel that arrives during the apply phase is IGNORED (RESIDUAL OF PHASE 8, ACCEPTED)
+
+Design §3.3 step 4 runs every rewrite inside `ProgressManager.getInstance().executeNonCancelableSection`,
+so a Cancel pressed after the preparation loop has finished does not stop the rename: the file is
+fully renamed and the user's Cancel had no effect. **This is the residual the chosen option leaves,
+and it is deliberate**, on three grounds:
+
+1. An ignored Cancel with a correct file is strictly better than an honoured Cancel with a broken
+   one, which is what ships today.
+2. The window is bounded by a run of `ASTNode.replaceChild` calls with no parse, no index read and
+   no VFS access — every expensive step (the `SmartPsiElementPointer` deref and the per-usage parse)
+   has been moved into the cancellable preparation loop. The platform's own generic rename is
+   *less* cancellable: `RenameUtilBase.doRenameGenericNamedElement` has no `checkCanceled` anywhere
+   and parses inside its usage loop (`RenameUtilBase.java:28-71`).
+3. The outcome is recoverable in one keystroke and that was measured, not assumed: after a rename,
+   `UndoManager.isUndoAvailable(fileEditor)` is `true`, the command is named
+   `Undo Renaming local variable counter`, and `UndoManager.undo` restores the file byte-for-byte.
+
+**Not mitigated by a notification**, deliberately: the user sees the file renamed, so a message
+saying "your Cancel arrived too late" describes something already visible, and the platform issues no
+such message for any refactoring. Design §9 Alternative F records why announcing a partial state was
+rejected as a *fix*; this is the same argument applied to announcing a complete one.
+
+**Two things this residual is NOT.** It is not a claim that the apply phase is instantaneous — for a
+pathological usage count it is simply uninterruptible, and if that is ever measured to be a freeze,
+the fix is to batch the section, not to reintroduce a cancellation point between two edits. And it is
+not measured against a large project: every measurement behind Phase 8 used a three-usage
+single-file fixture, so the *duration* of the uncancellable window is unmeasured. The
+implementation-plan's live-IDE item for Phase 8 is where that gets a first look.
+
 ## Test Case Gaps
 
 - **Undo.** No test asserts that a rename is undoable as a single command. The platform provides it
   (`RenameUtil.registerUndoableRename`), but the design's `renameElement` performs raw AST surgery
   (`node.replaceChild`) outside any `WriteCommandAction` of its own — correct, because
   `BaseRefactoringProcessor` already supplies one, and *therefore* undo-safe. Worth one live check
-  (Ctrl+Z after a multi-file rename) rather than a unit test.
+  (Ctrl+Z after a multi-file rename) rather than a unit test. **The single-file half is no longer
+  inferred**: Phase-8 planning measured `isUndoAvailable = true`, the command name
+  `Undo Renaming local variable counter`, and a byte-for-byte restore, for a three-usage rename in
+  one file — used as the evidence for design §9 Alternative G and Gap 2.18, not as coverage. The
+  **multi-file** case is still unmeasured (`BaseRefactoringProcessor` only calls
+  `markCurrentCommandAsGlobal` when `isGlobalUndoAction()`, `:456`), and the live check is still the
+  right place for it.
 - **The production logger is not the test logger.** TC-13d asserts the absence of a
   `TestLoggerAssertionError`, which is what a `LOG.error` becomes under `BasePlatformTestCase`. A
   production `Logger` does not throw — it raises the IDE's internal-error notification and lets the
   null replacement through to `document.replaceString`. The two oracles differ in what they *do*, not
   in whether the branch was taken, so the unit gate is sound for "the branch is not taken"; the live
   checklist item (tick the checkbox, look for the internal-error balloon) is what covers the rest.
-- **Cancellation.** No test asserts `ProgressManager.checkCanceled()` is actually reached in
+- **Cancellation.** ~~No test asserts `ProgressManager.checkCanceled()` is actually reached in
   `findCollisions`/`findReferences`. Unit-testable only with a mock indicator; recorded rather than
-  built.
+  built.~~ **Withdrawn twice over.** Phase 4 built the `findCollisions` half
+  (`testCancellationIsCheckedPerIndexHitNotPerCall` and its two siblings) after measuring that a
+  mock *indicator* is inert here and that a `CheckCanceledHook` is the observation point. Phase 8
+  builds the `renameElement` half (TC-43/44/45) on the same harness. `findReferences` remains
+  uncovered, and stays that way on purpose: its loop is `ReferencesSearch.search(...).findAll()`,
+  whose cancellation belongs to the platform's searcher, not to this processor.
 - **Concurrent editing.** Renaming a global while another file is open and dirty is not covered.
   The platform handles document commit; recorded for completeness.
 - **`global` declarations (Lua 5.5) — the "covered by construction" claim was false in both
