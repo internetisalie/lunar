@@ -12,6 +12,7 @@ import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaAttName
 import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaLabelName
@@ -314,6 +315,64 @@ class LuaSafeDeleteTest : BasePlatformTestCase() {
             "identifierLeafOf must answer null for a decl with no nameRef, not raise",
             LuaDeclarationSite.identifierLeafOf(decl),
         )
+    }
+
+    /**
+     * The SECOND route into the same hazard, and the one the first test does not reach.
+     * `funcDecl ::= FUNCTION funcName funcBody` is `pin = 1` (`lua.bnf:189-190`), so a plain
+     * `function repeat() end` also produces a declaration node with no name child — and
+     * `LuaFuncDecl.getFuncName()` is `@NotNull` (`LuaFuncDecl.java:20-21`). Measured at `c541aefb`
+     * this raised `TestLoggerAssertionError` inside `PsiElementBase.notNullChild`, from evaluating
+     * the ARGUMENT of `functionNameLeafOf(element.funcName)` — before that function was entered, so
+     * no change inside it could have covered this.
+     */
+    @Test
+    fun testPartiallyParsedFunctionDeclarationIsHandledWithoutLoggingAnError() {
+        myFixture.configureByText("test.lua", "function repeat() end\n")
+        val decl =
+            requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaFuncDecl::class.java)) {
+                "Expected a LuaFuncDecl even though its name slot holds a keyword"
+            }
+        assertNull(
+            "identifierLeafOf must answer null for a funcDecl with no funcName, not raise",
+            LuaDeclarationSite.identifierLeafOf(decl),
+        )
+        assertFalse(
+            "A nameless function declaration is not an elevated declaration — and asking must not log",
+            processor.handlesElement(decl),
+        )
+    }
+
+    /**
+     * The generalisation of the two tests above, and the reason they are not the whole guard: two
+     * routes were found one at a time, by two separate measurements, because each test named a
+     * single PSI type. `handlesElement` is called with *whatever element the platform offers*, so
+     * the property is "no element of a partially parsed file makes it raise" — asked of every
+     * element, over the broken shape of each declaration form that carries a `pin`.
+     *
+     * A new `identifierLeafOf` row that dereferences a generated `@NotNull` getter fails here
+     * without anyone remembering to add a fixture for it.
+     */
+    @Test
+    fun testNoElementOfAPartiallyParsedDeclarationMakesTheProcessorLog() {
+        val brokenFixtures =
+            listOf(
+                "local function repeat() end\n",
+                "function repeat() end\n",
+                "function M.repeat() end\n",
+                "local repeat = 1\n",
+                "repeat = 1\n",
+            )
+        brokenFixtures.forEach { text ->
+            myFixture.configureByText("test.lua", text)
+            PsiTreeUtil.collectElements(myFixture.file) { true }.forEach { element ->
+                // Each of these is a TestLoggerAssertionError, not a false answer, when a row
+                // reaches a generated @NotNull getter on an absent child.
+                LuaDeclarationSite.identifierLeafOf(element)
+                LuaDeclarationSite.declarationNodeOf(element)
+                processor.handlesElement(element)
+            }
+        }
     }
 
     /** The FIRST IDENTIFIER leaf of that name — the declaration, in every fixture here. */

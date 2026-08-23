@@ -2,6 +2,21 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A declaration is a declaration everywhere now — `function M.run()` is findable, Lua 5.5
+  `global`s resolve across files, and Safe Delete stops leaving `global  = 1` behind** (REFACT-01
+  Phase 1). Lunar models no declaration PSI — apart from `::labels::`, every declared name is just a
+  name reference in a particular parent — so "is this a declaration?" was a question four subsystems
+  each answered with their own copy of the rule, and two of them already disagreed. Find Usages,
+  Safe Delete, reference search and the refactoring-availability check now share one classifier.
+  Three user-visible consequences: **Find Usages and Safe Delete work on a dotted function name**
+  (`function M.run() end`), which no copy of the old rule accepted; **a Lua 5.5 `global x = 1` or
+  `global function f() end` resolves from every other file in the project**, where before it was
+  invisible outside its own file and reported *Undeclared variable* at each use; and **Safe Delete
+  removes the whole declaration** for those forms instead of the bare name, which used to leave the
+  syntactically broken `global  = 1`. Typing an incomplete declaration — `function` or
+  `local function` with the name not yet written — no longer raises an internal-error notification
+  when the IDE asks whether it can be safely deleted.
+
 - **Lua settings pages, provisioning dialogs and the test-matrix window now line up with the rest
   of the IDE** (BUG-448, first batch): columns in the Definition Libraries list and the provisioning
   dialogs stopped drifting apart (85px and 90px of stagger — a label-less Kotlin UI DSL row sizes

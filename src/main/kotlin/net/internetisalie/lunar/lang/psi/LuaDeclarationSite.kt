@@ -64,7 +64,7 @@ object LuaDeclarationSite {
             element is LuaGlobalVarDecl -> element.attNameList.firstOrNull()?.let { nameRefLeafOf(it) }
             element is LuaLocalFuncDecl -> nameRefLeafOf(element)
             element is LuaGlobalFuncDecl -> element.nameRef?.identifier
-            element is LuaFuncDecl -> functionNameLeafOf(element.funcName)
+            element is LuaFuncDecl -> funcDeclNameLeafOf(element)
             element is LuaAssignmentStatement ->
                 element.varList.varList
                     .singleOrNull()
@@ -101,6 +101,12 @@ object LuaDeclarationSite {
      * `nameRef`. One rule, three callers: [identifierLeafOf], the rename processor's
      * receiver-segment guard, and
      * [net.internetisalie.lunar.lang.LuaNameReference]'s declaration normalisation.
+     *
+     * Non-null by contract — design §3.1 step 4a's round trip depends on it — and safe once a real
+     * `FUNC_NAME` node is in hand. `funcName ::= nameRef funcNameProperty* funcNameMethod?`
+     * (`lua.bnf:164-166`) is UNPINNED at every level, so a failed leading `nameRef` rolls the whole
+     * section back and no `FUNC_NAME` node is produced to pass in. Reaching one is
+     * [funcDeclNameLeafOf]'s job, and it is the caller that must be node-based, not this.
      */
     fun functionNameLeafOf(funcName: LuaFuncName): PsiElement =
         funcName.funcNameMethod?.nameRef?.identifier
@@ -200,6 +206,27 @@ object LuaDeclarationSite {
                 .findChildByType(LuaElementTypes.NAME_REF)
                 ?.psi as? LuaNameRef
         )?.identifier
+
+    /**
+     * The name leaf of [declaration]'s own `funcName`, reached through the AST node rather than the
+     * generated getter — the same SYNTAX-18 hazard [nameRefLeafOf] closes, on the one row that was
+     * left dereferencing one.
+     *
+     * `LuaFuncDecl.getFuncName()` is declared `@NotNull` (`LuaFuncDecl.java:20-21`) and
+     * `funcDecl ::= FUNCTION funcName funcBody` carries `pin = 1` (`lua.bnf:189-190`), so a
+     * `LuaFuncDecl` node exists with NO `funcName` child whenever a keyword sits in the name slot.
+     * Measured on the builder at `c541aefb`, fixture `function repeat() end`: the getter raised
+     * `TestLoggerAssertionError` from `PsiElementBase.notNullChild` — an internal-error balloon in
+     * production — on the `LuaSafeDeleteProcessor.handlesElement` path, and it raised while
+     * evaluating the ARGUMENT, before [functionNameLeafOf] was ever entered. That is why the fix is
+     * here and not inside [functionNameLeafOf], whose non-null return contract is unchanged.
+     */
+    private fun funcDeclNameLeafOf(declaration: LuaFuncDecl): PsiElement? =
+        (
+            declaration.node
+                .findChildByType(LuaElementTypes.FUNC_NAME)
+                ?.psi as? LuaFuncName
+        )?.let { functionNameLeafOf(it) }
 
     private fun kindFromLeafParent(parent: PsiElement): LuaDeclarationKind? =
         if (parent is LuaNumericForStatement) LuaDeclarationKind.NUMERIC_FOR_VARIABLE else null

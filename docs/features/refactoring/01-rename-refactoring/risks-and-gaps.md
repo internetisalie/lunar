@@ -482,8 +482,8 @@ can be promoted from **(inferred)** to verified.
 | `REFACT-01-00-DR-04` | Size `@class`/`@alias` rename: prototype rewriting a type name through `LuaCatsTypeNameIndex` and count the surfaces that would need it (docs, completion, inspections). | TBD-2 | todo |
 | `REFACT-01-00-DR-05` | Enumerate what `t.field` resolves to for the four receiver shapes in Gap 2.3 and confirm each refuses or lands on a genuine `DOTTED_FUNCTION`. | Gap 2.3 | todo |
 | `REFACT-01-00-DR-06` | Confirm `LeafElement.replaceWithText` is a legal edit on a `LuaCatsArgName` child inside a `LuaCatsLazyCommentImpl` (a lazy-parseable node) — the one AST operation in this design with no existing precedent in the repo. If it is not, fall back to rebuilding the comment text. | Design §3.6 | todo |
-| `REFACT-01-00-DR-07` | Before writing §2.10's collectors, run one `BasePlatformTestCase` that puts `global count = 0` in `a.lua` and `print(count)` in `b.lua` and asserts what `LuaNameReference.resolve()` returns for `b.lua`'s `count` **on the current tree**. The design asserts it is null (nothing indexes `LuaGlobalVarDecl`) from reading `LuaGlobalAssignmentIndex.kt:95-107`, not from running it. If it already resolves, §2.10 is unnecessary and rows 5/7 alone finish the job. Paste the output into design §1's evidence table either way. | Design §2.10, Gap 2.5 | todo |
-| `REFACT-01-00-DR-08` | Confirm the file-scope predicate of §3.5 row 14 against real PSI: for `cfg = {}` at file scope, assert `(target.parent as? LuaVarList)?.parent is LuaAssignmentStatement` and that the statement is in `containingFile.blockList.flatMap { it.statementList }`; for `function g() cfg = 1 end`, assert it is **not**. **Also assert the O(1) restatement agrees on both fixtures** — `stmt.parent is LuaBlock && stmt.parent.parent is LuaFile` — because §3.5 clause 3 ships in that form to keep `isBareAssignmentTarget` cheap enough for the indexer to call per target. The equivalence is derived from `LuaPsiImplUtil.kt:67-68` (`getChildrenOfType`, direct children) and `LuaBlockImpl.java:34-36` (`getChildrenOfTypeAsList`, direct children); this task is what makes it measured rather than derived. `LuaFile.getBlockList()` is `LuaPsiImplUtil.getBlockList` (`LuaFile.kt:31`) and the number of blocks a file exposes is read, not measured. | Design §3.5 row 14, §2.10 change 0 | todo |
+| `REFACT-01-00-DR-07` | Before writing §2.10's collectors, run one `BasePlatformTestCase` that puts `global count = 0` in `a.lua` and `print(count)` in `b.lua` and asserts what `LuaNameReference.resolve()` returns for `b.lua`'s `count` **on the current tree**. The design asserts it is null (nothing indexes `LuaGlobalVarDecl`) from reading `LuaGlobalAssignmentIndex.kt:95-107`, not from running it. If it already resolves, §2.10 is unnecessary and rows 5/7 alone finish the job. Paste the output into design §1's evidence table either way. | Design §2.10, Gap 2.5 | **done 2026-08-22 — it did NOT already resolve; §2.10 is load-bearing, measured** |
+| `REFACT-01-00-DR-08` | Confirm the file-scope predicate of §3.5 row 14 against real PSI: for `cfg = {}` at file scope, assert `(target.parent as? LuaVarList)?.parent is LuaAssignmentStatement` and that the statement is in `containingFile.blockList.flatMap { it.statementList }`; for `function g() cfg = 1 end`, assert it is **not**. **Also assert the O(1) restatement agrees on both fixtures** — `stmt.parent is LuaBlock && stmt.parent.parent is LuaFile` — because §3.5 clause 3 ships in that form to keep `isBareAssignmentTarget` cheap enough for the indexer to call per target. The equivalence is derived from `LuaPsiImplUtil.kt:67-68` (`getChildrenOfType`, direct children) and `LuaBlockImpl.java:34-36` (`getChildrenOfTypeAsList`, direct children); this task is what makes it measured rather than derived. `LuaFile.getBlockList()` is `LuaPsiImplUtil.getBlockList` (`LuaFile.kt:31`) and the number of blocks a file exposes is read, not measured. | Design §3.5 row 14, §2.10 change 0 | **done 2026-08-22 — subsumed by DR-09's three-pass run, see below** |
 | `REFACT-01-00-DR-09` | Before landing §2.10 change 0, run `LuaCrossFileGlobalResolutionTest` against a build in which `LuaGlobalAssignmentIndex.Indexer.map`'s assignment collector has been swapped for the `LuaDeclarationSite.isBareAssignmentTarget` form, and confirm its `local shadowed\nshadowed = 2` and `function f() nested = 1 end` fixtures still behave identically. The claim that the delegation is behaviour-preserving (clauses 2 and 3 are unconditionally true for a target reached by that enumeration) is currently **derived from reading**, and the index is the one component here whose defects are invisible until a user's persisted index is wrong. | Design §2.10 change 0, §3.5 row 14 | **done 2026-08-22 — delegation is behaviour-preserving, measured** |
 
 ### DR-09 result (2026-08-22)
@@ -532,13 +532,113 @@ offers**. Measured on the builder, one fixture, `local function repeat() end`:
 | rows 4-7 through a node-based `nameRefLeafOf` | `false`, nothing logged |
 
 Fixed in the Phase 1 follow-up commit by giving rows 4-7 a `nameRefLeafOf` helper alongside
-`boundName`; row 9 keeps `functionNameLeafOf`, whose non-null return type Phase 2 depends on.
-`LuaSafeDeleteTest.testPartiallyParsedLocalFunctionIsHandledWithoutLoggingAnError` is the gate, and
-the pre-fix run *is* its mutation proof: the same fixture raised on the same call.
+`boundName`. **Row 9 was left dereferencing a getter and was a second live instance of the same
+defect, not a Phase 2 risk** — see the correction below.
 
-**Design action for Phase 2:** §3.5's `identifierLeafOf` table should be restated in terms of the
-node read, and `functionNameLeafOf` re-examined — `funcName.nameRef` is `@NotNull` too, so
-`function repeat() end` may reach the same logger through row 9, which this phase did not execute.
+### Correction: row 9 was the same defect, on a second route (2026-08-22)
+
+The paragraph above deferred `function repeat() end` to Phase 2 as a *possible* hazard reached
+"through `funcName.nameRef`". Both halves were wrong, and the review that failed this phase measured
+it rather than reading it:
+
+- **The throw is one call earlier, at `element.funcName` — the ARGUMENT.**
+  `LuaFuncDecl.getFuncName()` is `@NotNull` (`LuaFuncDecl.java:20-21`) and `funcDecl ::= FUNCTION
+  funcName funcBody` carries `pin = 1` (`lua.bnf:189-190`), so a `LuaFuncDecl` node exists with no
+  `funcName` child at all. `functionNameLeafOf` is never entered, so the deferred action —
+  re-examining `funcName.nameRef` *inside* it — would not have touched the failing line.
+- **It was a regression against `28efcbe7`**, where `isElevatedDeclaration` was a pure type
+  enumeration that touched no getter and answered `true` safely.
+
+Fixed by making row 9 node-based (`funcDeclNameLeafOf`, `FUNC_NAME` via `node.findChildByType`).
+`functionNameLeafOf` keeps its non-null return, which design §3.1 step 4a depends on, and needs no
+change: `funcName ::= nameRef funcNameProperty* funcNameMethod?` (`lua.bnf:164-166`) is unpinned at
+every level, so a failed leading `nameRef` rolls the section back and **no `FUNC_NAME` node is
+produced to pass in**. The hazard is always at the caller that must obtain one.
+
+Mutation-proved on the builder, not assumed. With row 9 restored to
+`functionNameLeafOf(element.funcName)`, both new tests go red on the exact reviewer stack —
+`TestLoggerAssertionError` → `PsiElementBase.notNullChild(PsiElementBase.java:287)` →
+`LuaFuncDeclImpl.getFuncName(LuaFuncDeclImpl.java:49)` →
+`LuaDeclarationSite.identifierLeafOf(LuaDeclarationSite.kt:67)`. With the fix, green.
+
+| Gate | Fixture | Mutant (row 9 via the getter) | Fixed |
+| :--- | :--- | :--- | :--- |
+| `testPartiallyParsedFunctionDeclarationIsHandledWithoutLoggingAnError` | `function repeat() end` | **FAILED**, `TestLoggerAssertionError` | pass |
+| `testNoElementOfAPartiallyParsedDeclarationMakesTheProcessorLog` | 5 broken fixtures × every element | **FAILED**, `TestLoggerAssertionError` | pass |
+| `testPartiallyParsedLocalFunctionIsHandledWithoutLoggingAnError` | `local function repeat() end` | pass (different route) | pass |
+
+The third row is why the sweep test exists. Two routes into one defect were found one at a time,
+by two separate measurements, because each test named a single PSI type. The sweep asks the property
+instead — *no element of a partially parsed file makes `identifierLeafOf` / `declarationNodeOf` /
+`handlesElement` raise* — over every element of each broken declaration form that carries a `pin`,
+so a future `identifierLeafOf` row that reaches a generated `@NotNull` getter fails without anyone
+remembering to add a fixture for it.
+
+**Design action for Phase 2 (restated):** §3.5's `identifierLeafOf` table should be written in terms
+of the node read, not the generated getters. That is a documentation debt only — no row still
+dereferences one.
+
+### `LuaGlobalAssignmentNavigation`'s `attName.nameRef` — closed, not deferred (2026-08-22)
+
+`collectGlobalVarNames` read the `@NotNull` `LuaAttName.getNameRef()`, the same class of hazard. It
+is **not** reachable by any fixture found: `attName ::= nameRef attrib?` (`lua.bnf:243`) is unpinned,
+`attNameList` (`:242`) is a private unpinned rule and `globalVarDecl` (`:217`) is unpinned, so a
+failed leading `nameRef` rolls the whole section back and no `ATT_NAME` node is produced. It was
+still changed, to `LuaDeclarationSite.identifierLeafOf(attName)` — the point of routing every
+declaration-shape question through one object is that no caller has to re-derive that unreachability
+argument, and `LuaGlobalAssignmentIndex` already reads this exact shape node-based. The unpinned
+reasoning is recorded in the function's KDoc so a future grammar change that adds a `pin` to
+`attName` has something to invalidate.
+
+`LuaGlobalFuncDecl.getNameRef()`, checked at the same time, is `@Nullable` in the generated
+interface (`LuaGlobalFuncDecl.java:15-16`) despite `globalFuncDecl` carrying `pin = 2` — the one
+place the generator's nullability and the pin agree in the safe direction. No change needed.
+
+### DR-07 result (2026-08-22) — §2.10 is load-bearing
+
+DR-07 asked whether a Lua 5.5 `global` already resolved cross-file, because if it did, §2.10's
+collectors were unnecessary. Answered by mutation rather than by a throwaway probe, which makes the
+answer a permanent gate instead of a paragraph: `LuaLua55GlobalCrossFileResolutionTest` (5 cases)
+was run against a build with §2.10's two collectors deleted from
+`LuaGlobalAssignmentNavigation.find` — the exact pre-REFACT-01 resolution machinery, since with no
+collector nothing consults the index rows either.
+
+| Case | Without §2.10's collectors | With them |
+| :--- | :--- | :--- |
+| `global count = 0` read from another file | **FAILED** — `Undeclared variable 'count'` | pass |
+| `global alpha, beta = 1, 2` read from another file | **FAILED** — `expected:<[<empty>]> but was:<[Undeclared variable 'alpha'; Undeclared variable 'beta']>` | pass |
+| `global function greet() end` called from another file | **FAILED** — `Undeclared variable 'greet'` | pass |
+| a name declared nowhere | pass (still reported) | pass |
+| `local shadowed` + `global shadowed = 2` | pass (still reported) | pass |
+
+So it did **not** already resolve, and rows 5/7 alone would have shipped the Risk 1.1 shape exactly:
+a declaration classified project-wide whose usages are unresolvable in every other file. The two
+negative cases staying green in both columns is what shows the collectors are not silencing the
+inspection wholesale.
+
+### DR-08 (2026-08-22) — subsumed by DR-09's run, with one limit named
+
+DR-08 wanted the §3.5 row-14 file-scope predicate executed against real PSI, and the O(1)
+restatement (`stmt.parent is LuaBlock && stmt.parent.parent is LuaFile`) shown to agree with the
+`containingFile.blockList.flatMap { it.statementList }` membership test on both fixtures. DR-09's
+three-pass run is that measurement, on a wider input set than DR-08 specified:
+
+- the **baseline vs swapped** passes are precisely the two forms, run against the same nine fixture
+  files and 15 names, and their index contents were identical — including DR-08's two named cases,
+  file-scope `cfg = {}`-shaped assignments and a nested `function f() nested = 1 end`, plus
+  `do inBlock = 1 end` and `if true then inIf = 1 end`, which DR-08 did not ask for and which are
+  the shapes that separate "direct child of the file's block" from "anywhere in the file";
+- the **mutant** pass broke clause 3 alone (`block.parent is LuaFuncDecl`) and turned the probe and
+  3 of 7 resolution cases red, so the agreement was observed by a comparison capable of detecting
+  disagreement.
+
+**The limit, stated rather than glossed:** because both forms were exercised through the indexer's
+top-down enumeration, the comparison can only detect a predicate that *rejects* something the old
+rule accepted. A predicate that wrongly *accepted* a target the enumeration never reaches would be
+invisible to it. That direction is covered by `LuaDeclarationSiteTest.testKindOfRejectsEveryNonDeclaration`, whose
+row-14 clause-1/3/4 cases (`t.field = 1`, `function g() cfg = 1 end`, `local cfg` + `cfg = 2`) reach
+the predicate through `kindOf` on a leaf rather than through the indexer's enumeration, and require
+it to answer `null`.
 
 
 ## Test Case Gaps

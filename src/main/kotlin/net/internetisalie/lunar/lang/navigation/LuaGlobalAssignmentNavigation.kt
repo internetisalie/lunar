@@ -7,6 +7,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.util.indexing.FileBasedIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalAssignmentIndex
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaGlobalVarDecl
@@ -56,6 +57,15 @@ object LuaGlobalAssignmentNavigation {
     /**
      * Lua 5.5 `global a, b = 1, 2` — an `attName` hangs directly off the declaration exactly as it
      * does off a `local`, so the declared leaves are the `attName`s' name refs.
+     *
+     * Through [LuaDeclarationSite.identifierLeafOf] rather than `attName.nameRef.identifier`:
+     * `LuaAttName.getNameRef()` is `@NotNull` and the platform *logs an error* rather than returning
+     * null when the child is absent, so a getter here is the SYNTAX-18 hazard that made
+     * `LuaSafeDeleteProcessor.handlesElement` raise on `local function repeat() end`. No fixture is
+     * known to reach it — `attName ::= nameRef attrib?` (`lua.bnf:243`) is unpinned, so a failed
+     * leading `nameRef` rolls the section back and no `ATT_NAME` node is produced — but the whole
+     * point of routing every declaration-shape question through one object is that no caller has to
+     * re-derive that argument. `LuaGlobalAssignmentIndex` already reads this exact shape node-based.
      */
     private fun collectGlobalVarNames(
         decl: LuaGlobalVarDecl,
@@ -63,7 +73,8 @@ object LuaGlobalAssignmentNavigation {
         into: MutableList<PsiElement>,
     ) {
         decl.attNameList.forEach { attName ->
-            if (attName.nameRef.text == name) into.add(attName.nameRef.identifier)
+            val declaredLeaf = LuaDeclarationSite.identifierLeafOf(attName) ?: return@forEach
+            if (declaredLeaf.text == name) into.add(declaredLeaf)
         }
     }
 

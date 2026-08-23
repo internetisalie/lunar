@@ -65,6 +65,10 @@ class LuaNameReferenceSearcher : QueryExecutorBase<PsiReference, ReferencesSearc
         for (file in candidateFiles(target, name, parameters.effectiveSearchScope)) {
             ProgressManager.checkCanceled()
             for (nameRef in PsiTreeUtil.findChildrenOfType(file, LuaNameRef::class.java)) {
+                // Per name ref, not only per candidate file: one file can hold tens of thousands of
+                // them, and `isReferenceTo` below resolves — the expensive half of this loop.
+                // Invariant 3 wants a cancellation point at the start of EVERY iteration block.
+                ProgressManager.checkCanceled()
                 if (nameRef.identifier?.text != name) continue
                 val reference = nameRef.reference ?: continue
                 // Against the normalised leaf, never `requested`: isReferenceTo compares identity
