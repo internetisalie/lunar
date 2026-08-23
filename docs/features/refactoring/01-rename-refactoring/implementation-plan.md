@@ -810,5 +810,5 @@ in Phase 2, so the idiom lives here.
 | Phase 3: Conflict detection | done | Should |
 | Phase 4: Dotted method declarations | done | Should |
 | Phase 5: `require(...)` rewriting on file rename | done | Should |
-| Phase 6: LuaCATS `@param` propagation | todo | Should |
+| Phase 6: LuaCATS `@param` propagation | done | Should |
 | Phase 7: In-place rename and non-code search | todo | Could |
