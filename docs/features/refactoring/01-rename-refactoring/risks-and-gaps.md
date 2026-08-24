@@ -764,6 +764,7 @@ red, and was removed rather than inverted — it asserted a false claim about th
 | `REFACT-01-00-DR-07` | Before writing §2.10's collectors, run one `BasePlatformTestCase` that puts `global count = 0` in `a.lua` and `print(count)` in `b.lua` and asserts what `LuaNameReference.resolve()` returns for `b.lua`'s `count` **on the current tree**. The design asserts it is null (nothing indexes `LuaGlobalVarDecl`) from reading `LuaGlobalAssignmentIndex.kt:95-107`, not from running it. If it already resolves, §2.10 is unnecessary and rows 5/7 alone finish the job. Paste the output into design §1's evidence table either way. | Design §2.10, Gap 2.5 | **done 2026-08-22 — it did NOT already resolve; §2.10 is load-bearing, measured** |
 | `REFACT-01-00-DR-08` | Confirm the file-scope predicate of §3.5 row 14 against real PSI: for `cfg = {}` at file scope, assert `(target.parent as? LuaVarList)?.parent is LuaAssignmentStatement` and that the statement is in `containingFile.blockList.flatMap { it.statementList }`; for `function g() cfg = 1 end`, assert it is **not**. **Also assert the O(1) restatement agrees on both fixtures** — `stmt.parent is LuaBlock && stmt.parent.parent is LuaFile` — because §3.5 clause 3 ships in that form to keep `isBareAssignmentTarget` cheap enough for the indexer to call per target. The equivalence is derived from `LuaPsiImplUtil.kt:67-68` (`getChildrenOfType`, direct children) and `LuaBlockImpl.java:34-36` (`getChildrenOfTypeAsList`, direct children); this task is what makes it measured rather than derived. `LuaFile.getBlockList()` is `LuaPsiImplUtil.getBlockList` (`LuaFile.kt:31`) and the number of blocks a file exposes is read, not measured. | Design §3.5 row 14, §2.10 change 0 | **done 2026-08-22 — subsumed by DR-09's three-pass run, see below** |
 | `REFACT-01-00-DR-09` | Before landing §2.10 change 0, run `LuaCrossFileGlobalResolutionTest` against a build in which `LuaGlobalAssignmentIndex.Indexer.map`'s assignment collector has been swapped for the `LuaDeclarationSite.isBareAssignmentTarget` form, and confirm its `local shadowed\nshadowed = 2` and `function f() nested = 1 end` fixtures still behave identically. The claim that the delegation is behaviour-preserving (clauses 2 and 3 are unconditionally true for a target reached by that enumeration) is currently **derived from reading**, and the index is the one component here whose defects are invisible until a user's persisted index is wrong. | Design §2.10 change 0, §3.5 row 14 | **done 2026-08-22 — delegation is behaviour-preserving, measured** |
+| `REFACT-01-00-DR-10` | **Before writing any Phase-8 code**, establish whether a user can reach [[BUG-468]] at all. Drive a live IDE (`verify-in-ide`): rename a global used across enough files that `PotemkinProgress` paints its dialog, press **Stop** part-way, and record (a) whether the Stop button ever appears, (b) at what project size it appears — the dialog is gated on a 300 ms delay (`PotemkinProgress.updateUI:117-119`, `ProgressWindow.java:77`, `ProgressUIUtil.kt:8` = 300 ms) and steals input only once showing (`interact:84-85`) — and (c) whether the resulting file is split. **Outcome decides an ordering, not the fix**: if the Stop button is unreachable for realistic renames, Phase 8 is not the last open half of a live `Must` and Phase 7 (a `Could` that ships user-visible behaviour) should precede it; if it is reachable, the current Phase 8 → Phase 7 order stands and the recorded project size becomes the fixture for the post-implementation live check. Paste the observation into Gap 2.17 either way. | Gap 2.17, Gap 2.18, implementation-plan phase order | todo |
 
 ### DR-09 result (2026-08-22)
 
@@ -967,11 +968,24 @@ it to answer `null`.
 
 ### Gap 2.17 — cancelling a rename leaves the file inconsistent (OWNED BY PHASE 8)
 
-**Filed as [[BUG-468]]. Owned by implementation-plan Phase 8, which realizes design §3.3 steps 3-4.**
+**Filed as [[BUG-468]]. Owned by implementation-plan Phase 8, which realizes design §3.3 steps 3, 3a and 4.**
 `renameElement` rewrites every usage before the declaration, so a `ProcessCanceledException` at usage
 *k* leaves *k*-1 usages on the new name and the declaration on the old one — [[BUG-457]]'s shape,
-reached by pressing Cancel. Measured: the enclosing `WriteCommandAction` does **not** roll back, and
-the exception does not surface.
+reached by pressing Cancel.
+
+**Nothing rolls it back, and the reason is not the one this paragraph used to give.** It read
+*"Measured: the enclosing `WriteCommandAction` does **not** roll back"*, which [[BUG-468]] itself
+retracted in the same commit that wrote it here — the retraction landed in the bug report and not in
+this line. There is no `WriteCommandAction` on the path at all: the write action is
+`ApplicationImpl.runEdtProgressWriteAction`'s `lock.runWriteActionBlocking` (`:1135-1154`) and the
+command is opened by `CommandProcessor.executeCommand` at `BaseRefactoringProcessor.java:453-458`.
+And **no IntelliJ write action rolls back**, so naming one as the thing that failed to implies a
+mechanism that exists nowhere in the platform. What actually happens: the `ProcessCanceledException`
+dies in `PotemkinProgress.runInSwingThread`'s bare `catch (ProcessCanceledException ignore) {}`
+(`PotemkinProgress.java:151-162`), `doRefactoring` `return`s on `!indicator.isCanceled()`
+(`BaseRefactoringProcessor.java:659-662`), and undo is **recorded** rather than deferred
+(`DocumentUndoProvider.java:74-92, 126-129`) so nothing reverses the earlier edits. The exception
+does not surface; that half was always right.
 
 Pre-existing Phase 2/3 code, untouched by Phases 4-6. Phase 8 is now the phase that touches it, and
 it precedes Phase 7 because this is the last open half of a `Must` while Phase 7 is a `Could`.
@@ -1000,27 +1014,62 @@ finding in its own artefacts — including, that time, in a supervisor's own wri
   (`:74-92, 126-129`). There is no compensating action anywhere on the path.
 - **The damage does not begin at the first usage.** Cancelling at the processor's *first* check
   leaves the file untouched, because the parse inside `setName` throws before usage 1 is written.
-  This matters twice: [[BUG-468]] §4's "every rename of a symbol with more than one usage is
-  exposed" is right about exposure but the *first* interruption point is harmless, and a test that
-  cancels at the first check is green on the defect — a second edge to §6's trap.
+  (The check itself does not throw: the hook cancels the indicator, and `doCheckCanceled` discards
+  what `runCheckCanceledHooks` returns on its `ONLY_HOOKS` branch,
+  `CoreProgressManager.java:220-222`. The next cancellation point does the throwing, and the first
+  one reached is inside the rewrite of usage 1.) This matters twice: [[BUG-468]] §4's "every rename
+  of a symbol with more than one usage is exposed" is right about exposure but the *first*
+  interruption point is harmless, and a test that cancels at the first check is green on the defect
+  — a second edge to §6's trap.
+- **WHICH occurrence is left behind is not fixed, and no artifact may pin it.** Three runs on this
+  fixture, each stopping after exactly one usage had been applied, each left a *different*
+  occurrence carrying the new name — Phase-8 planning's cancel-at-check-2 probe the second, its
+  prepared-edits probe the third, the Step-9 review's run the first. Each is "whatever `usages[0]`
+  was in that run", so the three disagree about which occurrence `usages[0]` is. That is not three
+  contradictory measurements; it is the array order. `RenameUtil.findUsages` appends usages in the
+  iteration order of `elementProcessor.findReferences` (`RenameUtil.java:93-101, 133-142`), and
+  `LuaRenameProcessor.findReferences` returns `ReferencesSearch.search(element, effectiveScope).findAll()`
+  — a `Query`, whose contract specifies no ordering. **The invariant to assert is the property, not
+  the string**: after a cancel at check *k*, exactly *k*-1 of the occurrences carry the new name,
+  the declaration carries the old one, and the file is neither the input nor the fully-renamed
+  output. An artifact that names a specific half-applied text tells an implementer to expect a
+  shape their own run may not produce, and a correct reproduction then reads as a failure.
 - **Draining the rewrites is necessary but not sufficient.** With every swap precomputed, an
   unwrapped apply loop still splits under a cancel arriving after the first `replaceChild`. The
   design closes it with `ProgressManager.getInstance().executeNonCancelableSection`, which is
-  measured to neutralise exactly that. This is also why *deleting* the `checkCanceled()` would not
-  have worked: with it gone the loop is still interruptible, at `RenameUtil.rename` →
-  `LuaNameRefElementImpl.setName` → `LuaElementFactory.createIdentifier`, which parses.
+  measured to neutralise exactly that. **The cancellation point that does the splitting is named**,
+  and it is not `PomModelImpl`'s: `CompositeElement.replaceChild` (`:647`) calls
+  `ChangeUtil.prepareAndRunChangeAction` (`:659`), whose `model.runTransaction(new PomTransactionBase(changedElement.getPsi())`
+  (`ChangeUtil.java:148`) evaluates `getPsi()` as an **argument expression** — before
+  `runTransaction` is entered and therefore before `PomModelImpl.java:112`'s own non-cancelable
+  section — and `CompositeElement.getPsi()` opens with `ProgressIndicatorProvider.checkCanceled()`
+  (`:719-720`). This is also why *deleting* the `checkCanceled()` would not have worked: with it
+  gone the loop is still interruptible, at `RenameUtil.rename` → `LuaNameRefElementImpl.setName` →
+  `LuaElementFactory.createIdentifier`, which parses — and, once that is drained too, at
+  `getPsi()` above.
 
 **What Phase-8 planning did NOT establish, stated so it is not read as established:**
 
 - **That a user can reach this in a live IDE.** Every measurement drives cancellation
-  programmatically. A real user cancels through `PotemkinProgress`'s **Stop** button, and that
-  dialog is only shown after a delay and only steals input events once shown
-  (`PotemkinProgress.updateUI` / `interact`). For a rename fast enough that the dialog never paints,
-  the user may have no way to cancel at all — which would make [[BUG-468]] unreachable in practice
-  for small renames while remaining exactly as real for large ones. **Read, not run.** The
-  implementation-plan's live-IDE item for Phase 8 is the first thing that will test it, and the fix
-  does not depend on the answer: the failure mode is data loss, and a mechanism that is hard to
-  trigger is not a mechanism that is safe.
+  programmatically. A real user cancels through `PotemkinProgress`'s **Stop** button, and the read
+  is specific: the dialog is shown only once `now - myLastUiUpdate > delayInMillis`
+  (`PotemkinProgress.updateUI:117-119`) where `delayInMillis` defaults to
+  `ProgressUIUtil.DEFAULT_PROGRESS_DELAY_MILLIS` = **300 ms** (`ProgressWindow.java:77`,
+  `ProgressUIUtil.kt:8`), and input events are stolen only while
+  `getDialog().getPanel().isShowing()` (`interact:84-85`), with the click turned into a cancel by
+  `dispatchInputEvent` → `isCancellationEvent(e)` → `cancel()` (`:90-94`). For a rename that
+  finishes inside 300 ms the dialog never paints and the user has no Stop button to press — which
+  would make [[BUG-468]] unreachable for small renames while leaving it exactly as real for large
+  ones. **Read, not run.**
+
+  **This is now `REFACT-01-00-DR-10`, executed BEFORE Phase 8's implementation tasks rather than
+  after them**, because its answer can still change a decision at that point and cannot after.
+  Phase 8 was inserted ahead of Phase 7 on the ground that a `Must` outranks a `Could`; if the
+  defect is not user-reachable at all, that ordering was decided on a premise that does not hold and
+  Phase 7 should go first. Running the check after the code lands answers a question nobody can act
+  on. **What the answer does NOT change is whether to fix it**: the failure mode is data loss, a
+  mechanism that is hard to trigger is not a mechanism that is safe, and a rename over a large
+  project exceeds 300 ms comfortably. Only the *ordering* is at stake.
 - **How long the uncancellable window is.** See Gap 2.18.
 - **Whether a multi-file rename undoes as one command.** See the Undo bullet under Test Case Gaps.
 
@@ -1033,11 +1082,53 @@ and it is deliberate**, on three grounds:
 
 1. An ignored Cancel with a correct file is strictly better than an honoured Cancel with a broken
    one, which is what ships today.
-2. The window is bounded by a run of `ASTNode.replaceChild` calls with no parse, no index read and
-   no VFS access — every expensive step (the `SmartPsiElementPointer` deref and the per-usage parse)
-   has been moved into the cancellable preparation loop. The platform's own generic rename is
-   *less* cancellable: `RenameUtilBase.doRenameGenericNamedElement` has no `checkCanceled` anywhere
-   and parses inside its usage loop (`RenameUtilBase.java:28-71`).
+2. The window is bounded by a run of `ASTNode.replaceChild` calls plus at most one
+   `LeafElement.replaceWithText`, with no parse, no index read and no VFS access on any reachable
+   path — every expensive step has been moved into the cancellable preparation loop: the
+   `SmartPsiElementPointer` deref and the per-usage `LuaElementFactory.createIdentifier` parse
+   (design §3.3 step 3) and the `---@param` tag lookup (step 3a).
+
+   **This ground was false as first written and the design changed rather than the wording.** The
+   Step-9 review found that §3.3 step 4 as specified called `LuaCatsParamRenamer.rename` *inside*
+   the section, and that call parses: `LuaPsiImplUtil.getCatsComment` reaches `prev.firstChild`
+   (`LuaPsiImplUtil.kt:29`) and `comment.paramTagList` reaches
+   `LuaCatsLazyCommentImpl.getParamTagList` → `innerComment()` →
+   `PsiTreeUtil.getChildOfType(this, …)` → `LazyParseablePsiElement.getFirstChild()` (`:88-89`) →
+   `LazyParseableElement.getFirstChildNode()` (`:233-235`) → `ensureParsed()` (`:156`), which runs
+   `parseContents` on a comment that nothing in the rename path has parsed yet. The input to that
+   parse is the user's doc-comment block, whose length is unrelated to the size of the rename — so
+   the section's duration would have been bounded by user input rather than by usage count, which
+   is exactly the property engineering-contract §2 exists to protect. **The repair is to hoist the
+   lookup, not to argue the parse is short**: design §3.3 step 3a resolves the `ARG_NAME`
+   `LeafElement` during the cancellable preparation phase and the section applies only
+   `LeafElement.replaceWithText`, which interns text and calls `replaceChild`
+   (`LeafElement.java:137-141`, DR-06) and neither parses nor validates.
+
+   One parse remains **inside** the section and is stated rather than glossed: step 3's delegating
+   closure `{ RenameUtil.rename(usage, newName) }` goes through `setName` →
+   `LuaElementFactory.createIdentifier`. It is unreachable today — only `LuaNameReference` can be a
+   usage of a declaration IDENTIFIER leaf (§3.3 step 3.3) — and it exists because a *silent skip* is
+   the half-apply class this phase removes. If it ever becomes reachable, this ground weakens with it.
+
+   **What this ground is NOT.** It is not that the section is more cancellable than the platform's
+   own rename. The earlier wording said `RenameUtilBase.doRenameGenericNamedElement` is *less*
+   cancellable because it carries no `checkCanceled` (confirmed: zero occurrences in
+   `RenameUtilBase.java`) and parses inside its usage loop (`:43-51` → `:90-95`). Both facts hold and
+   the conclusion does not: the platform's apply phase stays **interruptible** — at that parse, and
+   at `CompositeElement.getPsi()`'s `checkCanceled` (`:719-720`) reached from every `replaceChild` —
+   while ours is deliberately **uninterruptible**. That incidental interruptibility is precisely
+   [[BUG-468]]. Ours is *safer under cancellation*, and more responsive *before* the first edit
+   (one cancellation point per usage against the platform's none); it is not more cancellable, and
+   a favourable comparison in the wrong dimension is the retraction class this feature keeps
+   producing.
+
+   **The section does not stop the UI from repainting**, which is the concrete form of "does not
+   lock the IDE": `PotemkinProgress` **is** the `CheckCanceledHook` for the duration of
+   `executeProcessUnderProgress` (`ProgressManagerImpl.java:84-91`), and `doCheckCanceled` runs
+   hooks even when `isInNonCancelableSection()` is true (`CoreProgressManager.java:184-196`). The
+   `checkCanceled` inside `CompositeElement.getPsi()` therefore still pings `PotemkinProgress.interact()`
+   once per edit; what the section removes is the *throw*, not the paint. **Read, not run** — DR-10
+   is where it is observed.
 3. The outcome is recoverable in one keystroke and that was measured, not assumed: after a rename,
    `UndoManager.isUndoAvailable(fileEditor)` is `true`, the command is named
    `Undo Renaming local variable counter`, and `UndoManager.undo` restores the file byte-for-byte.
