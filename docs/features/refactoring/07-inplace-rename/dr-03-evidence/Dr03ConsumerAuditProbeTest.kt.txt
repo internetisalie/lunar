@@ -1,0 +1,387 @@
+package net.internetisalie.lunar.probe
+
+import com.intellij.codeInsight.daemon.impl.IdentifierUtil
+import com.intellij.ide.actions.GotoRelatedSymbolAction
+import com.intellij.ide.actions.RelatedItemLineMarkerGotoAdapter
+import com.intellij.ide.bookmarks.BookmarkManager
+import com.intellij.model.psi.PsiSymbolService
+import com.intellij.model.psi.impl.targetSymbols
+import com.intellij.openapi.actionSystem.IdeActions
+import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.PsiNamedElement
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.refactoring.actions.ChangeSignatureAction
+import com.intellij.refactoring.safeDelete.SafeDeleteHandler
+import com.intellij.spellchecker.quickfixes.RenameTo
+import com.intellij.spellchecker.statistics.SpellcheckerRateTracker
+import com.intellij.spellchecker.tokenizer.SpellcheckingStrategy
+import com.intellij.testFramework.PlatformTestUtil
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.lang.insight.LuaRefactoringSupportProvider
+import net.internetisalie.lunar.lang.psi.LuaNameRef
+
+/**
+ * DR-03 measurement probe. Prints observations; asserts nothing. Removed after the run.
+ */
+class Dr03ConsumerAuditProbeTest : BasePlatformTestCase() {
+    private val fixtureText =
+        """
+        local counter = 0
+        local function helper(alpha, beta)
+          return alpha + beta + counter
+        end
+        local unused = 0
+        counter = helper(1, 2)
+        print(counter)
+        """.trimIndent() + "\n"
+
+    private fun emit(
+        consumer: String,
+        line: String,
+    ) {
+        println("DR03|$consumer|$line")
+    }
+
+    private fun probe(
+        consumer: String,
+        body: () -> Unit,
+    ) {
+        try {
+            body()
+        } catch (failure: Throwable) {
+            emit(consumer, "THREW=${failure.javaClass.name}: ${failure.message}")
+        }
+    }
+
+    private fun configure(text: String = fixtureText) = myFixture.configureByText("probe.lua", text)
+
+    private fun nameRefs(): List<LuaNameRef> =
+        ReadAction.compute<List<LuaNameRef>, RuntimeException> {
+            PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java).toList()
+        }
+
+    private fun describe(element: PsiElement?): String =
+        if (element == null) {
+            "null"
+        } else {
+            "${element.javaClass.simpleName}@${element.textRange}'${element.text}'"
+        }
+
+    private fun offsetOf(
+        needle: String,
+        occurrence: Int = 1,
+    ): Int {
+        var index = -1
+        repeat(occurrence) { index = fixtureText.indexOf(needle, index + 1) }
+        return index
+    }
+
+    // ---- premise shared by PsiElement2Declaration / ModCommandExecutorImpl / VcsCodeVisionLanguageContext ----
+
+    fun testProbe01Premise() {
+        configure()
+        probe("__premise__") {
+            ReadAction.run<RuntimeException> {
+                for (nameRef in nameRefs()) {
+                    val owner = nameRef as? PsiNameIdentifierOwner
+                    val identifier = owner?.nameIdentifier
+                    emit(
+                        "__premise__",
+                        "text='${nameRef.text}' isOwner=${owner != null} children=${nameRef.children.size} " +
+                            "refRange=${nameRef.textRange} idRange=${identifier?.textRange} " +
+                            "rangesEqual=${identifier?.textRange == nameRef.textRange} " +
+                            "idIsStrictDescendant=${identifier != null && PsiTreeUtil.isAncestor(nameRef, identifier, true)} " +
+                            "isNamed=${nameRef is PsiNamedElement} name=${(nameRef as? PsiNamedElement)?.name}",
+                    )
+                }
+            }
+        }
+    }
+
+    // ---- IdentifierUtil.getNameIdentifier ----
+
+    fun testProbe02IdentifierUtil() {
+        configure()
+        probe("IdentifierUtil.getNameIdentifier") {
+            ReadAction.run<RuntimeException> {
+                for (nameRef in nameRefs()) {
+                    emit(
+                        "IdentifierUtil.getNameIdentifier",
+                        "on='${nameRef.text}'@${nameRef.textRange} -> ${describe(IdentifierUtil.getNameIdentifier(nameRef))}",
+                    )
+                }
+            }
+        }
+    }
+
+    // ---- SafeDeleteProcessor.isInside ----
+
+    fun testProbe03SafeDelete() {
+        probe("SafeDeleteProcessor.isInside") {
+            configure()
+            val leaf =
+                ReadAction.compute<PsiElement?, RuntimeException> {
+                    myFixture.file.findElementAt(offsetOf("unused"))
+                } ?: return@probe
+            emit("SafeDeleteProcessor.isInside", "leafTarget=${describe(leaf)}")
+            SafeDeleteHandler.invoke(project, arrayOf(leaf), true)
+            emit("SafeDeleteProcessor.isInside", "afterLeafDelete=${myFixture.editor.document.text.replace("\n", "\\n")}")
+        }
+        probe("SafeDeleteProcessor.isInside") {
+            configure()
+            val nameRef =
+                ReadAction.compute<PsiElement?, RuntimeException> {
+                    myFixture.file.findElementAt(offsetOf("unused"))?.parent
+                } ?: return@probe
+            emit("SafeDeleteProcessor.isInside", "nameRefTarget=${describe(nameRef)}")
+            SafeDeleteHandler.invoke(project, arrayOf(nameRef), true)
+            emit("SafeDeleteProcessor.isInside", "afterNameRefDelete=${myFixture.editor.document.text.replace("\n", "\\n")}")
+        }
+        probe("SafeDeleteProcessor.isInside") {
+            configure()
+            val leaf =
+                ReadAction.compute<PsiElement?, RuntimeException> {
+                    myFixture.file.findElementAt(offsetOf("counter"))
+                } ?: return@probe
+            SafeDeleteHandler.invoke(project, arrayOf(leaf), true)
+            emit("SafeDeleteProcessor.isInside", "afterUsedLocalDelete=${myFixture.editor.document.text.replace("\n", "\\n")}")
+        }
+    }
+
+    // ---- PsiElement2Declaration.getIdentifyingElement ----
+
+    fun testProbe04PsiElement2Declaration() {
+        configure()
+        probe("PsiElement2Declaration.getIdentifyingElement") {
+            ReadAction.run<RuntimeException> {
+                for (label in listOf("counter", "alpha", "helper", "unused")) {
+                    val offset = offsetOf(label)
+                    val symbols = targetSymbols(myFixture.file, offset)
+                    val rendered =
+                        symbols.joinToString(";") {
+                            val psi = PsiSymbolService.getInstance().extractElementFromSymbol(it)
+                            "${it.javaClass.simpleName}->${describe(psi)}"
+                        }
+                    emit("PsiElement2Declaration.getIdentifyingElement", "at='$label'@$offset count=${symbols.size} [$rendered]")
+                }
+            }
+        }
+    }
+
+    // ---- NamedElementDuplicateHandler ----
+
+    fun testProbe05NamedElementDuplicateHandler() {
+        // The handler only runs its PsiNameIdentifierOwner branch with NO selection, over the
+        // caret's whole LINE (NamedElementDuplicateHandler:44-56), so a sub-name selection can
+        // never reach it. These three carets are the lines whose first non-blank element has a
+        // LuaNameRef ancestor contained in the line.
+        for (line in listOf("counter = helper(1, 2)", "print(counter)", "local counter = 0")) {
+            probe("NamedElementDuplicateHandler") {
+                configure()
+                val lineStart = fixtureText.indexOf(line)
+                myFixture.editor.caretModel.moveToOffset(lineStart + line.length)
+                myFixture.performEditorAction(IdeActions.ACTION_EDITOR_DUPLICATE)
+                emit(
+                    "NamedElementDuplicateHandler",
+                    "line='$line' caretAfter=${myFixture.editor.caretModel.offset} " +
+                        "doc=${myFixture.editor.document.text.replace("\n", "\\n")}",
+                )
+            }
+        }
+    }
+
+    // ---- BookmarkManager.getNameIdentifier path ----
+
+    fun testProbe06BookmarkManager() {
+        configure()
+        probe("BookmarkManager.getNameIdentifier path") {
+            val manager = BookmarkManager.getInstance(project)
+            val virtualFile = myFixture.file.virtualFile
+            manager.addTextBookmark(virtualFile, 0, "dr03")
+            ReadAction.run<RuntimeException> {
+                val leaf = myFixture.file.findElementAt(offsetOf("counter"))
+                val nameRef = leaf?.parent
+                emit("BookmarkManager.getNameIdentifier path", "onLeaf=${manager.findElementBookmark(leaf ?: myFixture.file)?.description}")
+                emit("BookmarkManager.getNameIdentifier path", "onNameRef=${manager.findElementBookmark(nameRef ?: myFixture.file)?.description}")
+                emit("BookmarkManager.getNameIdentifier path", "onFile=${manager.findElementBookmark(myFixture.file)?.description}")
+            }
+        }
+    }
+
+    // ---- NonAsciiCharactersInspection ----
+
+    fun testProbe07NonAscii() {
+        probe("NonAsciiCharactersInspection") {
+            configure("local café = 1\nlocal naïve = café\n")
+            ReadAction.run<RuntimeException> {
+                emit("NonAsciiCharactersInspection", "nameRefCount=${nameRefs().size}")
+                for (nameRef in nameRefs()) {
+                    emit(
+                        "NonAsciiCharactersInspection",
+                        "nameRef='${nameRef.text}' allAscii=${nameRef.text.all { it.code < 128 }} id=${describe((nameRef as? PsiNameIdentifierOwner)?.nameIdentifier)}",
+                    )
+                }
+                var leaf = PsiTreeUtil.getDeepestFirst(myFixture.file)
+                val types = StringBuilder()
+                while (true) {
+                    types.append(leaf.node.elementType).append("['").append(leaf.text.replace("\n", "\\n")).append("'] ")
+                    leaf = PsiTreeUtil.nextLeaf(leaf) ?: break
+                }
+                emit("NonAsciiCharactersInspection", "leaves=$types")
+            }
+        }
+    }
+
+    // ---- ChangeSignatureAction ----
+
+    fun testProbe08ChangeSignatureAction() {
+        configure()
+        probe("ChangeSignatureAction") {
+            myFixture.editor.caretModel.moveToOffset(offsetOf("helper"))
+            val presentation = myFixture.testAction(ChangeSignatureAction())
+            emit("ChangeSignatureAction", "atDecl enabled=${presentation.isEnabled} visible=${presentation.isVisible}")
+        }
+        probe("ChangeSignatureAction") {
+            myFixture.editor.caretModel.moveToOffset(offsetOf("counter"))
+            val presentation = myFixture.testAction(ChangeSignatureAction())
+            emit("ChangeSignatureAction", "atLocal enabled=${presentation.isEnabled} visible=${presentation.isVisible}")
+        }
+        probe("ChangeSignatureAction") {
+            val handler = LuaRefactoringSupportProvider().changeSignatureHandler
+            emit("ChangeSignatureAction", "luaChangeSignatureHandler=$handler")
+        }
+    }
+
+    // ---- RelatedItemLineMarkerProvider (row PROMOTED: Lunar registers LuaOverrideLineMarkerProvider) ----
+
+    fun testProbe09RelatedItemGoto() {
+        configure(
+            "---@class Base\nlocal Base = {}\nfunction Base:run() end\n" +
+                "---@class Impl : Base\nlocal Impl = {}\nfunction Impl:run() end\n",
+        )
+        probe("RelatedItemLineMarkerProvider") {
+            ReadAction.run<RuntimeException> {
+                val adapter = RelatedItemLineMarkerGotoAdapter()
+                val offset = myFixture.file.text.lastIndexOf("run")
+                val leaf = myFixture.file.findElementAt(offset)
+                val leafItems = if (leaf == null) emptyList() else adapter.getItems(leaf)
+                emit("RelatedItemLineMarkerProvider", "fromLeaf n=${leafItems.size} ${leafItems.joinToString(";") { describe(it.element) }}")
+                val parent = leaf?.parent
+                val parentItems = if (parent == null) emptyList() else adapter.getItems(parent)
+                emit("RelatedItemLineMarkerProvider", "fromNameRef n=${parentItems.size} ${parentItems.joinToString(";") { describe(it.element) }}")
+                myFixture.editor.caretModel.moveToOffset(offset)
+                val editorItems = GotoRelatedSymbolAction.getItems(myFixture.file, myFixture.editor)
+                emit(
+                    "RelatedItemLineMarkerProvider",
+                    "viaEditorAction n=${editorItems.size} ${editorItems.joinToString(";") { describe(it.element) }}",
+                )
+            }
+        }
+    }
+
+    // ---- Spellchecker family (NOT in design §4; found by re-enumerating the compiled platform) ----
+
+    fun testProbe10Spellchecker() {
+        configure()
+        probe("SpellcheckingStrategy.getTokenizer") {
+            ReadAction.run<RuntimeException> {
+                for (nameRef in nameRefs()) {
+                    val strategy = SpellcheckingStrategy.getSpellcheckingStrategy(nameRef)
+                    emit(
+                        "SpellcheckingStrategy.getTokenizer",
+                        "on='${nameRef.text}' strategy=${strategy?.javaClass?.simpleName} tokenizer=${strategy?.getTokenizer(nameRef)?.javaClass?.simpleName}",
+                    )
+                }
+            }
+        }
+        probe("RenameTo") {
+            val nameRef =
+                ReadAction.compute<LuaNameRef?, RuntimeException> {
+                    nameRefs().firstOrNull { it.text == "counter" }
+                } ?: return@probe
+            ReadAction.run<RuntimeException> {
+                val named = PsiTreeUtil.getNonStrictParentOfType(nameRef, PsiNamedElement::class.java)
+                emit("RenameTo", "namedParent=${describe(named)} name=${named?.name}")
+            }
+            val pointer = SmartPointerManager.getInstance(project).createSmartPsiElementPointer(nameRef, myFixture.file)
+            emit("RenameTo", "smartPointerElement=${describe(pointer.element)}")
+            val fix = RenameTo("conter", TextRange(0, 6), nameRef, SpellcheckerRateTracker(nameRef))
+            val available = fix.isAvailable(project, myFixture.editor, myFixture.file)
+            emit("RenameTo", "onNameRef isAvailable=$available name='${if (available) fix.name else "n/a"}'")
+            val inRead =
+                ReadAction.compute<Boolean, RuntimeException> {
+                    RenameTo("conter", TextRange(0, 6), nameRef, SpellcheckerRateTracker(nameRef))
+                        .isAvailable(project, myFixture.editor, myFixture.file)
+                }
+            emit("RenameTo", "onNameRefInsideReadAction isAvailable=$inRead")
+            emit("RenameTo", "nameRelativeRange=${nameRelativeRangeOf(fix, nameRef)}")
+        }
+        probe("RenameTo") {
+            val leaf =
+                ReadAction.compute<PsiElement?, RuntimeException> {
+                    myFixture.file.findElementAt(offsetOf("counter"))
+                } ?: return@probe
+            val fix = RenameTo("conter", TextRange(0, 6), leaf, SpellcheckerRateTracker(leaf))
+            val available = fix.isAvailable(project, myFixture.editor, myFixture.file)
+            emit("RenameTo", "onLeaf isAvailable=$available name='${if (available) fix.name else "n/a"}'")
+            val named = ReadAction.compute<PsiNamedElement?, RuntimeException> { leaf.parent as? PsiNamedElement }
+            emit("RenameTo", "onLeaf nameRelativeRange=${if (named == null) "no-named-parent" else nameRelativeRangeOf(fix, named)}")
+        }
+    }
+
+    // ---- REFACT-07-12's named behaviours ----
+
+    fun testProbe11NamedBehaviours() {
+        configure()
+        probe("REFACT-07-12/FindUsages") {
+            val target =
+                ReadAction.compute<PsiElement?, RuntimeException> {
+                    myFixture.file.findElementAt(offsetOf("counter"))
+                } ?: return@probe
+            val usages = myFixture.findUsages(target)
+            val rendered = usages.map { "${it.element?.text}@${it.element?.textRange}" }.sorted()
+            emit("REFACT-07-12/FindUsages", "onLeaf n=${usages.size} $rendered")
+            val parent = ReadAction.compute<PsiElement?, RuntimeException> { target.parent } ?: return@probe
+            val parentUsages = myFixture.findUsages(parent)
+            emit(
+                "REFACT-07-12/FindUsages",
+                "onNameRef n=${parentUsages.size} ${parentUsages.map { "${it.element?.text}@${it.element?.textRange}" }.sorted()}",
+            )
+        }
+        probe("REFACT-07-12/StructureView") {
+            myFixture.testStructureView { component ->
+                PlatformTestUtil.expandAll(component.tree)
+                emit("REFACT-07-12/StructureView", "tree=${PlatformTestUtil.print(component.tree, false).replace("\n", "\\n")}")
+            }
+        }
+        probe("REFACT-07-12/GotoDeclaration") {
+            ReadAction.run<RuntimeException> {
+                val leaf = myFixture.file.findElementAt(fixtureText.lastIndexOf("counter"))
+                val resolved = leaf?.parent?.reference?.resolve()
+                emit("REFACT-07-12/GotoDeclaration", "resolved=${describe(resolved)}")
+            }
+        }
+    }
+
+    /**
+     * Reads the private `getNameRelativeRange` — the frame carrying the shipped build's
+     * `PsiNameIdentifierOwner` branch (verified in bytecode at offset 16-20). Reflection is used
+     * because the frame is private and reachable only via `isAvailable`, which the shipped build
+     * additionally gates on a non-empty suggestion list that the offline test dictionary never fills.
+     */
+    private fun nameRelativeRangeOf(
+        fix: RenameTo,
+        named: PsiNamedElement,
+    ): String =
+        try {
+            val method = RenameTo::class.java.getDeclaredMethod("getNameRelativeRange", PsiNamedElement::class.java)
+            method.isAccessible = true
+            ReadAction.compute<String, RuntimeException> { "${method.invoke(fix, named)}" }
+        } catch (failure: ReflectiveOperationException) {
+            "REFLECTION-FAILED=${failure.javaClass.simpleName}: ${failure.message}"
+        }
+}

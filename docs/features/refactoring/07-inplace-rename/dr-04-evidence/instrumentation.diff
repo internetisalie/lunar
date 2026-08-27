@@ -1,0 +1,41 @@
+diff --git a/src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt b/src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt
+index e601ddbd..c2b84767 100644
+--- a/src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt
++++ b/src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt
+@@ -121,6 +121,7 @@ internal object LuaRenameConflictDetector {
+         target: LuaRenameTarget,
+         usages: List<UsageInfo>,
+     ): List<LuaRenameCollisionUsageInfo> {
++        println("DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=${target.kind} newName=${target.newName} identifier='${target.identifier.text}' usages=${usages.size}")
+         val found =
+             captures(target, usages) +
+                 if (target.kind.isFileLocal) {
+diff --git a/src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt b/src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt
+index cdaa7523..12be3d38 100644
+--- a/src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt
++++ b/src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt
+@@ -159,10 +159,21 @@ class LuaRenameProcessor :
+         allRenames: Map<out PsiElement, String>,
+         result: MutableList<UsageInfo>,
+     ) {
+-        val declarationLeaf = LuaDeclarationSite.identifierLeafOf(element) ?: return
+-        val kind = LuaDeclarationSite.kindOf(declarationLeaf) ?: return
++        println("DR04|probe|findCollisions|ENTER element=${element.javaClass.simpleName}(${element.node?.elementType}) text='${element.text}' newName=$newName usages=${result.size}")
++        val declarationLeaf = LuaDeclarationSite.identifierLeafOf(element)
++        if (declarationLeaf == null) {
++            println("DR04|probe|findCollisions|EARLY RETURN identifierLeafOf=null")
++            return
++        }
++        val kind = LuaDeclarationSite.kindOf(declarationLeaf)
++        if (kind == null) {
++            println("DR04|probe|findCollisions|EARLY RETURN kindOf=null")
++            return
++        }
+         val target = LuaRenameTarget(declarationLeaf, kind, newName)
+-        result.addAll(LuaRenameConflictDetector.collisions(target, result.toList()))
++        val produced = LuaRenameConflictDetector.collisions(target, result.toList())
++        println("DR04|probe|findCollisions|PRODUCED ${produced.size} collisions: ${produced.joinToString(" ;; ") { it.description }}")
++        result.addAll(produced)
+     }
+ 
+     /**

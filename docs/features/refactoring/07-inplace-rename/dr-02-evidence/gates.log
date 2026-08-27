@@ -1,0 +1,24 @@
+REFACT-07-00-02 (DR-02) — verification gates.
+
+DR-02 ships no production code: main's src/ is byte-identical to 9d54df30, and every edit the
+probes needed lives on spike/refact-07-dr-02. These are the gates run on CLEAN main afterwards,
+to prove nothing was left behind.
+
+=== tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache" ===
+BUILD SUCCESSFUL in 7m 39s
+17 actionable tasks: 15 executed, 2 up-to-date
+aggregated over 458 JUnit XML files, all timestamped 11:48 (this run, not stale):
+  tests=2851 failures=0 errors=0 skipped=1   -- the recorded baseline, unchanged
+
+=== tooling/gce-builder/gce-builder.sh run ktlintCheck ===
+BUILD SUCCESSFUL in 16s
+1 actionable task: 1 executed
+
+=== scripts/lint_docs.py / scripts/lint_planning.py ===
+lint_docs: 914 docs checked, 0 error(s), 88 warning(s) -- none on 07-inplace-rename
+lint_planning: 220 feature(s) checked, 0 error(s)
+
+DR-01 measured one expected failure on its branch
+(LuaInplaceRenameTest.testInplaceRenameIsOfferedForAFileLocalDeclaration, which asserts the
+opposite of what design 3.2 sets). It does not appear here because these gates ran on main,
+where design 3.2's edit is absent.

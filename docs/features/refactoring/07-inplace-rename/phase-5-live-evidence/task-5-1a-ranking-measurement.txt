@@ -1,0 +1,232 @@
+REFACT-07 implementation-plan task 5.1a — completion-ranking A/B measurement
+Executed 2026-08-27 on the libvirt builder VM (lunar-builder, 192.168.3.10), GoLand 2026.1.3,
+Xvfb :99, runIde sandbox GO-2026.1.3.
+
+Settles the two rows risks-and-gaps.md left outstanding under DR-03:
+  RecentPlacesFeatures.findDeclaration  and  VcsFeatureProvider.
+
+===============================================================================
+STRAND 1 — WHICH BUILD WAS LOADED, PROVEN BY BYTECODE (not the version string)
+===============================================================================
+Both builds report "lunar (0.18.0)". The discriminator is the §3.1 supertype on
+LuaNameRefBaseImpl, read out of the jar the sandbox actually loaded with
+/opt/jdk/bin/javap (javap is not on the builder's root PATH; JDK-qualified path used).
+
+Sandbox jar: build/idea-sandbox/GO-2026.1.3/plugins/lunar/lib/lunar-0.18.0.jar
+
+--- BASELINE arm (design §3.1 reverted) --------------------------------------
+jar md5   : d1244987a1683ea25c0817698ca422d1
+jar mtime : 2026-08-27 11:52:27
+"Loaded custom plugins: lunar (0.18.0)" at 2026-08-27 11:52:29,412
+
+$ javap -p net/internetisalie/lunar/lang/psi/LuaNameRefBaseImpl.class
+Compiled from "LuaBaseElements.kt"
+public class net.internetisalie.lunar.lang.psi.LuaNameRefBaseImpl extends net.internetisalie.lunar.lang.psi.LuaNameRefElementImpl {
+  public net.internetisalie.lunar.lang.psi.LuaNameRefBaseImpl(com.intellij.lang.ASTNode);
+  public com.intellij.psi.PsiReference getReference();
+}
+  => NO PsiNameIdentifierOwner, NO getNameIdentifier(). This is the baseline.
+
+--- TREATMENT arm (design §3.1 in place, = branch HEAD) ----------------------
+jar md5   : 0429cf13900a13c5fda5694c72ae341a
+jar mtime : 2026-08-27 11:57:46
+"Loaded custom plugins: lunar (0.18.0)" at 2026-08-27 11:57:47,261
+
+$ javap -p net/internetisalie/lunar/lang/psi/LuaNameRefBaseImpl.class
+Compiled from "LuaBaseElements.kt"
+public class net.internetisalie.lunar.lang.psi.LuaNameRefBaseImpl extends net.internetisalie.lunar.lang.psi.LuaNameRefElementImpl implements com.intellij.psi.PsiNameIdentifierOwner {
+  public net.internetisalie.lunar.lang.psi.LuaNameRefBaseImpl(com.intellij.lang.ASTNode);
+  public com.intellij.psi.PsiElement getNameIdentifier();
+  public com.intellij.psi.PsiReference getReference();
+}
+  => PsiNameIdentifierOwner PRESENT. This is the treatment.
+
+The jar md5 differs between the arms, so the two runs did not share a build.
+
+===============================================================================
+STRAND 2 — HOW NAVIGATION HISTORY WAS CONTROLLED
+===============================================================================
+RecentPlacesFeatures reads session navigation history, so an uncontrolled A/B would
+confound the history with the commit. Four controls, all of them structural rather
+than promissory:
+
+C1. RecentPlacesStorage cannot outlive a session BY CONSTRUCTION. It is
+    `@Service(Service.Level.PROJECT) private class RecentPlacesStorage` holding two
+    plain in-memory FixedHashMap-backed sets (RecentPlacesFeatures.kt:113-137). It is
+    not a PersistentStateComponent and carries no @State, so every IDE start begins
+    with an empty store. Both arms therefore start from the same empty history.
+
+C2. Both arms ran on a FRESHLY STARTED IDE over a DELETED sandbox system directory
+    (build/idea-sandbox/GO-2026.1.3/system removed before each launch), with the
+    config directory left intact so the licence survived. Confirmed absent by `ls`
+    before each launch; confirmed 0 X11 windows between arms via wmctrl.
+
+C3. Both arms were driven by the SAME SCRIPT FILE, unedited between runs:
+    /home/builder/drive51a.sh, md5 c6002f0a4ffb704e3f644cce492c7ef3, verified by
+    md5sum immediately before the treatment run. Same keystrokes, same order, same
+    sleeps, same caret coordinates (Go to Line 3:20, then 6:12) — no mouse targeting,
+    so nothing depends on where a pointer happened to land.
+
+C4. The recorded history was CAPTURED AND COMPARED, not assumed. The script opens
+    Recent Locations (Ctrl+Shift+E) after the navigation leg and before completion.
+    Both arms show "Recent Locations (2)" with the same two entries, the second
+    breadcrumbed `rank.lua > configure` — i.e. the navigation really did record a
+    place inside the `configure` declaration, which is precisely the element whose
+    findDeclaration result differs between the arms.
+      31-ranking-ab-baseline-recent-locations.png
+      32-ranking-ab-treatment-recent-locations.png   (md5-identical, see Strand 3)
+
+Fixture (written into the open project as rank.lua), chosen to be the most
+ranking-sensitive shape available — the visited declaration is a function whose
+parameters share a prefix with two sibling locals, so if `children_contains` were
+ever set for `alpha` its rank could move against `alphabet`/`alpine`:
+
+  1  local cfg = { alpha = 1, beta = 2, gamma = 3 }
+  2
+  3  local function configure(alpha, beta)
+  4    local alphabet = 1
+  5    local alpine = 2
+  6    return al
+  7  end
+  8
+  9  print(cfg.alpha, configure(1, 2))
+
+Completion invoked with Ctrl+Space at 6:12, prefix `al`.
+
+===============================================================================
+STRAND 3 — THE RECORDED ORDERS
+===============================================================================
+BASELINE  (33-ranking-ab-baseline-completion-order.png)
+  1. alpha      parameter
+  2. alphabet   local
+  3. alpine     local
+
+TREATMENT (34-ranking-ab-treatment-completion-order.png)
+  1. alpha      parameter
+  2. alphabet   local
+  3. alpine     local
+
+VERDICT: ORDER IDENTICAL.
+
+Stronger than order-identical: the captured frames are PIXEL-IDENTICAL. md5 of the
+PNGs as written on the VM, with capture times showing they are independent captures
+roughly five minutes and one IDE restart apart:
+
+  2026-08-27 11:56:09  badce16641dbd604b9d7b71b66e0772f  51a-base-1-open.png
+  2026-08-27 12:01:18  badce16641dbd604b9d7b71b66e0772f  51a-treat-1-open.png
+
+  2026-08-27 11:56:25  2abe1fc85e5c11cae538dcb8540843e3  51a-base-2-recent-locations.png
+  2026-08-27 12:01:34  2abe1fc85e5c11cae538dcb8540843e3  51a-treat-2-recent-locations.png
+
+  2026-08-27 11:56:43  af37b280f9812716592e3178d0543945  51a-base-3-completion.png
+  2026-08-27 12:01:52  af37b280f9812716592e3178d0543945  51a-treat-3-completion.png
+
+The mtimes are the guard against the failure this task was warned about: a stale
+screenshot would carry a stale mtime. These do not.
+
+===============================================================================
+STRAND 4 — WHY THE ORDER CANNOT MOVE (PSI LAYER), MEASURED ON BOTH ARMS
+===============================================================================
+findDeclaration's return value is consumed at exactly one place
+(RecentPlacesFeatures.kt:72-73): `declaration?.getChildrenNames()?.take(20) ?: emptyList()`,
+where getChildrenNames() is
+`this.children.filterIsInstance<PsiNamedElement>().mapNotNull { it.name }` (:90-92).
+Only that list reaches RecentPlacesStorage.putChildren, so only that list can reach a
+completion feature value. calculateFeatures itself never calls findDeclaration.
+
+A throwaway BasePlatformTestCase probe transcribed findDeclaration verbatim and
+evaluated both expressions on real Lua PSI, run once per arm through gce-builder
+(`test --rerun --no-build-cache`). Probe deleted afterwards; `git diff -- src/` empty.
+
+  BASELINE arm (§3.1 reverted):
+    LOCAL_DECL |leaf=LeafPsiElement|declaration=null          |childCount=-1|childrenNames=[]
+    USAGE      |leaf=LeafPsiElement|declaration=null          |childCount=-1|childrenNames=[]
+    TABLE      |leaf=LeafPsiElement|declaration=null          |childCount=-1|childrenNames=[]
+    FUNC_DECL  |leaf=LeafPsiElement|declaration=null          |childCount=-1|childrenNames=[]
+
+  TREATMENT arm (§3.1 in place):
+    LOCAL_DECL |leaf=LeafPsiElement|declaration=LuaNameRefImpl|childCount=0 |childrenNames=[]
+    USAGE      |leaf=LeafPsiElement|declaration=LuaNameRefImpl|childCount=0 |childrenNames=[]
+    TABLE      |leaf=LeafPsiElement|declaration=LuaNameRefImpl|childCount=0 |childrenNames=[]
+    FUNC_DECL  |leaf=LeafPsiElement|declaration=LuaNameRefImpl|childCount=0 |childrenNames=[]
+
+Two things are established at once, and the second is the finding:
+
+  (a) The branch genuinely flips — null on base, the enclosing LuaNameRef on treatment,
+      exactly as design §4 predicted. The probe is therefore sensitive to §3.1 and is
+      not a check that cannot fail: the `declaration` column moves with the mutation.
+
+  (b) The value that is actually STORED is `[]` on BOTH arms. A LuaNameRef's only child
+      is the IDENTIFIER leaf, and ASTDelegatePsiElement.getChildren() returns composite
+      children only, so `children` is empty (childCount=0) and getChildrenNames() is
+      emptyList() — identical to the `?: emptyList()` the baseline takes when
+      findDeclaration returns null. putChildren(emptyList()) is a no-op on both arms,
+      and put(recentPlace.text) is unconditional and identical on both.
+
+So the newly-taken branch produces an identical downstream state. The feature values
+`recent_places_contains` and `recent_places_children_contains` cannot differ.
+
+===============================================================================
+STRAND 5 — WHY NO FEATURE VALUE COULD REORDER LUA ANYWAY (BUILD-LEVEL, EXECUTED)
+===============================================================================
+This strand generalises the null result past the one fixture: it shows no Lua fixture
+could have shown a difference.
+
+Reordering requires MutableLookupStorage.shouldReRank(), which is `model != null`
+(MutableLookupStorage.kt:126), where model = RankingSupport.getRankingModel(language)
+(:74). getRankingModel needs a registered RankingModelProvider matching the language
+(RankingSupport.kt:24-28). The EP is `com.intellij.completion.ml.model` — a plain
+ExtensionPointName, NOT a LanguageExtension, so it has no `language=""` catch-all.
+
+Every completion.ml.model registration in the GoLand 2026.1.3 build under test,
+enumerated by scanning every .xml in every .jar of the IDE home
+(/opt/cache/gradle/caches/8.14.4/transforms/2810f072d17ab13177fb72e13ae7dd5a/transformed/goland-2026.1.3):
+
+  TOTAL completion.ml.model registrations: 10  (5 distinct providers, dual-registered)
+    database-plugin.jar                     | SqlMLRankingProvider
+    intellij.database.completionMlRanking.jar | SqlMLRankingProvider
+    go-plugin.jar                           | GoMLRankingProvider
+    intellij.go.completionMlRanking.jar     | GoMLRankingProvider
+    javascript-plugin.jar                   | JSMLCompletionRankingProvider
+    intellij.javascript.completion.ml.jar   | JSMLCompletionRankingProvider
+    javascript-plugin.jar                   | TypeScriptMLCompletionRankingProvider
+    intellij.javascript.completion.ml.jar   | TypeScriptMLCompletionRankingProvider
+    terminal.jar                            | ShMLRankingProvider  (x2)
+
+  Languages with a ranking model: SQL, Go, JavaScript, TypeScript, Shell.
+  Lua: ABSENT. No language-agnostic provider exists.
+
+  METHOD NOTE, because a wrong pattern is how this check fails silently: the first
+  scan searched `completion.ml.rankingModel` and returned 0 hits. That name does not
+  exist. The EP was then read out of the platform source
+  (CompletionExtensionPoints.xml:12, ExperimentModelProvider.kt:17) and the scan re-run
+  against the correct `completion.ml.model`, which is the run recorded above. A zero
+  from the first scan would have been an artefact, not a finding.
+
+Therefore getRankingModel(LuaLanguage) is null, shouldReRank() is false, and
+MLSorter returns the item list unchanged (MLSorter.kt:83). Independently,
+MLCompletionWeigher — the component that DOES run and DOES call these feature
+providers — returns DummyComparable, whose compareTo is a constant `0`
+(MLCompletionWeigher.kt:48), so the weigher contributes no ordering of its own.
+
+===============================================================================
+SCOPE — WHAT WAS NOT SEPARATELY EXERCISED
+===============================================================================
+VcsFeatureProvider's `psi is PsiNameIdentifierOwner` branch (VcsFeatureProvider.kt:40),
+which sets `declaration_is_changed`, was NOT exercised as its own live arm: the fixture
+was not a VCS-modified tracked file, so `ChangeListManager.getChange(file)` returned no
+change and the guarded block was not entered on either arm. It is settled by Strand 5
+rather than by its own fixture: with no ranking model for Lua, no value this provider
+emits can reorder a Lua lookup, on this build. Labelled as such rather than claimed.
+
+===============================================================================
+VERDICT
+===============================================================================
+MEASURED-INERT. Both consumers' branches genuinely flip after §3.1, and neither
+changes completion item order for Lua:
+  - the stored value is identical on both arms (Strand 4, executed both ways), and
+  - no ML ranking model matches Lua in GoLand 2026.1.3, so no feature value of any
+    kind can reorder a Lua lookup (Strand 5, executed).
+The live A/B agrees: identical order, in fact pixel-identical frames (Strand 3).
+
+This is not user-perceptible, because there is no difference to perceive.

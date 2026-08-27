@@ -79,8 +79,8 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
         `isGlobalAssignmentTarget(target)` (clauses 1-4), then **rewrite
         `LuaGlobalAssignmentIndex.Indexer.map`'s assignment collector to call
         `isBareAssignmentTarget`** — realizes design §2.10 change 0. This is what makes §3.5 row 14 a
-        reuse instead of a second copy of the index's rule; the previous draft claimed the rule was
-        shared "verbatim" when only the file-scope-locals clause actually was. Run DR-09 first.
+        reuse instead of a second copy of the index's rule. The two are **not** shared "verbatim" —
+        only the file-scope-locals clause was ever common. Run DR-09 first.
   - [x] Move `declarationNodeFor` (`LuaSafeDeleteProcessor.kt:156-171`) and `identifierLeafFor`
         (`:178-191`) out of `net.internetisalie.lunar.refactoring.LuaSafeDeleteProcessor` into
         `LuaDeclarationSite`; have the processor call `LuaDeclarationSite.declarationNodeOf` /
@@ -136,12 +136,11 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
   - `LuaDeclarationSiteTest` passes TC-21, TC-22 and TC-30; `LuaFindUsagesTest` passes TC-23 **and
     its existing `testLabelUsagesCount` / `testCanFindUsagesForLabel`** — the latter two are the
     label path's coverage now that TC-35 is dropped (see its row above).
-  - `LuaSafeDeleteTest` passes its existing **six** `@Test` cases (`testUnusedLocalIsDeleted`,
-    `testUsedLocalReturnsUsages`, `testUnavailableOnKeyword`, `testHandlesElevatedDeclaration`,
-    `testUsedLocalRaisesConflict`, `testLabelDeclarationIsAvailable`) **plus the new TC-32 and
-    TC-33**. These are
+  - **Every** `@Test` method in `LuaSafeDeleteTest` stays green — the ones the class already has
+    **and** the new TC-32 and TC-33. Count nothing: the class grows in this very phase. It is
     listed first among the exit criteria because Safe Delete is the subsystem this phase changes
-    without meaning to (Risk 1.6), and its existing cases cover only file-local `local x = 1`.
+    without meaning to (Risk 1.6), and the cases predating this phase cover only file-local
+    `local x = 1`.
   - `LuaFindUsagesTest`, `LuaFindUsagesCrossFileTest`, `LuaReferenceTest`,
     `LuaNavigationTest`, `ShadowingVariableInspectionTest` all still pass **unchanged**.
   - The index extension's resolution gates pass: `LuaGlobalCreationInspectionTest`,
@@ -194,8 +193,8 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
   - [x] Add the bundle keys `refactoring.rename.unresolved`, `.unsupportedTarget`, `.colonMethod`,
         `.functionNameSegment` to `LuaBundle.properties`; remove `refactoring.rename.unsupported`
         (currently `LuaBundle.properties:145`) — realizes design §7.
-        There is **no** `refactoring.rename.implicitSelf` key: the `self` guard it belonged to was
-        removed as dead and wrong (design §3.1, the note after step 5).
+        There is **no** `refactoring.rename.implicitSelf` key, and none is to be added: the guard
+        it would belong to is dead and wrong (design §3.1, the note after step 5).
   - [x] **Correct the epic status table** in `docs/features/refactoring/requirements.md`. Line 33
         reads *"**Status**: **Implemented** (`LuaNameReference.handleElementRename`)"* — that method
         does not exist (`grep -n handleElementRename src/main/kotlin/net/internetisalie/lunar/lang/LuaNameReference.kt`
@@ -362,14 +361,13 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
   `RefactoringErrorHintException`, and — the fact that makes the refusal load-bearing rather than
   conservative — finds **0** references, so the branch is all that stands between this shape and a
   half-applied rename.
-- **One measurement worth keeping, from a probe that was accidentally wrong — and the sentence it
-  was originally written with was false.** The first probe reused one fixture project across three
-  cases, so a second `function M.run()` reached the index and `findReferences` dropped to **0**.
-  Discarding that *run* was right; concluding the observation was an artefact was not. It is C4's
-  ambiguity arriving through resolution: two declarations of one global make `multiResolve` return
+- **A measurement worth keeping, and the probe trap that produces it.** A probe that reuses one
+  fixture project across cases lets a second `function M.run()` reach the index, and
+  `findReferences` drops to **0**. Discard that *run*, not the observation: it is C4's
+  ambiguity arriving through resolution — two declarations of one global make `multiResolve` return
   two results, `resolve()` null and `isReferenceTo` false everywhere.
-  **What this plan first wrote next — "the dotted form is subject to it exactly like the plain
-  global form of TC-31" — was wrong, and the Phase-4 review caught it.** TC-31's form is *reported*;
+  **Do not conclude from it that "the dotted form is subject to it exactly like the plain global
+  form of TC-31" — that is false.** TC-31's form is *reported*;
   the dotted form was not, because C3 and C4 searched the target's bare last segment while
   `LuaFuncStubElementType.indexStub` files a dotted decl under its qualified `"M.run"` and its
   receiver `"M"` and never under `"run"`. Re-measured on the builder with a fixture set of its own:
@@ -377,7 +375,7 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
   `LuaRenameConflictDetector.collisions` → **0 conflicts**. The rename applied silently — BUG-457's
   shape inside the feature that closed BUG-457.
 
-### Phase 4 remediation (2026-08-23) — the dotted key, and three owed items
+### Phase 4 remediation (2026-08-23) — the dotted key, and the items it owed
 
 - [x] **F1 — C3 and C4 search the qualified key.** `LuaRenameConflictDetector.searchKeyOf` prefixes
       the searched segment with whatever the target's own `funcName` carries in front of its last
@@ -390,7 +388,7 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
 - [x] **TC-37 / TC-38 pin it**, and their mutant is the code as it stood: restoring the bare-segment
       lookup reddens both at `conflictsFromRenamingTo`'s "applied silently" assertion, with the
       other eight cases in the class green.
-- [x] **TC-39 pins the fourth iteration block.** The two Phase-4 cancellation cases both use a
+- [x] **TC-39 pins `shadows`' cancellation check.** The two Phase-4 cancellation cases both use a
       `GLOBAL_FUNCTION` target, so `shadows` — which runs only for a file-local kind — was pinned by
       nothing. The third case is differential over file size: 3 name refs → 4 checks, 13 → 14.
       Deleting the check collapses both to 1.
@@ -472,8 +470,9 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
       creates the reference and the rename that rewrites it, so the two cannot drift apart.
       `LuaRequireStringCallReferenceTest` (`exactlyOneReferenceIsContributedPerCall` included) and
       `LuaRequireTypeFlowTest` stay green.
-- [x] **Five mutants, all executed, each reddening a different set.** M1 drop the round trip →
-      TC-18d + `testCreateStringLiteralIsNullWhenTheTextIsNotOneLiteral` (2 of 14). M2 emit `"…"`
+- [x] **Every mutant listed here was executed, and each reddened a different set.** M1 drop the
+      round trip → TC-18d + `testCreateStringLiteralIsNullWhenTheTextIsNotOneLiteral`, and no other
+      case in `LuaElementFactoryTest` or `LuaRequireRenameTest`. M2 emit `"…"`
       instead of the captured delimiters → TC-18b + TC-18c. M3 drop the dotted prefix → TC-18b
       alone. M4 keep the `.lua` suffix in the module name → TC-18a + TC-18b + TC-18c. M5 normalise
       the delimiters inside the factory → `testCreateStringLiteralKeepsEveryDelimiterForm` +
@@ -494,10 +493,10 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
   - [x] Wire the `---@param` propagation step of `LuaRenameProcessor.renameElement` (step 5 in the
         Phase-6 numbering; step 3a + step 4 after Phase 8) — realizes design §3.3.
 - **Exit criteria**: `LuaCatsParamRenameTest` passes TC-20a/b/c; full suite green. **Met
-  (2026-08-23)**, with four cases added beyond the plan's three: TC-20a/b/c alone leave the
-  behaviour under-pinned, because only TC-20a can fail when the feature is absent. TC-20e (only the
+  (2026-08-23)**, with the cases below added beyond TC-20a/b/c, which alone leave the behaviour
+  under-pinned because only TC-20a can fail when the feature is absent. TC-20e (only the
   matching tag moves) and TC-20f (a `function` expression's comment owner is the enclosing `local`)
-  are the other two gates; TC-20d (a refused rename does not move the tag — Gap 2.13's converse) and
+  are gates alongside it; TC-20d (a refused rename does not move the tag — Gap 2.13's converse) and
   TC-20g (a tag naming a *different* parameter is untouched) are guards with executed mutants.
 
 ### Phase 8: Atomic application [Must]
@@ -541,22 +540,22 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
   - The same run wrapped in `ProgressManager.getInstance().executeNonCancelableSection { … }`
     applies all three and throws nothing. That is why the section is in the design.
 - **Tasks**:
-  - [ ] Add `preparedUsageRewrites(usages, newName)` and `preparedUsageRewrite(usage, newName)` to
+  - [x] Add `preparedUsageRewrites(usages, newName)` and `preparedUsageRewrite(usage, newName)` to
         `net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor` — realizes design §3.3
         step 3, **including its five sub-steps in that order**. `ProgressManager.checkCanceled()` is
         the first statement of every iteration of `preparedUsageRewrites`, and it is the **only**
         `checkCanceled` left anywhere in this method's write path.
-  - [ ] Replace `LuaCatsParamRenamer.rename` with
+  - [x] Replace `LuaCatsParamRenamer.rename` with
         `fun preparedRename(parameterIdentifier: PsiElement, oldName: String, newName: String): (() -> Unit)?`
         — realizes design §2.8 and §3.6. Steps 1-3 are the existing body with `return` → `return null`;
         step 4 returns `{ taggedName.replaceWithText(newName) }` instead of calling it. **Delete
-        `rename`; do not keep both.** It has one caller (`LuaRenameProcessor.kt:216`) and no test
+        `rename`; do not keep both.** It has one caller (`LuaRenameProcessor.kt:236`) and no test
         calls it. **This is the Step-9 review's F1 correction and it is load-bearing, not tidying**:
         the lookup expands a `LuaCatsLazyCommentImpl` chameleon (`getParamTagList` → `innerComment()`
         → `LazyParseablePsiElement.getFirstChild():88-89` → `LazyParseableElement.getFirstChildNode():233-235`
         → `ensureParsed():156`), i.e. it **parses**, on an input sized by the user's doc comment. It
         must not run inside the non-cancelable section.
-  - [ ] Rewrite `LuaRenameProcessor.renameElement` to the design §3.3 body: capture, resolve the
+  - [x] Rewrite `LuaRenameProcessor.renameElement` to the design §3.3 body: capture, resolve the
         declaration rewrite, resolve the usage rewrites, resolve the `---@param` rewrite
         (**step 3a** — `LuaCatsParamRenamer.preparedRename(element, oldName, newName)`, note the
         argument is `element`, not `replacement`, because it runs before the swap), then apply all of
@@ -565,13 +564,13 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
         RenameUtil.rename(...) }` loop is deleted, not amended. **Nothing that parses may be inside
         the section** — the one exception is step 3.3's delegating closure, which is unreachable
         today and documented as such in design §3.3.
-  - [ ] New imports: `net.internetisalie.lunar.lang.LuaNameReference` and
+  - [x] New imports: `net.internetisalie.lunar.lang.LuaNameReference` and
         `net.internetisalie.lunar.lang.psi.LuaElementTypes`. `com.intellij.refactoring.rename.RenameUtil`
         stays — it is still called, from the delegating closure of §3.3 step 3.3.
-  - [ ] Update `LuaRenameProcessor`'s class KDoc: the *"Everything that can fail is resolved BEFORE
+  - [x] Update `LuaRenameProcessor`'s class KDoc: the *"Everything that can fail is resolved BEFORE
         the first edit"* paragraph is about failures and stays; add what it does not cover today and
         now does — a user's Cancel between two edits — and drop nothing.
-  - [ ] Correct `LuaCatsParamRenamer`'s KDoc, on three points. (a) Its cancellation paragraph says
+  - [x] Correct `LuaCatsParamRenamer`'s KDoc, on three points. (a) Its cancellation paragraph says
         the upstream usage loop's *"exposure is bounded by one usage rather than by the whole
         declaration"*; [[BUG-468]] §2 retracted that (the bound is on latency, not damage) and this
         phase removes the exposure entirely — reference Gap 2.17 as **closed**, not as a standing
@@ -585,12 +584,29 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
         hoist** — the lookup now runs before the swap, so `parameterIdentifier.text` is the old name.
         Keep the parameter, restate the reason: it makes the selection independent of which leaf the
         caller passes (design §3.6).
-  - [ ] Correct `LuaRenameProcessor.renameElement`'s KDoc paragraph that says
+  - [x] Correct `LuaRenameProcessor.renameElement`'s KDoc paragraph that says
         *"[LuaCatsParamRenamer] re-derives the comment owner from [replacement] instead of from a
         value captured in step 1"*. After this phase the owner is derived from `element` **before**
         the swap, which removes the dependency on "the ancestor chain is unchanged by the swap"
         rather than restating it. Do not leave the old paragraph beside the new call.
-  - [ ] **No `plugin.xml` change and no new `LuaBundle` key.** `renamePsiElementProcessor` at
+  - [x] Correct `LuaCatsParamRenameTest`'s KDocs. The test file names the method this phase deletes,
+        and one of its recorded mutants stops being expressible once the lookup sits at step 3a and
+        the edit at step 4. Four sites, all in
+        `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaCatsParamRenameTest.kt`, and
+        **no test body or assertion changes** — this is KDoc only:
+        (a) `:17` (class KDoc) — "unwiring `LuaCatsParamRenamer` from `LuaRenameProcessor.renameElement`"
+        must now say **both** halves of the wiring are dropped, step 3a's `preparedRename` lookup and
+        step 4's `applyCatsTagRewrite?.invoke()`. Dropping only the invoke leaves the lookup running
+        and is a different mutant.
+        (b) `:36` (TC-20a) — "drop the `LuaCatsParamRenamer.rename` call from
+        `LuaRenameProcessor.renameElement`" → drop step 3a's `preparedRename` call, so
+        `applyCatsTagRewrite` is null and step 4 applies nothing for the tag. Same RED, same reason.
+        (c) `:112` (TC-20d) — "move the `LuaCatsParamRenamer.rename` call above the `refuseRewrite`
+        pre-checks" is **not expressible after the split**: the lookup can move above the refusal but
+        the edit lives in step 4, which a refused rename never reaches. Replace it with the mutant
+        specified in the mutation-proof task below, and carry that task's near-miss note with it.
+        (d) `:136` (TC-20e) — "`LuaCatsParamRenamer` unwired" takes the same two-halves wording as (a).
+  - [x] **No `plugin.xml` change and no new `LuaBundle` key.** `renamePsiElementProcessor` at
         `plugin.xml:389-390` already points at this class, and this phase adds no user-visible
         message — a cancelled refactoring stays silent, which is the platform's own convention
         (`BaseRefactoringProcessor.java:659-662`). If an implementer finds themselves adding a
@@ -602,19 +618,46 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
   *failure*-atomicity `d8e571e2` delivered and which the rewritten `renameElement` must not regress,
   and TC-20a…TC-20g, which the `LuaCatsParamRenamer` signature change must not disturb; full suite
   green via `run "test --rerun --no-build-cache"`; and **every mutant listed in the mutation-proof
-  task below** — there are three — executed and restored. (An earlier version of this line said
-  "both mutants" against a task listing three. It is the seventh count error in this feature's
-  artifacts; state the property, not a number, wherever a list can grow.)
+  task below** executed and restored.
+- **Executed (2026-08-25).** `LuaRenameTest` 27 cases green including TC-43/TC-44/TC-45;
+  `LuaCatsParamRenameTest` 7 green; full suite **2844 tests, 0 failures, 0 errors, 1 skipped** via
+  `run "test --rerun --no-build-cache"` (baseline was 2841/0/0/1, +3 for this phase's cases);
+  `ktlintCheck` clean. **Three things in this phase's text were wrong as written** and are corrected
+  in place above and in `risks-and-gaps.md`:
+  1. **`preparedUsageRewrite` takes THREE arguments, not two.** The usage array can hold two entries
+     over the SAME host — measured on TC-42's fixture, a `MoveRenameUsageInfo` and a
+     `LuaRenameCollisionUsageInfo` over one identical `LuaNameRefImpl`, both carrying a
+     `LuaNameReference`. `RenameUtil.rename` absorbed that by re-reading the IDENTIFIER child inside
+     `setName` on each call; hoisting that lookup out — the point of step 3 — makes the second closure
+     swap an already-detached node and trip `CompositeElement.replaceChild`'s
+     `LOG.assertTrue(oldChild.getTreeParent() == this)` (`:648`). The repair is a claimed-node set
+     threaded through the loop, which reproduces the old net effect exactly. Design §3.3 step 3 does
+     not state this precondition; Gap 2.19 records it. It is gated by the EXISTING TC-42, not by a
+     new case, and the mutant is deleting the claim — measured RED.
+  2. **The `checkCanceled`-hoist mutant reddens TC-43 as well as TC-44**, not "TC-44 alone with TC-43
+     and TC-45 green". With one check per rename the hook never reaches its second check, so TC-43
+     never cancels and the rename completes: `local total = 0 / total = total + 1 / print(total)`.
+     TC-44 remains the discriminating case — it is the only one that reports the mechanism
+     (`1 checks for 3 usages, 1 for 8`) — but the separation claimed here is not what the run shows.
+  3. **The section-removal mutant splits the file but throws NOTHING at the test boundary.** Measured:
+     `local counter = 0 / counter = total + 1 / print(counter)` with `thrown = null`. The
+     `ProcessCanceledException` is swallowed by `PotemkinProgress.runInSwingThread` exactly as the
+     BUG-468 §6 trap predicts, so "a `ProcessCanceledException` escaping" is not observable and must
+     not be asserted. TC-45 asserts the completed text and is red on the split regardless.
 
 ### Phase 7: In-place rename and non-code search [Could]
 
 - **Goal**: the inline editor template for file-local locals, and working "search in comments and
   strings" checkboxes.
 - **Tasks**:
-  - [ ] Implement `LuaRefactoringSupportProvider.isInplaceRenameAvailable` — realizes design §2.6.
-  - [ ] Create `net.internetisalie.lunar.settings.LuaRefactoringSettings` and register the
+  - [x] Implement `LuaRefactoringSupportProvider.isInplaceRenameAvailable` — realizes design §2.6.
+        **Shipped as written, and it is not enough.** The predicate is correct and guarded, but the
+        inline template still does not start: design §2.6 specifies this one edit and the platform
+        needs a second thing Lunar's PSI does not provide. See [[risks-and-gaps]] **Gap 2.20** for
+        the measured evidence on both handler routes. REFACT-01-12 is therefore `Partial`.
+  - [x] Create `net.internetisalie.lunar.settings.LuaRefactoringSettings` and register the
         `<applicationService>` — realizes design §2.9 and §7.
-  - [ ] Implement the remaining five non-code-search accessors **exactly as design §2.9 writes
+  - [x] Implement the remaining five non-code-search accessors **exactly as design §2.9 writes
         them** (the sixth, `getQualifiedNameAfterRename`, shipped in Phase 2) —
         `getElementToSearchInStringsAndComments` returns `element.parent as? LuaNameRef`, not
         `element`. Returning the leaf (or omitting the override, whose default *is* the leaf) makes
@@ -624,6 +667,42 @@ ordered: the execution order is 1, 2, 3, 4, 5, 6, **8**, 7.
         guard. Realizes design §2.2 and §2.9.
 - **Exit criteria**: `LuaInplaceRenameTest` passes TC-12; `LuaRenameTest` passes TC-13b, TC-13c and
   TC-13e; full suite green; the `verify-in-ide` checklist below is executed.
+
+#### Phase 7 record (2026-08-25) — the non-code half ships, the in-place half is BLOCKED
+
+**The phase stays `todo`.** Two of its three tasks are delivered and gated; the headline requirement
+is not, and the blocker is upstream of everything this phase was scoped to touch.
+
+- **Delivered and mutation-proved.** `LuaRefactoringSettings` + the five accessors (REFACT-01-15,
+  now `Full`). `LuaRenameTest` gains TC-13c, TC-13e and a round-trip case for the four persisted
+  accessors, which nothing else reaches — `myFixture.renameElement`'s four-argument form passes its
+  flags straight into `RenameProcessor` (`CodeInsightTestFixtureImpl.java:1098-1107`) and so never
+  consults `isToSearchInComments`; only `RenameDialog` does, and no unit fixture opens it.
+- **`LuaInplaceRenameTest` does NOT contain TC-12 as the plan wrote it**, and the reason is
+  mechanical, not stylistic — the same class of defect as the `renameElementAtCaret` trap this plan
+  already documents for TC-13d/e. `CodeInsightTestUtil.doInlineRename` calls `handler.doRename(...)`
+  directly (`CodeInsightTestUtil.java:245-246`), which goes straight to `createRenamer`
+  (`VariableInplaceRenameHandler.java:113-116`) and **never consults `isInplaceRenameAvailable`**.
+  A class holding only TC-12 would have stayed green with the override still returning `false`, i.e.
+  with the feature absent. The four cases that ship drive `isAvailableOnDataContext` instead, which
+  is the predicate `RenameHandlerRegistry` consults for Shift+F6, and three of them discriminate.
+- **TC-12's end-to-end assertion cannot pass yet** — see Gap 2.20. It is not written as an inverted
+  "the template did not start" case, because that would pin the defect and go red on the fix.
+- **Executed mutants**, each restored, each reddening exactly the case named and no other:
+  `isInplaceRenameAvailable` → `false` reddens `testInplaceRenameIsOfferedForAFileLocalDeclaration`;
+  widening the gate to accept the IDENTIFIER leaf (Risk 1.5's named "simplification") reddens
+  `testInplaceRenameIsWithheldFromTheIdentifierLeaf`; dropping `isFileLocal` reddens
+  `testInplaceRenameIsWithheldFromAGlobal`; deleting `getElementToSearchInStringsAndComments`
+  reddens TC-13c **and** TC-13e, the latter on a `FileComparisonFailedError` with the comment left
+  unrewritten rather than on an exception — which is what the plan's mutation-proof task required
+  and which settles the Phase-2 half's open question: the hazard is real at Phase 7, not merely
+  Phase 2; cross-wiring `setToSearchForTextOccurrences` to the comments field reddens the
+  round-trip case.
+- **Full suite: 2851 tests, 0 failures, 0 errors, 1 skipped** (`test --rerun --no-build-cache`,
+  counts from the builder's JUnit XML), against a 2844 baseline at `578e66a6`. `ktlintCheck` green.
+- **Remaining for this phase**: Gap 2.20, then TC-12's end-to-end case, then the `verify-in-ide`
+  checklist. The checklist's non-code-search item ("Tick *Search in comments and strings* … confirm
+  no IDE internal error") is now exercisable; its inline-template item is not.
 
 ## Requirement → Phase Coverage
 
@@ -716,7 +795,7 @@ in Phase 2, so the idiom lives here.
 | TC-18a | -18 | `LuaRequireRenameTest.testRenameFileRewritesParenthesizedRequire` | `util.lua`: `return {}`<br>`main.lua`: `local u = require("util")` | rename `util.lua` → `helpers.lua` | `main.lua`: `local u = require("helpers")` |
 | TC-18b | -18 | `LuaRequireRenameTest.testRenameFilePreservesDottedPrefixAndQuoteStyle` | `main.lua`: `local u = require 'app.util'` | rename `app/util.lua` → `helpers.lua` | `local u = require 'app.helpers'` |
 | TC-18c | -18 | `LuaRequireRenameTest.testRenameFileRewritesLongBracketRequire` | `main.lua`: `local u = require [[util]]` | rename `util.lua` → `helpers.lua` | `local u = require [[helpers]]` |
-| TC-19a | -19 | `LuaRenameTest.testSelfInsideAMethodIsRefusedAsTheMethod` | `Obj = {}`<br>`function Obj:m()`<br>`  return se<caret>lf`<br>`end` | resolve the caret with `TargetElementUtil.findTargetElement(editor, ELEMENT_NAME_ACCEPTED or REFERENCED_ELEMENT_ACCEPTED)`, then `LuaRenameProcessor().substituteElementToRename(target, null)` | **(a)** the resolved target is the `m` IDENTIFIER leaf of `function Obj:m()` — assert `target.text == "m"` and `target.parent.parent is LuaFuncNameMethod`, **not** `Obj`; **(b)** the call throws `RefactoringErrorHintException` whose message contains the `refactoring.rename.colonMethod` text. Part (a) is the assertion that would have caught the "resolves to the class leaf" error; part (b) is the assertion that fails if a `self` guard is reintroduced with a different message. |
+| TC-19a | -19 | `LuaRenameTest.testSelfInsideAMethodIsRefusedAsTheMethod` | `Obj = {}`<br>`function Obj:m()`<br>`  return se<caret>lf`<br>`end` | resolve the caret with `TargetElementUtil.findTargetElement(editor, ELEMENT_NAME_ACCEPTED or REFERENCED_ELEMENT_ACCEPTED)`, then `LuaRenameProcessor().substituteElementToRename(target, null)` | **(a)** the resolved target is the `m` IDENTIFIER leaf of `function Obj:m()` — assert `target.text == "m"` and `target.parent.parent is LuaFuncNameMethod`, **not** `Obj`; **(b)** the call throws `RefactoringErrorHintException` whose message contains the `refactoring.rename.colonMethod` text. Part (a) is the only assertion anywhere in the suite that pins *what* the resolved target is — flipping its expectation to `"Obj"` is the mutation the plan requires; part (b) is the assertion that fails if a `self` guard is added with a different message. |
 | TC-19b | -19 | `LuaRenameTest.testVarargIsNotClaimed` | `local function f(<caret>...) end` | `val leaf = requireNotNull(myFixture.file.findElementAt(myFixture.caretOffset))`, then assert `leaf.elementType == LuaElementTypes.ELLIPSIS` (`LuaElementTypes.java:78`) and call `LuaRenameProcessor().canProcessElement(leaf)` | `false`. **`myFixture.elementAtCaret` must not be used here**: it calls `fail("element not found in file …")` when the caret resolves to nothing (`EditorTestFixture.java:318-330`), and an ELLIPSIS has no reference and no `PsiNamedElement` ancestor (`TargetElementUtilBase.java:106-126`), so the test would fail on the fixture rather than exercise the predicate. |
 | TC-19c | -19 | `LuaRenameTest.testExplicitSelfParameterRenamesNormally` | `Obj = {}`<br>`function Obj.m(<caret>self, x)`<br>`  return self`<br>`end` | rename → `this` | `function Obj.m(this, x)` … `return this` — the dot form's `self` is an ordinary parameter and must **not** be refused. This is the case a text-based `self` guard would have broken. |
 | TC-20a | -16 | `LuaCatsParamRenameTest.testParamTagFollowsParameter` | `---@param a number`<br>`local function f(<caret>a) return a end` | rename → `count` | `---@param count number`<br>`local function f(count) return count end`. The caret is on the **parameter**, which is the only position that works: with the caret inside the comment, `canProcessElement` is false (a `LuaCatsArgName` is neither a `LuaNameRef` nor a declaration leaf, §3.0) and `renameElementAtCaret` cannot drive the refactoring at all. |
@@ -736,12 +815,12 @@ in Phase 2, so the idiom lives here.
 | TC-32 | — | `LuaSafeDeleteTest.testUsedGlobalRaisesConflict` | `test.lua`: `config = {}`<br>`print(config)` | `SafeDeleteHandler.invoke(project, arrayOf(configLeaf), true)` | throws `BaseRefactoringProcessor.ConflictsInTestsException` and the `LuaAssignmentStatement` **survives** — the exact shape of the existing `testUsedLocalRaisesConflict`, with the one fixture the class has never had. **This is the Risk 1.6 gate.** If `isElevatedDeclaration` falls behind `declarationNodeOf`, the platform drops the delegate, `LuaAssignmentStatement` is not a `PsiNamedElement` so no generic search runs, zero usages are found, no conflict is raised and `config = {}` is deleted with `print(config)` left orphaned — the test's `fail(...)` fires. Repeat with `global count = 0` + `print(count)` under language level 5.5 (`LuaGlobalVarDecl`) and `global function f() end` + `f()` (`LuaGlobalFuncDecl`). |
 | TC-34a | -08 | `LuaRenameTest.testFunctionNameReceiverIsRefused` | `function <caret>M.run() end`<br>`M.run()`<br>`M.run()` — **no** `M = {}` anywhere | `LuaRenameProcessor().substituteElementToRename(myFixture.elementAtCaret, null)` | throws `RefactoringErrorHintException` containing the `refactoring.rename.functionNameSegment` text; file text unchanged. **This is the BUG-457 shape §3.5 row 9 newly makes reachable.** Mutation check: delete design §3.1 step 4a and the rename must be driven end to end (`myFixture.renameElementAtCaret("N")`) — it produces `function N.run() end` with **both** `M.run()` call sites left on `M`, i.e. a silent half-rename, which is what the assertion must distinguish from a refusal. Note the fixture deliberately omits `M = {}`: with it present, `TargetElementUtilBase` redirects to that declaration and the rename is correct (§6). |
 | TC-34b | -08 | `LuaRenameTest.testIntermediateFunctionNameSegmentIsRefused` | `function A.<caret>B.run() end` | `LuaRenameProcessor().substituteElementToRename(myFixture.elementAtCaret, null)`; repeat with the caret on `A` | both throw `RefactoringErrorHintException` containing the `refactoring.rename.functionNameSegment` text. Then with the caret on `run`, `substituteElementToRename` returns the `run` leaf (**not** a throw) — `functionNameLeafOf` picks the last `funcNameProperty`. This is the case that proves step 4a is a round trip against `functionNameLeafOf` and not a "grandparent is `LuaFuncName`" enumeration. |
-| ~~TC-35~~ | — | **DROPPED — do not write this test.** | — | — | An earlier draft specified `LuaFindUsagesTest.testSearcherStillSkipsLabels` as the guard on design §3.8 step ①. It was **tautological**: a `::retry:: / goto retry` fixture contains **no** `LuaNameRef` at all (`label ::= '::' labelName '::'` / `labelName ::= IDENTIFIER`, `lua.bnf:163,251`; `gotoStatement ::= GOTO labelRef` / `labelRef ::= IDENTIFIER`, `:125,247` — neither goes through `nameRef`), so its assertion held even with `processQuery`'s entire gate deleted. Its mutation check was **unsatisfiable**: guard ③ rejects a normalised label anyway (`kindOf` of a `LuaLabelName`'s IDENTIFIER child is null, §3.5 row 4), so the reorder is behaviour-preserving and no input distinguishes the orders. §3.8 ① now records guard ① as unreachable defence-in-depth. The label path's real coverage is the **existing** `LuaFindUsagesTest.testLabelUsagesCount` (`:95-108`, asserts exactly one label reference via both `myFixture.findUsages` and `ReferencesSearch.search`) and `LuaLabelRenameTest`, both already Phase 1 exit criteria; `canProcessElement`'s label exclusion — which *is* reachable — stays gated by TC-24/TC-25. |
+| ~~TC-35~~ | — | **DROPPED — do not write this test.** | — | — | The obvious guard on design §3.8 step ① — `LuaFindUsagesTest.testSearcherStillSkipsLabels` — is **tautological**: a `::retry:: / goto retry` fixture contains **no** `LuaNameRef` at all (`label ::= '::' labelName '::'` / `labelName ::= IDENTIFIER`, `lua.bnf:163,251`; `gotoStatement ::= GOTO labelRef` / `labelRef ::= IDENTIFIER`, `:125,247` — neither goes through `nameRef`), so its assertion held even with `processQuery`'s entire gate deleted. Its mutation check was **unsatisfiable**: guard ③ rejects a normalised label anyway (`kindOf` of a `LuaLabelName`'s IDENTIFIER child is null, §3.5 row 4), so the reorder is behaviour-preserving and no input distinguishes the orders. §3.8 ① now records guard ① as unreachable defence-in-depth. The label path's real coverage is the **existing** `LuaFindUsagesTest.testLabelUsagesCount` (`:95-108`, asserts exactly one label reference via both `myFixture.findUsages` and `ReferencesSearch.search`) and `LuaLabelRenameTest`, both already Phase 1 exit criteria; `canProcessElement`'s label exclusion — which *is* reachable — stays gated by TC-24/TC-25. |
 | TC-33 | — | `LuaSafeDeleteTest.testEveryElevatedDeclarationNodeRoundTrips` | one fixture each: `global x = 1`, `global function f() end`, `function M.run() end`, `cfg = {}`, plus the multi-target shapes `local a, b = 1, 2` and file-scope `a, b = 1, 2`, plus the negative `print(x)` | for each, `node = LuaDeclarationSite.declarationNodeOf(leaf)`; assert `LuaDeclarationSite.identifierLeafOf(node) === leaf` **and** `LuaSafeDeleteProcessor().handlesElement(node)` | `true` for all four positives. For `local a, b = 1, 2` the node is the `LuaAttName` and the round trip still holds (pre-existing). For file-scope `a, b = 1, 2` — **newly Safe-Deletable via §3.5 row 14** — the node is the `LuaVar`, the round trip holds, and `handlesElement` is `true`; the test then drives `SafeDeleteHandler` on it and asserts the **residual text is `, b = 1, 2`**, pinning the known granularity gap (`risks-and-gaps.md` Gap 2.6) rather than leaving it to be discovered as a regression. For the read `x` in `print(x)` the node **is** the leaf and `handlesElement` on the enclosing `LuaVar` is `false`. This is the direct unit guard on design §2.6a — TC-32 proves the user-visible outcome, TC-33 proves why. |
 | TC-36 | -01 | `LuaRenameTest.testUnbuildableNewNameRefusesBeforeAnythingIsRewritten` | `local coun<caret>ter = 0`<br>`counter = counter + 1`<br>`print(counter)` | `myFixture.renameElementAtCaret("end")` | the rename **throws** (an `IncorrectOperationException` carrying `refactoring.rename.rewriteUnavailable`, rethrown wrapped by `RenameUtil.showErrorMessage` under a test application) and the file text is **byte-identical**. **Added by the Phase-2 review**, which found `renameElement` discovering the declaration half's two failure conditions AFTER the usage loop had already run — every usage on the new name, the declaration on the old one, i.e. BUG-457 inverted. Mutation (executed): restore that ordering and this goes red at the refusal assertion — the rename returns normally having written nothing and reports success. Design §3.3 step 2 and risks-and-gaps Gap 2.13 are the record; TC-11 is the first defence, this is the second. |
 | TC-43 | -01 | `LuaRenameTest.testCancellingMidRenameLeavesTheFileUntouched` | `local coun<caret>ter = 0`<br>`counter = counter + 1`<br>`print(counter)` | install a `CoreProgressManager.CheckCanceledHook` that calls `ProgressIndicatorProvider.getGlobalProgressIndicator()?.cancel()` on the **SECOND** check whose immediate caller is `LuaRenameProcessor`, then run `myFixture.renameElementAtCaret("total")` inside `(ProgressManager.getInstance() as ProgressManagerImpl).runWithHook(hook) { … }`, catching whatever it throws | the file is **byte-identical to the input**: `local counter = 0`<br>`counter = counter + 1`<br>`print(counter)`. Assert with `myFixture.checkResult`, i.e. the WHOLE file — "the declaration is unchanged" is green on the defect. Do **not** assert on the thrown value: `PotemkinProgress.runInSwingThread` swallows the `ProcessCanceledException` (`PotemkinProgress.java:151-162`), so `thrown` is `null` both before and after the fix, which is [[BUG-468]] §6's trap. **`SECOND` is load-bearing** — measured, cancelling at the FIRST check leaves the file untouched on the *defect* too (the parse inside `setName` throws before usage 1 is written), so a first-check variant of this case cannot fail. **Phase 8 gate.** |
 | TC-44 | -01 | `LuaRenameTest.testCancellationIsCheckedPerUsageNotPerRename` | **(a)** `local <caret>x = 1` + 3 `print(x)` lines · **(b)** the same with 8 `print(x)` lines | count, with the same hook, the checks whose immediate caller is `LuaRenameProcessor` during `myFixture.renameElementAtCaret("y")`; compare the two counts | `checksForEight - checksForThree >= 5`. Pins that the cancellation point is inside the preparation loop rather than once per rename, which is what engineering-contract §2 asks for and what TC-43 alone does not force. **A GUARD, not a gate** — it is green on `5b7c6ca4`, where the check is already per usage (measured: 3 checks for 3 usages). Its executed mutant is hoisting `ProgressManager.checkCanceled()` out of `preparedUsageRewrites`' lambda to a single call before the `mapNotNull`: the delta collapses to 0 and this goes red while TC-43 and TC-45 stay green, which is the only reason it exists. Use `renameElementAtCaret`, not a direct call, so the count includes exactly the checks a real rename makes. |
-| TC-45 | -01 | `LuaRenameTest.testCancellingAfterTheFirstEditStillAppliesEveryEdit` | `local coun<caret>ter = 0`<br>`counter = counter + 1`<br>`print(counter)` | capture the live indicator from the FIRST `LuaRenameProcessor` check via the same hook (measured to be a `PotemkinProgress`); register a `DocumentListener` on `myFixture.editor.document` that calls `capturedIndicator.cancel()` on the first `documentChanged`; run `myFixture.renameElementAtCaret("total")` | the rename **completes**: `local total = 0`<br>`total = total + 1`<br>`print(total)`, and nothing is thrown. **Phase 8 gate**, and the one that pins §3.3 step 4's `executeNonCancelableSection`. Executed mutant: drop the section and apply the prepared rewrites directly — the file splits, with exactly one of the three occurrences on the new name and a `ProcessCanceledException` escaping. **Assert the split, not a text**: which occurrence moves is order-dependent (see the mutation-proof task and design §3.3), so assert `myFixture.checkResult` differs from the fully-renamed output AND from the input, or count occurrences of `total`. It is **also red on `5b7c6ca4`**, by a different route: with no preparation phase the second usage's `LuaElementFactory.createIdentifier` parse throws under the cancelled indicator, so the rename splits there instead. Capture the indicator OUTSIDE the listener — inside `documentChanged` the thread indicator is `PomModelImpl`'s `NonCancelableIndicator` (`PomModelImpl.java:112`) and `cancel()` on it is a no-op, which is a measured way to write a test that cannot fail. |
+| TC-45 | -01 | `LuaRenameTest.testCancellingAfterTheFirstEditStillAppliesEveryEdit` | `local coun<caret>ter = 0`<br>`counter = counter + 1`<br>`print(counter)` | capture the live indicator from the FIRST `LuaRenameProcessor` check via the same hook (measured to be a `PotemkinProgress`); register a `DocumentListener` on `myFixture.editor.document` that calls `capturedIndicator.cancel()` on the first `documentChanged`; run `myFixture.renameElementAtCaret("total")` | the rename **completes**: `local total = 0`<br>`total = total + 1`<br>`print(total)`, and nothing is thrown. **Phase 8 gate**, and the one that pins §3.3 step 4's `executeNonCancelableSection`. Executed mutant: drop the section and apply the prepared rewrites directly — the file splits, with exactly one of the three occurrences on the new name. **Nothing is thrown at the test boundary** — `PotemkinProgress.runInSwingThread` swallows the `ProcessCanceledException` (`PotemkinProgress.java:151-162`), so the throwable is `null` on the mutant and on the fix alike; the split is the whole observation. **Assert the split, not a text**: which occurrence moves is order-dependent (see the mutation-proof task and design §3.3), so assert `myFixture.checkResult` differs from the fully-renamed output AND from the input, or count occurrences of `total`. It is **also red on `5b7c6ca4`**, by a different route: with no preparation phase the second usage's `LuaElementFactory.createIdentifier` parse throws under the cancelled indicator, so the rename splits there instead. Capture the indicator OUTSIDE the listener — inside `documentChanged` the thread indicator is `PomModelImpl`'s `NonCancelableIndicator` (`PomModelImpl.java:112`) and `cancel()` on it is a no-op, which is a measured way to write a test that cannot fail. |
 
 ## Verification Tasks
 
@@ -758,7 +837,7 @@ in Phase 2, so the idiom lives here.
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictTest.kt` — TC-14…TC-17, TC-31.
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRequireRenameTest.kt` — TC-18a/b/c, plus TC-18d (the decline path, added in Phase 5).
 - [x] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaCatsParamRenameTest.kt` — TC-20a/b/c, plus TC-20d/e/f/g.
-- [ ] **Extend `LuaRenameTest` — TC-43, TC-44, TC-45 (Phase 8).** All three need one cancellation
+- [x] **Extend `LuaRenameTest` — TC-43, TC-44, TC-45 (Phase 8).** All three need one cancellation
       harness, and it already exists in this repo: copy the `CheckCanceledHook` + `StackWalker`
       idiom from `LuaRenameConflictTest.detectorCancellationChecks` (`:391-421`) and its
       `private companion object` (`:449-453`, `PROGRESS_PACKAGE`, `FRAME_SEARCH_DEPTH = 20L`),
@@ -767,30 +846,82 @@ in Phase 2, so the idiom lives here.
       counting `ProgressIndicator`: the Phase-4 record below already measured that one to be inert
       here (`CoreProgressManager.doCheckCanceled` consults the indicator only when a *cancelled* one
       is on the thread, `CoreProgressManager.java:868-876`).
-- [ ] **Mutation-proof the atomic application (Phase 8).** Three mutants, each reddening exactly the
-      case named, all executed on the builder and restored:
+- [x] **Mutation-proof the atomic application (Phase 8).** Every mutant below — each reddening
+      exactly the case named — executed on the builder and restored:
       - Restore the Phase-2 body — `usages.forEach { ProgressManager.checkCanceled(); RenameUtil.rename(usage, newName) }`
         then `applyDeclarationRewrite()` — and confirm **TC-43 goes red on a half-applied file**, not
         on a missing exception. If it goes red on an exception assertion the test was written into
         [[BUG-468]] §6's trap and must be rewritten.
         **What "half-applied" looks like: exactly ONE of the three occurrences carries `total`, the
         declaration carries `counter`.** Do **not** expect a particular line to be the one that
-        moved. An earlier version of this task named
-        `local counter = 0` / `counter = total + 1` / `print(counter)` as "the measured shape"; that
-        was one run's output read as a constant, and three runs of the same measurement each moved a
-        different occurrence. The usage array preserves `findReferences`' iteration order
-        (`RenameUtil.java:93-101, 133-142`) and `LuaRenameProcessor.findReferences` returns
-        `ReferencesSearch.search(…).findAll()`, a `Query` with no specified ordering — so a run that
-        produces a different line is a **correct** reproduction, not a failed one. TC-43 itself is
-        unaffected: it asserts the *input*.
+        moved: `LuaRenameProcessor.findReferences` returns `ReferencesSearch.search(…).findAll()`,
+        a `Query` with **no specified ordering**, and the usage array preserves `findReferences`'
+        iteration order (`RenameUtil.java:93-101, 133-142`), so which occurrence moves is
+        unspecified — three runs of this measurement on this fixture each moved a different one
+        (executed 2026-08-23; design §1 evidence table). A run that produces a different line is a
+        **correct** reproduction, not a failed one. TC-43 itself is unaffected: it asserts the
+        *input*.
+        **EXECUTED 2026-08-25 against the Phase-8 code: RED, on
+        `local counter = 0 / counter = counter + 1 / print(total)`** — a `FileComparisonFailedError`
+        from `checkResult`, i.e. on the file and not on an exception assertion. A FOURTH distinct
+        occurrence moved (the third line), which is the fourth run on this fixture to move a
+        different one. TC-45 also reddens on this mutant, by the second route its own row records.
       - Delete `renameElement`'s `ProgressManager.getInstance().executeNonCancelableSection { … }`
-        wrapper, applying the prepared rewrites directly, and confirm **TC-45 goes red** with the
-        file split and a `ProcessCanceledException` escaping. **Run this mutant against the Phase-8
+        wrapper, applying the prepared rewrites directly, and confirm **TC-45 goes red** on the
+        file split. **Nothing is thrown at the test boundary** — do not read the absent exception as
+        a failed mutant. **Run this mutant against the Phase-8
         code**: on the parent commit TC-45 is red for an unrelated reason (there is no preparation
         phase at all), so a pass measured there proves nothing about the wrapper.
+        **EXECUTED 2026-08-25 against the Phase-8 code: TC-45 RED, TC-43 and every other rename case
+        green.** The split is `local counter = 0 / counter = total + 1 / print(counter)` — one
+        occurrence moved, again a different one. **No exception escapes** (`thrown = null`); see the
+        third correction under this phase's exit criteria.
       - Hoist `checkCanceled()` out of `preparedUsageRewrites`' lambda to a single pre-loop call and
         confirm **TC-44 goes red with delta 0 while TC-43 and TC-45 stay green**. That separation is
         the only thing that makes TC-44 worth its weight, since it is green on the parent commit.
+        **EXECUTED 2026-08-25: TC-44 RED with delta 0 (`1 checks for 3 usages, 1 for 8`) and TC-45
+        green — but TC-43 ALSO reddens**, because with one check per rename the hook never reaches
+        its second check and the rename completes. The claimed separation is wrong as written; see
+        the second correction under this phase's exit criteria.
+      - **Restore TC-20d's falsifiability under the split shape.** Relocate step 3a **above** step
+        2's refusal *and* invoke its closure there —
+        `LuaCatsParamRenamer.preparedRename(element, oldName, newName)?.invoke()` ahead of
+        `preparedDeclarationRewrite`'s `IncorrectOperationException` — and confirm **TC-20d
+        (`testRefusedRenameDoesNotMoveTheTag`) goes red**, with the comment reading
+        `---@param end number` beside a parameter still named `a` and the rename still reporting
+        failure. This is TC-20d's Phase-6 mutant ("move the `rename` call above the `refuseRewrite`
+        pre-checks") restated for the Phase-8 shape, and it needs **both** halves: invoking the
+        closure at step 3a *alone* does **not** redden TC-20d, because step 3a already runs after
+        step 2, so a refused rename never reaches it. Without this bullet TC-20d is a green test
+        with no runnable mutant, which is the shape this feature's bar rejects.
+        **EXECUTED 2026-08-25: TC-20d RED**, the comment reading `---@param end number` beside a
+        parameter still named `a`, with the rename reporting failure — probed directly, not inferred
+        from the comparison error.
+      - **Then run the one-line variant on its own** — leave step 3a where it is and change it to
+        `LuaCatsParamRenamer.preparedRename(element, oldName, newName)?.invoke()`, applying the tag
+        edit outside step 4's section — and **record which case, if any, goes red**. This is a
+        different defect from the bullet above (an edit escaping the non-cancelable section, not an
+        edit escaping the refusal), and whether the suite pins it is **not established**: TC-20d
+        cannot see it, because step 3a runs after the refusal either way; and TC-43/TC-44/TC-45
+        cannot see it either, because all three rename a **local variable**
+        (`local coun<caret>ter = 0` in TC-43/TC-45, `local <caret>x = 1` in TC-44) — a
+        `LOCAL_VARIABLE`, not a `PARAMETER`, so `applyCatsTagRewrite` is null on their fixtures and
+        no tag edit exists to escape. Pinning it would need a new case: a `---@param` fixture whose
+        indicator is cancelled between step 3a and step 4. If no existing case reddens, record it in
+        Gap 2.18 as unpinnable-without-a-new-case with that argument — the same disposition §3.3
+        sub-step 4's Elvis carries — and do **not** invent an assertion to fill the row.
+        **EXECUTED 2026-08-25 over the FULL suite, because the claim is an absence: no case pins it.**
+        Run twice. The first run was against pre-repair code and its only red was
+        `LuaRenameConflictTest.testCollisionAnchoredOnAUsageIsStillRewritten` — **not** this mutant's
+        doing: its fixture renames `function M.run()`, a `GLOBAL_FUNCTION`, so the `PARAMETER` branch
+        this mutant edits never runs on it. That failure was a real defect in the Phase-8 code itself,
+        now Gap 2.19. **Re-run against the shipped code (`c7cab158` plus this commit's edits): 2844
+        tests, 0 failures, 0 errors — a clean absence.** The mutant needs an explicit
+        `val applyCatsTagRewrite: (() -> Unit)? =` to compile at all: with the eager `?.invoke()` both
+        `if` branches yield `null`, the variable infers as `Nothing?`, and `applyCatsTagRewrite?.invoke()`
+        in step 4 stops resolving. A mutant that does not compile measures nothing, so pin the type.
+        This bullet's prediction stands: recorded in Gap 2.18
+        as unpinnable without a new case.
       - Change step 3a's argument from `element` to `replacement` — the plausible wrong reading of
         the Phase-6 code it replaces — and confirm **TC-20a
         (`testParamTagFollowsParameter`) goes red**. `replacement` is a free-floating element from
@@ -800,17 +931,35 @@ in Phase 2, so the idiom lives here.
         observable from any test — inside a non-cancelable section its parse cannot throw — so the
         hoist is justified by the argument in design §3.6, not by a test, and this mutant pins only
         the argument choice. Say so rather than inventing an assertion that cannot fail.
+        **EXECUTED 2026-08-25: TC-20a RED, and so are TC-20e and TC-20f** — the same three the class
+        KDoc names as its gates, which is the expected set rather than a surprise: all three assert a
+        tag that must move, and none moves when `preparedRename` returns null.
+      - **Delete `preparedUsageRewrites`' `claimedIdentifierNodes` claim** — the repair Gap 2.19
+        records — and confirm **TC-42
+        (`LuaRenameConflictTest.testCollisionAnchoredOnAUsageIsStillRewritten`) goes red**.
+        **EXECUTED 2026-08-25: RED**, and not on an assertion — on a `TestLoggerAssertionError` raised
+        from `CompositeElement.replaceChild:648` inside this processor's own prepared closure, which
+        is the mechanism itself rather than a symptom. This mutant was not planned: it exists because
+        the un-deduplicated code was the first thing written and the full suite caught it, which is
+        the whole argument for gating on the full suite rather than on `--tests *LuaRenameTest*`.
 - [ ] Add `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaInplaceRenameTest.kt` — TC-12.
+      **Partially landed (Phase 7).** The class exists and holds four cases over
+      `VariableInplaceRenameHandler.isAvailableOnDataContext` — one positive and three
+      discriminating negatives (the IDENTIFIER leaf, a global, a usage site). **TC-12 itself is not
+      in it**: its end-to-end assertion cannot pass (Gap 2.20), and `CodeInsightTestUtil.doInlineRename`
+      would not have gated the predicate anyway — it bypasses `isAvailable` entirely
+      (`CodeInsightTestUtil.java:245-246` → `VariableInplaceRenameHandler.java:113-116`), so a class
+      built on it would have been green with the feature absent.
 - [x] Extend `LuaFindUsagesTest` — TC-23 only (Phase 1). TC-35 is dropped; the class's existing
       `testLabelUsagesCount` and `testCanFindUsagesForLabel` stay unchanged and must stay green.
 - [x] Extend `src/test/kotlin/net/internetisalie/lunar/refactoring/LuaSafeDeleteTest.kt` — TC-32 and
-      TC-33 (Phase 1). The class has **six** `@Test` methods today — `testUnusedLocalIsDeleted`
-      (`:39`), `testUsedLocalReturnsUsages` (`:71`), `testUnavailableOnKeyword` (`:92`),
-      `testHandlesElevatedDeclaration` (`:113`), `testUsedLocalRaisesConflict` (`:137`),
-      `testLabelDeclarationIsAvailable` (`:156`) — and all six must stay green. Model TC-32 on
-      `testUsedLocalRaisesConflict` (`LuaSafeDeleteTest.kt:136-153`), which is already the correct
-      shape; the class simply has no global or dotted fixture
-      (`grep -n 'global\|function M\.' …LuaSafeDeleteTest.kt` → empty).
+      TC-33 (Phase 1). **Every** `@Test` method in the class must stay green, the pre-existing ones
+      and the two this task adds; do not enumerate them, and do not pin a number — TC-32 and TC-33
+      are themselves methods of that class, so any count written here excludes this task's own
+      deliverables. Model TC-32 on `testUsedLocalRaisesConflict`
+      (`LuaSafeDeleteTest.kt:149-165` as of `4832be68`), which is already the correct shape; the
+      global and dotted fixtures Safe Delete needs arrive with TC-32/TC-33 and did not exist before
+      them.
 - [x] **Mutation-proof the Safe Delete elevation set (Risk 1.6).** Revert
       `LuaSafeDeleteProcessor.isElevatedDeclaration` to its enumerated form
       (`element is LuaLocalVarDecl || element is LuaLocalFuncDecl || element is LuaFuncDecl ||
@@ -818,7 +967,7 @@ in Phase 2, so the idiom lives here.
       fail on the missing `ConflictsInTestsException`, i.e. on a silent delete, not on an assertion
       about text. Then delete `identifierLeafOf` row 10 with the round-trip form restored and confirm
       **TC-32 goes red again** — and note the mechanism is **not** "the delegate is admitted but
-      searches the statement", which an earlier draft of this task claimed. With the round-trip form,
+      searches the statement". With the round-trip form,
       deleting row 10 makes `identifierLeafOf(LuaAssignmentStatement)` return null, so
       `isElevatedDeclaration` returns `false` at its `?: return false` and the delegate is **dropped**
       entirely (`SafeDeleteProcessor.java:138-166`); the statement is not a `PsiNamedElement`, so no
@@ -839,9 +988,9 @@ in Phase 2, so the idiom lives here.
       was raised is green with C2 missing entirely. The tests therefore assert the *specific* rule's
       bundle message, and the discriminating mutant is the one that proves it: disabling C1, C3 and
       C4 together reddens TC-14, TC-17 and TC-31 while **TC-15 stays green**, so TC-15's assertion
-      rides on C2 alone. Five further mutants, all executed and restored: C2 off → TC-15 red, TC-14
+      rides on C2 alone. Every further mutant listed here was executed and restored: C2 off → TC-15 red, TC-14
       green; C1 off → TC-14 red; C3 off → TC-17 red; C4 off → TC-31 red; C4's single-declaration
-      protection removed → all four `LuaRenameCrossFileTest` cases red, which is what pins the
+      protection removed → **every** `LuaRenameCrossFileTest` case red, which is what pins the
       detector against reporting an ambiguity on a global declared once.
 - [x] **Mutation-proof `canProcessElement`'s label exclusion.** Delete the
       `element is LuaLabelName || element is LuaLabelRef` line from design §3.0's predicate and
@@ -850,9 +999,9 @@ in Phase 2, so the idiom lives here.
       `RenamePsiElementProcessorBase.forPsiElement` makes the breakage invisible to any test that
       instantiates `LuaRenameProcessor` directly.
 - [x] **Mutation-proof the `self` resolution claim.** In TC-19a, change part (a)'s expectation to
-      `target.text == "Obj"` and confirm it goes **red**. The original design asserted `self`
-      resolved to the class leaf; nothing in the artifact set could have contradicted it, because no
-      test looked at what the resolved target *was*.
+      `target.text == "Obj"` and confirm it goes **red**. Part (a) is the only assertion that
+      constrains what the resolved target *is*: without it, "`self` resolves to the class leaf" and
+      "`self` resolves to the method-name leaf" are indistinguishable to the whole suite.
 - [x] **Mutation-proof the funcName receiver-segment refusal (Risk 1.1 shape 6).** Delete design
       §3.1 step 4a and confirm **TC-34a goes red**. It must be re-run in its end-to-end form for this
       pass — drive `myFixture.renameElementAtCaret("N")` over TC-34a's fixture and assert the two
@@ -868,6 +1017,11 @@ in Phase 2, so the idiom lives here.
       red** with the comment left unrewritten while TC-13c also goes red. The two overrides fix
       different halves of `RenameUtil.processUsages` (the searched string and the substituted string)
       and neither substitutes for the other; a pass that only checks TC-13c cannot tell them apart.
+      **EXECUTED 2026-08-25 (Phase-7 half): deleting `getElementToSearchInStringsAndComments`
+      reddens BOTH TC-13c and TC-13e** — TC-13c on its own `assertTrue` ("the searched element must
+      be the named composite, not the leaf") and TC-13e on a `FileComparisonFailedError` from
+      `checkResult`, i.e. on the file with the comment left unrewritten, not on an exception. The
+      two overrides are therefore confirmed to fix different halves, as this task predicted.
       **If the Phase-2 half does not go red**, the finding is that `ElementDescriptionUtil`'s
       `element.toString()` fallback produced an *empty* string for the leaf and
       `RenameUtil.java:149`'s `stringToSearch.isEmpty()` short-circuited before `getStringToReplace`
@@ -887,8 +1041,8 @@ in Phase 2, so the idiom lives here.
       red**; then delete row 7 and confirm **TC-29 goes red**; restore both. Without this pass the
       Lua 5.5 rows are asserted only by TC-21, which checks `kindOf` in isolation and would not
       notice that `isFileLocal` narrowed the search scope.
-- [x] **Mutation-proof the dotted/colon pair (Phase 4).** Four mutants, all executed on the
-      builder, each reddening exactly the case named:
+- [x] **Mutation-proof the dotted/colon pair (Phase 4).** Every mutant listed below was executed on
+      the builder, each reddening exactly the case named:
       - Revert `LuaNameReference.declarationIdentifier`'s `LuaFuncDecl` branch to
         `decl.funcName.nameRef.identifier` → **TC-09 red**, and measured to be red *on a silent
         half-rename*: the file becomes `M = {}` / `function M.start() end` / `M.run()`. This is why
@@ -896,29 +1050,31 @@ in Phase 2, so the idiom lives here.
         mutant, and that is the cannot-fail shape that was gone looking for.
       - Delete §3.1 step 4b (the `METHOD_FUNCTION` branch) → **TC-10 red**, and TC-19a red with it,
         confirming the two cases share the branch while entering it from different directions
-        (declaration caret vs. resolved `self`). **Correction (Phase-4 review):** this line first
-        claimed TC-10 goes red "on both of its assertions". As executed it aborts at the **first** —
-        the expected `RefactoringErrorHintException` is not thrown, so the case fails before it can
-        reach the unchanged-file assertion. The mutant is still discriminating and the test still
-        goes red for the stated reason; only the "both assertions" detail was wrong.
+        (declaration caret vs. resolved `self`). TC-10 reddens on its **first** assertion and only
+        that one: the expected `RefactoringErrorHintException` is not thrown, so the case fails
+        before it reaches the unchanged-file assertion. Do not record it as red "on both of its
+        assertions" — the mutant is discriminating either way, but the second assertion is never
+        evaluated under it.
       - Delete `globalDeclarationsNamed`'s loop-body `checkCanceled` →
         **`testCancellationIsCheckedPerIndexHitNotPerCall` red**, with the counts collapsing from
         5-then-10 to 3-then-3, i.e. delta 0.
       - Delete `captures`' new usage-list `checkCanceled` →
         **`testCancellationIsCheckedPerUsageNotPerCollisionsCall` red**, delta 5 where 10 is
         required.
-- [x] **Correct the Phase-3 cancellation audit (Phase 4).** The record said "the remaining **six**
-      iteration blocks were audited"; there are **seven**. The omitted one —
-      `captures`' `usages.mapNotNull { it.element }` — was the only omitted block able to reach PSI
-      and VFS, through `UsageInfo.getElement()` → soft `SmartPsiElementPointer` →
+- [x] **Complete the Phase-3 cancellation audit (Phase 4).** The audit had missed `captures`'
+      `usages.mapNotNull { it.element }` — the one unaudited block able to reach PSI and VFS,
+      through `UsageInfo.getElement()` → soft `SmartPsiElementPointer` →
       `SelfElementInfo.restoreElement` → `PsiManager.findFile`. **Decided on its merits and
       guarded**, not excused: the "bounded by the next statement's pass" argument is about latency
       only, the contract's rule is written without a latency exemption, and the fix is one line.
-      The count and the three-guarded/four-deliberately-unguarded split are now stated in
-      `LuaRenameConflictDetector`'s own KDoc, where the next reader will meet them.
-- [x] **Restate the Phase-3 impossibility claim (Phase 4) — by building the test instead.** Phase 3
-      recorded the cancellation fix as "not individually pinnable by a test". It is pinnable; the
-      reviewer's differential construction works and is now
+      `LuaRenameConflictDetector`'s own KDoc now states the **invariant** rather than any block
+      count (`LuaRenameConflictDetector.kt:79-84`) — every block that can load PSI, read VFS or
+      query an index is guarded, the rest do bounded work over materialised lists — because a count
+      has to be re-derived by hand after every edit. See `risks-and-gaps.md`, "DR-05 result and the
+      iteration-block audit".
+- [x] **Pin the cancellation fix with a test (Phase 4).** It **is** individually pinnable — do not
+      record it as "not individually pinnable by a test". The reviewer's differential construction
+      works and is now
       `LuaRenameConflictTest.testCancellationIsCheckedPerIndexHitNotPerCall`, with a sibling for
       the block above. One deviation from the construction as sketched, forced by measurement: a
       counting `ProgressIndicator` is **inert** here, because `CoreProgressManager.doCheckCanceled`
@@ -931,26 +1087,99 @@ in Phase 2, so the idiom lives here.
       via `StackWalker`, giving the exact 5 vs 10 the construction predicted.
 - [x] **Corpus sweep** after Phase 1: `run "test -PwithCorpus --rerun --no-build-cache"`, and verify
       the three corpus classes have fresh result XML.
-- [ ] **`REFACT-01-00-DR-10` — live-IDE REACHABILITY, and it runs BEFORE Phase 8's code, not after**
+- [x] **`REFACT-01-00-DR-10` — live-IDE REACHABILITY, and it runs BEFORE Phase 8's code, not after**
+      **DONE 2026-08-25 on `7ab48d97`. Outcome A: [[BUG-468]] is user-reachable — the Stop button paints at
+      N = 50 (≈ 64 ms window) and N = 200 (≈ 1719 ms window) and left a mixture on 7 of the 9 attempts where
+      the click landed on a dialog labelled Stop; at N = 1 and N = 10 the whole rename settles in 113 ms and
+      157 ms so no button can exist. THIS PHASE ORDER STANDS — Phase 8 before Phase 7. The per-rung table,
+      the screenshots, and the finding that the search dialog's Cancel and the apply dialog's Stop are drawn
+      at the SAME coordinates (so a coordinate-driven click is a systematic false negative — it happened once
+      here before the run was rebuilt to gate on the button's label) are in `risks-and-gaps.md`, "DR-10
+      result". One correction to the fixture instruction below: the post-implementation live check should use
+      the N = 200 rung, not the smallest mixture-producing rung. N = 50 produced a mixture only because the
+      harness clicks at ≈ 80 Hz; a human cannot hit a 64 ms window, and N = 200 is the smallest rung that is
+      both mixture-producing and human-clickable.**
       (`verify-in-ide` skill). The open question is whether a user can trigger [[BUG-468]] at all:
       TC-43/45 drive cancellation through a hook, while a user drives it through `PotemkinProgress`'s
-      **Stop** button, which is shown only once `now - myLastUiUpdate > delayInMillis`
-      (`PotemkinProgress.updateUI:117-119`; `delayInMillis` defaults to 300 ms —
-      `ProgressWindow.java:77`, `ProgressUIUtil.kt:8`) and steals input only while showing
-      (`interact:84-85`). On a project large enough for the dialog to paint, press **Stop** part-way
-      through a global rename and record whether the button appeared, at what project size, and
-      whether the file was split. **This was originally scheduled after implementation, which put it
-      where its answer could not change anything.** It bears on the Phase 8 → Phase 7 order: that
-      order was chosen because a `Must` outranks a `Could`, and if the defect is unreachable for
-      realistic renames the `Must` is not live and Phase 7 should go first. It does **not** bear on
-      whether to fix it — the failure mode is data loss. Record the answer in Gap 2.17 either way.
-- [ ] **Live IDE verification of Phase 8** (`verify-in-ide` skill), **after** the code lands, on the
-      project size DR-10 recorded: rename a global across those files, press **Stop** part-way, and
+      **Stop** button. Two platform gates stand between a rename and that button, and the procedure
+      below is built so that **neither is presupposed**:
+      1. `interact()` returns immediately when called twice in the same millisecond
+         (`PotemkinProgress.java:77-79` — `long now = System.currentTimeMillis();`
+         `if (now == myLastInteraction) return;`), so a rename that finishes inside one millisecond
+         reaches `updateUI` at most once.
+      2. `updateUI` paints the dialog only when `rootPane == null && now - myLastUiUpdate > delayInMillis`
+         (`PotemkinProgress.java:117`), `delayInMillis` defaulting to 300 ms
+         (`ProgressWindow.java:77` → `ProgressUIUtil.kt:8`, `DEFAULT_PROGRESS_DELAY_MILLIS: Long = 300L`);
+         and input is stolen only while `getDialog().getPanel().isShowing()`
+         (`PotemkinProgress.java:84`), the click becoming a cancel via `dispatchInputEvent` →
+         `isCancellationEvent(e)` → `cancel()`.
+      **Fixtures — one global, four rungs, built by this DR.** A single declaring file
+      `config = {}` plus **N** consuming files of **10 usages each** (`print(config)` × 10), at
+      **N = 1, 10, 50, 200** (so 10, 100, 500 and 2000 usages). N = 200 is the ceiling rung: if the
+      button does not appear there it does not appear at any size this DR can build, and that is the
+      recorded answer rather than a prompt to keep growing the project. Rename `config` → `settings`
+      from the declaration, via Shift+F6, in the containerized GoLand.
+      **Observables, per rung, five attempts each:** (a) whether the Stop button paints — evidence is
+      a `scrot` screenshot, not an impression; (b) wall-clock from confirming the dialog to the
+      editor settling; (c) after pressing Stop as early as the button allows, whether any file holds
+      a mixture of `config` and `settings`.
+      **Decision rule — stated here, before the run, and every outcome moves something:**
+      - **A. Stop paints at some rung AND at least one attempt leaves a mixture.** BUG-468 is
+        user-reachable. **The Phase 8 → Phase 7 order stands.** Record the *smallest* rung that
+        produced a mixture; that N becomes the fixture for the post-implementation live check below,
+        replacing "the project size DR-10 recorded".
+      - **B. Stop paints at some rung but no attempt over any rung leaves a mixture.** BUG-468 is not
+        reachable through the UI. **The order flips — Phase 7 first.** This does **not** contradict
+        the measured half-apply (design §1 evidence table, executed on `5b7c6ca4`), and the reason is
+        stronger than "the click was mistimed": **a rename puts up two different modal dialogs, and
+        only the second one is `PotemkinProgress`** (Read, not run — platform sources, verified
+        2026-08-25). `findUsages` runs under
+        `runProcessWithProgressSynchronously(findUsagesRunnable, RefactoringBundle.message("progress.text"), true, myProject)`
+        (`BaseRefactoringProcessor.java:323-324`) — an ordinary `ProgressWindow` titled **Looking for
+        Usages** (`RefactoringBundle.properties:2`) whose button keeps the default
+        `CommonBundle.getCancelButtonText()` (`ProgressDialogUI.kt:69`), i.e. **Cancel**. Only the
+        apply phase runs under `PotemkinProgress`: `BaseRefactoringProcessor.java:658-660` calls
+        `runWriteActionWithCancellableProgressInDispatchThread`, which passes
+        `IdeBundle.message("action.stop")` = **Stop** (`IdeBundle.properties:142`) to
+        `new PotemkinProgress(title, project, parentComponent, cancelText)`
+        (`ApplicationImpl.java:1132`, `:1144`), and `ProgressDialog.kt:79-80` puts that text on the
+        button. A click on **Cancel** during the search aborts before any edit exists
+        (`BaseRefactoringProcessor.java:327-328` returns on `!isProgressFinished`), which is a
+        systematic route to "no mixture" that costs the measurement nothing. **So the button label
+        is the observable**: record in Gap 2.17 **which dialog was up when the click landed** —
+        Cancel means the search, Stop means the apply loop — and state the residual as "the Stop
+        window is too narrow to click into" rather than as "it did not reproduce".
+      - **C. Stop never paints, including at N = 200.** BUG-468 is unreachable by a user at any size
+        this DR can build. **The order flips — Phase 7 first**, and Gap 2.17's *read* claim that "a
+        rename over a large project exceeds 300 ms comfortably" is retracted as falsified. Phase 8
+        remains a `Must` — the failure mode is data loss and a hook can still reach it — but it is
+        not the live half of one, and the post-implementation live check below loses its fixture and
+        must be re-scoped to the largest rung run.
+      **What no outcome changes is whether to fix it.** A mechanism that is hard to trigger is not a
+      mechanism that is safe. Paste the per-rung table into Gap 2.17 either way.
+- [x] **Live IDE verification of Phase 8** (`verify-in-ide` skill), **after** the code lands, on
+      **the N = 200 rung DR-10 fixed** (one `decl.lua` holding `config = {}` plus 200 files of ten
+      `print(config)` each; DR-10 measured a ≈ 1719 ms Stop window and a mixture on 5 of 5 attempts
+      there, so the check is repeatable by hand rather than only by a fast clicker): rename a global
+      across those files, press **Stop** part-way, and
       confirm the project is either fully renamed or wholly unchanged — never a mixture — and that no
       internal-error balloon appears. Then press Ctrl+Z and confirm one undo step covers the whole
       rename. Also confirm the progress dialog keeps repainting during the apply phase — design §3.3
       argues from source that it must (`ProgressManagerImpl.java:84-91` +
       `CoreProgressManager.java:184-196`), and that argument is **read, not run**.
+      **DONE 2026-08-25 on `578e66a6`. All four claims hold; claim 4 is now an observation.**
+      Nine gated **Stop** clicks (six on the pinned N = 200 rung, three on a supplementary N = 800
+      rung) left **zero** mixtures: eight completed the rename whole, one — N = 800 attempt b1 —
+      was honoured and left the project byte-identical, which is the preparation-phase Cancel this
+      phase exists to make safe. No internal-error balloon and **0 new `ERROR`/`SEVERE`** lines in
+      `idea.log`. One Ctrl+Z reverted all 2001 occurrences across all 201 files. The apply phase
+      repaints: over N = 800 attempt b2's 5153 ms post-click apply window the dialog region changed
+      at **86 points across 236 frames, longest still gap 186 ms**. Per-attempt table, the
+      prep/apply split the run had to discover (at N = 200 preparation finishes *before* the 300 ms
+      paint delay expires, so a user's Stop there can only ever land in the uninterruptible apply
+      phase — which is why the honoured branch needed the larger rung), and the positive control
+      that stops "the click was ignored" from being confounded with "the click never landed", are
+      in `risks-and-gaps.md` under "Phase 8 live verification". Frames in `phase-8-live-evidence/`.
 - [ ] **Live IDE verification** (`verify-in-ide` skill) after Phase 7 — unit tests cannot observe the
       conflicts dialog, the preview pane, or the inline-rename template:
   - [ ] Reproduce the BUG-457 scenario verbatim (`local counter = 0` + four usages, Shift+F6 →
@@ -987,5 +1216,5 @@ in Phase 2, so the idiom lives here.
 | Phase 4: Dotted method declarations | done | Should |
 | Phase 5: `require(...)` rewriting on file rename | done | Should |
 | Phase 6: LuaCATS `@param` propagation | done | Should |
-| Phase 8: Atomic application | todo | Must |
-| Phase 7: In-place rename and non-code search | todo | Could |
+| Phase 8: Atomic application | done | Must |
+| Phase 7: In-place rename and non-code search | in_progress | Could (headline req is `S`) |

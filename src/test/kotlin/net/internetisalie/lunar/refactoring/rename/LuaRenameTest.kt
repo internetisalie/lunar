@@ -1,11 +1,20 @@
 package net.internetisalie.lunar.refactoring.rename
 
 import com.intellij.codeInsight.TargetElementUtil
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressIndicatorProvider
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.impl.CoreProgressManager
+import com.intellij.openapi.progress.impl.ProgressManagerImpl
+import com.intellij.psi.ElementDescriptionUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
 import com.intellij.refactoring.rename.RenamePsiElementProcessor
 import com.intellij.refactoring.util.CommonRefactoringUtil
+import com.intellij.refactoring.util.NonCodeSearchDescriptionLocation
 import com.intellij.testFramework.DumbModeTestUtils
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.psi.LuaElementFactory
@@ -13,10 +22,14 @@ import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
 import net.internetisalie.lunar.lang.psi.LuaLabelName
 import net.internetisalie.lunar.lang.psi.LuaLabelRef
+import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.refactoring.LuaNamesValidator
+import net.internetisalie.lunar.settings.LuaRefactoringSettings
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * REFACT-01 Phase 2 — rename rewrites the declaration **and every usage Lua's scoping rules bind
@@ -176,6 +189,119 @@ class LuaRenameTest : BasePlatformTestCase() {
         )
 
         myFixture.checkResult("local total = 0\ntotal = total + 1\nprint(total)\n")
+    }
+
+    /**
+     * TC-13c — REFACT-01-15's unit gate on design §2.9's `getElementToSearchInStringsAndComments`.
+     *
+     * Part (a) is the assertion that fails when the override is dropped: the platform default
+     * returns the renamed element unchanged (`RenamePsiElementProcessorBase.java:264-266`), that
+     * element is an IDENTIFIER **leaf**, a leaf is not a `PsiNamedElement`, so every description
+     * provider declines and `ElementDescriptionUtil` falls through to `return element.toString()`
+     * (`ElementDescriptionUtil.java:26`). The comment search would then look for a `LeafPsiElement`
+     * debug string and match nothing — a checkbox that appears to work and does nothing.
+     *
+     * Part (b) pins the deliberate `null`: a numeric-`for` variable's leaf hangs directly off
+     * `LuaNumericForStatement` (`lua.bnf:152`) and has no `LuaNameRef` parent.
+     * `RenameUtil.processUsages` guards both non-code branches with `searchForInComments != null`
+     * (`RenameUtil.java:147, 157`), so null disables non-code search for that kind rather than
+     * searching for garbage.
+     */
+    @Test
+    fun testNonCodeSearchTargetsTheNamedComposite() {
+        myFixture.configureByText("test.lua", "local <caret>counter = 0\n")
+        val searchTarget = LuaRenameProcessor().getElementToSearchInStringsAndComments(leafAtCaret())
+
+        assertTrue("the searched element must be the named composite, not the leaf", searchTarget is LuaNameRef)
+        assertEquals(
+            "the searched string must be the identifier, not a LeafPsiElement debug string",
+            "counter",
+            ElementDescriptionUtil.getElementDescription(
+                requireNotNull(searchTarget),
+                NonCodeSearchDescriptionLocation.STRINGS_AND_COMMENTS,
+            ),
+        )
+
+        myFixture.configureByText("numeric.lua", "for <caret>i = 1, 3 do end\n")
+
+        assertNull(
+            "a numeric-for variable has no LuaNameRef parent, so non-code search is disabled for it",
+            LuaRenameProcessor().getElementToSearchInStringsAndComments(leafAtCaret()),
+        )
+    }
+
+    /**
+     * TC-13c's companion — the four persisted accessors of design §2.9, which no other case
+     * reaches.
+     *
+     * `myFixture.renameElement`'s four-argument form passes its flags straight into
+     * `RenameProcessor` (`CodeInsightTestFixtureImpl.java:1098-1107`), so TC-13e never consults
+     * `isToSearchInComments`; only `RenameDialog` does (`RenameDialog.java:93-94, 405`), and no
+     * unit fixture opens it. Without this case a swap between the two backing fields — the most
+     * plausible defect in a block of four near-identical delegations — would be invisible, and the
+     * user's ticked checkbox would come back ticked on the wrong row.
+     */
+    @Test
+    fun testNonCodeSearchChoicesArePersistedIndependently() {
+        myFixture.configureByText("test.lua", "local <caret>x = 1\n")
+        val processor = LuaRenameProcessor()
+        val leaf = leafAtCaret()
+        val settings = LuaRefactoringSettings.instance
+        val restoreComments = settings.renameSearchInComments
+        val restoreText = settings.renameSearchForText
+
+        try {
+            processor.setToSearchInComments(leaf, true)
+            processor.setToSearchForTextOccurrences(leaf, false)
+
+            assertTrue("the comments choice must round-trip", processor.isToSearchInComments(leaf))
+            assertFalse(
+                "and must not leak into the text-occurrences choice",
+                processor.isToSearchForTextOccurrences(leaf),
+            )
+
+            processor.setToSearchInComments(leaf, false)
+            processor.setToSearchForTextOccurrences(leaf, true)
+
+            assertFalse("the comments choice must round-trip in both directions", processor.isToSearchInComments(leaf))
+            assertTrue("and the text-occurrences choice independently", processor.isToSearchForTextOccurrences(leaf))
+        } finally {
+            settings.renameSearchInComments = restoreComments
+            settings.renameSearchForText = restoreText
+        }
+    }
+
+    /**
+     * TC-13e — REFACT-01-15's end-to-end gate, and the only case that drives
+     * `RenameUtil.processUsages`' non-code branch to completion.
+     *
+     * **`renameElementAtCaret` cannot be used here**: it delegates to the two-argument
+     * `renameElement`, which hard-codes `searchInComments = false`
+     * (`CodeInsightTestFixtureImpl.java:1092-1096`), so a test written on it never enters the
+     * branch at all. The four-argument form is the only fixture entry point that propagates the
+     * flag (`CodeInsightTestFixtureImpl.java:1098-1107`), and it still runs
+     * `substituteElementToRename` and `RenameProcessor.run()`.
+     *
+     * The case is red in two independent ways: without
+     * `getElementToSearchInStringsAndComments` the searched string is the leaf's `toString()` and
+     * the comment is left alone; without `getQualifiedNameAfterRename` it throws before the
+     * comment is reached.
+     */
+    @Test
+    fun testSearchInCommentsRewritesTheComment() {
+        myFixture.configureByText(
+            "test.lua",
+            "-- counter tracks the total\nlocal coun<caret>ter = 0\nprint(counter)\n",
+        )
+
+        myFixture.renameElement(
+            myFixture.elementAtCaret,
+            "total",
+            /* searchInComments = */ true,
+            /* searchTextOccurrences = */ false,
+        )
+
+        myFixture.checkResult("-- total tracks the total\nlocal total = 0\nprint(total)\n")
     }
 
     /**
@@ -509,6 +635,192 @@ class LuaRenameTest : BasePlatformTestCase() {
     }
 
     /**
+     * TC-43 — REFACT-01-01, and the gate on BUG-468. Cancelling mid-rename must leave the file
+     * exactly as it was, not part-renamed.
+     *
+     * **The whole file is asserted, deliberately.** "The declaration is unchanged" is green on the
+     * defect — the defect rewrote usages first and left the declaration alone — so an assertion
+     * scoped to the declaration proves nothing here.
+     *
+     * **Nothing is asserted about what was thrown**, also deliberately:
+     * `PotemkinProgress.runInSwingThread` swallows the `ProcessCanceledException`
+     * (`PotemkinProgress.java:151-162`), so the throwable is `null` both before and after the fix
+     * and any assertion on it would be a test that cannot fail (BUG-468 §6).
+     *
+     * **`SECOND` is load-bearing.** Measured on the parent commit: cancelling at the FIRST check
+     * leaves the file untouched on the defect too, because the parse inside `setName` throws before
+     * usage 1 is written — so a first-check variant of this case cannot fail.
+     *
+     * Mutation (executed): restore the Phase-2 apply loop
+     * (`usages.forEach { checkCanceled(); RenameUtil.rename(usage, newName) }`). RED, on a
+     * half-applied file — one of the three occurrences carries `total` while the declaration carries
+     * `counter`. WHICH occurrence moves is not fixed: `findReferences` returns a `Query` with no
+     * specified ordering and the usage array preserves it, so a run that moves a different line is a
+     * correct reproduction. This case is unaffected by that, because it asserts the INPUT.
+     */
+    @Test
+    fun testCancellingMidRenameLeavesTheFileUntouched() {
+        val source = "local coun<caret>ter = 0\ncounter = counter + 1\nprint(counter)\n"
+        myFixture.configureByText("cancel_mid_rename.lua", source)
+
+        renameUnderHook(cancellingHookAt(2), "total")
+
+        myFixture.checkResult(source.replace("<caret>", ""))
+    }
+
+    /**
+     * TC-44 — REFACT-01-01. The cancellation point is inside the preparation loop, once per usage,
+     * rather than once per rename — engineering-contract §2's CANCELLATION EXHAUSTIVENESS, which
+     * TC-43 alone does not force.
+     *
+     * **A GUARD, not a gate**: it is green on the parent commit, where the check is already per
+     * usage. Its executed mutant is hoisting `ProgressManager.checkCanceled()` out of
+     * `preparedUsageRewrites`' lambda to a single pre-loop call — the delta collapses to 0 and this
+     * goes red. That mutant is the only reason the case exists.
+     *
+     * `renameElementAtCaret` drives it rather than a direct call, so the count includes exactly the
+     * checks a real rename makes. Counting is done through `ProgressManagerImpl`'s check-canceled
+     * hook because it is the only observation point that does not require a cancelled indicator: with
+     * none on the thread, `CoreProgressManager.doCheckCanceled` takes its `ONLY_HOOKS` branch
+     * (`:868-876`) and a counting `ProgressIndicator` is never consulted at all.
+     */
+    @Test
+    fun testCancellationIsCheckedPerUsageNotPerRename() {
+        val checksForThree = processorChecksWhileRenamingWith(3)
+        val checksForEight = processorChecksWhileRenamingWith(8)
+
+        assertTrue(
+            "the cancellation point must scale with the usage count, not fire once per rename: " +
+                "$checksForThree checks for 3 usages, $checksForEight for 8",
+            checksForEight - checksForThree >= 5,
+        )
+    }
+
+    /**
+     * TC-45 — REFACT-01-01, and the gate on design §3.3 step 4's `executeNonCancelableSection`. A
+     * Cancel that arrives after the first edit must NOT split the file: the rename runs to
+     * completion.
+     *
+     * That ignored Cancel is the accepted residual (`risks-and-gaps.md` Gap 2.18) — an ignored
+     * Cancel with a correct file beats an honoured one with a broken file.
+     *
+     * **The indicator is captured OUTSIDE the listener.** Inside `documentChanged` the thread
+     * indicator is `PomModelImpl`'s `NonCancelableIndicator` (`PomModelImpl.java:112`), on which
+     * `cancel()` is a no-op — a measured way to write a test that cannot fail.
+     *
+     * Mutation (executed): drop the section and apply the prepared rewrites directly. RED — the
+     * file splits. **Nothing is thrown at the test boundary**, measured: the
+     * `ProcessCanceledException` dies inside `PotemkinProgress.runInSwingThread`
+     * (`PotemkinProgress.java:151-162`), so the throwable is `null` on the mutant and on the fix
+     * alike. The split is the whole observation. The assertion is the completed text,
+     * which is a property rather than a pinned half-state: which occurrence a split would leave
+     * behind is order-dependent (see TC-43), so only the fully-renamed form is assertable.
+     *
+     * **Nothing is asserted about what was thrown**, for TC-43's reason: the throwable is `null`
+     * both before and after the fix, so any assertion on it would be a test that cannot fail
+     * (BUG-468 §6). The completed text is the only gate.
+     */
+    @Test
+    fun testCancellingAfterTheFirstEditStillAppliesEveryEdit() {
+        myFixture.configureByText(
+            "cancel_after_first_edit.lua",
+            "local coun<caret>ter = 0\ncounter = counter + 1\nprint(counter)\n",
+        )
+        val liveIndicator = AtomicReference<ProgressIndicator?>()
+        cancelOnFirstDocumentChange(liveIndicator)
+
+        renameUnderHook(capturingHook(liveIndicator), "total")
+
+        myFixture.checkResult("local total = 0\ntotal = total + 1\nprint(total)\n")
+    }
+
+    /**
+     * Runs the registered rename under [hook] and returns whatever escaped, or `null`.
+     *
+     * `ProgressManagerImpl.runWithHook` is void, so the verdict is carried out in a holder rather
+     * than returned through it.
+     */
+    private fun renameUnderHook(
+        hook: CoreProgressManager.CheckCanceledHook,
+        newName: String,
+    ): Throwable? {
+        val escaped = AtomicReference<Throwable?>()
+        (ProgressManager.getInstance() as ProgressManagerImpl).runWithHook(hook) {
+            escaped.set(renameFailure(newName))
+        }
+        return escaped.get()
+    }
+
+    /**
+     * A hook that cancels the live indicator on the [checkToCancelAt]th `checkCanceled` made by
+     * [LuaRenameProcessor] itself.
+     *
+     * The check does not throw: `doCheckCanceled` discards `runCheckCanceledHooks`' return on its
+     * `ONLY_HOOKS` branch (`CoreProgressManager.java:220-222`), so the throw comes from the next
+     * cancellation point the rename reaches.
+     */
+    private fun cancellingHookAt(checkToCancelAt: Int): CoreProgressManager.CheckCanceledHook {
+        val checks = AtomicInteger()
+        return CoreProgressManager.CheckCanceledHook {
+            if (calledDirectlyByTheProcessor() && checks.incrementAndGet() == checkToCancelAt) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator()?.cancel()
+            }
+            false
+        }
+    }
+
+    /** A hook that records the live indicator at the processor's FIRST check and cancels nothing. */
+    private fun capturingHook(
+        liveIndicator: AtomicReference<ProgressIndicator?>,
+    ): CoreProgressManager.CheckCanceledHook =
+        CoreProgressManager.CheckCanceledHook {
+            if (calledDirectlyByTheProcessor() && liveIndicator.get() == null) {
+                liveIndicator.set(ProgressIndicatorProvider.getGlobalProgressIndicator())
+            }
+            false
+        }
+
+    /** Cancels [liveIndicator] as soon as the rename's first edit reaches the document. */
+    private fun cancelOnFirstDocumentChange(liveIndicator: AtomicReference<ProgressIndicator?>) {
+        myFixture.editor.document.addDocumentListener(
+            object : DocumentListener {
+                override fun documentChanged(event: DocumentEvent) {
+                    liveIndicator.get()?.cancel()
+                }
+            },
+            testRootDisposable,
+        )
+    }
+
+    /** How many `checkCanceled` calls [LuaRenameProcessor] itself makes renaming a local with [usageCount] usages. */
+    private fun processorChecksWhileRenamingWith(usageCount: Int): Int {
+        myFixture.configureByText("usages_$usageCount.lua", "local <caret>x = 1\n" + "print(x)\n".repeat(usageCount))
+        val checks = AtomicInteger()
+        val hook =
+            CoreProgressManager.CheckCanceledHook {
+                if (calledDirectlyByTheProcessor()) checks.incrementAndGet()
+                false
+            }
+        renameUnderHook(hook, "y")
+        return checks.get()
+    }
+
+    /**
+     * True when the innermost frame below this test's own hook and the platform's progress plumbing
+     * is [LuaRenameProcessor] — i.e. the processor called `checkCanceled` itself, rather than some
+     * platform routine running underneath it doing so.
+     */
+    private fun calledDirectlyByTheProcessor(): Boolean =
+        StackWalker.getInstance().walk { frames ->
+            frames
+                .limit(FRAME_SEARCH_DEPTH)
+                .filter { !it.className.startsWith(javaClass.name) && !it.className.startsWith(PROGRESS_PACKAGE) }
+                .findFirst()
+                .map { it.className == PROCESSOR }
+                .orElse(false)
+        }
+
+    /**
      * Drives the registered rename end to end and returns whatever it threw, or `null` if it
      * completed. `RenameProcessor.performRefactoring` catches an [IncorrectOperationException] and
      * hands it to `RenameUtil.showErrorMessage`, which rethrows it wrapped under a test
@@ -555,5 +867,8 @@ class LuaRenameTest : BasePlatformTestCase() {
     private companion object {
         val CARET_TARGET_FLAGS =
             TargetElementUtil.ELEMENT_NAME_ACCEPTED or TargetElementUtil.REFERENCED_ELEMENT_ACCEPTED
+        const val PROCESSOR = "net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor"
+        const val PROGRESS_PACKAGE = "com.intellij.openapi.progress"
+        const val FRAME_SEARCH_DEPTH = 20L
     }
 }

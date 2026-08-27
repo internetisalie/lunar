@@ -1,0 +1,17 @@
+DR03REG|com.intellij.codeInsight.completion.command.provider|total=0 luaOrAnyLanguage=0
+DR03REG|com.intellij.codeInsight.completion.command.factory|total=0 luaOrAnyLanguage=0
+DR03REG|com.intellij.codeInsight.codeVisionProvider|total=4 luaOrAnyLanguage=4
+DR03REG|com.intellij.codeInsight.codeVisionProvider|  com.intellij.refactoring.changeSignature.ChangeSignatureCodeVisionProvider
+DR03REG|com.intellij.codeInsight.codeVisionProvider|  com.intellij.refactoring.rename.RenameCodeVisionProvider
+DR03REG|com.intellij.codeInsight.codeVisionProvider|  com.intellij.platform.lsp.impl.codeLens.LspCodeVisionProvider
+DR03REG|com.intellij.codeInsight.codeVisionProvider|  com.intellij.codeInsight.hints.VcsCodeVisionProvider
+DR03REG|com.intellij.completion.ml.elementFeatures|total=0 luaOrAnyLanguage=0
+DR03REG|com.intellij.lang.inlineActionHandler|THREW=IllegalArgumentException: Missing extension point: com.intellij.lang.inlineActionHandler in container Application (unit test) (internal) (headless) (command line) (RA allowed)
+DR03REG|com.intellij.lang.changeSignature|THREW=IllegalArgumentException: Missing extension point: com.intellij.lang.changeSignature in container Application (unit test) (internal) (headless) (command line) (RA allowed)
+DR03REG|com.intellij.codeInsight.lineMarkerProvider|total=8 luaOrAnyLanguage=6
+DR03REG|com.intellij.codeInsight.lineMarkerProvider|  com.intellij.execution.lineMarker.RunLineMarkerProvider
+DR03REG|com.intellij.codeInsight.lineMarkerProvider|  com.intellij.codeInsight.documentation.render.DocRenderDummyLineMarkerProvider
+DR03REG|com.intellij.codeInsight.lineMarkerProvider|  net.internetisalie.lunar.lang.insight.LuaLineMarkerProvider
+DR03REG|com.intellij.codeInsight.lineMarkerProvider|  net.internetisalie.lunar.lang.insight.LuaOverrideLineMarkerProvider
+DR03REG|com.intellij.codeInsight.lineMarkerProvider|  net.internetisalie.lunar.lang.insight.LuaMethodSeparatorProvider
+DR03REG|com.intellij.codeInsight.lineMarkerProvider|  com.intellij.ui.ColorLineMarkerProvider

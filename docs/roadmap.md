@@ -82,6 +82,10 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | DEBUG-07 | Lazy Remote Stack Evaluation — confirmed real, low value | todo | C | — | **measured 2026-08-22** (BUG-450 §5b): parse beats serialization at every size, but there is a ~30 ms PSI floor a payload bound cannot cross, and it is off-EDT — realistic case ~125 ms end to end | ✓ |
 | BUG-451 | luacheck `--std` overrides the project's `.luacheckrc`, false warnings on every rockspec and spec file | todo | S | — | one flag disables two mechanisms; user cannot override it | ✓ |
 | BUG-452 | luacheck exit 2 is a lint result, not a crash — the whole report is discarded | todo | S | — | a test pins the defect as intended | ✓ |
+| BUG-471 | A committed rename cannot be undone — *Edit ▸ Undo* is enabled and restores nothing | todo | S | — | reproduces on the DIALOG path too, so not REFACT-07's; typing-undo works in the same session; NOT separated from the headless sandbox — rule that out first | ✓ |
+| BUG-472 | Renaming a `local` that shadows an earlier same-file `local` renames the WRONG declaration and silently changes program semantics | todo | M | — | BUG-457's class on the shipped dialog path; BUG-470's root cause, opposite severity — that one refuses, this one rewrites | ✓ |
+| BUG-470 | A `local` that shadows an earlier same-file global resolves to the global's declaration | todo | M | — | DR-05 probe a2: the data context supplies the global's leaf at (0,6), not the local's; end-to-end NOT driven | ✓ |
+| BUG-469 | Shift+F6 on a numeric-`for` variable reaches no rename handler at all | todo | C | — | DR-05 probes f/f2/f3: supplied is null and the registry returns an empty list; end-to-end NOT driven | ✓ |
 | BUG-453 | The human formatter is parsed instead of luacheck's documented editor interface | todo | S | — | escapes in tooltips; a configured formatter yields a silent false-clean | ✓ |
 | BUG-454 | Toggling a breakpoint mid-run deadlocks the debug session | todo | S | — | unanswered SETB held under writeMutex | ✓ |
 | BUG-455 | No run configuration can block a launch — the non-fatal exception tier is thrown | todo | S | — | RuntimeConfigurationError appears zero times in src/ | ✓ |
@@ -90,7 +94,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-463 | Step/watchpoint pauses have never had a source position — every non-breakpoint pause renders `<internal C>` | todo | S | — | shipped defect, no requirement row; DEBUG-05 Phase 1 fixes it incidentally — do not fix twice | — |
 | BUG-464 | Ragged requirement tables render the wrong status — 36 rows, 11 files | todo | C | — | REFACT-01's own table rendered **Full** beside "grep is empty"; the durable half is a `lint_docs.py` table-shape check | ✓ |
 | BUG-467 | A `require` module name starting with a delimiter char is mis-sliced on file rename | todo | C | — | design §3.7 step 2's own algorithm; fails visibly (unresolved require), not silently | ✓ |
-| BUG-468 | Cancelling a rename leaves usages renamed and the declaration not — no rollback | todo | M | — | BUG-457's shape reached by pressing Cancel; measured, and the write action does not roll back | ✓ |
 | BUG-458 | Safe Delete of a label leaves `::::`, unparseable on every Lua version | todo | C | — | — | ✓ |
 | BUG-465 | Rename from an `M.run()` call site is refused — `TargetElementUtil` returns the whole `LuaFuncDecl` | todo | C | — | REFACT-01 Gap 2.14; second gap needing the same absent `TargetElementEvaluatorEx2` (Gap 2.9 is the first) | ✓ |
 | BUG-460 | Naming two indent options hides tabs/tab-width and suppresses 4 `.editorconfig` properties | todo | C | — | — | ✓ |

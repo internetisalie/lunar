@@ -1,0 +1,151 @@
+// REFACT-07-00-04 (DR-04) THROWAWAY measurement harness — REMOVE from src/test after the run.
+// It is a probe, not a regression test: it prints rather than asserts, so leaving it in the suite
+// would be a test that cannot fail (risks-and-gaps.md Risk 1.2).
+package net.internetisalie.lunar.refactoring.rename
+
+import com.intellij.codeInsight.template.impl.TemplateManagerImpl
+import com.intellij.ide.DataManager
+import com.intellij.openapi.application.impl.NonBlockingReadActionImpl
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.application.runReadAction
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.refactoring.BaseRefactoringProcessor
+import com.intellij.refactoring.rename.PsiElementRenameHandler
+import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+import com.intellij.testFramework.PlatformTestUtil
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.testFramework.fixtures.CodeInsightTestUtil
+import net.internetisalie.lunar.LuaBundle
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
+
+@RunWith(JUnit4::class)
+class Dr04ConflictChannelProbeTest : BasePlatformTestCase() {
+    @Test
+    fun testRouteBConflictChannelOnTc08Fixture() {
+        myFixture.configureByText("dr04a.lua", TC08_FIXTURE)
+        emit("a", "expected capture message", captureMessage())
+        emit("a", "document before", flat(myFixture.editor.document.text))
+        val leaf = runReadAction { myFixture.file.findElementAt(myFixture.caretOffset) }
+        emit("a", "elementAtCaret", "${leaf?.javaClass?.simpleName} ${leaf?.node?.elementType} '${leaf?.text}'")
+        val outcome =
+            runCatching {
+                CodeInsightTestUtil.tryInlineRename(MemberInplaceRenameHandler(), "total", myFixture.editor, requireNotNull(leaf))
+            }
+        emit("a", "tryInlineRename returned", outcome.getOrNull()?.toString())
+        emitThrowable("a", "tryInlineRename threw", outcome.exceptionOrNull())
+        val conflict = outcome.exceptionOrNull() as? BaseRefactoringProcessor.ConflictsInTestsException
+        emit("a", "getMessages().size", conflict?.messages?.size?.toString())
+        conflict?.messages?.forEachIndexed { index, text -> emit("a", "getMessages()[$index]", flat(text)) }
+        emit("a", "getMessages() contains the capture message", conflict?.messages?.contains(captureMessage())?.toString())
+        conflict?.stackTrace?.take(14)?.forEachIndexed { index, frame -> emit("a", "stack[$index]", frame.toString()) }
+        emit("a", "document after tryInlineRename", flat(myFixture.editor.document.text))
+        val drained = runCatching { drain() }
+        emitThrowable("a", "drain threw", drained.exceptionOrNull())
+        emit("a", "document after drain", flat(myFixture.editor.document.text))
+    }
+
+    @Test
+    fun testRouteBTemplateEditsAreRolledBackBeforeTheConflict() {
+        myFixture.configureByText("dr04d.lua", TC08_FIXTURE)
+        val disposable = Disposer.newDisposable()
+        try {
+            TemplateManagerImpl.setTemplateTesting(disposable)
+            val context = DataManager.getInstance().getDataContext(myFixture.editor.contentComponent)
+            val supplied = runReadAction { PsiElementRenameHandler.getElement(context) }
+            emit("d", "supplied", "${supplied?.javaClass?.simpleName}(${supplied?.node?.elementType})")
+            MemberInplaceRenameHandler().doRename(requireNotNull(supplied), myFixture.editor, context)
+            val range = requireNotNull(TemplateManagerImpl.getTemplateState(myFixture.editor)).currentVariableRange
+            emit("d", "currentVariableRange", range?.toString())
+            WriteCommandAction.writeCommandAction(project).run<RuntimeException> {
+                myFixture.editor.document.replaceString(requireNotNull(range).startOffset, range.endOffset, "total")
+            }
+            emit("d", "document after template edit", flat(myFixture.editor.document.text))
+            val committed = runCatching { requireNotNull(TemplateManagerImpl.getTemplateState(myFixture.editor)).gotoEnd(false) }
+            emitThrowable("d", "gotoEnd threw", committed.exceptionOrNull())
+            emit("d", "document after gotoEnd, before drain", flat(myFixture.editor.document.text))
+            val settled = runCatching { NonBlockingReadActionImpl.waitForAsyncTaskCompletion() }
+            emitThrowable("d", "waitForAsyncTaskCompletion threw", settled.exceptionOrNull())
+            emit("d", "document after waitForAsyncTaskCompletion", flat(myFixture.editor.document.text))
+            val fullyDrained = runCatching { drain() }
+            emitThrowable("d", "full drain threw", fullyDrained.exceptionOrNull())
+            emit("d", "document after full drain", flat(myFixture.editor.document.text))
+        } finally {
+            Disposer.dispose(disposable)
+        }
+        emit("d", "document after dispose", flat(myFixture.editor.document.text))
+    }
+
+    @Test
+    fun testDialogRouteControlOnTc08Fixture() {
+        myFixture.configureByText("dr04b.lua", TC08_FIXTURE)
+        emit("b", "document before", flat(myFixture.editor.document.text))
+        val outcome = runCatching { myFixture.renameElementAtCaret("total") }
+        emitThrowable("b", "renameElementAtCaret threw", outcome.exceptionOrNull())
+        emit("b", "document after", flat(myFixture.editor.document.text))
+        val drained = runCatching { drain() }
+        emitThrowable("b", "drain threw", drained.exceptionOrNull())
+        emit("b", "document after drain", flat(myFixture.editor.document.text))
+    }
+
+    @Test
+    fun testRouteBNonConflictingControl() {
+        myFixture.configureByText("dr04c.lua", TC08_FIXTURE)
+        val leaf = runReadAction { myFixture.file.findElementAt(myFixture.caretOffset) }
+        val outcome =
+            runCatching {
+                CodeInsightTestUtil.tryInlineRename(MemberInplaceRenameHandler(), "tally", myFixture.editor, requireNotNull(leaf))
+            }
+        emit("c", "tryInlineRename returned", outcome.getOrNull()?.toString())
+        emitThrowable("c", "tryInlineRename threw", outcome.exceptionOrNull())
+        val drained = runCatching { drain() }
+        emitThrowable("c", "drain threw", drained.exceptionOrNull())
+        emit("c", "document after drain", flat(myFixture.editor.document.text))
+    }
+
+    private fun captureMessage(): String = LuaBundle.message("refactoring.rename.conflict.capture", "total", "counter")
+
+    private fun drain() {
+        repeat(5) {
+            NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+            PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+            PsiDocumentManager.getInstance(project).commitAllDocuments()
+        }
+    }
+
+    private fun flat(text: String): String = text.replace("\n", "\\n")
+
+    private fun emitThrowable(
+        label: String,
+        field: String,
+        error: Throwable?,
+    ) {
+        if (error == null) {
+            emit(label, field, "NONE")
+            return
+        }
+        emit(label, field, error.javaClass.name)
+        emit(label, "$field / message", flat(error.message ?: "null"))
+        var cause = error.cause
+        var depth = 1
+        while (cause != null && depth <= 4) {
+            emit(label, "$field / cause[$depth]", "${cause.javaClass.name}: ${flat(cause.message ?: "null")}")
+            cause = cause.cause
+            depth += 1
+        }
+    }
+
+    private fun emit(
+        label: String,
+        field: String,
+        value: String?,
+    ) {
+        println("DR04|$label|$field|${value ?: "null"}")
+    }
+
+    private companion object {
+        const val TC08_FIXTURE = "local coun<caret>ter = 0\nlocal total = 1\nprint(counter + total)\n"
+    }
+}

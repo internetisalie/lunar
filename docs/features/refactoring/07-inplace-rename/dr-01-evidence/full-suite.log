@@ -1,0 +1,50 @@
+[1;36m[gce-builder][0m Syncing working tree → builder@192.168.3.10:lunar via rsync (honoring .gitignore)…
+[1;36m[gce-builder][0m Sync done.
+[1;36m[gce-builder][0m Running on debian13: ./gradlew test --rerun --no-build-cache
+> Task :checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :initializeIntellijPlatformPlugin
+> Task :patchPluginXml UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :generateManifest UP-TO-DATE
+> Task :processTestResources UP-TO-DATE
+> Task :koverFindJar UP-TO-DATE
+> Task :compileKotlin
+> Task :compileJava UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :instrumentCode
+> Task :jar
+> Task :compileTestKotlin
+> Task :instrumentedJar
+> Task :compileTestJava NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :instrumentTestCode
+> Task :composedJar
+> Task :prepareSandbox
+> Task :prepareTestSandbox
+> Task :prepareTest
+
+> Task :test
+[0.010s][warning][cds] Archived non-system classes are disabled because the java.system.class.loader property is specified (value = "com.intellij.util.lang.PathClassLoader"). To use archived non-system classes, this property must not be set
+
+LuaInplaceRenameTest > testInplaceRenameIsOfferedForAFileLocalDeclaration FAILED
+    junit.framework.AssertionFailedError at LuaInplaceRenameTest.kt:54
+
+[11:01:44]: Canceling supervisor scopes: Shutdown is in progress: either SIGTERM or SIGKILL is caught
+
+> Task :test
+
+2851 tests completed, 1 failed, 1 skipped
+
+> Task :test FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///home/builder/lunar/build/reports/tests/test/index.html
+
+* Try:
+17 actionable tasks: 11 executed, 6 up-to-date
+> Run with --scan to get full insights.
+
+BUILD FAILED in 7m 37s

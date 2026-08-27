@@ -1,0 +1,130 @@
+// REFACT-07-00-01 (DR-01) THROWAWAY measurement harness — REMOVED from src/test after the run.
+// It is a probe, not a regression test: most cases print rather than assert, so leaving it in the
+// suite would be tests that cannot fail (risks-and-gaps.md Risk 1.2).
+// Ran on scratch branch spike/refact-07-dr-01 @ abb55194 (off main bbed46c3), GoLand 2026.1.3,
+// builder VM lunar-builder, 2026-08-26. Reproduce: restore to
+//   src/test/kotlin/net/internetisalie/lunar/refactoring/rename/<name>.kt
+// with the design 3.1/3.2/2.3/2.4 edits present, and run
+//   tooling/gce-builder/gce-builder.sh run "test --tests *Dr01Spike* --rerun --no-build-cache"
+
+// REFACT-07-00-01 (DR-01) THROWAWAY follow-up harness 3 — REMOVE from src/test after the run.
+package net.internetisalie.lunar.refactoring.rename
+
+import com.intellij.codeInsight.template.impl.TemplateManagerImpl
+import com.intellij.ide.DataManager
+import com.intellij.openapi.application.impl.NonBlockingReadActionImpl
+import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.util.Disposer
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.util.PsiTreeUtil
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
+import com.intellij.refactoring.listeners.RefactoringEventData
+import com.intellij.refactoring.listeners.RefactoringEventListener
+import com.intellij.testFramework.PlatformTestUtil
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
+
+@RunWith(JUnit4::class)
+class Dr01SpikeProbe3Test : BasePlatformTestCase() {
+    @Test
+    fun testWhatTheRenameProcessorSees() {
+        myFixture.configureByText("dr01g3.lua", "---@param a number\nlocal function f(<caret>a) return a end\n")
+        subscribe("g3")
+        val disposable = Disposer.newDisposable()
+        try {
+            TemplateManagerImpl.setTemplateTesting(disposable)
+            val context = DataManager.getInstance().getDataContext(myFixture.editor.contentComponent)
+            LuaInplaceRenameHandler().invoke(project, myFixture.editor, myFixture.file, context)
+            val state = requireNotNull(TemplateManagerImpl.getTemplateState(myFixture.editor))
+            val range = requireNotNull(state.currentVariableRange)
+            emit("g3", "segmentsCount", state.segmentsCount.toString())
+            (0 until state.segmentsCount).forEach { index ->
+                emit("g3", "segment[$index]", state.getSegmentRange(index).toString())
+            }
+            WriteCommandAction.writeCommandAction(project).run<RuntimeException> {
+                myFixture.editor.document.replaceString(range.startOffset, range.endOffset, "count")
+            }
+            requireNotNull(TemplateManagerImpl.getTemplateState(myFixture.editor)).gotoEnd(false)
+            repeat(5) {
+                NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+                PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+                PsiDocumentManager.getInstance(project).commitAllDocuments()
+            }
+            emit("g3", "final document", myFixture.editor.document.text.replace("\n", "\\n"))
+        } finally {
+            Disposer.dispose(disposable)
+        }
+    }
+
+    @Test
+    fun testFindElementOfClassAtRangeAtTheSubstitutedRange() {
+        myFixture.configureByText("dr01h.lua", "---@param a number\nlocal function f(<caret>a) return a end\n")
+        runReadAction {
+            val owner =
+                PsiTreeUtil.findElementOfClassAtRange(
+                    myFixture.file,
+                    36,
+                    37,
+                    PsiNameIdentifierOwner::class.java,
+                )
+            emit("h", "findElementOfClassAtRange(36,37,PsiNameIdentifierOwner)", owner?.let { "${it.javaClass.simpleName}(${it.node?.elementType}) '${it.text}'" })
+            emit("h", "kindOf(thatElement)", owner?.let { LuaDeclarationSite.kindOf(it)?.toString() ?: "null" })
+            val leaf = myFixture.file.findElementAt(36)
+            emit("h", "leafAt(36)", leaf?.let { "${it.javaClass.simpleName}(${it.node?.elementType}) '${it.text}'" })
+            emit("h", "kindOf(leaf)", leaf?.let { LuaDeclarationSite.kindOf(it)?.toString() ?: "null" })
+        }
+    }
+
+    private fun subscribe(label: String) {
+        project.messageBus
+            .connect(testRootDisposable)
+            .subscribe(
+                RefactoringEventListener.REFACTORING_EVENT_TOPIC,
+                object : RefactoringEventListener {
+                    override fun refactoringStarted(
+                        refactoringId: String,
+                        beforeData: RefactoringEventData?,
+                    ) {
+                        record(label, "started:$refactoringId", beforeData)
+                    }
+
+                    override fun refactoringDone(
+                        refactoringId: String,
+                        afterData: RefactoringEventData?,
+                    ) {
+                        record(label, "done:$refactoringId", afterData)
+                    }
+                },
+            )
+    }
+
+    private fun record(
+        label: String,
+        phase: String,
+        data: RefactoringEventData?,
+    ) {
+        emit(label, "$phase document", myFixture.editor.document.text.replace("\n", "\\n"))
+        val elements = data?.getUserData(RefactoringEventData.PSI_ELEMENT_ARRAY_KEY)
+        val described =
+            runReadAction {
+                elements?.joinToString(", ") { psi ->
+                    "${psi.javaClass.simpleName}(${psi.node?.elementType}) '${psi.text}' ${psi.textRange} valid=${psi.isValid}"
+                }
+            }
+        emit(label, "$phase elements", described ?: "null")
+    }
+
+    private fun emit(
+        label: String,
+        field: String,
+        value: String?,
+    ) {
+        println("DR01|$label|$field|${value ?: "null"}")
+    }
+}
+
+// appended probe — confirms which class findElementOfClassAtRange resolves at the substituted range

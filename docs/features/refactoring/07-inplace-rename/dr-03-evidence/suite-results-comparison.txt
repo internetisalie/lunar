@@ -1,0 +1,29 @@
+Step 4 — full unit suite on both commits, RESULTS compared, not just counts.
+
+base      f6148451  ./gradlew test --rerun --no-build-cache   -> BUILD SUCCESSFUL in 7m 20s
+          JUnit XML aggregate: tests=2851 skipped=1 failures=0 errors=0
+treatment 8bbb7032  ./gradlew test --rerun --no-build-cache   -> BUILD FAILED     in 7m 36s
+          JUnit XML aggregate: tests=2851 skipped=1 failures=1 errors=0
+          the single failure is the PREDICTED one:
+          LuaInplaceRenameTest > testInplaceRenameIsOfferedForAFileLocalDeclaration
+          (it asserts the opposite of what design §3.2 sets)
+          the single skip is the same on both: LuaCompletionTest
+
+TEST-NAME SETS (classname#methodname, from every TEST-*.xml, LC_ALL=C sorted):
+  base  : 2851 names   sha256 1fe20dcfd6ec0edec82d13c1d7b55d0a01eeaf5af13ea2c837d8cdeb0b6b47c2
+  treat : 2851 names   sha256 1fe20dcfd6ec0edec82d13c1d7b55d0a01eeaf5af13ea2c837d8cdeb0b6b47c2
+  diff  : EMPTY — the two runs executed the IDENTICAL set of tests.
+
+Per-class counts (identical on both commits; classes with >=20 tests shown):
+     60  net.internetisalie.lunar.analysis.inspections.LuaLanguageLevelInspectionTest"
+     34  net.internetisalie.lunar.lang.types.TestLuaTypeEnginePhase1"
+     33  net.internetisalie.lunar.corpus.BaselineRatchetTest"
+     32  net.internetisalie.lunar.lang.syntax.TestLuaLiterals"
+     30  net.internetisalie.lunar.refactoring.rename.LuaRenameTest"
+     29  net.internetisalie.lunar.lang.lexer.TestLuaLexerExhaustive"
+     29  net.internetisalie.lunar.lang.insight.LuaCompletionTest"
+     23  net.internetisalie.lunar.luacats.lang.parser.LuaCatsParserTest"
+     23  net.internetisalie.lunar.lang.types.PrimitiveTypeCompatibilityTest"
+     23  net.internetisalie.lunar.lang.insight.hint.LuaTypeInlayHintsTest"
+     23  net.internetisalie.lunar.lang.format.LuaEnterHandlerTest"
+     20  net.internetisalie.lunar.luacats.lang.lexer.TestLuaCatsLexer"

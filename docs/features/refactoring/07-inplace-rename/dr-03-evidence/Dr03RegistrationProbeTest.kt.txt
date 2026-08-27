@@ -1,0 +1,42 @@
+package net.internetisalie.lunar.probe
+
+import com.intellij.openapi.extensions.ExtensionPointName
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.lang.LuaLanguage
+
+/**
+ * DR-03 step-3 measurement probe: which language-keyed extension points actually carry a Lua
+ * entry at RUNTIME. Registration facts, so tree-independent. Prints; asserts nothing.
+ */
+class Dr03RegistrationProbeTest : BasePlatformTestCase() {
+    private fun report(epName: String) {
+        val point = ExtensionPointName<Any>(epName)
+        try {
+            val beans = point.extensionList
+            val forLua =
+                beans.filter { bean ->
+                    val languageField = runCatching { bean.javaClass.getField("language") }.getOrNull()
+                    val language = languageField?.get(bean) as? String
+                    language == LuaLanguage.INSTANCE.id || language.isNullOrEmpty()
+                }
+            println("DR03REG|$epName|total=${beans.size} luaOrAnyLanguage=${forLua.size}")
+            for (bean in forLua) {
+                val implField = runCatching { bean.javaClass.getField("implementationClass") }.getOrNull()
+                println("DR03REG|$epName|  ${implField?.get(bean) ?: bean.javaClass.name}")
+            }
+        } catch (failure: Throwable) {
+            println("DR03REG|$epName|THREW=${failure.javaClass.simpleName}: ${failure.message}")
+        }
+    }
+
+    fun testRegistrations() {
+        myFixture.configureByText("probe.lua", "local counter = 0\nprint(counter)\n")
+        report("com.intellij.codeInsight.completion.command.provider")
+        report("com.intellij.codeInsight.completion.command.factory")
+        report("com.intellij.codeInsight.codeVisionProvider")
+        report("com.intellij.completion.ml.elementFeatures")
+        report("com.intellij.lang.inlineActionHandler")
+        report("com.intellij.lang.changeSignature")
+        report("com.intellij.codeInsight.lineMarkerProvider")
+    }
+}

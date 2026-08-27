@@ -21,6 +21,7 @@ Lunar provides tools to safely restructure code and perform automated transforma
 | `REFACT-04` | **Label Refactoring** | **C** | Support renaming and refactoring of `goto` labels and their references. |
 | `REFACT-05` | **Name Validator** | **S** | Validate names for idiomatic conventions and suggest corrections. |
 | `REFACT-06` | **Stubs for Declaring Identifiers** | **C** | Generate `.lua` stub files for declaring external APIs. |
+| `REFACT-07` | **In-place (Inline) Rename** | **S** | Rename a file-local Lua declaration by typing in the editor, under a live template, instead of through the modal dialog. |
 | `INTENT-01` | **String Style Conversion** | **C** | Switch between different string quote styles. |
 | `INTENT-02` | **Invert If Statement** | **C** | Automatically flip an `if-else` block and its condition. |
 | `INTENT-03` | **Name Suggestion** | **S** | Suggest idiomatic names when creating new variables or functions. |
@@ -55,3 +56,13 @@ Lunar provides tools to safely restructure code and perform automated transforma
   (`grep -rn LuaLabelRefactoringSupportProvider src/` is empty; the only `LuaLabelFindUsagesProvider`
   hit is a historical note in `LuaFindUsagesProvider.kt:15`).
 
+### REFACT-07: In-place (Inline) Rename
+
+- **Status**: **Implemented** — delivered by [[REFACT-07]]. <kbd>Shift+F6</kbd> on a Lua local
+  starts an inline template: typing updates the declaration and every usage together,
+  <kbd>Enter</kbd> commits, <kbd>Esc</kbd> restores the file byte-for-byte. Verified live in
+  GoLand, not only under test. The primitive both in-place routes required — a
+  `PsiNameIdentifierOwner` on the declaring `LuaNameRef` — ships on the `nameRef` mixin, so labels
+  are no longer the only identifiers with a working inline template.
+- Owns `REFACT-01-12`, delegated from [[REFACT-01]] under the same pattern as `REFACT-01-11` →
+  [[REFACT-05]] and `REFACT-01-17` → [[REFACT-04]].

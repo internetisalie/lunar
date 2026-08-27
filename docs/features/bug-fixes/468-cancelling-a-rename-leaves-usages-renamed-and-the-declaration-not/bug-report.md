@@ -3,13 +3,21 @@ id: "BUG-468"
 title: "Cancelling a rename mid-flight leaves usages renamed and the declaration not — silently, with no rollback"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-468: `ProcessCanceledException` in the usage loop produces BUG-457's shape
+
+> **FIXED 2026-08-25 by [[REFACT-01]] Phase 8** (design §3.3 steps 3, 3a and 4). `renameElement`
+> resolves the declaration rewrite, every usage rewrite and the `---@param` tag rewrite in a
+> cancellable preparation phase, then applies only prepared closures inside one
+> `ProgressManager.getInstance().executeNonCancelableSection`. `LuaRenameTest.TC-43` is the gate and
+> is mutation-proved: restoring the loop below reddens it on a half-applied file, not on a missing
+> exception. The residual — a Cancel arriving after preparation is ignored and the rename completes —
+> is accepted and recorded as `risks-and-gaps.md` Gap 2.18. Everything below is the report as filed.
 
 Found 2026-08-23 by the [[REFACT-01]] Phase 6 reviewer. Promoted from a gap paragraph after that
 paragraph — which this report's author wrote — was found to understate it.

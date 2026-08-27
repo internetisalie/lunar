@@ -1,0 +1,169 @@
+DR05|a-declaration|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR05|a-declaration|supplied.node.elementType|NAME_REF
+DR05|a-declaration|supplied.textRange|(6,13)
+DR05|a-declaration|supplied.text|counter
+DR05|a-declaration|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaAttNameImpl
+DR05|a-declaration|supplied is PsiNameIdentifierOwner|false
+DR05|a-declaration|supplied is LuaNameRef|true
+DR05|a-declaration|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (6,13)
+DR05|a-declaration|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|a-declaration|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
+DR05|a-declaration|RenameHandler.EP_NAME size|10
+DR05|a-declaration|EP handlers whose isRenaming is true|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
+DR05|a-declaration|editor.component supplies|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl (6,13)
+DR05|a2-decl-shadowing-global|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR05|a2-decl-shadowing-global|supplied.node.elementType|LuaTokenType.IDENTIFIER
+DR05|a2-decl-shadowing-global|supplied.textRange|(0,6)
+DR05|a2-decl-shadowing-global|supplied.text|config
+DR05|a2-decl-shadowing-global|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR05|a2-decl-shadowing-global|supplied is PsiNameIdentifierOwner|false
+DR05|a2-decl-shadowing-global|supplied is LuaNameRef|false
+DR05|a2-decl-shadowing-global|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'config' (17,23)
+DR05|a2-decl-shadowing-global|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|a2-decl-shadowing-global|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.PsiElementRenameHandler
+DR05|a2-decl-shadowing-global|RenameHandler.EP_NAME size|10
+DR05|a2-decl-shadowing-global|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|a2-decl-shadowing-global|editor.component supplies|com.intellij.psi.impl.source.tree.LeafPsiElement (0,6)
+DR05|b-usage-read|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR05|b-usage-read|supplied.node.elementType|LuaTokenType.IDENTIFIER
+DR05|b-usage-read|supplied.textRange|(6,13)
+DR05|b-usage-read|supplied.text|counter
+DR05|b-usage-read|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR05|b-usage-read|supplied is PsiNameIdentifierOwner|false
+DR05|b-usage-read|supplied is LuaNameRef|false
+DR05|b-usage-read|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (24,31)
+DR05|b-usage-read|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|b-usage-read|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.PsiElementRenameHandler
+DR05|b-usage-read|RenameHandler.EP_NAME size|10
+DR05|b-usage-read|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|b-usage-read|editor.component supplies|com.intellij.psi.impl.source.tree.LeafPsiElement (6,13)
+DR05|c-usage-write|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR05|c-usage-write|supplied.node.elementType|LuaTokenType.IDENTIFIER
+DR05|c-usage-write|supplied.textRange|(6,13)
+DR05|c-usage-write|supplied.text|counter
+DR05|c-usage-write|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR05|c-usage-write|supplied is PsiNameIdentifierOwner|false
+DR05|c-usage-write|supplied is LuaNameRef|false
+DR05|c-usage-write|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (18,25)
+DR05|c-usage-write|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|c-usage-write|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.PsiElementRenameHandler
+DR05|c-usage-write|RenameHandler.EP_NAME size|10
+DR05|c-usage-write|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|c-usage-write|editor.component supplies|com.intellij.psi.impl.source.tree.LeafPsiElement (6,13)
+DR05|d-parameter|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR05|d-parameter|supplied.node.elementType|LuaTokenType.IDENTIFIER
+DR05|d-parameter|supplied.textRange|(36,37)
+DR05|d-parameter|supplied.text|a
+DR05|d-parameter|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR05|d-parameter|supplied is PsiNameIdentifierOwner|false
+DR05|d-parameter|supplied is LuaNameRef|false
+DR05|d-parameter|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'a' (36,37)
+DR05|d-parameter|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|d-parameter|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.PsiElementRenameHandler
+DR05|d-parameter|RenameHandler.EP_NAME size|10
+DR05|d-parameter|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|d-parameter|editor.component supplies|com.intellij.psi.impl.source.tree.LeafPsiElement (36,37)
+DR05|d2-parameter-no-cats|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR05|d2-parameter-no-cats|supplied.node.elementType|LuaTokenType.IDENTIFIER
+DR05|d2-parameter-no-cats|supplied.textRange|(17,18)
+DR05|d2-parameter-no-cats|supplied.text|a
+DR05|d2-parameter-no-cats|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR05|d2-parameter-no-cats|supplied is PsiNameIdentifierOwner|false
+DR05|d2-parameter-no-cats|supplied is LuaNameRef|false
+DR05|d2-parameter-no-cats|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'a' (17,18)
+DR05|d2-parameter-no-cats|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|d2-parameter-no-cats|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.PsiElementRenameHandler
+DR05|d2-parameter-no-cats|RenameHandler.EP_NAME size|10
+DR05|d2-parameter-no-cats|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|d2-parameter-no-cats|editor.component supplies|com.intellij.psi.impl.source.tree.LeafPsiElement (17,18)
+DR05|d3-parameter-caret-inside|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR05|d3-parameter-caret-inside|supplied.node.elementType|LuaTokenType.IDENTIFIER
+DR05|d3-parameter-caret-inside|supplied.textRange|(17,22)
+DR05|d3-parameter-caret-inside|supplied.text|count
+DR05|d3-parameter-caret-inside|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR05|d3-parameter-caret-inside|supplied is PsiNameIdentifierOwner|false
+DR05|d3-parameter-caret-inside|supplied is LuaNameRef|false
+DR05|d3-parameter-caret-inside|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'count' (17,22)
+DR05|d3-parameter-caret-inside|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|d3-parameter-caret-inside|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.PsiElementRenameHandler
+DR05|d3-parameter-caret-inside|RenameHandler.EP_NAME size|10
+DR05|d3-parameter-caret-inside|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|d3-parameter-caret-inside|editor.component supplies|com.intellij.psi.impl.source.tree.LeafPsiElement (17,22)
+DR05|e-global-decl|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR05|e-global-decl|supplied.node.elementType|NAME_REF
+DR05|e-global-decl|supplied.textRange|(0,6)
+DR05|e-global-decl|supplied.text|config
+DR05|e-global-decl|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaVarImpl
+DR05|e-global-decl|supplied is PsiNameIdentifierOwner|false
+DR05|e-global-decl|supplied is LuaNameRef|true
+DR05|e-global-decl|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'config' (0,6)
+DR05|e-global-decl|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|e-global-decl|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.PsiElementRenameHandler
+DR05|e-global-decl|RenameHandler.EP_NAME size|10
+DR05|e-global-decl|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|e-global-decl|editor.component supplies|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl (0,6)
+DR05|f-numeric-for|supplied.javaClass|null
+DR05|f-numeric-for|supplied.node.elementType|null
+DR05|f-numeric-for|supplied.textRange|null
+DR05|f-numeric-for|supplied.text|null
+DR05|f-numeric-for|supplied.parent.javaClass|null
+DR05|f-numeric-for|supplied is PsiNameIdentifierOwner|false
+DR05|f-numeric-for|supplied is LuaNameRef|false
+DR05|f-numeric-for|leafAtCaret (context only)|PsiWhiteSpaceImpl(WHITE_SPACE) ' ' (5,6)
+DR05|f-numeric-for|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|f-numeric-for|RenameHandlerRegistry.getRenameHandlers|EMPTY-LIST
+DR05|f-numeric-for|RenameHandler.EP_NAME size|10
+DR05|f-numeric-for|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|f-numeric-for|editor.component supplies|null null
+DR05|f2-numeric-for-at-start|supplied.javaClass|null
+DR05|f2-numeric-for-at-start|supplied.node.elementType|null
+DR05|f2-numeric-for-at-start|supplied.textRange|null
+DR05|f2-numeric-for-at-start|supplied.text|null
+DR05|f2-numeric-for-at-start|supplied.parent.javaClass|null
+DR05|f2-numeric-for-at-start|supplied is PsiNameIdentifierOwner|false
+DR05|f2-numeric-for-at-start|supplied is LuaNameRef|false
+DR05|f2-numeric-for-at-start|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'i' (4,5)
+DR05|f2-numeric-for-at-start|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|f2-numeric-for-at-start|RenameHandlerRegistry.getRenameHandlers|EMPTY-LIST
+DR05|f2-numeric-for-at-start|RenameHandler.EP_NAME size|10
+DR05|f2-numeric-for-at-start|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|f2-numeric-for-at-start|editor.component supplies|null null
+DR05|f3-numeric-for-caret-inside|supplied.javaClass|null
+DR05|f3-numeric-for-caret-inside|supplied.node.elementType|null
+DR05|f3-numeric-for-caret-inside|supplied.textRange|null
+DR05|f3-numeric-for-caret-inside|supplied.text|null
+DR05|f3-numeric-for-caret-inside|supplied.parent.javaClass|null
+DR05|f3-numeric-for-caret-inside|supplied is PsiNameIdentifierOwner|false
+DR05|f3-numeric-for-caret-inside|supplied is LuaNameRef|false
+DR05|f3-numeric-for-caret-inside|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'index' (4,9)
+DR05|f3-numeric-for-caret-inside|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR05|f3-numeric-for-caret-inside|RenameHandlerRegistry.getRenameHandlers|EMPTY-LIST
+DR05|f3-numeric-for-caret-inside|RenameHandler.EP_NAME size|10
+DR05|f3-numeric-for-caret-inside|EP handlers whose isRenaming is true|EMPTY-LIST
+DR05|f3-numeric-for-caret-inside|editor.component supplies|null null
+DR05|g-label|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaLabelNameImpl
+DR05|g-label|supplied.node.elementType|LABEL_NAME
+DR05|g-label|supplied.textRange|(2,7)
+DR05|g-label|supplied.text|retry
+DR05|g-label|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaLabelImpl
+DR05|g-label|supplied is PsiNameIdentifierOwner|true
+DR05|g-label|supplied is LuaNameRef|false
+DR05|g-label|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'retry' (2,7)
+DR05|g-label|MemberInplaceRenameHandler.isAvailableOnDataContext|true
+DR05|g-label|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR05|g-label|RenameHandler.EP_NAME size|10
+DR05|g-label|EP handlers whose isRenaming is true|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR05|g-label|editor.component supplies|net.internetisalie.lunar.lang.psi.impl.LuaLabelNameImpl (2,7)
+DR05|g2-goto-usage|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaLabelNameImpl
+DR05|g2-goto-usage|supplied.node.elementType|LABEL_NAME
+DR05|g2-goto-usage|supplied.textRange|(2,7)
+DR05|g2-goto-usage|supplied.text|retry
+DR05|g2-goto-usage|supplied.parent.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaLabelImpl
+DR05|g2-goto-usage|supplied is PsiNameIdentifierOwner|true
+DR05|g2-goto-usage|supplied is LuaNameRef|false
+DR05|g2-goto-usage|leafAtCaret (context only)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'retry' (15,20)
+DR05|g2-goto-usage|MemberInplaceRenameHandler.isAvailableOnDataContext|true
+DR05|g2-goto-usage|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR05|g2-goto-usage|RenameHandler.EP_NAME size|10
+DR05|g2-goto-usage|EP handlers whose isRenaming is true|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR05|g2-goto-usage|editor.component supplies|net.internetisalie.lunar.lang.psi.impl.LuaLabelNameImpl (2,7)

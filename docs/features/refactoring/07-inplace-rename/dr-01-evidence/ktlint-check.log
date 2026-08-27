@@ -1,0 +1,7 @@
+[1;36m[gce-builder][0m Syncing working tree → builder@192.168.3.10:lunar via rsync (honoring .gitignore)…
+[1;36m[gce-builder][0m Sync done.
+[1;36m[gce-builder][0m Running on debian13: ./gradlew ktlintCheck
+> Task :ktlintCheck
+
+BUILD SUCCESSFUL in 18s
+1 actionable task: 1 executed

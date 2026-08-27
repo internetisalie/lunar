@@ -1,0 +1,39 @@
+# DR-04 throwaway instrumentation (production edits, reverted)
+#
+# risks-and-gaps.md's DR-04 setup sanctions "a temporary log line, removed afterwards" for the
+# question "did LuaRenameConflictDetector run at all". Two were added, both reverted:
+#
+#   LuaRenameProcessor.findCollisions      — ENTER row (element class/type/text, newName, usage
+#                                            count), a row on each of the two early returns, and a
+#                                            PRODUCED row with the collision count and descriptions.
+#   LuaRenameConflictDetector.collisions   — ENTER row (kind, newName, identifier, usage count).
+#
+# The findCollisions rows are split across the two early returns deliberately: "the detector did
+# not run" and "findCollisions was never called" are different answers, and a single entry log
+# cannot tell them apart. Measured: neither early return ever fired.
+#
+# Exact text in instrumentation.diff. Reverted with
+#   git show HEAD:<path> > <path>
+# never with git checkout / git restore / git stash.
+#
+# MUTANT M1 (run2) is a separate throwaway edit, also reverted: `captures(target, usages) +` in
+# LuaRenameConflictDetector.collisions replaced by `emptyList<LuaRenameCollision>() +`, which is
+# requirements.md TC-08's named mutation, "delete the capture rule".
+#
+# Reproduce: check out spike/refact-07-dr-02 (8bbb7032), restore
+# Dr04ConflictChannelProbeTest.kt.txt to
+#   src/test/kotlin/net/internetisalie/lunar/refactoring/rename/Dr04ConflictChannelProbeTest.kt
+# apply instrumentation.diff, and run
+#   tooling/gce-builder/gce-builder.sh run "test --tests *Dr04ConflictChannelProbeTest* --rerun --no-build-cache"
+# The probe PRINTS and does not assert, so it must not be left in src/test (Risk 1.2).
+#
+# Run 6 was taken with the instrumentation NOT applied — the harness alone, against untouched
+# production code. It reproduces the exception, the message and the unchanged document, so those
+# three answers do not depend on the instrumented build.
+#
+# run3 in measured-rows.txt is retained as a NEGATIVE result about the probe, not about the
+# product: probe (d) read the document after gotoEnd(false) without draining, and saw the
+# template's text with no exception. CodeInsightTestUtil.tryInlineRename drains at :265
+# (NonBlockingReadActionImpl.waitForAsyncTaskCompletion) immediately after gotoEnd, inside its own
+# try block. run4 adds that drain and the rollback plus the exception both appear. A TC-08 that
+# reads the document between gotoEnd and the drain would assert on the corrupt intermediate.

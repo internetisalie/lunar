@@ -1,0 +1,265 @@
+# REFACT-07-00-04 (DR-04) — raw measured rows
+# GoLand 2026.1.3, builder VM lunar-builder, 2026-08-26.
+# Tree: spike/refact-07-dr-02 @ 8bbb7032 (DR-01's four edits verbatim) + the throwaway
+# instrumentation in instrumentation.diff + Dr04ConflictChannelProbeTest.kt.txt.
+# Command: tooling/gce-builder/gce-builder.sh run "test --tests *Dr04ConflictChannelProbeTest* --rerun --no-build-cache"
+# run6 carries the archived harness verbatim; runs 1-5 are its earlier states.
+# RUNS 1-5 are instrumented (instrumentation.diff applied); RUN 6 IS NOT — production code is
+# untouched there. Run 6 therefore has no DR04|probe| rows, and it doubles as the control showing
+# the exception, its message and the unchanged document are not artifacts of the instrumentation.
+
+
+===== run1 — baseline, unmutated, probes a/b/c =====
+name="net.internetisalie.lunar.refactoring.rename.Dr04ConflictChannelProbeTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-26T11:56:07.666Z" hostname="lunar-builder" time="11.93"
+
+DR04|b|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LeafPsiElement(LuaTokenType.IDENTIFIER) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|renameElementAtCaret threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|b|renameElementAtCaret threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|document after|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|b|drain threw|NONE
+DR04|b|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=tally usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=tally identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 0 collisions: 
+DR04|c|tryInlineRename returned|true
+DR04|c|tryInlineRename threw|NONE
+DR04|c|drain threw|NONE
+DR04|c|document after drain|local tally = 0\nlocal total = 1\nprint(tally + total)\n
+DR04|a|expected capture message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.
+DR04|a|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|elementAtCaret|LeafPsiElement LuaTokenType.IDENTIFIER 'counter'
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|tryInlineRename returned|null
+DR04|a|tryInlineRename threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|a|tryInlineRename threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|document after tryInlineRename|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|drain threw|NONE
+DR04|a|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+
+
+===== run2 — MUTANT M1 — capture rule deleted from LuaRenameConflictDetector.collisions =====
+name="net.internetisalie.lunar.refactoring.rename.Dr04ConflictChannelProbeTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-26T11:57:27.367Z" hostname="lunar-builder" time="10.89"
+
+DR04|b|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LeafPsiElement(LuaTokenType.IDENTIFIER) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 1 collisions: The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|renameElementAtCaret threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|b|renameElementAtCaret threw / message|The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|document after|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|b|drain threw|NONE
+DR04|b|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=tally usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=tally identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 0 collisions: 
+DR04|c|tryInlineRename returned|true
+DR04|c|tryInlineRename threw|NONE
+DR04|c|drain threw|NONE
+DR04|c|document after drain|local tally = 0\nlocal total = 1\nprint(tally + total)\n
+DR04|a|expected capture message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.
+DR04|a|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|elementAtCaret|LeafPsiElement LuaTokenType.IDENTIFIER 'counter'
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 1 collisions: The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|tryInlineRename returned|null
+DR04|a|tryInlineRename threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|a|tryInlineRename threw / message|The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|document after tryInlineRename|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|drain threw|NONE
+DR04|a|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+
+
+===== run3 — probe d added, no drain after gotoEnd (INCONCLUSIVE — see instrumentation-note.txt) =====
+name="net.internetisalie.lunar.refactoring.rename.Dr04ConflictChannelProbeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-08-26T11:58:38.064Z" hostname="lunar-builder" time="12.66"
+
+DR04|b|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LeafPsiElement(LuaTokenType.IDENTIFIER) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|renameElementAtCaret threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|b|renameElementAtCaret threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|document after|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|b|drain threw|NONE
+DR04|b|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=tally usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=tally identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 0 collisions: 
+DR04|c|tryInlineRename returned|true
+DR04|c|tryInlineRename threw|NONE
+DR04|c|drain threw|NONE
+DR04|c|document after drain|local tally = 0\nlocal total = 1\nprint(tally + total)\n
+DR04|a|expected capture message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.
+DR04|a|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|elementAtCaret|LeafPsiElement LuaTokenType.IDENTIFIER 'counter'
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|tryInlineRename returned|null
+DR04|a|tryInlineRename threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|a|tryInlineRename threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|document after tryInlineRename|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|drain threw|NONE
+DR04|a|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|supplied|LuaNameRefImpl(NAME_REF)
+DR04|d|currentVariableRange|(6,13)
+DR04|d|document after template edit|local total = 0\nlocal total = 1\nprint(total + total)\n
+DR04|d|gotoEnd threw|NONE
+DR04|d|document after gotoEnd|local total = 0\nlocal total = 1\nprint(total + total)\n
+DR04|d|document after dispose|local total = 0\nlocal total = 1\nprint(total + total)\n
+
+
+===== run4 — probe d with drain after gotoEnd =====
+name="net.internetisalie.lunar.refactoring.rename.Dr04ConflictChannelProbeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-08-26T12:00:07.027Z" hostname="lunar-builder" time="13.495"
+
+DR04|b|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LeafPsiElement(LuaTokenType.IDENTIFIER) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|renameElementAtCaret threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|b|renameElementAtCaret threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|document after|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|b|drain threw|NONE
+DR04|b|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=tally usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=tally identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 0 collisions: 
+DR04|c|tryInlineRename returned|true
+DR04|c|tryInlineRename threw|NONE
+DR04|c|drain threw|NONE
+DR04|c|document after drain|local tally = 0\nlocal total = 1\nprint(tally + total)\n
+DR04|a|expected capture message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.
+DR04|a|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|elementAtCaret|LeafPsiElement LuaTokenType.IDENTIFIER 'counter'
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|tryInlineRename returned|null
+DR04|a|tryInlineRename threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|a|tryInlineRename threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|document after tryInlineRename|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|drain threw|NONE
+DR04|a|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|supplied|LuaNameRefImpl(NAME_REF)
+DR04|d|currentVariableRange|(6,13)
+DR04|d|document after template edit|local total = 0\nlocal total = 1\nprint(total + total)\n
+DR04|d|gotoEnd threw|NONE
+DR04|d|document after gotoEnd, before drain|local total = 0\nlocal total = 1\nprint(total + total)\n
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|d|waitForAsyncTaskCompletion threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|d|waitForAsyncTaskCompletion threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|d|document after waitForAsyncTaskCompletion|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|full drain threw|NONE
+DR04|d|document after full drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|document after dispose|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+
+
+===== run5 — adds ConflictsInTestsException.getMessages() =====
+name="net.internetisalie.lunar.refactoring.rename.Dr04ConflictChannelProbeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-08-26T12:01:26.196Z" hostname="lunar-builder" time="11.333"
+
+DR04|b|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LeafPsiElement(LuaTokenType.IDENTIFIER) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|renameElementAtCaret threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|b|renameElementAtCaret threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|document after|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|b|drain threw|NONE
+DR04|b|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=tally usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=tally identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 0 collisions: 
+DR04|c|tryInlineRename returned|true
+DR04|c|tryInlineRename threw|NONE
+DR04|c|drain threw|NONE
+DR04|c|document after drain|local tally = 0\nlocal total = 1\nprint(tally + total)\n
+DR04|a|expected capture message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.
+DR04|a|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|elementAtCaret|LeafPsiElement LuaTokenType.IDENTIFIER 'counter'
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|tryInlineRename returned|null
+DR04|a|tryInlineRename threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|a|tryInlineRename threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|getMessages().size|2
+DR04|a|getMessages()[0]|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.
+DR04|a|getMessages()[1]|The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|getMessages() contains the capture message|true
+DR04|a|document after tryInlineRename|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|drain threw|NONE
+DR04|a|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|supplied|LuaNameRefImpl(NAME_REF)
+DR04|d|currentVariableRange|(6,13)
+DR04|d|document after template edit|local total = 0\nlocal total = 1\nprint(total + total)\n
+DR04|d|gotoEnd threw|NONE
+DR04|d|document after gotoEnd, before drain|local total = 0\nlocal total = 1\nprint(total + total)\n
+DR04|probe|findCollisions|ENTER element=LuaNameRefImpl(NAME_REF) text='counter' newName=total usages=1
+DR04|probe|LuaRenameConflictDetector.collisions|ENTER kind=LOCAL_VARIABLE newName=total identifier='counter' usages=1
+DR04|probe|findCollisions|PRODUCED 2 collisions: Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here. ;; The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|d|waitForAsyncTaskCompletion threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|d|waitForAsyncTaskCompletion threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|d|document after waitForAsyncTaskCompletion|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|full drain threw|NONE
+DR04|d|document after full drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|document after dispose|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+
+
+===== run6 — FINAL — adds the throwing frame's stack trace; UNINSTRUMENTED production code =====
+name="net.internetisalie.lunar.refactoring.rename.Dr04ConflictChannelProbeTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-08-26T12:06:02.960Z" hostname="lunar-builder" time="12.483"
+
+DR04|b|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|b|renameElementAtCaret threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|b|renameElementAtCaret threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|b|document after|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|b|drain threw|NONE
+DR04|b|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|c|tryInlineRename returned|true
+DR04|c|tryInlineRename threw|NONE
+DR04|c|drain threw|NONE
+DR04|c|document after drain|local tally = 0\nlocal total = 1\nprint(tally + total)\n
+DR04|a|expected capture message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.
+DR04|a|document before|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|elementAtCaret|LeafPsiElement LuaTokenType.IDENTIFIER 'counter'
+DR04|a|tryInlineRename returned|null
+DR04|a|tryInlineRename threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|a|tryInlineRename threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|getMessages().size|2
+DR04|a|getMessages()[0]|The renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|a|getMessages()[1]|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.
+DR04|a|getMessages() contains the capture message|true
+DR04|a|stack[0]|com.intellij.refactoring.rename.RenameProcessor.preprocessUsages(RenameProcessor.java:180)
+DR04|a|stack[1]|com.intellij.refactoring.BaseRefactoringProcessor.doRun(BaseRefactoringProcessor.java:354)
+DR04|a|stack[2]|com.intellij.refactoring.rename.RenameProcessor.doRun(RenameProcessor.java:149)
+DR04|a|stack[3]|com.intellij.refactoring.rename.inplace.MemberInplaceRenamer$MyRenameProcessor.doRun(MemberInplaceRenamer.java:417)
+DR04|a|stack[4]|com.intellij.refactoring.BaseRefactoringProcessor.lambda$run$12(BaseRefactoringProcessor.java:731)
+DR04|a|stack[5]|com.intellij.refactoring.BaseRefactoringProcessor.run(BaseRefactoringProcessor.java:739)
+DR04|a|stack[6]|com.intellij.refactoring.rename.inplace.MemberInplaceRenamer.performRenameInner(MemberInplaceRenamer.java:316)
+DR04|a|stack[7]|com.intellij.refactoring.rename.inplace.MemberInplaceRenamer.lambda$performRefactoringRename$1(MemberInplaceRenamer.java:283)
+DR04|a|stack[8]|com.intellij.openapi.command.impl.CoreCommandProcessor.lambda$executeCommand$1(CoreCommandProcessor.java:143)
+DR04|a|stack[9]|com.intellij.openapi.command.impl.CoreCommandProcessor.runCommandTask(CoreCommandProcessor.java:409)
+DR04|a|stack[10]|com.intellij.openapi.command.impl.CoreCommandProcessor.executeCommand(CoreCommandProcessor.java:158)
+DR04|a|stack[11]|com.intellij.openapi.command.impl.CoreCommandProcessor.executeCommand(CoreCommandProcessor.java:81)
+DR04|a|stack[12]|com.intellij.openapi.command.impl.CoreCommandProcessor.executeCommand(CoreCommandProcessor.java:69)
+DR04|a|stack[13]|com.intellij.openapi.command.impl.CoreCommandProcessor.executeCommand(CoreCommandProcessor.java:47)
+DR04|a|document after tryInlineRename|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|a|drain threw|NONE
+DR04|a|document after drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|supplied|LuaNameRefImpl(NAME_REF)
+DR04|d|currentVariableRange|(6,13)
+DR04|d|document after template edit|local total = 0\nlocal total = 1\nprint(total + total)\n
+DR04|d|gotoEnd threw|NONE
+DR04|d|document after gotoEnd, before drain|local total = 0\nlocal total = 1\nprint(total + total)\n
+DR04|d|waitForAsyncTaskCompletion threw|com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException
+DR04|d|waitForAsyncTaskCompletion threw / message|Renaming to 'total' would bind a usage of 'counter' to a different declaration that is already visible here.\nThe renamed declaration would shadow this existing reference, changing which value it reads.
+DR04|d|document after waitForAsyncTaskCompletion|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|full drain threw|NONE
+DR04|d|document after full drain|local counter = 0\nlocal total = 1\nprint(counter + total)\n
+DR04|d|document after dispose|local counter = 0\nlocal total = 1\nprint(counter + total)\n

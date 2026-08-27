@@ -1,0 +1,4 @@
+# DR-01 renameElement instrumentation (throwaway production edit, reverted)
+# Added temporarily to LuaRenameProcessor.renameElement on scratch branch spike/refact-07-dr-01:
+#   println("DR01|probe|renameElement|element=...") after 'val oldName = element.text'
+# Reverted with: git show abb55194:<path> > <path>. Output rows are in measured-rows.txt.

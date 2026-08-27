@@ -388,6 +388,8 @@
             implementation="net.internetisalie.lunar.refactoring.LuaSafeDeleteProcessor"/>
     <renamePsiElementProcessor
             implementation="net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor"/>
+    <renameHandler
+            implementation="net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler"/>
     <nameSuggestionProvider
             implementation="net.internetisalie.lunar.refactoring.rename.LuaNameSuggestionProvider"/>
     <lang.namesValidator
@@ -528,6 +530,11 @@
     <!-- EDITOR-01: keyword-block Smart Keys toggle state -->
     <applicationService
             serviceImplementation="net.internetisalie.lunar.settings.LuaEditorOptions" />
+
+    <!-- REFACT-01-15: rename dialog's "search in comments and strings" / "search for text
+         occurrences" checkbox state; the platform persists these only for files (design §2.9) -->
+    <applicationService
+            serviceImplementation="net.internetisalie.lunar.settings.LuaRefactoringSettings" />
 
     <!-- Unified toolchain registry (TOOLING-01) -->
     <applicationService

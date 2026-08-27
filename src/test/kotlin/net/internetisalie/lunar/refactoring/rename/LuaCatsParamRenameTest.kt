@@ -14,8 +14,10 @@ import org.junit.runners.JUnit4
  * TC-09 was measured walking into exactly that.
  *
  * **Which of these can actually fail, stated rather than implied.** Measured by unwiring
- * `LuaCatsParamRenamer` from `LuaRenameProcessor.renameElement` — the parent commit's behaviour —
- * and running the class: TC-20a, TC-20e and TC-20f go RED and are the **gates**. TC-20b, TC-20c,
+ * `LuaCatsParamRenamer` from `LuaRenameProcessor.renameElement` — **both halves of the wiring**,
+ * design §3.3 step 3a's `LuaCatsParamRenamer.preparedRename` lookup and step 4's
+ * `applyCatsTagRewrite?.invoke()`; dropping only the invoke leaves the lookup running and is a
+ * different mutant — and running the class: TC-20a, TC-20e and TC-20f go RED and are the **gates**. TC-20b, TC-20c,
  * TC-20d and TC-20g stay green, because each asserts that something does **not** move and nothing
  * moves when the feature is absent. Those four are **guards**, not gates: a green run of any of
  * them is no evidence the feature exists, and they are kept only because each names a mutant of the
@@ -33,9 +35,17 @@ class LuaCatsParamRenameTest : BasePlatformTestCase() {
      * false for a caret inside the comment (design §3.0) and `renameElementAtCaret` selects no
      * processor.
      *
-     * Mutation (executed): drop the `LuaCatsParamRenamer.rename` call from
-     * `LuaRenameProcessor.renameElement`. RED — the tag keeps `a` while the parameter and its use
-     * become `count`.
+     * Mutation (executed): drop design §3.3 step 3a's `LuaCatsParamRenamer.preparedRename` call
+     * from `LuaRenameProcessor.renameElement`, so `applyCatsTagRewrite` is null and step 4 applies
+     * nothing for the tag. RED — the tag keeps `a` while the parameter and its use become `count`.
+     *
+     * Also RED (executed) when step 3a's argument is changed from `element` to `replacement` — the
+     * plausible wrong reading of the pre-hoist code. At step 3a `replacement` is still free-floating
+     * from `LuaElementFactory.createIdentifier`, so `PsiTreeUtil.getParentOfType` finds no
+     * `LuaCatsCommentOwner`, `preparedRename` returns null and the tag never moves. That is the only
+     * reachable mutant for the hoist: moving the *lookup* back inside the non-cancelable section is
+     * not observable from any test, because inside that section its parse cannot throw, so the hoist
+     * is justified by design §3.6's argument and this case pins only the argument choice.
      */
     @Test
     fun testParamTagFollowsParameter() {
@@ -109,9 +119,18 @@ class LuaCatsParamRenameTest : BasePlatformTestCase() {
      * which does not funnel through `LuaElementFactory` — to the same invariant: nothing at all is
      * written, so the file, tag included, is byte-identical afterwards.
      *
-     * Mutation (executed): move the `LuaCatsParamRenamer.rename` call above the `refuseRewrite`
-     * pre-checks in `renameElement`. RED — the comment becomes `---@param end number` while the
-     * parameter stays `a` and the refactoring reports failure: a half-apply, visible, in the file.
+     * Mutation (executed): relocate design §3.3 step 3a **above** step 2's refusal *and* invoke its
+     * closure there — `LuaCatsParamRenamer.preparedRename(element, oldName, newName)?.invoke()`
+     * ahead of `preparedDeclarationRewrite`'s `IncorrectOperationException`. RED — the comment
+     * becomes `---@param end number` while the parameter stays `a` and the refactoring reports
+     * failure: a half-apply, visible, in the file.
+     *
+     * **It needs BOTH halves, which is the near miss worth recording.** Invoking the closure at
+     * step 3a *alone* does not redden this case, because step 3a already runs after step 2 and a
+     * refused rename never reaches it. Since the split of `rename` into a step-3a lookup and a
+     * step-4 edit, that one-line form is a different defect — an edit escaping the non-cancelable
+     * section rather than escaping the refusal — and no case in this suite pins it; see
+     * `risks-and-gaps.md` Gap 2.18.
      */
     @Test
     fun testRefusedRenameDoesNotMoveTheTag() {
@@ -133,8 +152,10 @@ class LuaCatsParamRenameTest : BasePlatformTestCase() {
      * then becomes `label` and `b`'s is left behind. TC-20a, TC-20c and TC-20f each have at most
      * one named tag and stay green throughout; only a fixture with two can see it.
      *
-     * Also RED with `LuaCatsParamRenamer` unwired, because `b`'s tag must move when `b` is the one
-     * renamed — which, with TC-20a and TC-20f, makes this one of the three gates.
+     * Also RED with `LuaCatsParamRenamer` unwired — **both halves**, design §3.3 step 3a's
+     * `preparedRename` lookup and step 4's `applyCatsTagRewrite?.invoke()` — because `b`'s tag must
+     * move when `b` is the one renamed, which with TC-20a and TC-20f makes this one of the three
+     * gates.
      *
      * A mutant it does **not** catch, recorded because it was executed and assumed otherwise: a
      * no-match FALLBACK to the first tag (`… ?: taggedNames.firstOrNull()`). Every tag this fixture

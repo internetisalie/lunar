@@ -1,0 +1,148 @@
+DR01|f4|listener subscribed|true
+DR01|probe|renameElement|element=LeafPsiElement(LuaTokenType.IDENTIFIER) text='a' range=(36,37) valid=true kind=PARAMETER newName=count usages=1
+DR01|f4|document|---@param count number\nlocal function f(count) return count end\n
+DR01|f4|refactoring events|started:refactoring.rename ; done:refactoring.rename
+DR01|f2|listener subscribed|true
+DR01|f2|templateState|present
+DR01|f2|currentVariableRange|(36,37)
+DR01|f2|document before gotoEnd|---@param a number\nlocal function f(count) return count end\n
+DR01|f2|document right after gotoEnd|---@param a number\nlocal function f(count) return count end\n
+DR01|probe|renameElement|element=LuaNameRefImpl(NAME_REF) text='a' range=(36,37) valid=true kind=null newName=count usages=1
+DR01|f2|document after full drain|---@param a number\nlocal function f(count) return count end\n
+DR01|f2|INPLACE_RENAMER user data|null
+DR01|f2|refactoring events|started:refactoring.inplace.rename ; done:refactoring.inplace.rename
+DR01|f2|document after dispose|---@param a number\nlocal function f(count) return count end\n
+DR01|b4b-generic-for-first-var-inside|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR01|b4b-generic-for-first-var-inside|supplied.elementType|NAME_REF
+DR01|b4b-generic-for-first-var-inside|supplied.textRange|(4,7)
+DR01|b4b-generic-for-first-var-inside|MemberInplaceRenameHandler.isAvailableOnDataContext|true
+DR01|b4b-generic-for-first-var-inside|LuaInplaceRenameHandler.isAvailableOnDataContext|false
+DR01|b4c-generic-for-second-var-inside|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR01|b4c-generic-for-second-var-inside|supplied.elementType|NAME_REF
+DR01|b4c-generic-for-second-var-inside|supplied.textRange|(9,14)
+DR01|b4c-generic-for-second-var-inside|MemberInplaceRenameHandler.isAvailableOnDataContext|true
+DR01|b4c-generic-for-second-var-inside|LuaInplaceRenameHandler.isAvailableOnDataContext|false
+DR01|f3|listener subscribed|true
+DR01|f3|templateState|null
+DR01|f3|currentVariableRange|null
+DR01|h|findElementOfClassAtRange(36,37,PsiNameIdentifierOwner)|LuaNameRefImpl(NAME_REF) 'a'
+DR01|h|kindOf(thatElement)|null
+DR01|h|leafAt(36)|LeafPsiElement(LuaTokenType.IDENTIFIER) 'a'
+DR01|h|kindOf(leaf)|PARAMETER
+DR01|g3|segmentsCount|2
+DR01|g3|segment[0]|(36,37)
+DR01|g3|segment[1]|(46,47)
+DR01|g3|started:refactoring.inplace.rename document|---@param a number\nlocal function f(a) return a end\n
+DR01|g3|started:refactoring.inplace.rename elements|null
+DR01|probe|renameElement|element=LuaNameRefImpl(NAME_REF) text='a' range=(36,37) valid=true kind=null newName=count usages=1
+DR01|g3|done:refactoring.inplace.rename document|---@param a number\nlocal function f(count) return count end\n
+DR01|g3|done:refactoring.inplace.rename elements|null
+DR01|g3|final document|---@param a number\nlocal function f(count) return count end\n
+DR01|f|templateState|com.intellij.codeInsight.template.impl.TemplateState
+DR01|f|currentVariableRange|(36,37)
+DR01|f|variable[0]|PrimaryVariable range=(36,37)
+DR01|f|variable[1]|OtherVariable range=(46,47)
+DR01|probe|renameElement|element=LuaNameRefImpl(NAME_REF) text='a' range=(36,37) valid=true kind=null newName=count usages=1
+DR01|f|document|---@param a number\nlocal function f(count) return count end\n
+DR01|g|elementToRename.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR01|g|RenamePsiElementProcessor.forElement|net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor
+DR01|g|isInplaceRenameSupported|true
+DR01|g|substituteElementToRename(2-arg)|LeafPsiElement LuaTokenType.IDENTIFIER (6,13)
+DR01|g|substituteElementToRename(3-arg) call|returned-normally
+DR01|g|substitution callback|FIRED LeafPsiElement LuaTokenType.IDENTIFIER (6,13)
+DR01|g|doRename -> templateState|com.intellij.codeInsight.template.impl.TemplateState
+DR01|g|doRename -> currentVariableRange|(6,13)
+DR01|c|elementToRename.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR01|c|performInplaceRename(null)|true
+DR01|d|templateState|com.intellij.codeInsight.template.impl.TemplateState
+DR01|d|currentVariableRange|(6,13)
+DR01|d|variable[0]|PrimaryVariable range=(6,13)
+DR01|d|variable[1]|OtherVariable range=(24,31)
+DR01|d|variable[2]|OtherVariable range=(24,31)
+DR01|d|variable[3]|OtherVariable range=(24,31)
+DR01|probe|renameElement|element=LuaNameRefImpl(NAME_REF) text='counter' range=(6,13) valid=true kind=null newName=total usages=3
+DR01|b2|renameInPlaceViaHandler returned|true
+DR01|b2|document|local total = 0\nprint(total)\ntotal = total + 1\n
+DR01|a|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR01|a|supplied is PsiNameIdentifierOwner|true
+DR01|a|nameIdentifier.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR01|a|nameIdentifier.elementType|LuaTokenType.IDENTIFIER
+DR01|a|nameIdentifier.textRange|(6,13)
+DR01|a|nameIdentifier.text|counter
+DR01|a|leafAtCaret|LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (6,13)
+DR01|a|nameIdentifier === leafAtCaret|true
+DR01|b1-local-decl|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR01|b1-local-decl|supplied.elementType|NAME_REF
+DR01|b1-local-decl|supplied.textRange|(6,13)
+DR01|b1-local-decl|supplied.text|counter
+DR01|b1-local-decl|supplied is PsiNameIdentifierOwner|true
+DR01|b1-local-decl|supplied is LuaNameRef|true
+DR01|b1-local-decl|leafAtCaret|LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (6,13)
+DR01|b1-local-decl|MemberInplaceRenameHandler.isAvailableOnDataContext|true
+DR01|b1-local-decl|LuaInplaceRenameHandler.isAvailableOnDataContext|false
+DR01|b1-local-decl|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR01|b1-local-decl|EP handlers whose isRenaming is true|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR01|b1-local-decl|RenameHandler.EP_NAME size|11
+DR01|b2-usage|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR01|b2-usage|supplied.elementType|LuaTokenType.IDENTIFIER
+DR01|b2-usage|supplied.textRange|(6,13)
+DR01|b2-usage|supplied.text|counter
+DR01|b2-usage|supplied is PsiNameIdentifierOwner|false
+DR01|b2-usage|supplied is LuaNameRef|false
+DR01|b2-usage|leafAtCaret|LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (24,31)
+DR01|b2-usage|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR01|b2-usage|LuaInplaceRenameHandler.isAvailableOnDataContext|true
+DR01|b2-usage|RenameHandlerRegistry.getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR01|b2-usage|EP handlers whose isRenaming is true|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR01|b2-usage|RenameHandler.EP_NAME size|11
+DR01|b3-parameter-decl|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR01|b3-parameter-decl|supplied.elementType|LuaTokenType.IDENTIFIER
+DR01|b3-parameter-decl|supplied.textRange|(17,18)
+DR01|b3-parameter-decl|supplied.text|a
+DR01|b3-parameter-decl|supplied is PsiNameIdentifierOwner|false
+DR01|b3-parameter-decl|supplied is LuaNameRef|false
+DR01|b3-parameter-decl|leafAtCaret|LeafPsiElement(LuaTokenType.IDENTIFIER) 'a' (17,18)
+DR01|b3-parameter-decl|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR01|b3-parameter-decl|LuaInplaceRenameHandler.isAvailableOnDataContext|true
+DR01|b3-parameter-decl|RenameHandlerRegistry.getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR01|b3-parameter-decl|EP handlers whose isRenaming is true|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR01|b3-parameter-decl|RenameHandler.EP_NAME size|11
+DR01|b4-generic-for-var|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+DR01|b4-generic-for-var|supplied.elementType|NAME_REF
+DR01|b4-generic-for-var|supplied.textRange|(4,5)
+DR01|b4-generic-for-var|supplied.text|k
+DR01|b4-generic-for-var|supplied is PsiNameIdentifierOwner|true
+DR01|b4-generic-for-var|supplied is LuaNameRef|true
+DR01|b4-generic-for-var|leafAtCaret|LeafPsiElement(LuaTokenType.,) ',' (5,6)
+DR01|b4-generic-for-var|MemberInplaceRenameHandler.isAvailableOnDataContext|true
+DR01|b4-generic-for-var|LuaInplaceRenameHandler.isAvailableOnDataContext|false
+DR01|b4-generic-for-var|RenameHandlerRegistry.getRenameHandlers|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR01|b4-generic-for-var|EP handlers whose isRenaming is true|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR01|b4-generic-for-var|RenameHandler.EP_NAME size|11
+DR01|b5-local-function-name|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR01|b5-local-function-name|supplied.elementType|LuaTokenType.IDENTIFIER
+DR01|b5-local-function-name|supplied.textRange|(15,21)
+DR01|b5-local-function-name|supplied.text|helper
+DR01|b5-local-function-name|supplied is PsiNameIdentifierOwner|false
+DR01|b5-local-function-name|supplied is LuaNameRef|false
+DR01|b5-local-function-name|leafAtCaret|LeafPsiElement(LuaTokenType.IDENTIFIER) 'helper' (15,21)
+DR01|b5-local-function-name|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR01|b5-local-function-name|LuaInplaceRenameHandler.isAvailableOnDataContext|true
+DR01|b5-local-function-name|RenameHandlerRegistry.getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR01|b5-local-function-name|EP handlers whose isRenaming is true|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR01|b5-local-function-name|RenameHandler.EP_NAME size|11
+DR01|b6-local-shadowing-local|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+DR01|b6-local-shadowing-local|supplied.elementType|LuaTokenType.IDENTIFIER
+DR01|b6-local-shadowing-local|supplied.textRange|(6,12)
+DR01|b6-local-shadowing-local|supplied.text|config
+DR01|b6-local-shadowing-local|supplied is PsiNameIdentifierOwner|false
+DR01|b6-local-shadowing-local|supplied is LuaNameRef|false
+DR01|b6-local-shadowing-local|leafAtCaret|LeafPsiElement(LuaTokenType.IDENTIFIER) 'config' (23,29)
+DR01|b6-local-shadowing-local|MemberInplaceRenameHandler.isAvailableOnDataContext|false
+DR01|b6-local-shadowing-local|LuaInplaceRenameHandler.isAvailableOnDataContext|true
+DR01|b6-local-shadowing-local|RenameHandlerRegistry.getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR01|b6-local-shadowing-local|EP handlers whose isRenaming is true|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR01|b6-local-shadowing-local|RenameHandler.EP_NAME size|11
+DR01|probe|renameElement|element=LuaNameRefImpl(NAME_REF) text='counter' range=(6,13) valid=true kind=null newName=total usages=3
+DR01|e|tryInlineRename returned|true
+DR01|e|document|local total = 0\nprint(total)\ntotal = total + 1\n

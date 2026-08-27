@@ -2,6 +2,46 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Rename a Lua local by typing in the editor — Shift+F6 no longer sends you to a dialog**
+  (REFACT-07). Put the caret on a `local`, a function parameter, a generic-`for` variable or a
+  `local function` name and press Shift+F6: an editing box opens around the name itself and every
+  use of it in the file becomes a linked segment, so the declaration and all its usages change
+  together as you type. Enter commits; Esc puts the file back exactly as it was, down to the byte.
+  It works from a usage too — Shift+F6 on a read of `counter` renames the declaration and every
+  other occurrence, not just the one under the caret. Renaming a parameter still moves its
+  `---@param` tag; an invalid name is refused with *"Inserted identifier is not valid"* rather than
+  half-applied; and a name that would capture an existing binding still raises the conflicts
+  dialog, with the same rules the dialog path uses. A numeric-`for` variable such as the `i` in
+  `for i = 1, 10` is not offered the template, because there is nothing in the syntax tree to
+  anchor one to. Globals deliberately keep the dialog — their usages span files, and only a preview
+  pane can show you that — and `::labels::` are unchanged.
+
+- **"Search in comments and strings" in the rename dialog now works, and remembers your answer**
+  (REFACT-01 Phase 7). Ticking either non-code-search checkbox previously searched for an internal
+  debug string rather than the identifier, so it reliably found nothing — a box that appeared to work
+  and did nothing. Renaming `counter` to `total` with the box ticked now rewrites
+  `-- counter tracks the total` along with the code. Both checkboxes are **off by default**, because
+  Lua's `_G["name"]` and module-table idioms make a string match likelier to be coincidental than in
+  a statically typed language, and both choices now persist between renames — the IDE's own settings
+  only ever remembered them for *file* renames. The preview pane remains the place to check a
+  best-effort match before applying it.
+
+- **The rule that decides which declarations may be renamed inline** (REFACT-01 Phase 7, partial).
+  The availability half ships and is correct — the inline template is offered only for file-local
+  declarations, never for a global and never for the raw identifier token, which the IDE would have
+  cast unchecked and crashed on. Starting the template needed a change to how Lua declarations are
+  modelled in the PSI; that change is the in-place rename entry above.
+
+- **Cancelling a rename no longer leaves the file half-renamed** (REFACT-01 Phase 8, BUG-468).
+  Pressing **Stop** partway through a rename used to abandon it mid-write: some usages carried the
+  new name, the declaration carried the old one, and the refactoring reported success — a broken
+  file, silently, in the one situation where you had explicitly asked it to stop. Rename now resolves
+  every rewrite before it writes anything and then applies them as one uninterruptible step, so Stop
+  either leaves the file exactly as it was or the rename completes. The trade is deliberate and
+  visible: a Stop that arrives after the last rewrite has been worked out is ignored rather than
+  honoured, because an ignored Stop with a correct file beats an honoured one with a broken file, and
+  either way Ctrl+Z undoes the whole rename as a single command.
+
 - **Renaming a Lua file now rewrites its `require(...)` callers, and renaming a parameter moves its
   `---@param` tag** (REFACT-01 Phases 5-6). Quote style and long-bracket delimiters are preserved,
   and a new name that cannot form a valid string literal is refused rather than silently truncated.

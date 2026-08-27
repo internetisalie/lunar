@@ -1,0 +1,26 @@
+# Gap 2.21 end-to-end drive (REFACT-07 review finding F5), 2026-08-26.
+#
+# Throwaway probe class, run on the shipped tree at 8913cf4b with NO production edit of any
+# kind. Source is Gap221ProbeTest.kt.txt; it was deleted from src/test after the run.
+#
+# Every data context comes from
+#   DataManager.getInstance().getDataContext(myFixture.editor.contentComponent)
+# Nothing is injected. In particular CommonDataKeys.PSI_ELEMENT is never put into a context,
+# which is the condition the review set for this measurement.
+#
+# Run: tooling/gce-builder/gce-builder.sh run \
+#        "test --rerun --no-build-cache --tests *Gap221ProbeTest*"
+# Rows were read from the run's own
+#   build/test-results/test/TEST-…Gap221ProbeTest.xml  (system-out)
+# on the builder VM, mtime checked against the run.
+#
+# Labels
+#   A  in-place, local shadows an earlier local   — the Gap 2.21 fixture (DR-01 b6)
+#   B  dialog control, same fixture
+#   C  in-place, local shadows a global           — the BUG-470 shape
+#   D  dialog control, same fixture
+#   E  control: a plain local with nothing shadowed
+#   F  A again, with LOG.error swallowed via LoggedErrorProcessor, so that execution
+#      continues past InplaceRefactoring.getSelectedInEditorElement's LOG.error the way it
+#      does in a production IDE, where Logger.error does not throw. F is what says what
+#      happens LIVE; A is only what happens under the test logger.

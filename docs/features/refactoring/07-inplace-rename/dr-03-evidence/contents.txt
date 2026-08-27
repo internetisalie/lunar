@@ -1,0 +1,41 @@
+DR-03 (REFACT-07-00-03) — the PsiNameIdentifierOwner consumer audit. Raw evidence.
+
+Run 2026-08-26 against GoLand 2026.1.3 (gradle.properties platformType=GO,
+platformVersion=2026.1.3) on builder VM lunar-builder.
+
+  base       f6148451  (no DR-01 edits; `git diff f6148451 9d54df30 -- src/` is empty)
+  treatment  8bbb7032  (spike/refact-07-dr-02 — DR-01's edits, reused not re-derived;
+                        `git diff spike/refact-07-dr-01 spike/refact-07-dr-02 -- src/`
+                        is empty, re-checked before and after this run)
+
+Both trees were checked out into throwaway `git worktree`s so the primary worktree never
+left `main`; both worktrees, and the probe files, were removed afterwards. No branch was
+created and no src/ file was left modified.
+
+FILES
+
+  probe-observations-base.txt        Dr03ConsumerAuditProbeTest stdout on f6148451
+  probe-observations-treatment.txt   the same probe on 8bbb7032
+  probe-observations.diff            unified diff of the two — the per-consumer verdict
+                                     rests on this, and on nothing else
+  runtime-registration-enumeration.txt
+                                     Dr03RegistrationProbeTest stdout: which language-keyed
+                                     extension points actually carry a Lua entry at RUNTIME
+  compiled-platform-consumers.txt    every top-level class in the SHIPPED GoLand 2026.1.3
+                                     whose bytecode carries the constant
+                                     `com/intellij/psi/PsiNameIdentifierOwner`
+  compiled-platform-consumers-raw.tsv
+                                     the same, with inner classes, mapped to the jar
+  suite-results-comparison.txt       step 4: both suites, result lines, counts, and the
+                                     test-NAME-set comparison (not just the count)
+  Dr03ConsumerAuditProbeTest.kt.txt  the probe harness, removed from src/test after the run
+  Dr03RegistrationProbeTest.kt.txt   the registration probe, likewise removed
+
+NO CommonDataKeys.PSI_ELEMENT WAS INJECTED ANYWHERE. Every observation is either a direct
+call on PSI obtained from myFixture, a platform entry point given only a PsiFile/Editor, or
+a bytecode/registration fact about the shipped build.
+
+The one use of reflection is `RenameTo.getNameRelativeRange`, and it is explained in the
+harness's own KDoc: the shipped build's `isAvailable` additionally gates on a non-empty
+spelling-suggestion list that the offline test dictionary never fills, so the frame carrying
+the branch under test is unreachable through the public method.

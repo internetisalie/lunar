@@ -1,0 +1,92 @@
+// REFACT-07-00-02 (DR-02) THROWAWAY measurement harness — REMOVED from src/test after the run.
+// Ran on scratch branch spike/refact-07-dr-02 @ ae75d450 (off main 9d54df30), GoLand 2026.1.3,
+// builder VM lunar-builder, 2026-08-26. Reproduce: restore to
+//   src/test/kotlin/net/internetisalie/lunar/refactoring/rename/Dr02RegistryProbeTest.kt
+// with the design 3.1/3.2/2.3/2.4 edits present, and run
+//   tooling/gce-builder/gce-builder.sh run "test --tests *Dr02RegistryProbeTest* --rerun --no-build-cache"
+
+// REFACT-07-00-02 (DR-02) THROWAWAY measurement harness — REMOVE from src/test after the run.
+// It is a probe, not a regression test: every case prints rather than asserts, so leaving it in
+// the suite would be tests that cannot fail (risks-and-gaps.md Risk 1.2).
+package net.internetisalie.lunar.refactoring.rename
+
+import com.intellij.ide.DataManager
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.application.runReadAction
+import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.refactoring.rename.PsiElementRenameHandler
+import com.intellij.refactoring.rename.RenameHandler
+import com.intellij.refactoring.rename.RenameHandlerRegistry
+import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.lang.psi.LuaNameRef
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
+
+@RunWith(JUnit4::class)
+class Dr02RegistryProbeTest : BasePlatformTestCase() {
+    @Test
+    fun testProbeOneEnumeratesEveryRegisteredHandlerPerCaret() {
+        CARET_SHAPES.forEach { shape ->
+            myFixture.configureByText("dr02${shape.first}.lua", shape.second)
+            val context = contextOf()
+            recordSuppliedElement(shape.first, context)
+            emit(shape.first, "EP_NAME.extensionList.size", RenameHandler.EP_NAME.extensionList.size.toString())
+            RenameHandler.EP_NAME.extensionList.forEach { handler ->
+                emit(shape.first, "EP|${handler.javaClass.name}", guarded { handler.isRenaming(context).toString() })
+            }
+        }
+    }
+
+    @Test
+    fun testProbeTwoRecordsWhatTheRegistryDoesWithThem() {
+        CARET_SHAPES.forEach { shape ->
+            myFixture.configureByText("dr02${shape.first}.lua", shape.second)
+            val context = contextOf()
+            val selected = RenameHandlerRegistry.getInstance().getRenameHandlers(context)
+            emit(shape.first, "getRenameHandlers.size", selected.size.toString())
+            emit(shape.first, "getRenameHandlers", selected.joinToString(", ") { it.javaClass.name }.ifEmpty { "EMPTY-LIST" })
+            emit(shape.first, "getRenameHandler", guarded { RenameHandlerRegistry.getInstance().getRenameHandler(context)?.javaClass?.name ?: "null" })
+        }
+    }
+
+    @Test
+    fun testProbeThreeLunarHandlerIsNotARemovalLoopTarget() {
+        emit("3", "LuaInplaceRenameHandler() is MemberInplaceRenameHandler", (LuaInplaceRenameHandler() as Any is MemberInplaceRenameHandler).toString())
+        emit("3", "LuaInplaceRenameHandler superclasses", generateSequence(LuaInplaceRenameHandler().javaClass as Class<*>) { it.superclass }.joinToString(" <- ") { it.name })
+    }
+
+    private fun recordSuppliedElement(
+        label: String,
+        context: DataContext,
+    ) {
+        runReadAction {
+            val supplied = PsiElementRenameHandler.getElement(context)
+            emit(label, "supplied", "${supplied?.javaClass?.simpleName}(${supplied?.node?.elementType}) '${supplied?.text}' ${supplied?.textRange}")
+            emit(label, "supplied is PsiNameIdentifierOwner", (supplied is PsiNameIdentifierOwner).toString())
+            emit(label, "supplied is LuaNameRef", (supplied is LuaNameRef).toString())
+        }
+    }
+
+    private fun contextOf(): DataContext = DataManager.getInstance().getDataContext(myFixture.editor.contentComponent)
+
+    private fun guarded(probe: () -> String): String = runCatching(probe).getOrElse { failure -> "THREW ${failure.javaClass.name}: ${failure.message}" }
+
+    private fun emit(
+        label: String,
+        field: String,
+        value: String?,
+    ) {
+        println("DR02|$label|$field|${value ?: "null"}")
+    }
+
+    private companion object {
+        val CARET_SHAPES =
+            listOf(
+                "1-local-decl" to "local coun<caret>ter = 0\nprint(counter)\n",
+                "2-usage" to "local counter = 0\nprint(coun<caret>ter)\n",
+                "3-parameter-decl" to "---@param a number\nlocal function f(<caret>a) return a end\n",
+            )
+    }
+}

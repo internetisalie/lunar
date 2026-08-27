@@ -380,6 +380,42 @@ class LuaSafeDeleteTest : BasePlatformTestCase() {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // TC-14 (REFACT-07-12): the PSI change alters no behaviour Lunar ships a feature for
+    // -------------------------------------------------------------------------
+
+    /**
+     * TC-14 (`REFACT-07-12`) — REFACT-07 §3.1 grants `PsiNameIdentifierOwner` to every
+     * `LuaNameRef`, and Safe Delete is one of the platform behaviours design §4's consumer audit
+     * requires to be observably unchanged by it. DR-03 measured it as byte-identical across the
+     * base and treatment commits and found that **no test in the 2851-name set asserted the
+     * resulting document text**, which is what this case adds.
+     *
+     * It asserts the *file*, not merely that no [LuaLocalVarDecl] survives, because the two differ
+     * exactly where the mutation lands.
+     *
+     * **Mutation:** change [LuaSafeDeleteProcessor]'s elevation so the bare IDENTIFIER leaf is
+     * deleted instead of its statement — the file is left as `local  = 0`, a parse error, with no
+     * `LuaLocalVarDecl` in it either. The fixture's declaration has a statement-level container,
+     * which is what the elevation targets.
+     *
+     * **Phase 4 verdict: RED**, executed 2026-08-26 — `junit.framework.ComparisonFailure: the whole
+     * `local unused = 0` statement must go, leaf and container together`, `expected:<[]> but was:
+     * <[local = 0]>`, the parse error this KDoc predicts. No other case in the run reddened.
+     */
+    @Test
+    fun testSafeDeletingAnUnusedLocalRemovesTheWholeStatement() {
+        myFixture.configureByText("test.lua", "local unu<caret>sed = 0\n")
+
+        SafeDeleteHandler.invoke(project, arrayOf(declarationLeaf("unused")), true)
+
+        assertEquals(
+            "the whole `local unused = 0` statement must go, leaf and container together",
+            "",
+            myFixture.file.text.trim(),
+        )
+    }
+
     /** The FIRST IDENTIFIER leaf of that name — the declaration, in every fixture here. */
     private fun declarationLeaf(name: String): PsiElement =
         requireNotNull(

@@ -92,9 +92,28 @@ abstract class LuaNameRefElementImpl(
     }
 }
 
+/**
+ * The `nameRef` mixin (`lua.bnf:169-172`), and the sole carrier of [PsiNameIdentifierOwner] for Lua names.
+ *
+ * The supertype is the one primitive the platform's in-place rename requires: both routes test it with
+ * `instanceof` (`MemberInplaceRenameHandler.java:46`, `InplaceRefactoring.java:597`). REFACT-07 design §3.1.
+ *
+ * **Do not move it onto [LuaNameRefElement].** That interface is the `implements=` of both `nameRef`
+ * (`lua.bnf:171`) and `labelRef` (`lua.bnf:249`), so hoisting it there would also make every `goto` target a
+ * [PsiNameIdentifierOwner], widening the consumer audit for no gain. [LuaNameRefBaseImpl] is the `mixin=` of
+ * `nameRef` alone (`lua.bnf:170`), so putting it here necessarily does not reach label references.
+ *
+ * **Do not move it into `lua.bnf` either.** Adding `implements="com.intellij.psi.PsiNameIdentifierOwner"` to
+ * `lua.bnf:169` would put the supertype on the generated `LuaNameRef` interface and buy Kotlin-side smart
+ * casts, at the price of a `src/main/gen` regeneration that nothing in this repo uses: Lunar's own call sites
+ * test `LuaNameRef` and read `.identifier`, not `.nameIdentifier`. REFACT-07 design Alternative D.
+ */
 open class LuaNameRefBaseImpl(
     node: ASTNode,
-) : LuaNameRefElementImpl(node) {
+) : LuaNameRefElementImpl(node),
+    PsiNameIdentifierOwner {
+    override fun getNameIdentifier(): PsiElement? = findChildByType<PsiElement?>(LuaElementTypes.IDENTIFIER)
+
     override fun getReference(): PsiReference? {
         val value = getName()
         if (value != null) {

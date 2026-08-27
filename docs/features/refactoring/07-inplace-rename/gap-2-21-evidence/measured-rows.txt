@@ -1,0 +1,79 @@
+GAP221|A-local-shadows-local|caretLine|1
+GAP221|A-local-shadows-local|caretOffset|26
+GAP221|A-local-shadows-local|documentAfter|local config = 1\nlocal config = 2\nprint(config)\n
+GAP221|A-local-shadows-local|driver|LuaInplaceRenameHandler
+GAP221|A-local-shadows-local|fixture|local config = 1\nlocal config = 2\nprint(config)\n
+GAP221|A-local-shadows-local|LuaInplace.isAvailable|true
+GAP221|A-local-shadows-local|MemberInplace.isAvailable|false
+GAP221|A-local-shadows-local|registry|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+GAP221|A-local-shadows-local|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+GAP221|A-local-shadows-local|supplied.line|0
+GAP221|A-local-shadows-local|supplied.text|config
+GAP221|A-local-shadows-local|supplied.textRange|(6,12)
+GAP221|A-local-shadows-local|THROWN|com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: PsiElement(LuaTokenType.IDENTIFIER) by com.intellij.refactoring.rename.inplace.MemberInplaceRenamer
+GAP221|B-local-shadows-local-dialog|caretLine|1
+GAP221|B-local-shadows-local-dialog|caretOffset|26
+GAP221|B-local-shadows-local-dialog|documentAfter|local renamed = 1\nlocal config = 2\nprint(renamed)\n
+GAP221|B-local-shadows-local-dialog|fixture|local config = 1\nlocal config = 2\nprint(config)\n
+GAP221|B-local-shadows-local-dialog|LuaInplace.isAvailable|true
+GAP221|B-local-shadows-local-dialog|MemberInplace.isAvailable|false
+GAP221|B-local-shadows-local-dialog|registry|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+GAP221|B-local-shadows-local-dialog|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+GAP221|B-local-shadows-local-dialog|supplied.line|0
+GAP221|B-local-shadows-local-dialog|supplied.text|config
+GAP221|B-local-shadows-local-dialog|supplied.textRange|(6,12)
+GAP221|C-local-shadows-global|caretLine|1
+GAP221|C-local-shadows-global|caretOffset|20
+GAP221|C-local-shadows-global|documentAfter|config = 1\nlocal config = 2\nprint(config)\n
+GAP221|C-local-shadows-global|driver|MemberInplaceRenameHandler
+GAP221|C-local-shadows-global|fixture|config = 1\nlocal config = 2\nprint(config)\n
+GAP221|C-local-shadows-global|LuaInplace.isAvailable|false
+GAP221|C-local-shadows-global|MemberInplace.isAvailable|false
+GAP221|C-local-shadows-global|registry|com.intellij.refactoring.rename.PsiElementRenameHandler
+GAP221|C-local-shadows-global|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+GAP221|C-local-shadows-global|supplied.line|0
+GAP221|C-local-shadows-global|supplied.text|config
+GAP221|C-local-shadows-global|supplied.textRange|(0,6)
+GAP221|C-local-shadows-global|THROWN|com.intellij.testFramework.TestLoggerFactory$TestLoggerAssertionError: Recursive invocation
+GAP221|D-local-shadows-global-dialog|caretLine|1
+GAP221|D-local-shadows-global-dialog|caretOffset|20
+GAP221|D-local-shadows-global-dialog|documentAfter|config = 1\nlocal config = 2\nprint(config)\n
+GAP221|D-local-shadows-global-dialog|fixture|config = 1\nlocal config = 2\nprint(config)\n
+GAP221|D-local-shadows-global-dialog|LuaInplace.isAvailable|false
+GAP221|D-local-shadows-global-dialog|MemberInplace.isAvailable|false
+GAP221|D-local-shadows-global-dialog|registry|com.intellij.refactoring.rename.PsiElementRenameHandler
+GAP221|D-local-shadows-global-dialog|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+GAP221|D-local-shadows-global-dialog|supplied.line|0
+GAP221|D-local-shadows-global-dialog|supplied.text|config
+GAP221|D-local-shadows-global-dialog|supplied.textRange|(0,6)
+GAP221|D-local-shadows-global-dialog|THROWN|com.intellij.refactoring.util.CommonRefactoringUtil$RefactoringErrorHintException: Cannot perform refactoring.
+GAP221|E-control-plain-local|caretLine|0
+GAP221|E-control-plain-local|caretOffset|9
+GAP221|E-control-plain-local|documentAfter|local renamed = 2\nprint(renamed)\n
+GAP221|E-control-plain-local|driver|MemberInplaceRenameHandler
+GAP221|E-control-plain-local|fixture|local config = 2\nprint(config)\n
+GAP221|E-control-plain-local|LuaInplace.isAvailable|false
+GAP221|E-control-plain-local|MemberInplace.isAvailable|true
+GAP221|E-control-plain-local|registry|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+GAP221|E-control-plain-local|supplied.javaClass|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl
+GAP221|E-control-plain-local|supplied.line|0
+GAP221|E-control-plain-local|supplied.text|config
+GAP221|E-control-plain-local|supplied.textRange|(6,12)
+GAP221|E-control-plain-local|template.anchoredLine|0
+GAP221|E-control-plain-local|template.anchoredText|config
+GAP221|E-control-plain-local|template.currentVariableRange|(6,12)
+GAP221|E-control-plain-local|templateStarted|true
+GAP221|F-local-shadows-local-log-swallowed|caretLine|1
+GAP221|F-local-shadows-local-log-swallowed|caretOffset|26
+GAP221|F-local-shadows-local-log-swallowed|documentAfter|local config = 1\nlocal config = 2\nprint(config)\n
+GAP221|F-local-shadows-local-log-swallowed|driver|LuaInplaceRenameHandler
+GAP221|F-local-shadows-local-log-swallowed|fixture|local config = 1\nlocal config = 2\nprint(config)\n
+GAP221|F-local-shadows-local-log-swallowed|LOGGED_ERROR|#com.intellij.refactoring.rename.inplace.VariableInplaceRenamer :: PsiElement(LuaTokenType.IDENTIFIER) by com.intellij.refactoring.rename.inplace.MemberInplaceRenamer
+GAP221|F-local-shadows-local-log-swallowed|LuaInplace.isAvailable|true
+GAP221|F-local-shadows-local-log-swallowed|MemberInplace.isAvailable|false
+GAP221|F-local-shadows-local-log-swallowed|registry|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+GAP221|F-local-shadows-local-log-swallowed|supplied.javaClass|com.intellij.psi.impl.source.tree.LeafPsiElement
+GAP221|F-local-shadows-local-log-swallowed|supplied.line|0
+GAP221|F-local-shadows-local-log-swallowed|supplied.text|config
+GAP221|F-local-shadows-local-log-swallowed|supplied.textRange|(6,12)
+GAP221|F-local-shadows-local-log-swallowed|THROWN|java.lang.NullPointerException: Cannot invoke "com.intellij.psi.PsiElement.getTextRange()" because "selectedElement" is null

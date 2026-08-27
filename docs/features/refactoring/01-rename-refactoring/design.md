@@ -91,7 +91,7 @@ behaviour:
 | `myFixture.renameElementAtCaret` drives `substituteElementToRename` then `RenameProcessor` | **Read** — `CodeInsightTestFixtureImpl.java:1092-1107`. Every TC depends on it, so **DR-01** executes it against the current tree before any test is written. |
 | `RenameUtilBase.rename` calls `ref.handleElementRename(newName)` for non-bindable references | **Read** — `RenameUtilBase.java:44-50, 90-95`. Executed transitively by TC-01 the moment Phase 2 lands. |
 | `RenamePsiFileProcessor` passes the new file name **with** its extension | **Read** — it does not override `renameElement`, so the base passes `newName` verbatim. TC-18a is the executing check, and it fails loudly (`require("helpers.lua")`) if this is wrong. |
-| Caret-on-`self` resolves to the **method-name** leaf `m` of `function T:m()`, not to the class `T` | **Read, from three sources that agree** — `LuaScopeProcessor.kt:87-93` assigns `funcName.funcNameMethod!!.nameRef.identifier`; `lua.bnf:164` and `:166` put the method name (not the receiver) behind `funcNameMethod`; `LuaFuncNameMethod.java:8-11` exposes exactly one `getNameRef()`. **TC-19a executes it**: part (a) asserts the element the platform actually hands the processor is the `m` leaf under a `LuaFuncNameMethod`, and the plan's mutation-proof list requires flipping that expectation to `"Obj"` and seeing it go red. An earlier draft of this design asserted the opposite — "the receiver/class leaf" — and no artifact could have contradicted it, because no test looked at the resolved target. |
+| Caret-on-`self` resolves to the **method-name** leaf `m` of `function T:m()`, not to the class `T` | **Read, from three sources that agree** — `LuaScopeProcessor.kt:87-93` assigns `funcName.funcNameMethod!!.nameRef.identifier`; `lua.bnf:164` and `:166` put the method name (not the receiver) behind `funcNameMethod`; `LuaFuncNameMethod.java:8-11` exposes exactly one `getNameRef()`. **TC-19a executes it**: part (a) asserts the element the platform actually hands the processor is the `m` leaf under a `LuaFuncNameMethod`, and the plan's mutation-proof list requires flipping that expectation to `"Obj"` and seeing it go red. |
 | `global x = 1` classified by the `LuaAttName` row alone becomes `LOCAL_VARIABLE` and its search is narrowed to one file | **Read** — `lua.bnf:217` + the `private attNameList` rule at `:242` put the `attName` directly under `LuaGlobalVarDecl` (`LuaGlobalVarDecl.java:10-13`), and §3.2 step 2 narrows on `isFileLocal`. **TC-28 executes it**: it asserts the cross-file usage is rewritten, which a narrowed scope cannot do. |
 | `LeafElement.replaceWithText` is a legal edit inside a `LuaCatsLazyCommentImpl` | **Executed** (Phase 6 probe, and re-measured by review — `LeafElement.java:137-141` -> `ChangeUtil.java:83-90` -> `ASTFactory.leaf`, no parse, no validation). Formerly read-only, and the one claim with no precedent in this repo — every other AST edit here reuses `node.replaceChild`, which is used in production. **DR-06** executes it before Phase 6. |
 | Safe Delete drops the delegate for an elevated node no delegate `handlesElement`, and searches no usages at all when that node is not a `PsiNamedElement` | **Read, from three sources that agree** — `SafeDeleteProcessor.java:138-166` (the delegate loop, then `if (!handled && element instanceof PsiNamedElement)`); `LuaStatement.java:8` + `LuaStatementImpl` → `LuaBaseElement` → `ASTWrapperPsiElement` (`LuaBaseElements.kt:29-31`), so none of the three new elevation nodes qualifies; and `LuaSafeDeleteProcessor.kt:46-52`, whose KDoc states the outcome verbatim from when REFACT-03 hit it. **TC-32 executes it** — with the enumerated `isElevatedDeclaration` restored it must fail on a *silent delete*, not on a text assertion (plan's mutation-proof list). |
@@ -101,10 +101,10 @@ behaviour:
 | A shadowing inner `local x` is not collected as a usage of the outer `x` | **Was READ and was WRONG. Executed 2026-08-23 and it failed.** §6's "handled by resolution" row asserted this without a test; measured, renaming the outer `x` rewrote the inner DECLARATION and left its own usage behind. `scopeCrawlUp` excludes a reference's own declaring statement, so the inner declaration's name resolves outward and `isReferenceTo` matches. Closed by `LuaNameReference.shadowsRatherThanUses`; TC-03 executes it and is the ONLY test of 69 across rename / Find Usages / Safe Delete / shadowing that catches it. |
 | Caret on the receiver `M` of `function M.run()` is REDIRECTED when `M = {}` exists | **Was READ and was WRONG. Executed 2026-08-23.** It is refused by step 4a instead — `resolve()` on the funcName's `M` is null regardless of `M = {}`. Safe (a refusal, not a half-rename), but §6 has been rewritten to say what happens rather than what was expected. |
 | `canProcessElement` claims every Lua `LuaNameRef`, including a usage that resolves to nothing | **Executed 2026-08-23, after a first attempt that could not have detected it.** TC-26 as specified called `substituteElementToRename` directly, which bypasses `canProcessElement` entirely: narrowing the predicate to `kindOf(element) != null` left the whole suite green. TC-26 now asserts `RenamePsiElementProcessor.forElement(...)` and drives `renameElementAtCaret`, and the narrowing mutant reddens it. |
-| The index's assignment rule and §3.5 row 14 are the same rule | **Read, and it was wrong the first time** — the previous draft claimed `LuaGlobalAssignmentIndex.Indexer.map:92-104` "verbatim"; the index is top-down over `topLevel.filterIsInstance<LuaAssignmentStatement>()` and only its file-scope-locals clause was genuinely shared. §2.10 change 0 makes them one rule in code; **DR-09** executes `LuaCrossFileGlobalResolutionTest` against the delegated form before it lands. |
+| The index's assignment rule and §3.5 row 14 are the same rule | **Read** — they are **not** shared "verbatim", and calling them that would ship a second copy: `LuaGlobalAssignmentIndex.Indexer.map:92-104` is top-down over `topLevel.filterIsInstance<LuaAssignmentStatement>()`, and only its file-scope-locals clause is common with row 14. §2.10 change 0 makes them one rule in code; **DR-09** executes `LuaCrossFileGlobalResolutionTest` against the delegated form before it lands. |
 | Clause 3's O(1) form is equivalent to the index's membership test | **Read** — `LuaPsiImplUtil.kt:67-68` and `LuaBlockImpl.java:34-36` are both direct-children-only. **DR-08** executes both forms on the same two fixtures and requires them to agree. |
-| `renameElement`'s `ProgressManager.checkCanceled()` is reachable — a cancellable indicator IS on the thread | **Executed 2026-08-23**, and it settles the question the Phase-6 review left open. A `CoreProgressManager.CheckCanceledHook` filtered by `StackWalker` to checks whose immediate caller is `LuaRenameProcessor` fires exactly three times for a three-usage rename, each reporting `indicator=com.intellij.openapi.progress.util.PotemkinProgress`, `isCanceled=false`, `isInNonCancelableSection=false`. So the check is a real cancellation point, not dead code, and §3.3's cost for moving it is real rather than theoretical. (An earlier probe read `NonCancelableIndicator` / `nonCancelable=true` and was measuring the wrong instant — it sampled from a `DocumentListener`, which fires *inside* `PomModelImpl.runTransaction`'s own non-cancelable section, `PomModelImpl.java:112`.) |
-| Cancelling that indicator mid-loop leaves the file half-applied, silently | **Executed 2026-08-23** on `5b7c6ca4`, fixture `local counter = 0` / `counter = counter + 1` / `print(counter)`. Cancel at the processor's 2nd check → exactly **one** of the three occurrences on the new name, declaration on the old; at the 3rd → two moved, declaration not; `thrown = null` both times. **Cancel at the 1st check leaves the file untouched**, which is why [[BUG-468]] §6's trap is real in a second way: a test that cancels at the first check is green on the defect. **WHICH occurrence moves is not fixed** — three runs on this fixture, each stopping after one usage, moved three different occurrences, because `RenameUtil.findUsages` preserves `findReferences`' order (`RenameUtil.java:93-101, 133-142`) and ours is `ReferencesSearch…findAll()`, a `Query` with no specified ordering. An earlier version of this row pinned `counter = total + 1`; see §3.3's `d8e571e2` subsection for the retraction. |
+| `renameElement`'s `ProgressManager.checkCanceled()` is reachable — a cancellable indicator IS on the thread | **Executed 2026-08-23**, and it settles the question the Phase-6 review left open. A `CoreProgressManager.CheckCanceledHook` filtered by `StackWalker` to checks whose immediate caller is `LuaRenameProcessor` fires exactly three times for a three-usage rename, each reporting `indicator=com.intellij.openapi.progress.util.PotemkinProgress`, `isCanceled=false`, `isInNonCancelableSection=false`. So the check is a real cancellation point, not dead code, and §3.3's cost for moving it is real rather than theoretical. (**Do not sample the indicator from a `DocumentListener`**: that fires *inside* `PomModelImpl.runTransaction`'s own non-cancelable section (`PomModelImpl.java:112`) and reads `NonCancelableIndicator` / `nonCancelable=true` — the wrong instant, not a different answer.) |
+| Cancelling that indicator mid-loop leaves the file half-applied, silently | **Executed 2026-08-23** on `5b7c6ca4`, fixture `local counter = 0` / `counter = counter + 1` / `print(counter)`. Cancel at the processor's 2nd check → exactly **one** of the three occurrences on the new name, declaration on the old; at the 3rd → two moved, declaration not; `thrown = null` both times. **Cancel at the 1st check leaves the file untouched**, which is why [[BUG-468]] §6's trap is real in a second way: a test that cancels at the first check is green on the defect. **WHICH occurrence moves is not fixed** — three runs on this fixture, each stopping after one usage, moved three different occurrences, because `RenameUtil.findUsages` preserves `findReferences`' order (`RenameUtil.java:93-101, 133-142`) and ours is `ReferencesSearch…findAll()`, a `Query` with no specified ordering. **Do not pin one here**; §3.3's `d8e571e2` subsection carries the full measurement. |
 | The `ProcessCanceledException` is swallowed, not lost | **Read, from one place** — `PotemkinProgress.runInSwingThread` is `try { ProgressManager.getInstance().runProcess(action, this) } catch (ProcessCanceledException ignore) {} finally { progressFinished(); }` (`PotemkinProgress.java:151-162`). `ApplicationImpl.runEdtProgressWriteAction` (`:1135-1154`) then returns `!indicator.isCanceled()`, and `BaseRefactoringProcessor.doRefactoring` `return`s on false (`:659-662`). The executed half is the `thrown = null` in the row above. |
 | The write action does not roll back because **no write action ever rolls back** | **Read, from the undo machinery** — a write action is not a transaction. `DocumentUndoProvider.documentChanged` turns each `DocumentEvent` into an `EditorChangeAction` appended to the command `BaseRefactoringProcessor.execute` opened (`DocumentUndoProvider.java:74-92, 126-129`; `BaseRefactoringProcessor.java:453-458`). Undo is **recorded**, never deferred, so nothing reverses the earlier edits when a later one throws. **Executed**: after the half-apply above, `UndoManager.isUndoAvailable` is `true`, the action is named `Undo Renaming local variable counter`, and undoing restores the file byte-for-byte — so the platform supplies *recovery*, not rollback, and the user is told nothing that would make them reach for it. |
 | Precomputing every edit is NOT sufficient on its own | **Executed 2026-08-23.** With all three usage swaps prepared as `(hostNode, identifierNode, replacementNode)` and the live indicator cancelled from a `DocumentListener` after the **first** `replaceChild`, the unwrapped apply loop throws `ProcessCanceledException` and leaves exactly one occurrence on the new name (this run's was `print(total)`; the occurrence is order-dependent, see the row above). The cancellation point is `CompositeElement.getPsi()`'s `ProgressIndicatorProvider.checkCanceled()` (`:719-720`), reached from `replaceChild` (`:647`) via `ChangeUtil.prepareAndRunChangeAction`'s `new PomTransactionBase(changedElement.getPsi())` argument (`ChangeUtil.java:148`) — evaluated **before** `runTransaction` and so before `PomModelImpl.java:112`'s own section. The identical run wrapped in `ProgressManager.getInstance().executeNonCancelableSection { … }` throws nothing and applies all three. Cancelling *before* the first swap aborts with the file untouched. This is what makes §3.3 step 4's section load-bearing rather than defensive, and it is the measurement that rules out the naive reading of [[BUG-468]] §5 candidate 1 ("no cancellation point in between") — the cancellation points are not only ours. |
@@ -615,7 +615,7 @@ object LuaCatsParamRenamer {
 both.** The reason is in §3.6: finding the tag expands a `LuaCatsLazyCommentImpl` chameleon — a parse
 whose input is the user's doc comment — while applying it does not, so the two halves belong on
 opposite sides of §3.3 step 4's non-cancelable section. The single caller is
-`LuaRenameProcessor.kt:216`; no test calls it (`LuaCatsParamRenameTest` drives
+`LuaRenameProcessor.kt:236`; no test calls it (`LuaCatsParamRenameTest` drives
 `renameElementAtCaret` throughout and names the object only in KDoc).
 
 `oldName` stays a **declared parameter**, and §3.6 records that the Phase-6 justification for it
@@ -981,10 +981,11 @@ override fun canProcessElement(element: PsiElement): Boolean {
 > collected as an ordinary usage. Step 3a bites only when the receiver has no declaration to redirect
 > to, which is precisely the case where no correct rewrite exists.
 
-> **There is no `self` guard, and there must not be one.** An earlier draft opened this algorithm
-> with "if the element is `self`, refuse with `refactoring.rename.implicitSelf`", justified by the
-> claim that `LuaScopeProcessor` resolves `self` to the receiver/class leaf. **That claim was false
-> and the guard was dead code.** Three grounded facts, in the order that matters:
+> **There is no `self` guard, and there must not be one.** Do not open this algorithm with "if the
+> element is `self`, refuse with `refactoring.rename.implicitSelf`", and do not add that bundle key.
+> The only premise such a guard could rest on — that `LuaScopeProcessor` resolves `self` to the
+> receiver/class leaf — is **false**, so the guard would be dead code. Three grounded facts, in the
+> order that matters:
 >
 > 1. **`self` resolves to the METHOD-NAME leaf, not the class.** `LuaScopeProcessor`'s implicit-`self`
 >    branch (`LuaScopeProcessor.kt:87-93`) sets
@@ -1116,6 +1117,20 @@ override fun canProcessElement(element: PsiElement): Boolean {
         as a refusal instead of `return null` so that if the factory ever becomes non-deterministic
         the outcome is a refusal and not a skipped usage. Recorded as unpinnable rather than
         given a decorative test.
+     4a. **Claim `identifierNode`, and prepare nothing if an earlier usage already claimed it.**
+        The usage array can hold TWO entries over the SAME host — measured on TC-42's fixture, where
+        renaming `function M.run()` with a collision acknowledged yields a `MoveRenameUsageInfo` and a
+        `LuaRenameCollisionUsageInfo` over one identical `LuaNameRefImpl`, both carrying a
+        `LuaNameReference`. This step exists *because* of sub-step 3: `RenameUtil.rename` re-read the
+        host's current IDENTIFIER child inside `setName` on every call, so a duplicate was a harmless
+        second swap; capturing the node instead makes the first closure detach it and the second trip
+        `CompositeElement.replaceChild`'s `LOG.assertTrue(oldChild.getTreeParent() == this)` (`:648`).
+        A claimed-node set threaded through step 3's loop reproduces the old net effect exactly. It
+        belongs here and not in the closure: re-reading at apply time would put a lookup back inside
+        step 4's section. This is the one `return null` in this sub-list that is not a skipped
+        rewrite — the occurrence is already being rewritten by the closure that claimed it.
+        `risks-and-gaps.md` Gap 2.19 carries the record; TC-42 is the gate and deleting the claim is
+        its runnable mutant.
      5. Return `{ hostNode.replaceChild(identifierNode, replacementNode) }` — the same AST swap
         `LuaNameRefElementImpl.setName` performs (`LuaBaseElements.kt:83-92`), with the parse hoisted
         out of it. This is also the point at which Gap 2.13's silent half of `setName` stops
@@ -1125,9 +1140,9 @@ override fun canProcessElement(element: PsiElement): Boolean {
         `setName`, and Gap 2.13 still describes it — that branch is unreachable today.
   - **Step 3a — resolve the `---@param` tag rewrite too, and resolve it HERE, not in step 4.**
      `val applyCatsTagRewrite = if (declarationKind == LuaDeclarationKind.PARAMETER) LuaCatsParamRenamer.preparedRename(element, oldName, newName) else null`
-     (§3.6). This step is **the Step-9 review's correction to this design** and it is not
-     cosmetic. Earlier drafts called `LuaCatsParamRenamer.rename(replacement, oldName, newName)`
-     *inside* step 4's section, and that call **parses**: `LuaPsiImplUtil.getCatsComment` reaches
+     (§3.6). Resolving it **here** rather than in step 4 is not cosmetic: calling
+     `LuaCatsParamRenamer` *inside* step 4's section would **parse**, because
+     `LuaPsiImplUtil.getCatsComment` reaches
      `prev.firstChild` (`LuaPsiImplUtil.kt:29`) and `comment.paramTagList` reaches
      `LuaCatsLazyCommentImpl.getParamTagList` → `innerComment()` →
      `PsiTreeUtil.getChildOfType(this, …)` → `LazyParseablePsiElement.getFirstChild()` (`:88-89`) →
@@ -1156,11 +1171,9 @@ override fun canProcessElement(element: PsiElement): Boolean {
      for no reason. The `---@param` **edit** stays inside the section for the same reason as
      everything else — an edit outside it can be separated from the ones before it — while the
      lookup that finds it does not.
-     **One correction to what this design said before, kept visible rather than quietly rewritten**:
-     the guard is `declarationKind == LuaDeclarationKind.PARAMETER` alone, not the
-     `&& catsOwner != null` this section used to specify, and no `catsOwner` is captured in step 1 —
-     `preparedRename` derives the owner itself, and a pre-captured one would only restate its first
-     step.
+     **The guard is `declarationKind == LuaDeclarationKind.PARAMETER` alone.** Do not add
+     `&& catsOwner != null`, and do not capture a `catsOwner` in step 1 — `preparedRename` derives the
+     owner itself, and a pre-captured one would only restate its first step.
   5. `listener?.elementRenamed(replacement)` — outside the section; it writes nothing.
 - **Why the section is not belt-and-braces.** Precomputing the swaps is necessary and **not
   sufficient**, measured: with all three swaps prepared and the live indicator cancelled after the
@@ -1186,7 +1199,7 @@ override fun canProcessElement(element: PsiElement): Boolean {
   declaration, and at most one `LeafElement.replaceWithText` — which interns text and calls
   `replaceChild` (`LeafElement.java:137-141`) — with no parse, no index read and no VFS access **on
   any reachable path**.
-  **The two qualifications that phrase needs, both of which an earlier draft omitted:**
+  **The two qualifications that phrase needs:**
   1. *Reachable* is load-bearing. Step 3.3's delegating closure `{ RenameUtil.rename(usage, newName) }`
      does parse, via `setName` → `createIdentifier`. It is unreachable today — only
      `LuaNameReference` can be a usage of a declaration IDENTIFIER leaf — and it is written as a
@@ -1194,8 +1207,8 @@ override fun canProcessElement(element: PsiElement): Boolean {
      If it ever becomes reachable, this justification weakens with it.
   2. **This is not a claim to be more cancellable than the platform.** `RenameUtilBase` contains
      **zero** `checkCanceled` (grepped) and parses inside its usage loop (`:43-51` → `:90-95` →
-     `handleElementRename`), and an earlier draft concluded from that that our apply path is
-     "strictly *more* cancellable". It is not: the platform's apply phase stays **interruptible** —
+     `handleElementRename`). **That does not make our apply path "strictly *more* cancellable"** —
+     the conclusion is inviting and it is wrong: the platform's apply phase stays **interruptible** —
      at that parse and at `CompositeElement.getPsi()` (`:719-720`) — while ours is deliberately
      **uninterruptible**. That incidental interruptibility is exactly [[BUG-468]]. The honest
      statement is two-dimensional: ours is *more responsive before* the first edit (a cancellation
@@ -1243,12 +1256,12 @@ and `renameElementAtCaret` returns normally with `thrown = null`. At the **third
 occurrences moved, declaration not. The scope of the atomicity claim is corrected here, in §1's
 evidence table, and in `REFACT-01-01`'s status, which is `Partial` until this phase ships.
 
-**WHICH occurrence is left behind is not fixed, and this design will not name one.** An earlier
-draft of this paragraph, of §1's evidence row and of the implementation plan's mutation-proof task
-all pinned the text `local counter = 0` / `counter = total + 1` / `print(counter)`. That was one
-run's output read as a constant. **Three runs on this fixture, each stopping after exactly one
-usage had been applied, each moved a different occurrence**: Phase-8 planning's cancel-at-check-2
-probe moved the *second* (`counter = total + 1`), its prepared-edits probe moved the *third*
+**WHICH occurrence is left behind is not fixed, and this design will not name one.** Do **not** pin
+the text `local counter = 0` / `counter = total + 1` / `print(counter)`, here or in §1's evidence
+row or in the implementation plan's mutation-proof task: that is one run's output read as a
+constant. **Three runs on this fixture, each stopping after exactly one usage had been applied, each
+moved a different occurrence**: Phase-8 planning's cancel-at-check-2 probe moved the *second*
+(`counter = total + 1`), its prepared-edits probe moved the *third*
 (`print(total)`), and the Step-9 review's run moved the *first* (`total = counter + 1`). Every one
 of those is "whatever `usages[0]` was in that run", so the three disagree about which occurrence
 `usages[0]` is. They do not contradict each other about the defect; the array order is simply not a
@@ -1513,8 +1526,8 @@ fun isGlobalAssignmentTarget(target: LuaVar): Boolean
 Rows 10 and 11 exist for **Safe Delete, not rename**: they are the return leg of the elevation
 round trip specified in §2.6a, and they are what `LuaSafeDeleteProcessor.findUsages` normalises with
 before calling `ReferencesSearch` (`LuaSafeDeleteProcessor.kt:86`). Neither is reachable from
-`substituteElementToRename`, whose input is always a leaf or a `LuaNameRef` (§3.1). Row 10 uses `singleOrNull()` deliberately, and **not** for the reason an earlier draft
-gave. It is *not* needed to stop the round trip admitting the wrong node: with `firstOrNull()` a
+`substituteElementToRename`, whose input is always a leaf or a `LuaNameRef` (§3.1). Row 10 uses `singleOrNull()` deliberately, and **not** for the reason it looks
+like. It is *not* needed to stop the round trip admitting the wrong node: with `firstOrNull()` a
 multi-target `a, b = 1, 2` statement is still rejected, because `declarationNodeOf(a)` returns the
 `LuaVar` — its `varList` has two `var`s — which is not the statement, so the identity test fails
 either way. The real reason is `LuaSafeDeleteProcessor.findUsages`' normalisation
@@ -1528,8 +1541,8 @@ a future caller from getting a wrong answer instead of none. Row 11 does **not**
 predicate — the round trip does that for it, which is why a read `print(x)` is rejected (§2.6a's
 worked table).
 
-Rows 1 and 2 were a single row in an earlier draft and gave two different answers for one condition;
-they are split because `kindOf(LuaLabelName)` is `LABEL` — non-null — so row 2 would return the
+Rows 1 and 2 must stay split and must not be merged back into one, which would give two different
+answers for one condition: `kindOf(LuaLabelName)` is `LABEL` — non-null — so row 2 would return the
 `LuaLabelName` composite rather than its identifier if it came first.
 
 Row 9 is `LuaSafeDeleteProcessor.identifierLeafFor` (`LuaSafeDeleteProcessor.kt:178-191`)
@@ -1577,7 +1590,7 @@ returns the `LuaAttName` — so Safe Delete on a 5.5 global today leaves `global
   Three declared parameters, within the ≤3 cap. Phase 6 shipped `fun rename(…): Unit`, which both
   *found* and *rewrote* the tag; Phase 8 splits those, because finding parses and rewriting does not
   (see "Why the split" below). `rename` is **deleted, not kept alongside** — it has exactly one
-  caller (`LuaRenameProcessor.kt:216`) and no test references it except in prose.
+  caller (`LuaRenameProcessor.kt:236`) and no test references it except in prose.
 - **`oldName` stays a declared parameter, but the reason for it CHANGED with the hoist and the old
   reason is now false.** Phase 6's argument was "the declaration leaf has already been swapped, so
   the old spelling exists nowhere in the tree". After the hoist that is no longer true at call time:
@@ -1712,10 +1725,10 @@ override fun processQuery(
 ```
 
 - **① The label exclusion is defence-in-depth and is CURRENTLY UNREACHABLE. Keep it; do not
-  reorder it; do not write a test for it.** An earlier draft of this section claimed the guard had
-  to precede normalisation or labels would be searched by this searcher *as well as* by the default
-  named-element searcher. **That claim is retracted — it is false**, and the two independent proofs
-  are worth recording because they are what stops the next editor re-deriving it:
+  reorder it; do not write a test for it.** In particular, do **not** conclude that the guard has to
+  precede normalisation or labels would be searched by this searcher *as well as* by the default
+  named-element searcher. **That is false**, and the two independent proofs are recorded because they
+  are what stops it being re-derived:
   1. **Guard ③ already rejects labels after normalisation.** `identifierLeafOf` row 1 maps a
      `LuaLabelName` to its IDENTIFIER child, and `kindOf` of *that child* is **null** — §3.5 row 4
      stops, because its parent is a `LuaLabelName`, not a `LuaNameRef`. So `③` returns on the very
@@ -1990,8 +2003,8 @@ logic has to live in `handleElementRename` regardless, at which point the manipu
 This directly revises the assumption recorded in `REFACT-01-18` — see `risks-and-gaps.md` RD-1.
 
 **C. Generalise `LuaScopeProcessor` into a multi-name "which declaration is nearest" processor.**
-The first draft of §3.4 needed to know whether the renamed declaration or an existing `newName`
-declaration was *nearer* to a site, which no existing processor can answer. That would have meant
+Deciding §3.4's conflicts by asking whether the renamed declaration or an existing `newName`
+declaration is *nearer* to a site — which no existing processor can answer — would have meant
 extracting the declaration enumeration out of `LuaScopeProcessor` (a class on the hot resolution
 path used by every reference, completion and inspection in the plugin) into a shared
 `LuaDeclaredNames`. Rejected once the conflict rules were restated as **"is any `newName` visible

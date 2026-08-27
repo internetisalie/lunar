@@ -34,6 +34,10 @@ class LuaSpellcheckingStrategy :
     private val identifierTokenizer = LuaIdentifierTokenizer()
     private val catsCommentTokenizer = CatsProseTokenizer()
 
+    // Load-bearing for REFACT-07: this is a TOTAL override and must never delegate to `super.getTokenizer`.
+    // `SpellcheckingStrategy.java:91` returns `PsiIdentifierOwnerTokenizer` for any `PsiNameIdentifierOwner`,
+    // which REFACT-07 design §3.1 makes every `LuaNameRef`, so a `super.` fallback here would newly submit
+    // every Lua identifier to the spellchecker. REFACT-07 `risks-and-gaps.md` Risk 1.10 carries the reasoning.
     override fun getTokenizer(element: PsiElement): Tokenizer<*> {
         if (isInjectedLanguageFragment(element)) return EMPTY_TOKENIZER
         val type = element.node?.elementType ?: return EMPTY_TOKENIZER

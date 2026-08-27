@@ -1,0 +1,167 @@
+package net.internetisalie.lunar.refactoring.rename
+
+import com.intellij.codeInsight.template.impl.TemplateManagerImpl
+import com.intellij.ide.DataManager
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.application.impl.NonBlockingReadActionImpl
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.util.Disposer
+import com.intellij.refactoring.rename.PsiElementRenameHandler
+import com.intellij.refactoring.rename.RenameHandlerRegistry
+import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+import com.intellij.testFramework.LoggedErrorProcessor
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
+
+/**
+ * THROWAWAY — REFACT-07 review finding F5. Drives Gap 2.21 end to end. Deleted before commit.
+ */
+@RunWith(JUnit4::class)
+class Gap221ProbeTest : BasePlatformTestCase() {
+    @Test
+    fun testLocalShadowsLocalInplace() {
+        myFixture.configureByText("gap221.lua", SHADOWS_LOCAL)
+        driveInplace("A-local-shadows-local")
+    }
+
+    @Test
+    fun testLocalShadowsLocalDialog() {
+        myFixture.configureByText("gap221.lua", SHADOWS_LOCAL)
+        driveDialog("B-local-shadows-local-dialog")
+    }
+
+    @Test
+    fun testLocalShadowsGlobalInplace() {
+        myFixture.configureByText("gap221.lua", SHADOWS_GLOBAL)
+        driveInplace("C-local-shadows-global")
+    }
+
+    @Test
+    fun testLocalShadowsGlobalDialog() {
+        myFixture.configureByText("gap221.lua", SHADOWS_GLOBAL)
+        driveDialog("D-local-shadows-global-dialog")
+    }
+
+    @Test
+    fun testLocalShadowsLocalInplaceWithLogErrorSwallowed() {
+        myFixture.configureByText("gap221.lua", SHADOWS_LOCAL)
+        val label = "F-local-shadows-local-log-swallowed"
+        LoggedErrorProcessor.executeWith<RuntimeException>(
+            object : LoggedErrorProcessor() {
+                override fun processError(
+                    category: String,
+                    message: String,
+                    details: Array<String>,
+                    t: Throwable?,
+                ): Set<Action> {
+                    println("GAP221|$label|LOGGED_ERROR|$category :: $message")
+                    return Action.NONE
+                }
+            },
+        ) {
+            driveInplace(label)
+        }
+    }
+
+    @Test
+    fun testControlPlainLocalInplace() {
+        myFixture.configureByText("gap221.lua", PLAIN_LOCAL)
+        driveInplace("E-control-plain-local")
+    }
+
+    private fun recordContext(label: String) {
+        val context = contextAtCaret()
+        val supplied = PsiElementRenameHandler.getElement(context)
+        record(label, "fixture", myFixture.file.text.replace("\n", "\\n"))
+        record(label, "caretOffset", myFixture.caretOffset)
+        record(label, "caretLine", myFixture.editor.document.getLineNumber(myFixture.caretOffset))
+        record(label, "supplied.javaClass", supplied?.javaClass?.name)
+        record(label, "supplied.textRange", supplied?.textRange)
+        record(label, "supplied.text", supplied?.text)
+        record(
+            label,
+            "supplied.line",
+            supplied?.textRange?.startOffset?.let { myFixture.editor.document.getLineNumber(it) },
+        )
+        record(label, "LuaInplace.isAvailable", LuaInplaceRenameHandler().isAvailableOnDataContext(context))
+        record(label, "MemberInplace.isAvailable", MemberInplaceRenameHandler().isAvailableOnDataContext(context))
+        record(
+            label,
+            "registry",
+            RenameHandlerRegistry.getInstance().getRenameHandlers(context).joinToString { it.javaClass.name },
+        )
+    }
+
+    private fun driveInplace(label: String) {
+        recordContext(label)
+        val disposable = Disposer.newDisposable()
+        try {
+            TemplateManagerImpl.setTemplateTesting(disposable)
+            startTemplate(label)
+            commitTemplate(label)
+        } catch (failure: Throwable) {
+            record(label, "THROWN", "${failure.javaClass.name}: ${failure.message}")
+        } finally {
+            Disposer.dispose(disposable)
+        }
+        record(label, "documentAfter", myFixture.file.text.replace("\n", "\\n"))
+    }
+
+    private fun startTemplate(label: String) {
+        val context = contextAtCaret()
+        val handler =
+            if (LuaInplaceRenameHandler().isAvailableOnDataContext(context)) {
+                record(label, "driver", "LuaInplaceRenameHandler")
+                LuaInplaceRenameHandler()
+            } else {
+                record(label, "driver", "MemberInplaceRenameHandler")
+                MemberInplaceRenameHandler()
+            }
+        handler.invoke(project, myFixture.editor, myFixture.file, context)
+    }
+
+    private fun commitTemplate(label: String) {
+        val started = TemplateManagerImpl.getTemplateState(myFixture.editor)
+        record(label, "templateStarted", started != null)
+        val range = started?.currentVariableRange
+        record(label, "template.currentVariableRange", range)
+        val document = myFixture.editor.document
+        record(label, "template.anchoredText", range?.let { document.getText(it) })
+        record(label, "template.anchoredLine", range?.let { document.getLineNumber(it.startOffset) })
+        if (range == null) return
+        WriteCommandAction.writeCommandAction(project).run<RuntimeException> {
+            document.replaceString(range.startOffset, range.endOffset, NEW_NAME)
+        }
+        TemplateManagerImpl.getTemplateState(myFixture.editor)?.gotoEnd(false)
+        NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+    }
+
+    private fun driveDialog(label: String) {
+        recordContext(label)
+        try {
+            myFixture.renameElementAtCaret(NEW_NAME)
+            NonBlockingReadActionImpl.waitForAsyncTaskCompletion()
+        } catch (failure: Throwable) {
+            record(label, "THROWN", "${failure.javaClass.name}: ${failure.message}")
+        }
+        record(label, "documentAfter", myFixture.file.text.replace("\n", "\\n"))
+    }
+
+    private fun contextAtCaret(): DataContext =
+        DataManager.getInstance().getDataContext(myFixture.editor.contentComponent)
+
+    private fun record(
+        label: String,
+        field: String,
+        value: Any?,
+    ) = println("GAP221|$label|$field|${value ?: "null"}")
+
+    private companion object {
+        const val NEW_NAME = "renamed"
+        const val SHADOWS_LOCAL = "local config = 1\nlocal con<caret>fig = 2\nprint(config)\n"
+        const val SHADOWS_GLOBAL = "config = 1\nlocal con<caret>fig = 2\nprint(config)\n"
+        const val PLAIN_LOCAL = "local con<caret>fig = 2\nprint(config)\n"
+    }
+}

@@ -220,4 +220,65 @@ class LuaFindUsagesTest : BasePlatformTestCase() {
         val nameRef = assignedVar!!.nameRef as LuaNameRef
         assertTrue("isWriteTarget should be true for bare lhs", LuaReadWriteUsageTypeProvider.isWriteTarget(nameRef))
     }
+
+    // -------------------------------------------------------------------------
+    // TC-13 (REFACT-07-12): the PSI change alters no behaviour Lunar ships a feature for
+    // -------------------------------------------------------------------------
+
+    /**
+     * TC-13 (`REFACT-07-12`) — REFACT-07 §3.1 grants `PsiNameIdentifierOwner` to every
+     * `LuaNameRef`, and Find Usages is one of the platform behaviours design §4's consumer audit
+     * requires to be observably unchanged by it. DR-03 measured this behaviour as byte-identical
+     * across the base and treatment commits; this case is what keeps it that way in the suite,
+     * because DR-03 also found that **no test in the 2851-name set asserted it**.
+     *
+     * **Mutation:** delete the `identifierLeafOf` normalisation from
+     * `LuaNameReferenceSearcher.processQuery` and search `requested` directly
+     * (`LuaNameReferenceSearcher.kt:57`) — the `kindOf` gate at `:58` then returns early and the
+     * searcher yields nothing, so the "exactly the reads and writes are reported" half fails. All
+     * three usages are in this fixture's own file, which is the scope the searcher covers. This
+     * mutation is **this case's alone**: it is masked at the document layer, where
+     * `MemberInplaceRenamer.collectRefs`'s second search on `getSubstituted()`
+     * (`MemberInplaceRenamer.java:173-183`) passes the already-normalised leaf and so survives it.
+     * TC-03 names a different mutation for that reason.
+     *
+     * **The "declaration is not among them" half is a guard, not a gate.** The identity check at
+     * `LuaNameReference.kt:264` is masked by the very next line — `shadowsRatherThanUses(self)` at
+     * `:265` is `kindOf(host.identifier)?.isFileLocal == true` (`:189-192`), true for the declaring
+     * `LuaNameRef` of `local counter` — so deleting `:264` alone leaves the case green.
+     *
+     * **Phase 4 verdict: the mutation named above SURVIVED — this case stayed GREEN.** Executed
+     * 2026-08-26; `risks-and-gaps.md` Risk 1.11 was read-not-run and is now confirmed by a run. Find
+     * Usages passes the IDENTIFIER **leaf**, so with the normalisation deleted `target` is that same
+     * leaf, `kindOf` is `LOCAL_VARIABLE` rather than null, the `:58` gate does not return early and the
+     * search proceeds unchanged. The case cannot be re-pointed at the composite either:
+     * `LuaFindUsagesProvider.canFindUsagesFor` is `kindOf(element) != null` (`:35`), false for a
+     * `LuaNameRef`.
+     *
+     * **A reachable mutant does exist, so this requirement is not untestable and this case is not to be
+     * deleted.** Replacing `reference.isReferenceTo(target)` with `false`
+     * (`LuaNameReferenceSearcher.kt:76`) reddens the gating half `expected:<3> but was:<0>` — measured
+     * in the same sweep. The cost of that correction is that the mutant is shared with TC-03 and
+     * with every other case that needs the searcher to find a usage — a set that grows with each new
+     * consumer — so it pins the searcher rather than the Find Usages path specifically; the
+     * requirements row names `:76` and says so.
+     */
+    @Test
+    fun testFindUsagesOnALocalDeclarationReportsItsReadsAndWritesAndNotItself() {
+        val source = "local coun<caret>ter = 0\nprint(counter)\ncounter = counter + 1\n"
+        val file = myFixture.configureByText("test.lua", source)
+        val attName =
+            requireNotNull(PsiTreeUtil.findChildOfType(file, LuaAttName::class.java)) {
+                "expected a LuaAttName for the `counter` declaration"
+            }
+        val declaration = attName.nameRef.identifier
+
+        val usages = myFixture.findUsages(declaration)
+
+        assertEquals("Expected the read, the write and the read inside it: $usages", 3, usages.size)
+        assertTrue(
+            "the declaration itself must not be reported as a usage of itself: $usages",
+            usages.none { it.element === declaration },
+        )
+    }
 }

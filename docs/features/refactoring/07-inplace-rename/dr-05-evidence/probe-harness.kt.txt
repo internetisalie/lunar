@@ -1,0 +1,140 @@
+// REFACT-07-00-05 (DR-05) throwaway measurement harness — REMOVED from src/test after the run.
+// It asserts nothing (it prints), so leaving it in the suite would be a test that cannot fail.
+// Ran from src/test/kotlin/net/internetisalie/lunar/refactoring/rename/Dr05DataContextProbeTest.kt
+// on the unchanged tree at f3a270fb, GoLand 2026.1.3, builder VM lunar-builder, 2026-08-26.
+// Reproduce: restore this file to that path and run
+//   tooling/gce-builder/gce-builder.sh run "test --tests *Dr05DataContextProbeTest* --rerun --no-build-cache"
+// then read build/test-results/test/TEST-*.Dr05DataContextProbeTest.xml on the builder.
+
+package net.internetisalie.lunar.refactoring.rename
+
+import com.intellij.ide.DataManager
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.application.runReadAction
+import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.refactoring.rename.PsiElementRenameHandler
+import com.intellij.refactoring.rename.RenameHandler
+import com.intellij.refactoring.rename.RenameHandlerRegistry
+import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.lang.psi.LuaNameRef
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
+
+/**
+ * REFACT-07-00-05 (DR-05) — THROWAWAY measurement harness, not a regression test.
+ *
+ * Measures what `PsiElementRenameHandler.getElement` returns from a REAL editor data context,
+ * on the unchanged tree. Nothing is injected into the context: injecting the element is the
+ * blind spot this probe exists to expose.
+ */
+@RunWith(JUnit4::class)
+class Dr05DataContextProbeTest : BasePlatformTestCase() {
+    @Test
+    fun testWhatTheDataContextSuppliesAtEachCaret() {
+        PROBE_CASES.forEach { probeCase ->
+            myFixture.configureByText("dr05.lua", probeCase.text)
+            val contentContext = DataManager.getInstance().getDataContext(myFixture.editor.contentComponent)
+            val wholeContext = DataManager.getInstance().getDataContext(myFixture.editor.component)
+            recordSupplied(probeCase.label, contentContext)
+            recordGates(probeCase.label, contentContext)
+            recordComponentParity(probeCase.label, wholeContext)
+        }
+    }
+
+    private fun recordSupplied(
+        label: String,
+        context: DataContext,
+    ) {
+        val supplied = PsiElementRenameHandler.getElement(context)
+        runReadAction {
+            emit(label, "supplied.javaClass", supplied?.javaClass?.name)
+            emit(label, "supplied.node.elementType", supplied?.node?.elementType?.toString())
+            emit(label, "supplied.textRange", supplied?.textRange?.toString())
+            emit(label, "supplied.text", supplied?.text)
+            emit(label, "supplied.parent.javaClass", supplied?.parent?.javaClass?.name)
+            emit(label, "supplied is PsiNameIdentifierOwner", (supplied is PsiNameIdentifierOwner).toString())
+            emit(label, "supplied is LuaNameRef", (supplied is LuaNameRef).toString())
+            emit(label, "leafAtCaret (context only)", describeLeafAtCaret())
+        }
+    }
+
+    private fun recordGates(
+        label: String,
+        context: DataContext,
+    ) {
+        emit(label, "MemberInplaceRenameHandler.isAvailableOnDataContext", memberGateOf(context))
+        emit(label, "RenameHandlerRegistry.getRenameHandlers", handlersOf(context))
+        emit(label, "RenameHandler.EP_NAME size", RenameHandler.EP_NAME.extensionList.size.toString())
+        emit(label, "EP handlers whose isRenaming is true", renamingExtensionsOf(context))
+    }
+
+    private fun recordComponentParity(
+        label: String,
+        wholeContext: DataContext,
+    ) {
+        val supplied = PsiElementRenameHandler.getElement(wholeContext)
+        runReadAction {
+            emit(label, "editor.component supplies", "${supplied?.javaClass?.name} ${supplied?.textRange}")
+        }
+    }
+
+    private fun memberGateOf(context: DataContext): String =
+        runCatching { MemberInplaceRenameHandler().isAvailableOnDataContext(context).toString() }
+            .getOrElse { failure -> "THREW ${failure.javaClass.name}: ${failure.message}" }
+
+    private fun handlersOf(context: DataContext): String =
+        runCatching {
+            RenameHandlerRegistry
+                .getInstance()
+                .getRenameHandlers(context)
+                .joinToString(", ") { handler -> handler.javaClass.name }
+                .ifEmpty { "EMPTY-LIST" }
+        }.getOrElse { failure -> "THREW ${failure.javaClass.name}: ${failure.message}" }
+
+    private fun renamingExtensionsOf(context: DataContext): String =
+        runCatching {
+            RenameHandler.EP_NAME.extensionList
+                .filter { handler -> handler.isRenaming(context) }
+                .joinToString(", ") { handler -> handler.javaClass.name }
+                .ifEmpty { "EMPTY-LIST" }
+        }.getOrElse { failure -> "THREW ${failure.javaClass.name}: ${failure.message}" }
+
+    private fun describeLeafAtCaret(): String {
+        val leaf = myFixture.file.findElementAt(myFixture.caretOffset) ?: return "null"
+        return "${leaf.javaClass.simpleName}(${leaf.node?.elementType}) '${leaf.text}' ${leaf.textRange}"
+    }
+
+    private fun emit(
+        label: String,
+        field: String,
+        value: String?,
+    ) {
+        println("DR05|$label|$field|${value ?: "null"}")
+    }
+
+    private data class ProbeCase(
+        val label: String,
+        val text: String,
+    )
+
+    private companion object {
+        val PROBE_CASES =
+            listOf(
+                ProbeCase("a-declaration", "local coun<caret>ter = 0\nprint(counter)\ncounter = counter + 1\n"),
+                ProbeCase("a2-decl-shadowing-global", "config = 1\nlocal con<caret>fig = 2\nprint(config)\n"),
+                ProbeCase("b-usage-read", "local counter = 0\nprint(coun<caret>ter)\n"),
+                ProbeCase("c-usage-write", "local counter = 0\ncoun<caret>ter = counter + 1\n"),
+                ProbeCase("d-parameter", "---@param a number\nlocal function f(<caret>a) return a end\n"),
+                ProbeCase("d2-parameter-no-cats", "local function f(<caret>a) return a end\n"),
+                ProbeCase("d3-parameter-caret-inside", "local function f(cou<caret>nt) return count end\n"),
+                ProbeCase("e-global-decl", "con<caret>fig = {}\nprint(config)\n"),
+                ProbeCase("f-numeric-for", "for i<caret> = 1, 10 do\n  print(i)\nend\n"),
+                ProbeCase("f2-numeric-for-at-start", "for <caret>i = 1, 10 do\n  print(i)\nend\n"),
+                ProbeCase("f3-numeric-for-caret-inside", "for in<caret>dex = 1, 10 do\n  print(index)\nend\n"),
+                ProbeCase("g-label", "::ret<caret>ry::\ngoto retry\n"),
+                ProbeCase("g2-goto-usage", "::retry::\ngoto ret<caret>ry\n"),
+            )
+    }
+}

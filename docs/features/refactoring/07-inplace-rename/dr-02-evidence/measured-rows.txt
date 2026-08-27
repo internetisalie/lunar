@@ -1,0 +1,383 @@
+REFACT-07-00-02 (DR-02) — raw measured rows, 2026-08-26.
+Two applications, two predicate states. Every DataContext was built from the editor component
+(DataManager.getInstance().getDataContext(editor.contentComponent)); nothing injected
+CommonDataKeys.PSI_ELEMENT anywhere.
+
+===================================================================================
+APP 1 — unit-test application (BasePlatformTestCase), Dr02RegistryProbeTest
+GoLand 2026.1.3 (platformType=GO, platformVersion=2026.1.3), builder VM lunar-builder.
+
+--- RUN 1: with DR-01's edits, isInplaceRenameAvailable = false (design 3.2 as specified)
+gradle: test --tests *Dr02RegistryProbeTest* --rerun --no-build-cache -> BUILD SUCCESSFUL in 29s
+JUnit XML: tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-26T11:22:35.169Z"
+
+DR02|1-local-decl|getRenameHandlers.size|1
+DR02|1-local-decl|getRenameHandlers|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR02|1-local-decl|getRenameHandler|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR02|2-usage|getRenameHandlers.size|1
+DR02|2-usage|getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02|2-usage|getRenameHandler|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02|3-parameter-decl|getRenameHandlers.size|1
+DR02|3-parameter-decl|getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02|3-parameter-decl|getRenameHandler|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02|3|LuaInplaceRenameHandler() is MemberInplaceRenameHandler|false
+DR02|3|LuaInplaceRenameHandler superclasses|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler 
+DR02|1-local-decl|supplied|LuaNameRefImpl(NAME_REF) 'counter' (6,13)
+DR02|1-local-decl|supplied is PsiNameIdentifierOwner|true
+DR02|1-local-decl|supplied is LuaNameRef|true
+DR02|1-local-decl|EP_NAME.extensionList.size|11
+DR02|1-local-decl|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|true
+DR02|1-local-decl|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02|1-local-decl|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02|1-local-decl|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02|2-usage|supplied|LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (6,13)
+DR02|2-usage|supplied is PsiNameIdentifierOwner|false
+DR02|2-usage|supplied is LuaNameRef|false
+DR02|2-usage|EP_NAME.extensionList.size|11
+DR02|2-usage|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02|2-usage|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02|2-usage|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02|2-usage|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|false
+DR02|2-usage|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02|2-usage|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02|2-usage|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02|2-usage|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02|2-usage|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02|2-usage|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|true
+DR02|2-usage|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02|3-parameter-decl|supplied|LeafPsiElement(LuaTokenType.IDENTIFIER) 'a' (36,37)
+DR02|3-parameter-decl|supplied is PsiNameIdentifierOwner|false
+DR02|3-parameter-decl|supplied is LuaNameRef|false
+DR02|3-parameter-decl|EP_NAME.extensionList.size|11
+DR02|3-parameter-decl|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02|3-parameter-decl|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02|3-parameter-decl|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|true
+DR02|3-parameter-decl|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+
+--- RUN 2: isInplaceRenameAvailable RESTORED to the shipped predicate
+     (element is LuaNameRef && LuaDeclarationSite.kindOf(element.identifier)?.isFileLocal == true)
+gradle: test --tests *Dr02RegistryProbeTest* --rerun --no-build-cache -> BUILD SUCCESSFUL in 32s
+JUnit XML: tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-26T11:23:33.260Z"
+
+DR02|1-local-decl|getRenameHandlers.size|1
+DR02|1-local-decl|getRenameHandlers|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
+DR02|1-local-decl|getRenameHandler|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
+DR02|2-usage|getRenameHandlers.size|1
+DR02|2-usage|getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02|2-usage|getRenameHandler|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02|3-parameter-decl|getRenameHandlers.size|1
+DR02|3-parameter-decl|getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02|3-parameter-decl|getRenameHandler|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02|3|LuaInplaceRenameHandler() is MemberInplaceRenameHandler|false
+DR02|3|LuaInplaceRenameHandler superclasses|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler 
+DR02|1-local-decl|supplied|LuaNameRefImpl(NAME_REF) 'counter' (6,13)
+DR02|1-local-decl|supplied is PsiNameIdentifierOwner|true
+DR02|1-local-decl|supplied is LuaNameRef|true
+DR02|1-local-decl|EP_NAME.extensionList.size|11
+DR02|1-local-decl|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|true
+DR02|1-local-decl|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|true
+DR02|1-local-decl|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02|1-local-decl|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02|1-local-decl|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|false
+DR02|1-local-decl|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02|2-usage|supplied|LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (6,13)
+DR02|2-usage|supplied is PsiNameIdentifierOwner|false
+DR02|2-usage|supplied is LuaNameRef|false
+DR02|2-usage|EP_NAME.extensionList.size|11
+DR02|2-usage|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02|2-usage|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02|2-usage|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02|2-usage|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|false
+DR02|2-usage|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02|2-usage|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02|2-usage|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02|2-usage|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02|2-usage|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02|2-usage|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|true
+DR02|2-usage|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02|3-parameter-decl|supplied|LeafPsiElement(LuaTokenType.IDENTIFIER) 'a' (36,37)
+DR02|3-parameter-decl|supplied is PsiNameIdentifierOwner|false
+DR02|3-parameter-decl|supplied is LuaNameRef|false
+DR02|3-parameter-decl|EP_NAME.extensionList.size|11
+DR02|3-parameter-decl|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02|3-parameter-decl|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02|3-parameter-decl|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02|3-parameter-decl|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|true
+DR02|3-parameter-decl|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+
+===================================================================================
+APP 2 — a RUNNING GoLand 2026.1.3 sandbox (./gradlew runIde on Xvfb :99, lunar-builder)
+Plugin load confirmed fresh in build/idea-sandbox/GO-2026.1.3/log/idea.log:
+  2026-08-26 11:25:29,676 [ 721] INFO - #c.i.p.i.b.AppStarter - Loaded custom plugins: lunar (0.18.0)   (run 1)
+  2026-08-26 11:31:46,145 [ 614] INFO - #c.i.p.i.b.AppStarter - Loaded custom plugins: lunar (0.18.0)   (run 2)
+
+Fixture ~/dr10/proj/dr02.lua, driven with xdotool ctrl+g <line:column> then ctrl+alt+shift+F11:
+  1  local counter = 0                 caret 1:10 -> offset 9   (local DECLARATION caret)
+  2  print(counter)                    caret 2:10 -> offset 27  (USAGE caret)
+  3  ---@param a number
+  4  local function f(a) return a end  caret 4:18 -> offset 69  (PARAMETER DECLARATION caret)
+
+--- RUN 1: with DR-01's edits, isInplaceRenameAvailable = false
+
+DR02IDE|offset9|supplied|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl(NAME_REF) 'counter' (6,13)
+DR02IDE|offset9|EP_NAME.extensionList.size|34
+DR02IDE|offset9|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|true
+DR02IDE|offset9|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02IDE|offset9|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02IDE|offset9|EP|org.intellij.plugins.markdown.ui.projectTree.MarkdownFileRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.sh.backend.rename.ShRenameHandler|false
+DR02IDE|offset9|EP|org.editorconfig.language.codeinsight.refactoring.EditorConfigRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.swagger.core.refactoring.rename.SwUrlPathRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.swagger.core.refactoring.rename.SwYamlPathVariableRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.database.psi.DbRenameHandler|false
+DR02IDE|offset9|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|false
+DR02IDE|offset9|EP|com.goide.refactor.rename.GoRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.sql.refactoring.rename.inplace.SqlInplaceRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.sql.refactoring.rename.SqlRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.javascript.refactoring.rename.JSRenameWrongRefHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.javascript.refactoring.rename.JSInplaceRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.javascript.refactoring.rename.JSShorthandPropertyRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.typescript.refactoring.TypeScriptMemberInplaceRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.typescript.refactoring.TypeScriptProxyImplicitMemberRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.psi.css.actions.rename.CssClassOrIdRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.psi.css.actions.rename.CssCustomPropertyRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.psi.css.actions.rename.CssColorValueRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.helm.ChartsRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.references.KubernetesLabelValueRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.references.KubernetesLabelKeyRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.references.KubernetesResourceRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.references.KubernetesMapResourceEntryRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.helm.gotpl.TemplateRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02IDE|offset9|getRenameHandlers|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR02IDE|offset9|getRenameHandler|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+DR02IDE|3|LuaInplaceRenameHandler() is MemberInplaceRenameHandler|false
+DR02IDE|offset27|supplied|com.intellij.psi.impl.source.tree.LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (6,13)
+DR02IDE|offset27|EP_NAME.extensionList.size|34
+DR02IDE|offset27|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02IDE|offset27|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02IDE|offset27|EP|org.intellij.plugins.markdown.ui.projectTree.MarkdownFileRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.sh.backend.rename.ShRenameHandler|false
+DR02IDE|offset27|EP|org.editorconfig.language.codeinsight.refactoring.EditorConfigRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.swagger.core.refactoring.rename.SwUrlPathRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.swagger.core.refactoring.rename.SwYamlPathVariableRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.database.psi.DbRenameHandler|false
+DR02IDE|offset27|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|true
+DR02IDE|offset27|EP|com.goide.refactor.rename.GoRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.sql.refactoring.rename.inplace.SqlInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.sql.refactoring.rename.SqlRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.javascript.refactoring.rename.JSRenameWrongRefHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.javascript.refactoring.rename.JSInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.javascript.refactoring.rename.JSShorthandPropertyRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.typescript.refactoring.TypeScriptMemberInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.typescript.refactoring.TypeScriptProxyImplicitMemberRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.psi.css.actions.rename.CssClassOrIdRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.psi.css.actions.rename.CssCustomPropertyRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.psi.css.actions.rename.CssColorValueRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.helm.ChartsRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.references.KubernetesLabelValueRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.references.KubernetesLabelKeyRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.references.KubernetesResourceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.references.KubernetesMapResourceEntryRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.helm.gotpl.TemplateRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02IDE|offset27|getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02IDE|offset27|getRenameHandler|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02IDE|3|LuaInplaceRenameHandler() is MemberInplaceRenameHandler|false
+DR02IDE|offset69|supplied|com.intellij.psi.impl.source.tree.LeafPsiElement(LuaTokenType.IDENTIFIER) 'a' (69,70)
+DR02IDE|offset69|EP_NAME.extensionList.size|34
+DR02IDE|offset69|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02IDE|offset69|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02IDE|offset69|EP|org.intellij.plugins.markdown.ui.projectTree.MarkdownFileRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.sh.backend.rename.ShRenameHandler|false
+DR02IDE|offset69|EP|org.editorconfig.language.codeinsight.refactoring.EditorConfigRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.swagger.core.refactoring.rename.SwUrlPathRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.swagger.core.refactoring.rename.SwYamlPathVariableRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.database.psi.DbRenameHandler|false
+DR02IDE|offset69|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|true
+DR02IDE|offset69|EP|com.goide.refactor.rename.GoRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.sql.refactoring.rename.inplace.SqlInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.sql.refactoring.rename.SqlRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.javascript.refactoring.rename.JSRenameWrongRefHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.javascript.refactoring.rename.JSInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.javascript.refactoring.rename.JSShorthandPropertyRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.typescript.refactoring.TypeScriptMemberInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.typescript.refactoring.TypeScriptProxyImplicitMemberRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.psi.css.actions.rename.CssClassOrIdRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.psi.css.actions.rename.CssCustomPropertyRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.psi.css.actions.rename.CssColorValueRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.helm.ChartsRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.references.KubernetesLabelValueRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.references.KubernetesLabelKeyRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.references.KubernetesResourceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.references.KubernetesMapResourceEntryRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.helm.gotpl.TemplateRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02IDE|offset69|getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02IDE|offset69|getRenameHandler|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02IDE|3|LuaInplaceRenameHandler() is MemberInplaceRenameHandler|false
+
+--- RUN 2: isInplaceRenameAvailable RESTORED to the shipped predicate
+
+DR02IDE|offset9|supplied|net.internetisalie.lunar.lang.psi.impl.LuaNameRefImpl(NAME_REF) 'counter' (6,13)
+DR02IDE|offset9|EP_NAME.extensionList.size|34
+DR02IDE|offset9|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|true
+DR02IDE|offset9|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|true
+DR02IDE|offset9|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02IDE|offset9|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02IDE|offset9|EP|org.intellij.plugins.markdown.ui.projectTree.MarkdownFileRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.sh.backend.rename.ShRenameHandler|false
+DR02IDE|offset9|EP|org.editorconfig.language.codeinsight.refactoring.EditorConfigRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.swagger.core.refactoring.rename.SwUrlPathRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.swagger.core.refactoring.rename.SwYamlPathVariableRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.database.psi.DbRenameHandler|false
+DR02IDE|offset9|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|false
+DR02IDE|offset9|EP|com.goide.refactor.rename.GoRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.sql.refactoring.rename.inplace.SqlInplaceRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.sql.refactoring.rename.SqlRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.javascript.refactoring.rename.JSRenameWrongRefHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.javascript.refactoring.rename.JSInplaceRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.javascript.refactoring.rename.JSShorthandPropertyRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.typescript.refactoring.TypeScriptMemberInplaceRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.lang.typescript.refactoring.TypeScriptProxyImplicitMemberRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.psi.css.actions.rename.CssClassOrIdRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.psi.css.actions.rename.CssCustomPropertyRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.psi.css.actions.rename.CssColorValueRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.helm.ChartsRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.references.KubernetesLabelValueRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.references.KubernetesLabelKeyRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.references.KubernetesResourceRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.references.KubernetesMapResourceEntryRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.kubernetes.helm.gotpl.TemplateRenameHandler|false
+DR02IDE|offset9|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02IDE|offset9|getRenameHandlers|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
+DR02IDE|offset9|getRenameHandler|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler
+DR02IDE|3|LuaInplaceRenameHandler() is MemberInplaceRenameHandler|false
+DR02IDE|offset27|supplied|com.intellij.psi.impl.source.tree.LeafPsiElement(LuaTokenType.IDENTIFIER) 'counter' (6,13)
+DR02IDE|offset27|EP_NAME.extensionList.size|34
+DR02IDE|offset27|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02IDE|offset27|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02IDE|offset27|EP|org.intellij.plugins.markdown.ui.projectTree.MarkdownFileRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.sh.backend.rename.ShRenameHandler|false
+DR02IDE|offset27|EP|org.editorconfig.language.codeinsight.refactoring.EditorConfigRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.swagger.core.refactoring.rename.SwUrlPathRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.swagger.core.refactoring.rename.SwYamlPathVariableRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.database.psi.DbRenameHandler|false
+DR02IDE|offset27|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|true
+DR02IDE|offset27|EP|com.goide.refactor.rename.GoRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.sql.refactoring.rename.inplace.SqlInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.sql.refactoring.rename.SqlRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.javascript.refactoring.rename.JSRenameWrongRefHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.javascript.refactoring.rename.JSInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.javascript.refactoring.rename.JSShorthandPropertyRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.typescript.refactoring.TypeScriptMemberInplaceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.lang.typescript.refactoring.TypeScriptProxyImplicitMemberRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.psi.css.actions.rename.CssClassOrIdRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.psi.css.actions.rename.CssCustomPropertyRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.psi.css.actions.rename.CssColorValueRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.helm.ChartsRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.references.KubernetesLabelValueRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.references.KubernetesLabelKeyRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.references.KubernetesResourceRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.references.KubernetesMapResourceEntryRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.kubernetes.helm.gotpl.TemplateRenameHandler|false
+DR02IDE|offset27|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02IDE|offset27|getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02IDE|offset27|getRenameHandler|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02IDE|3|LuaInplaceRenameHandler() is MemberInplaceRenameHandler|false
+DR02IDE|offset69|supplied|com.intellij.psi.impl.source.tree.LeafPsiElement(LuaTokenType.IDENTIFIER) 'a' (69,70)
+DR02IDE|offset69|EP_NAME.extensionList.size|34
+DR02IDE|offset69|EP|com.intellij.refactoring.rename.PlainDirectoryRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.refactoring.rename.FileDumbRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.refactoring.rename.inplace.VariableInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.platform.renameProject.RenameProjectHandler|false
+DR02IDE|offset69|EP|com.intellij.platform.renameProject.ProjectFolderRenameHandler|false
+DR02IDE|offset69|EP|org.intellij.plugins.markdown.ui.projectTree.MarkdownFileRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.xml.refactoring.SchemaPrefixRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.xml.refactoring.XmlTagRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.polySymbols.refactoring.PsiSourcedPolySymbolRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.sh.backend.rename.ShRenameHandler|false
+DR02IDE|offset69|EP|org.editorconfig.language.codeinsight.refactoring.EditorConfigRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.swagger.core.refactoring.rename.SwUrlPathRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.swagger.core.refactoring.rename.SwYamlPathVariableRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.database.psi.DbRenameHandler|false
+DR02IDE|offset69|EP|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler|true
+DR02IDE|offset69|EP|com.goide.refactor.rename.GoRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.sql.refactoring.rename.inplace.SqlInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.sql.refactoring.rename.SqlRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.javascript.refactoring.rename.JSRenameWrongRefHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.javascript.refactoring.rename.JSInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.javascript.refactoring.rename.JSShorthandPropertyRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.typescript.refactoring.TypeScriptMemberInplaceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.lang.typescript.refactoring.TypeScriptProxyImplicitMemberRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.psi.css.actions.rename.CssClassOrIdRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.psi.css.actions.rename.CssCustomPropertyRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.psi.css.actions.rename.CssColorValueRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.helm.ChartsRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.references.KubernetesLabelValueRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.references.KubernetesLabelKeyRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.references.KubernetesResourceRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.references.KubernetesMapResourceEntryRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.kubernetes.helm.gotpl.TemplateRenameHandler|false
+DR02IDE|offset69|EP|com.intellij.platform.lsp.impl.rename.LspRenameHandler|false
+DR02IDE|offset69|getRenameHandlers|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02IDE|offset69|getRenameHandler|net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler
+DR02IDE|3|LuaInplaceRenameHandler() is MemberInplaceRenameHandler|false

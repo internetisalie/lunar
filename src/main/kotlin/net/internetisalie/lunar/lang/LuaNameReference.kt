@@ -305,7 +305,7 @@ class LuaNameReference(
      * An override rather than a registered `elementManipulator`: `PsiReferenceBase.getRangeInElement`
      * returns the range given to the constructor, so a manipulator is reached only from this method
      * and `bindToElement`. The host is always a [LuaNameRef] — the sole construction site is
-     * `LuaNameRefBaseImpl.getReference` (`LuaBaseElements.kt:98-104`), and its `setName` already
+     * `LuaNameRefBaseImpl.getReference` (`LuaBaseElements.kt:117-124`), and its `setName` already
      * performs the correct AST swap (`:83-92`) — which is what makes the cast total and mirrors
      * [LuaLabelReference.handleElementRename], in production since REFACT-04.
      */

@@ -1,0 +1,87 @@
+// REFACT-07-00-02 (DR-02) THROWAWAY diagnostic action — REMOVED from src/main after the run.
+// This is the half a unit-test application cannot answer: it enumerates RenameHandler.EP_NAME inside
+// a RUNNING GoLand, which registers 34 extensions where the unit-test application registers 11.
+// Registered on the spike branch with:
+//   <action id="Lunar.Dr02EnumerateRenameHandlers"
+//           class="net.internetisalie.lunar.refactoring.rename.Dr02EnumerateRenameHandlersAction"
+//           text="DR02 Enumerate Rename Handlers">
+//     <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift F11"/>
+//   </action>
+// Driven over Xvfb :99 on lunar-builder: ctrl+g to a line:column, then ctrl+alt+shift+F11; the rows
+// land in build/idea-sandbox/GO-2026.1.3/log/idea.log as DR02IDE| lines.
+
+// REFACT-07-00-02 (DR-02) THROWAWAY diagnostic action — REMOVE from src/main after the run.
+// Enumerates the registry's own input inside a running GoLand. The data context is built from the
+// editor component, never with an injected CommonDataKeys.PSI_ELEMENT.
+package net.internetisalie.lunar.refactoring.rename
+
+import com.intellij.ide.DataManager
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.refactoring.rename.PsiElementRenameHandler
+import com.intellij.refactoring.rename.RenameHandler
+import com.intellij.refactoring.rename.RenameHandlerRegistry
+import com.intellij.refactoring.rename.inplace.MemberInplaceRenameHandler
+
+class Dr02EnumerateRenameHandlersAction : AnAction() {
+    override fun actionPerformed(event: AnActionEvent) {
+        val currentEditor = CommonDataKeys.EDITOR.getData(event.dataContext)
+        if (currentEditor == null) {
+            log.warn("DR02IDE|-|no-editor-in-context|null")
+            return
+        }
+        val context = DataManager.getInstance().getDataContext(currentEditor.contentComponent)
+        val label = "offset${currentEditor.caretModel.offset}"
+        emitSuppliedElement(label, context)
+        emitExtensionList(label, context)
+        emitRegistrySelection(label, context)
+        emit("3", "LuaInplaceRenameHandler() is MemberInplaceRenameHandler", (LuaInplaceRenameHandler() as Any is MemberInplaceRenameHandler).toString())
+    }
+
+    private fun emitSuppliedElement(
+        label: String,
+        context: DataContext,
+    ) {
+        runReadAction {
+            val supplied = PsiElementRenameHandler.getElement(context)
+            emit(label, "supplied", "${supplied?.javaClass?.name}(${supplied?.node?.elementType}) '${supplied?.text}' ${supplied?.textRange}")
+        }
+    }
+
+    private fun emitExtensionList(
+        label: String,
+        context: DataContext,
+    ) {
+        emit(label, "EP_NAME.extensionList.size", RenameHandler.EP_NAME.extensionList.size.toString())
+        RenameHandler.EP_NAME.extensionList.forEach { handler ->
+            emit(label, "EP|${handler.javaClass.name}", guarded { runReadAction { handler.isRenaming(context) }.toString() })
+        }
+    }
+
+    private fun emitRegistrySelection(
+        label: String,
+        context: DataContext,
+    ) {
+        val selected = guarded { RenameHandlerRegistry.getInstance().getRenameHandlers(context).joinToString(", ") { it.javaClass.name }.ifEmpty { "EMPTY-LIST" } }
+        emit(label, "getRenameHandlers", selected)
+        emit(label, "getRenameHandler", guarded { RenameHandlerRegistry.getInstance().getRenameHandler(context)?.javaClass?.name ?: "null" })
+    }
+
+    private fun guarded(probe: () -> String): String = runCatching(probe).getOrElse { failure -> "THREW ${failure.javaClass.name}: ${failure.message}" }
+
+    private fun emit(
+        label: String,
+        field: String,
+        value: String,
+    ) {
+        log.warn("DR02IDE|$label|$field|$value")
+    }
+
+    private companion object {
+        val log: Logger = Logger.getInstance(Dr02EnumerateRenameHandlersAction::class.java)
+    }
+}

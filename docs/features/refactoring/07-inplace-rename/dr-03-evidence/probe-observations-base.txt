@@ -1,0 +1,71 @@
+DR03|BookmarkManager.getNameIdentifier path|onFile=null
+DR03|BookmarkManager.getNameIdentifier path|onLeaf=null
+DR03|BookmarkManager.getNameIdentifier path|onNameRef=null
+DR03|ChangeSignatureAction|atDecl enabled=false visible=false
+DR03|ChangeSignatureAction|atLocal enabled=false visible=false
+DR03|ChangeSignatureAction|luaChangeSignatureHandler=null
+DR03|IdentifierUtil.getNameIdentifier|on='alpha'@(40,45) -> LeafPsiElement@(40,45)'alpha'
+DR03|IdentifierUtil.getNameIdentifier|on='alpha'@(62,67) -> LeafPsiElement@(62,67)'alpha'
+DR03|IdentifierUtil.getNameIdentifier|on='beta'@(47,51) -> LeafPsiElement@(47,51)'beta'
+DR03|IdentifierUtil.getNameIdentifier|on='beta'@(70,74) -> LeafPsiElement@(70,74)'beta'
+DR03|IdentifierUtil.getNameIdentifier|on='counter'@(106,113) -> LeafPsiElement@(106,113)'counter'
+DR03|IdentifierUtil.getNameIdentifier|on='counter'@(135,142) -> LeafPsiElement@(135,142)'counter'
+DR03|IdentifierUtil.getNameIdentifier|on='counter'@(6,13) -> LeafPsiElement@(6,13)'counter'
+DR03|IdentifierUtil.getNameIdentifier|on='counter'@(77,84) -> LeafPsiElement@(77,84)'counter'
+DR03|IdentifierUtil.getNameIdentifier|on='helper'@(116,122) -> LeafPsiElement@(116,122)'helper'
+DR03|IdentifierUtil.getNameIdentifier|on='helper'@(33,39) -> LeafPsiElement@(33,39)'helper'
+DR03|IdentifierUtil.getNameIdentifier|on='print'@(129,134) -> LeafPsiElement@(129,134)'print'
+DR03|IdentifierUtil.getNameIdentifier|on='unused'@(95,101) -> LeafPsiElement@(95,101)'unused'
+DR03|NamedElementDuplicateHandler|line='counter = helper(1, 2)' caretAfter=151 doc=local counter = 0\nlocal function helper(alpha, beta)\n  return alpha + beta + counter\nend\nlocal unused = 0\ncounter = helper(1, 2)\ncounter = helper(1, 2)\nprint(counter)\n
+DR03|NamedElementDuplicateHandler|line='local counter = 0' caretAfter=35 doc=local counter = 0\nlocal counter = 0\nlocal function helper(alpha, beta)\n  return alpha + beta + counter\nend\nlocal unused = 0\ncounter = helper(1, 2)\nprint(counter)\n
+DR03|NamedElementDuplicateHandler|line='print(counter)' caretAfter=158 doc=local counter = 0\nlocal function helper(alpha, beta)\n  return alpha + beta + counter\nend\nlocal unused = 0\ncounter = helper(1, 2)\nprint(counter)\nprint(counter)\n
+DR03|NonAsciiCharactersInspection|leaves=LuaTokenType.local['local'] WHITE_SPACE[' '] LuaTokenType.IDENTIFIER['caf'] BLOCK[''] ERROR_ELEMENT[''] BAD_CHARACTER['é'] WHITE_SPACE[' '] LuaTokenType.=['='] WHITE_SPACE[' '] LuaTokenType.NUMBER['1'] WHITE_SPACE['\n'] LuaTokenType.local['local'] WHITE_SPACE[' '] LuaTokenType.IDENTIFIER['na'] BAD_CHARACTER['ï'] LuaTokenType.IDENTIFIER['ve'] WHITE_SPACE[' '] LuaTokenType.=['='] WHITE_SPACE[' '] LuaTokenType.IDENTIFIER['caf'] BAD_CHARACTER['é'] WHITE_SPACE['\n'] 
+DR03|NonAsciiCharactersInspection|nameRef='caf' allAscii=true id=null
+DR03|NonAsciiCharactersInspection|nameRefCount=1
+DR03|PsiElement2Declaration.getIdentifyingElement|at='alpha'@40 count=1 [Psi2Symbol->LeafPsiElement@(40,45)'alpha']
+DR03|PsiElement2Declaration.getIdentifyingElement|at='counter'@6 count=1 [Psi2Symbol->LuaNameRefImpl@(6,13)'counter']
+DR03|PsiElement2Declaration.getIdentifyingElement|at='helper'@33 count=1 [Psi2Symbol->LeafPsiElement@(33,39)'helper']
+DR03|PsiElement2Declaration.getIdentifyingElement|at='unused'@95 count=1 [Psi2Symbol->LuaNameRefImpl@(95,101)'unused']
+DR03|REFACT-07-12/FindUsages|THREW=java.lang.AssertionError: Cannot find handler for: NAME_REF
+DR03|REFACT-07-12/FindUsages|onLeaf n=3 [counter@(106,113), counter@(135,142), counter@(77,84)]
+DR03|REFACT-07-12/GotoDeclaration|resolved=LeafPsiElement@(6,13)'counter'
+DR03|REFACT-07-12/StructureView|tree=-probe.lua\n counter\n -helper\n  alpha\n  beta\n  return\n unused
+DR03|RelatedItemLineMarkerProvider|fromLeaf n=1 LuaFuncDeclImpl@(31,54)'function Base:run() end'
+DR03|RelatedItemLineMarkerProvider|fromNameRef n=0 
+DR03|RelatedItemLineMarkerProvider|viaEditorAction n=1 LuaFuncDeclImpl@(31,54)'function Base:run() end'
+DR03|RenameTo|nameRelativeRange=(0,6)
+DR03|RenameTo|namedParent=LuaNameRefImpl@(6,13)'counter' name=counter
+DR03|RenameTo|onLeaf isAvailable=false name='n/a'
+DR03|RenameTo|onLeaf nameRelativeRange=(0,6)
+DR03|RenameTo|onNameRef isAvailable=false name='n/a'
+DR03|RenameTo|onNameRefInsideReadAction isAvailable=false
+DR03|RenameTo|smartPointerElement=LuaNameRefImpl@(6,13)'counter'
+DR03|SafeDeleteProcessor.isInside|THREW=com.intellij.refactoring.BaseRefactoringProcessor$ConflictsInTestsException: Usage of local variable <b><code>counter</code></b> that is not safe to delete.
+DR03|SafeDeleteProcessor.isInside|afterLeafDelete=local counter = 0\nlocal function helper(alpha, beta)\n  return alpha + beta + counter\nend\n\ncounter = helper(1, 2)\nprint(counter)\n
+DR03|SafeDeleteProcessor.isInside|afterNameRefDelete=local counter = 0\nlocal function helper(alpha, beta)\n  return alpha + beta + counter\nend\nlocal unused = 0\ncounter = helper(1, 2)\nprint(counter)\n
+DR03|SafeDeleteProcessor.isInside|leafTarget=LeafPsiElement@(95,101)'unused'
+DR03|SafeDeleteProcessor.isInside|nameRefTarget=LuaNameRefImpl@(95,101)'unused'
+DR03|SpellcheckingStrategy.getTokenizer|on='alpha' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='alpha' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='beta' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='beta' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='counter' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='counter' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='counter' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='counter' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='helper' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='helper' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='print' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|SpellcheckingStrategy.getTokenizer|on='unused' strategy=LuaSpellcheckingStrategy tokenizer=LuaIdentifierTokenizer
+DR03|__premise__|text='alpha' isOwner=false children=0 refRange=(40,45) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=alpha
+DR03|__premise__|text='alpha' isOwner=false children=0 refRange=(62,67) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=alpha
+DR03|__premise__|text='beta' isOwner=false children=0 refRange=(47,51) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=beta
+DR03|__premise__|text='beta' isOwner=false children=0 refRange=(70,74) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=beta
+DR03|__premise__|text='counter' isOwner=false children=0 refRange=(106,113) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=counter
+DR03|__premise__|text='counter' isOwner=false children=0 refRange=(135,142) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=counter
+DR03|__premise__|text='counter' isOwner=false children=0 refRange=(6,13) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=counter
+DR03|__premise__|text='counter' isOwner=false children=0 refRange=(77,84) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=counter
+DR03|__premise__|text='helper' isOwner=false children=0 refRange=(116,122) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=helper
+DR03|__premise__|text='helper' isOwner=false children=0 refRange=(33,39) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=helper
+DR03|__premise__|text='print' isOwner=false children=0 refRange=(129,134) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=print
+DR03|__premise__|text='unused' isOwner=false children=0 refRange=(95,101) idRange=null rangesEqual=false idIsStrictDescendant=false isNamed=true name=unused
