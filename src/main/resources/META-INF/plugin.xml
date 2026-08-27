@@ -381,6 +381,9 @@
             implementation="net.internetisalie.lunar.lang.insight.LuaReadWriteAccessDetector"/>
     <referencesSearch
             implementation="net.internetisalie.lunar.lang.insight.LuaNameReferenceSearcher"/>
+    <targetElementEvaluator
+            language="Lua"
+            implementationClass="net.internetisalie.lunar.lang.insight.LuaTargetElementEvaluator"/>
     <lang.refactoringSupport
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaRefactoringSupportProvider"/>

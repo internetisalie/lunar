@@ -38,6 +38,9 @@ open class LuaFile(
     ): Boolean {
         // File scope = root block + global function declarations + global variable assignments
 
+        // Left in source order deliberately: under `root ::= block*` (lua.bnf:96) a file's direct
+        // children are LuaBlock and whitespace only — measured — so no branch below is reachable
+        // and BUG-472's nearest-first ordering has nothing to correct here.
         for (child in children) {
             // Visibility filtering: stop if we reached the place of completion
             if (lastParent != null && child.textOffset >= lastParent.textOffset) {
@@ -57,8 +60,10 @@ open class LuaFile(
             return true // No blocks, continue walk to parent scope
         }
 
-        // Process each block (typically there's only one at file level)
-        for (block in blocks) {
+        // Nearest block first. `root ::= block*` (lua.bnf:96) and a mid-file `return` closes one
+        // block and opens the next, so a file really can hold more than one — measured — and a
+        // later block's declarations shadow an earlier block's (BUG-472).
+        for (block in blocks.asReversed()) {
             if (!block.processDeclarations(processor, state, lastParent, place)) {
                 return false // Processor found match, stop walk
             }

@@ -3,70 +3,35 @@ id: "BUG-470"
 title: "A `local` that shadows an earlier same-file global resolves to the global's declaration"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
 
-# BUG-470: a shadowing `local` hands over the shadowed global's declaration
+# BUG-470: planned as part of [[BUG-472]]
 
-Found 2026-08-25 by [[REFACT-07]]'s `REFACT-07-00-05` (DR-05) data-context probe. Not caused by
-REFACT-07; a shipped defect the probe surfaced while measuring something else.
+**Symptom.** In a file that assigns a global and then declares a `local` of the same name —
+`config = 1` ⏎ `local con|fig = 2` ⏎ `print(config)` — a caret on the **`local`'s** name hands the
+platform the **global's** declaration leaf at `(0,6)` instead of the `local`'s own. Rename then
+refuses outright (`Cannot perform refactoring.`) and the document is unchanged; Go to Declaration
+and Find Usages from that caret target the global, a different variable that the `local` shadows.
+Measured at the data context by [[REFACT-07]]'s DR-05 probe `a2` and driven end to end as Gap
+2.21's global control.
 
-## Reproduction
+**This is one defect with [[BUG-472]], at the benign severity.** Same root cause — the declaring
+statement is excluded from its own scope, so the scope walk resolves the declaration's own name
+outward — and where the shadowed declaration is a `local` rather than a global the outcome is not a
+refusal but a **wrong rewrite that silently changes what the program prints**. Planning them apart
+would let the serious half be closed as covered when it is not.
 
-A file that assigns a global and then declares a `local` of the same name:
+**Reproduction, root cause, fix strategy, tests, blast radius and the de-risking tasks are in
+[[BUG-472]]'s report** —
+`docs/features/bug-fixes/472-renaming-a-shadowing-local-rewrites-the-shadowed-one/bug-report.md`.
+Its §2 is this report's reproduction, §4.5 grounds why this half refuses rather than corrupts and
+states that it needs nothing beyond BUG-472's fix, and §5's T3 is this half's regression case.
 
-```lua
-counter = 0
-local counter = 0
-print(counter)
-```
-
-Place the caret on the **`local`'s** `counter` — the declaration on line 2.
-
-## Expected
-
-The caret's declaration is the `local` on line 2. Rename, Go to Declaration and Find Usages should
-all target it, and must not reach the global on line 1, which is a different variable that the
-`local` shadows for the rest of the scope.
-
-## Actual
-
-The platform is handed the **global's** declaration leaf. DR-05 probe **a2**, read from a real
-editor data context with nothing injected:
-
-| field | value |
-| :--- | :--- |
-| `supplied` | `LeafPsiElement` (IDENTIFIER) |
-| `textRange` | **(0,6)** — line 1's global, not the `local` on line 2 |
-| `supplied is LuaNameRef` | false |
-| registry returns | `PsiElementRenameHandler` (the default) |
-
-Contrast probe **a**, a `local` with no shadowed global, which correctly supplies the declaring
-`LuaNameRefImpl` at its own range. The difference is the shadowed global's presence.
-
-Evidence: `docs/features/refactoring/07-inplace-rename/dr-05-evidence/measured-rows.txt`.
-
-## Why this is `high`
-
-If the resolution is wrong at the data context, every feature keyed on it is wrong for this file
-shape — rename included. A rename driven from that element would target the **global**, so it would
-rewrite the global's uses across the project while leaving the `local` and its uses alone, or
-rename both names into one. That is [[BUG-457]]'s class of outcome — code silently broken by a
-refactoring that reports success.
-
-## Scope note
-
-Measured at the **data context only**. The end-to-end rename was **not** driven, so the damage above
-is the reasoned consequence of the measured resolution, **not an observed outcome**. Establish the
-real end-to-end behaviour first — it is possible a later substitution step corrects the target, in
-which case this is a resolution defect with no user-visible rename symptom, and the priority drops.
-
-## Where the fix likely belongs
-
-`LuaNameReference.resolve()` / `LuaScopeProcessor` scope walking: a `local` declaration's own name
-must resolve to itself rather than to an earlier same-name global. See [[REFACT-01]]'s
-`LuaDeclarationSite` and `AGENTS.md`'s note that Phase-1 (local) resolution returns the IDENTIFIER
-leaf while Phase-2 (stub-index) returns the declaration element.
+**Closing BUG-472 closes this.** Both roadmap rows retire in the same commit. This directory and
+stub stay: `[[BUG-470]]` is linked from `docs/roadmap.md`, from BUG-472's family table and from
+`docs/features/refactoring/07-inplace-rename/risks-and-gaps.md` (Gap 2.21 and DR-05 Observation 1),
+and a dangling wikilink is worse than a stub.

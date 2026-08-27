@@ -2,6 +2,19 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Renaming a `local` that shadows an earlier one of the same name now renames the one you put the
+  caret on** (BUG-472, BUG-470). Given `local config = 1` followed by `local config = 2` and a
+  `print(config)` that reads the second, renaming the second declaration used to rewrite the
+  **first** one instead and drag `print(config)` along with it. The file stayed valid Lua and the
+  refactoring reported success, so nothing announced that the program had printed `2` before and
+  printed `1` after. Two things were wrong: a declaration's own name resolved outward to the
+  declaration it shadows, and within a block the *earliest* declaration of a name won over the
+  nearest preceding one. Both are fixed, so a usage now binds where Lua binds it. The same defect
+  made renaming a `local` that shadows a **global** of the same name refuse outright with *"Cannot
+  perform refactoring"*; that now renames the `local` and leaves the global alone. Go to
+  Declaration and Find Usages from such a caret were equally misdirected and are corrected with it.
+  `local x = x` still reads the outer `x` on the right-hand side, as Lua requires.
+
 - **Rename a Lua local by typing in the editor — Shift+F6 no longer sends you to a dialog**
   (REFACT-07). Put the caret on a `local`, a function parameter, a generic-`for` variable or a
   `local function` name and press Shift+F6: an editing box opens around the name itself and every

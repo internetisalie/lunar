@@ -735,6 +735,128 @@ class LuaRenameTest : BasePlatformTestCase() {
     }
 
     /**
+     * BUG-472 T1 — the caret's own declaration is the one renamed, not the one it shadows.
+     *
+     * Before `LuaTargetElementEvaluator`, `TargetElementUtilBase`'s reference branch won with the
+     * EARLIER `local`'s leaf and the file became `local renamed = 1` / `local config = 2` /
+     * `print(renamed)`: still valid Lua, still reported as a success, and the program printed `2`
+     * before and `1` after.
+     */
+    @Test
+    fun testRenamingALocalThatShadowsAnEarlierLocalRenamesTheOneUnderTheCaret() {
+        myFixture.configureByText(
+            "shadowing_local.lua",
+            "local config = 1\nlocal con<caret>fig = 2\nprint(config)\n",
+        )
+
+        myFixture.renameElementAtCaret("renamed")
+
+        myFixture.checkResult("local config = 1\nlocal renamed = 2\nprint(renamed)\n")
+    }
+
+    /**
+     * BUG-472 T2 — a usage binds to the NEAREST preceding declaration, not the earliest.
+     *
+     * Same document as T1 and the same assertion, against the other half of the defect: with
+     * forward iteration in `LuaBlock.processDeclarations`, `print(config)` resolves to line 1, is
+     * never collected as a usage of line 2, and is left behind reading the wrong binding.
+     */
+    @Test
+    fun testAUsageBindsToTheNearestPrecedingDeclarationNotTheEarliest() {
+        myFixture.configureByText(
+            "nearest_declaration_wins.lua",
+            "local config = 1\nlocal con<caret>fig = 2\nprint(config)\n",
+        )
+
+        myFixture.renameElementAtCaret("renamed")
+
+        myFixture.checkResult("local config = 1\nlocal renamed = 2\nprint(renamed)\n")
+    }
+
+    /**
+     * BUG-470 — a `local` shadowing a GLOBAL of the same name renames, where it used to refuse.
+     *
+     * The data context supplied the global's leaf, which classifies as no declaration kind at all
+     * (`isGlobalAssignmentTarget` excludes a name that is also a file-scope local), so no processor
+     * claimed it and `PsiElementRenameHandler` threw "Cannot perform refactoring".
+     */
+    @Test
+    fun testRenamingALocalThatShadowsAGlobalRenamesTheLocal() {
+        myFixture.configureByText(
+            "shadowing_global.lua",
+            "config = 1\nlocal con<caret>fig = 2\nprint(config)\n",
+        )
+
+        myFixture.renameElementAtCaret("renamed")
+
+        myFixture.checkResult("config = 1\nlocal renamed = 2\nprint(renamed)\n")
+    }
+
+    /**
+     * The over-correction guard. `local x = x` binds its right-hand `x` to the OUTER declaration
+     * (Lua §3.3.3), which is what excluding the declaring statement from its own scope buys. This
+     * case is green before BUG-472 and must stay green: a "fix" that simply admits the declaring
+     * statement turns T1–T3 green while silently breaking early binding here.
+     *
+     * `print(x)` reads the second declaration and must not move either.
+     */
+    @Test
+    fun testSelfReferentialLocalInitialiserStillReadsTheOuterBinding() {
+        myFixture.configureByText(
+            "self_referential_initialiser.lua",
+            "local <caret>x = 1\nlocal x = x\nprint(x)\n",
+        )
+
+        myFixture.renameElementAtCaret("outer")
+
+        myFixture.checkResult("local outer = 1\nlocal x = outer\nprint(x)\n")
+    }
+
+    /**
+     * The over-correction guard across a closure: an upvalue binds to the declaration visible where
+     * the closure is WRITTEN, not to a later one of the same name. `return x` moves; the trailing
+     * `print(f(), x)` reads `local x = 2` and must not.
+     */
+    @Test
+    fun testAnUpvalueBindsToTheDeclarationVisibleWhereTheClosureIsWritten() {
+        myFixture.configureByText(
+            "upvalue_binding.lua",
+            "local <caret>x = 1\nlocal function f()\n  return x\nend\nlocal x = 2\nprint(f(), x)\n",
+        )
+
+        myFixture.renameElementAtCaret("outer")
+
+        myFixture.checkResult(
+            "local outer = 1\nlocal function f()\n  return outer\nend\nlocal x = 2\nprint(f(), x)\n",
+        )
+    }
+
+    /**
+     * BUG-472 T6 — the same defect one layer down, where rename reads its target from. Asserting
+     * the element directly is what distinguishes "the evaluator declined the shadowed declaration"
+     * from "the rename happened to produce the right text".
+     */
+    @Test
+    fun testAShadowingDeclarationCaretTargetsItsOwnDeclaration() {
+        myFixture.configureByText(
+            "shadowing_caret_target.lua",
+            "local config = 1\nlocal con<caret>fig = 2\nprint(config)\n",
+        )
+
+        val target = TargetElementUtil.findTargetElement(myFixture.editor, CARET_TARGET_FLAGS)
+
+        assertTrue(
+            "a declaration caret must target a LuaNameRef, not the shadowed declaration's leaf: " +
+                target?.javaClass?.simpleName + " at " + target?.textRange,
+            target is LuaNameRef,
+        )
+        assertTrue(
+            "the target must be the declaration under the caret, not the one it shadows",
+            requireNotNull(target).textRange.contains(myFixture.caretOffset),
+        )
+    }
+
+    /**
      * Runs the registered rename under [hook] and returns whatever escaped, or `null`.
      *
      * `ProgressManagerImpl.runWithHook` is void, so the verdict is carried out in a holder rather
