@@ -72,6 +72,28 @@ Evidence:
   containerized IDE. **Rule this out first**: reproduce on a desktop GoLand before investigating
   further. If it does not reproduce there, this is a harness defect and the report closes.
 
+## A contrary observation from a different sandbox — 2026-08-27
+
+**Undo worked.** During `BUG-472`'s live verification, in the **VM-native `runIde` sandbox** (not the
+containerized GoLand this report was found in), a committed inline rename was followed by a single
+<kbd>Ctrl+Z</kbd> and the document returned **byte-for-byte** to its prior state — confirmed on disk
+after <kbd>Ctrl+S</kbd>, on both of that run's reproductions.
+
+**This does not close this report**, and the differences matter:
+
+- **different fixture** — `BUG-472`'s shadowing-`local` cases, not this report's;
+- **different rename route** — an in-place template committed by <kbd>Enter</kbd>, where this report
+  drives the dialog path;
+- **different IDE instance** — VM-native `runIde` sandbox versus the container.
+
+**What it does do is promote this report's own first instruction.** It already says the sandbox
+caveat is "the first thing to rule out". A second environment, exercising undo after a Lunar rename
+and getting a correct restore, is direct evidence that the **environment is a live variable** rather
+than a formality — so start by reproducing in both, and only then look at the rename path.
+
+Evidence: `docs/features/bug-fixes/472-renaming-a-shadowing-local-rewrites-the-shadowed-one/live-evidence/`
+(`06-repro-a-after-one-undo.png` and the run recorded in that report's §9.1).
+
 ## Where the fix may belong — a lead, not an attribution
 
 `LuaRenameProcessor.renameElement` applies every rewrite inside
