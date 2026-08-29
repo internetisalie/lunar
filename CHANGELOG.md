@@ -2,6 +2,18 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Editing a `---@class`-annotated module no longer freezes the IDE for minutes** (BUG-473,
+  Phase 1). A single `---@class` tag made type inference superlinear in the number of colon calls
+  against that class: a file with 80 call sites took 12.8 seconds to analyse, one with 160 took
+  over two minutes, and the same file with the tag removed took a fifth of a second. The failure
+  got worse the more a module followed the annotation conventions the plugin exists to reward. The
+  type engine re-derived each variable's resolved type from scratch on every access — 14 336 full
+  graph walks for 80 call sites, half of them re-deriving an answer that had not changed — and now
+  reuses a result until the graph it was computed from actually changes. Measured on the same file
+  and machine, an annotated file went from 679× the cost of its unannotated control to 87×, and
+  145 seconds to 21 at 160 call sites. Annotated files that large are still slower than they should
+  be; the remaining growth needs a second change that is not yet safe to ship.
+
 - **Shift+F6 on an `M.run()` call now renames the dotted function it calls** (BUG-465). Renaming
   from a *use* rather than from the declaration is how rename works for locals, parameters, `for`
   variables, local functions and plain globals; a dotted function such as `function M.run()` was

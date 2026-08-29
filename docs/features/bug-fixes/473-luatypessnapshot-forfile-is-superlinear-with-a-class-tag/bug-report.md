@@ -520,13 +520,118 @@ already owns BUG-390 and BUG-427 and constructs graphs directly.
 Both statements are true at once. Separately, **a `---@class`-bearing fixture must be added to the
 corpus** or this coverage gap survives the fix; see DR-6.
 
+## Phase 1 — delivered (S1)
+
+Shipped on `fix-bug-473-phase1`. **Phase 2 (S3) remains open and this report stays `planned`
+because of it** — S1 is a constant factor and does not touch the growth exponent, which is the part
+the "Expected" section is held to.
+
+### What was memoized, and what deliberately was not
+
+`VariableElement` gains three one-slot `RootMemo`s, each holding an immutable `(revision, value)`
+pair. They are read and written in exactly one place — the private `atRoot` helper reached from
+`write` (`LuaTypeNodes.kt:130`), `read` (`:133`) and `declaredDemand` (`:151`), the three accessors
+that allocate the guard themselves.
+
+Not memoized, and asserted so by test: `ValueNode.writeWith`, `LazyValueElement.writeWith`,
+`VariableElement.writeWith`, the `is VariableElement -> it.resolveRead(visited)` hop and
+`it.resolveDeclaredDemand(visited)`. Each receives a caller's guard, so each owes its fold's neutral
+element on re-entry, not a full result.
+
+### The invalidation key — per-graph, and structural rather than enumerated
+
+**DR-1 is settled as per-graph.** `VariableElement` now takes a `LuaTypeGraph` back-reference and
+validates against `LuaTypeGraph.revision`. The reason is not only the hit rate the spike's global
+counter under-measured: a JVM-global counter would make the root-resolution **counts** below
+order-dependent across a shared-JVM test run, and the deterministic count assertion is the primary
+gate. Retention is unchanged — the graph already holds every node in `_nodes`, and the snapshot
+already holds the graph, so the back-reference closes a cycle inside one object group with one
+lifetime. It holds no `Project`, `Editor`, `PsiFile` or `VirtualFile` that was not already reachable
+from `TypeNode.element`.
+
+**The bump moved into `OrderedSet` rather than being enumerated at call sites, and this is a
+deliberate deviation from the plan.** S1 named the two `propagate*` sites plus a fourth bump at
+`LuaGraphType.kt:393-394`. Instead every successful `upSet`/`downSet` insertion bumps, because
+`OrderedSet` fires an `onAdd` hook that `VariableElement` wires to `LuaTypeGraph.bumpRevision`.
+Node creation still bumps in all four factories.
+
+The enumerated key was **measured insufficient**, not merely judged so — mutant M6 below implements
+exactly the plan's three edge sites and leaves `memoIsInvalidatedByAnEdgeAddedOutsideAddEdge` red.
+`LuaGraphType.memberNodeFor` is not the only bypasser: six graph-building tests mutate the sets
+directly too, and any future one would silently inherit a stale memo. Making the set responsible for
+its own invalidation removes the checklist.
+
+### Measured, on the builder (`debian13`), same fixture and JVM in every column
+
+| | pre-fix | post-S1 |
+| :-- | ---: | ---: |
+| annotated / control ratio at n = 160 | **678.8×** | **87.2×** |
+| annotated at n = 160 | 145 269 ms | 21 284 ms |
+| control at n = 160 | 214 ms | 244 ms |
+| annotated at n = 80 | 9 387 ms (the profiled run) | 2 621 ms |
+| root `write` resolutions at n = 80 | 14 417 | **7 292** (1.98×) |
+| root `read` resolutions at n = 80 | 7 699 | **647** (11.9×) |
+| root `declaredDemand` resolutions at n = 80 | 7 296 | **325** (22.4×) |
+
+The ratio result is better than S1's predicted 100×, which is what DR-1 predicted would happen: the
+spike's JVM-global counter over-invalidated and its numbers were a lower bound.
+
+Every count above was re-measured on this host, pre-fix figures included. Five of the six land on
+the report's predictions **exactly** — pre-fix `read` 7 699 and `declaredDemand` 7 296, post-fix
+distinct keys 647 and 325. Both `write` figures are 81 over their prediction, the same 81 in each,
+because the shipped counter is cumulative over the graph's life and so includes the snapshot's own
+post-`checkTypes` reads (one per call site, plus the receiver) where the spike's counter was
+`checkTypes`-scoped.
+
+### The behavioural gate — compared, not just green
+
+The `-PwithCorpus` sweep is **2 893 / 0 failures / 0 errors / 1 skipped** and reports three
+`IMPROVED` lines, all `inspection.LuaUnusedLocal` (130 → 121, 77 → 55, 14 → 7). Those are **not
+this change**: the identical three lines, with identical numbers, come out of a sweep run on
+pristine `75957547` with every source edit reverted. They are pre-existing drift, from a commit
+after the baselines were last recorded at `48eabe7d` — `f4b49c47` (BUG-472/470) changed how a
+local's usages bind, which is what `LuaUnusedLocal` counts.
+
+`LuaTypeAssignability` — the count BUG-419's lesson names as the one that must not move — did not
+move in either run, and the five `.baseline` files are byte-identical before and after
+(`sha256sum -c`, all OK). The comparison is treatment against control, which is the assertion the
+plan asked for; "no test failed" would not have distinguished these three lines from a regression.
+
+### Tests, each with the mutant that proved it
+
+| test | mutant | result |
+| :-- | :-- | :-- |
+| `LuaTypeGraphRootResolutionBudgetTest` (routine loop) | M1 — `atRoot` never consults the memo | **red**: `write` 14 417 over the 8 500 budget |
+| `…PerformanceTest.testAnnotatedSnapshotStaysWithinRatioOfTheUnannotatedControl` | M1 | **red**: ratio 678.8 over the 200 limit |
+| `guardedWriteEntryIgnoresTheMemo` | M2 — `writeWith` serves `writeMemo` | **red**: `expected Undefined but was String` — the cycle resolved to a type |
+| `guardedReadEntryIgnoresTheMemo` | M3 — the interior `is VariableElement` read hop serves `readMemo` | **red**: `expected Number but was String` |
+| `memoIsInvalidatedByALaterEdge` | M4 — `OrderedSet.add` stops bumping | **red**: stale `String`, not the widened union |
+| `memoIsInvalidatedByAnEdgeAddedOutsideAddEdge` | M4 | **red**: same |
+| `memoIsInvalidatedByAnEdgeAddedOutsideAddEdge` | M6 — the plan's enumerated key (`propagate*` only) | **red**, while `memoIsInvalidatedByALaterEdge` stays green |
+
+**One thing in the plan is not what it says it is, and no test covers it.** Mutant M5 removed the
+node-creation bumps from all four factories and the whole type-engine suite stayed **green**. The
+plan's stated reason for them — "a member node joins a `Table`'s `localMembers` *after* the `Table`
+was constructed, which changes a demand without changing an edge" — does not produce staleness by
+that route, because the memoized `LuaGraphType.Table` holds *the same mutable map instance* that is
+later populated, so the memo observes the addition rather than missing it. The bumps are kept
+anyway, on a different and narrower argument: `mergeTableDemands` (`LuaTypeNodes.kt:212`) builds a
+**new** `Table` copying entries out of its inputs, and that copy does not alias them. Over-
+invalidation is sound and the measured result above was obtained with the bumps in place, so they
+cost nothing established. **Recorded as unproven rather than reported as covered.**
+
+### What Phase 1 does not achieve
+
+The exponent is untouched. An 80-call-site annotated file is usable at 2.6 s; a 160-call-site one is
+still 21 s. Closing that is S3, and S3 is gated on DR-4.
+
 ## De-risking tasks — what was not run
 
 | id | item | why it is open |
 | :-- | :-- | :-- |
-| DR-1 | Per-graph revision counter | The spike measured a JVM-global counter. Global over-invalidates, so its numbers are a lower bound and its correctness is strictly more conservative — but `VariableElement` has no back-reference to its graph today, and adding one is the actual implementation. **Read, not run.** |
-| DR-2 | Full unit suite + `-PwithCorpus` under S1 | Only `LuaClassTagSnapshotPerformanceTest` was run against the spikes. **Read, not run.** |
-| DR-3 | `ktlintCheck` | Not run against any spike. Format on the VM and rsync back — `run "ktlintFormat ktlintCheck"` cannot fail (BUG-445). |
+| DR-1 | Per-graph revision counter | **Settled — per-graph, shipped.** `VariableElement` carries a `LuaTypeGraph` back-reference and validates against `LuaTypeGraph.revision`. Decisive reason: a global counter makes the root-resolution counts order-dependent across a shared-JVM test run, and that count is the primary gate. The predicted lower-bound effect showed up — 87.2× against the spike's 100×. |
+| DR-2 | Full unit suite + `-PwithCorpus` under S1 | **Run.** Ordinary suite `--rerun --no-build-cache`: 2 885 / 0 / 0 / 1 (2 880 before, +5 new). `-PwithCorpus`: 2 893 / 0 / 0 / 1. Baselines byte-identical; the three `LuaUnusedLocal` `IMPROVED` lines reproduce on pristine `75957547` and are pre-existing. |
+| DR-3 | `ktlintCheck` | **Run, clean, no format pass needed.** `run ktlintCheck` alone (never paired with `ktlintFormat`, BUG-445). |
 | DR-4 | S3 differential-equivalence harness | Flattened vs recursive `read`, mismatches counted over the full suite and the corpus. Measured 1/817 on the n = 80 fixture alone; the population-wide number is unknown and Phase 2 is blocked on it. |
 | DR-5 | `timeLimitMs` granularity | `checkTypes(timeLimitMs = 5000)` (`:299`) is checked once per fixed-point iteration (`:319-322`); iteration 1 measured 7 253 ms without tripping. Decide whether the cutoff belongs inside the node loop, and whether `ProgressManager.checkCanceled()` belongs there too — this path runs on the EDT in the reproduction. |
 | DR-6 | A `---@class` corpus fixture | The trigger condition is unsatisfiable on 100 % of the corpus. Until a fixture carries one, no sweep can regress-detect this bug. |

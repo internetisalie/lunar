@@ -118,13 +118,24 @@ internal class UseElement(
 /** Mutable variable binding. Created by [LuaTypeGraph.variable]. */
 internal class VariableElement(
     override val element: PsiElement,
+    private val graph: LuaTypeGraph,
 ) : VariableNode {
-    override val upSet: OrderedSet<TypeNode> = OrderedSet()
-    override val downSet: OrderedSet<TypeNode> = OrderedSet()
+    override val upSet: OrderedSet<TypeNode> = OrderedSet(graph::bumpRevision)
+    override val downSet: OrderedSet<TypeNode> = OrderedSet(graph::bumpRevision)
 
-    override val write: LuaGraphType get() = resolveWrite(mutableSetOf())
-    override val read: LuaGraphType get() = resolveRead(mutableSetOf())
+    private val writeMemo = RootMemo<LuaGraphType>()
+    private val readMemo = RootMemo<LuaGraphType>()
+    private val declaredDemandMemo = RootMemo<Boolean>()
 
+    override val write: LuaGraphType
+        get() = atRoot(writeMemo, RootAccessor.WRITE) { resolveWrite(mutableSetOf()) }
+
+    override val read: LuaGraphType
+        get() = atRoot(readMemo, RootAccessor.READ) { resolveRead(mutableSetOf()) }
+
+    // BUG-390 in reverse: this entry carries the CALLER's guard, so its result is walk-relative and
+    // the memo must not be consulted here. Doing so would return a full type where the guard
+    // requires the neutral element, and a cycle would resolve to a type instead of Undefined.
     override fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = resolveWrite(visited)
 
     /**
@@ -137,7 +148,31 @@ internal class VariableElement(
      * and [VariableNode] is itself a [UseNode]. Inheriting the `false` default demoted every
      * declared-contract violation reached through a call to a hypothesis.
      */
-    override val declaredDemand: Boolean get() = resolveDeclaredDemand(mutableSetOf())
+    override val declaredDemand: Boolean
+        get() = atRoot(declaredDemandMemo, RootAccessor.DECLARED_DEMAND) { resolveDeclaredDemand(mutableSetOf()) }
+
+    /**
+     * BUG-473: the only place a [RootMemo] is read or written.
+     *
+     * [resolve] opens a walk with a freshly allocated, empty guard, so at this entry — and only at
+     * this entry — the result is a pure function of the graph's node and edge state and stays valid
+     * until [LuaTypeGraph.revision] moves. Every interior entry ([writeWith], and the recursions in
+     * [resolveRead] / [resolveDeclaredDemand]) inherits a caller's guard and deliberately bypasses
+     * this helper. The revision is read BEFORE resolving so a graph mutated mid-walk invalidates the
+     * entry it produced rather than certifying it.
+     */
+    private inline fun <T : Any> atRoot(
+        memo: RootMemo<T>,
+        accessor: RootAccessor,
+        resolve: () -> T,
+    ): T {
+        val revisionAtEntry = graph.revision
+        memo.valueAt(revisionAtEntry)?.let { return it }
+        graph.recordRootResolution(accessor)
+        val resolved = resolve()
+        memo.store(revisionAtEntry, resolved)
+        return resolved
+    }
 
     private fun resolveDeclaredDemand(visited: MutableSet<VariableNode>): Boolean {
         if (!visited.add(this)) return false
@@ -229,16 +264,55 @@ internal class VariableElement(
  * An ordered set: preserves insertion order for deterministic iteration
  * while providing O(1) membership testing. Required by the O(n³) reachability algorithm
  * to ensure edge propagation is deterministic across runs.
+ *
+ * [onAdd] fires on every successful insertion. `VariableElement` passes
+ * [LuaTypeGraph.bumpRevision], which makes "an edge addition invalidates the walk-root memos"
+ * (BUG-473) a property of the set itself rather than a checklist of call sites — the up/down sets
+ * are mutated directly, bypassing `addEdge`, by `LuaGraphType.memberNodeFor` and by graph-building
+ * tests, and an enumerated key would have to name each one.
  */
-class OrderedSet<T> : Iterable<T> {
+class OrderedSet<T>(
+    private val onAdd: () -> Unit = {},
+) : Iterable<T> {
     private val set = LinkedHashSet<T>()
 
     /** Returns true if [item] was newly added (false if already present). */
-    fun add(item: T): Boolean = set.add(item)
+    fun add(item: T): Boolean {
+        if (!set.add(item)) return false
+        onAdd()
+        return true
+    }
 
     operator fun contains(item: T): Boolean = item in set
 
     override fun iterator(): Iterator<T> = set.iterator()
 
     val size: Int get() = set.size
+}
+
+/**
+ * The three [VariableNode] accessors that open a resolution walk. Names the meter
+ * [LuaTypeGraph.rootResolutionCount] reports and the memo slot [VariableElement] validates.
+ */
+internal enum class RootAccessor { WRITE, READ, DECLARED_DEMAND }
+
+/**
+ * One-slot memo for a walk root, valid only at the [LuaTypeGraph.revision] it was computed under.
+ *
+ * The entry is a single reference to an immutable pair, so a concurrent reader sees either the
+ * previous pair or the new one and never a torn half; a stale read costs one recomputation and
+ * cannot yield a wrong answer. Splitting it into a revision field and a value field would break
+ * that, and the snapshot is read from the annotator, completion and inlay-hint paths.
+ */
+internal class RootMemo<T : Any> {
+    private var entry: Pair<Long, T>? = null
+
+    fun valueAt(revision: Long): T? = entry?.takeIf { it.first == revision }?.second
+
+    fun store(
+        revision: Long,
+        value: T,
+    ) {
+        entry = revision to value
+    }
 }

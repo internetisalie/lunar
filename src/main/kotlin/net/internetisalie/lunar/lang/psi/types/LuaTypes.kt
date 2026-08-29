@@ -64,6 +64,14 @@ class LuaTypesSnapshot(
 ) : LuaTypes {
     override fun getFileReturnType(): LuaGraphType = fileReturnType
 
+    /**
+     * @return how many walk roots this snapshot's graph re-derived for [accessor] (BUG-473).
+     * Exposed instead of the graph itself so the budget test can assert the quantity that
+     * regressed without opening the engine's internals to its callers.
+     */
+    @org.jetbrains.annotations.TestOnly
+    internal fun rootResolutionCount(accessor: RootAccessor): Long = graph.rootResolutionCount(accessor)
+
     override fun getValueType(element: PsiElement): LuaGraphType = typeOf(elementNodes[element]?.firstOrNull())
 
     override fun getGlobalType(name: String): LuaGraphType = typeOf(globalNodes[name])

@@ -37,6 +37,42 @@ class LuaTypeGraph {
 
     private val _nodes: MutableList<TypeNode> = mutableListOf()
 
+    private var currentRevision: Long = 0L
+
+    private val rootResolutions = LongArray(RootAccessor.entries.size)
+
+    /**
+     * Monotonic stamp over this graph's node and edge state, and the key every walk-root memo in
+     * [VariableElement] is validated against (BUG-473).
+     *
+     * It is bumped by the four node factories below and — via [OrderedSet]'s mutation hook — by
+     * every successful `upSet`/`downSet` addition, including the ones that bypass [addEdge]
+     * (`LuaGraphType.memberNodeFor`, and graph-building tests). Putting the bump in the set rather
+     * than at those call sites is what makes the key complete without a checklist.
+     *
+     * Node creation bumps as well, for the narrow case a later member cannot reach through
+     * aliasing: `VariableElement.mergeTableDemands` builds a *new* `LuaGraphType.Table` copying its
+     * inputs' members, so a member added to a source table afterwards is not visible through that
+     * copy. A memoized table the engine returns unchanged needs no bump — it holds the same mutable
+     * `localMembers` instance that is later populated. No test covers the copy case; the bump is
+     * kept because over-invalidation is always sound — it forces a recomputation that returns the
+     * same answer, so an imprecise stamp costs speed and never correctness.
+     *
+     * Per-graph rather than JVM-global (BUG-473 DR-1): a graph is per file, so a global stamp would
+     * let one file's traversal flush every other file's memos, and it would make the root-resolution
+     * counts below order-dependent across a shared-JVM test run.
+     */
+    internal val revision: Long get() = currentRevision
+
+    internal fun bumpRevision() {
+        currentRevision++
+    }
+
+    /** Counts a walk root that missed its memo and was actually re-derived (BUG-473). */
+    internal fun recordRootResolution(accessor: RootAccessor) {
+        rootResolutions[accessor.ordinal]++
+    }
+
     /** All nodes in the order they were added. Immutable snapshot for callers. */
     val nodes: List<TypeNode> get() = _nodes.toList()
 
@@ -61,6 +97,7 @@ class LuaTypeGraph {
     ): ValueNode {
         val node = ValueElement(element, type, declaredOrigin)
         _nodes += node
+        bumpRevision()
         return node
     }
 
@@ -81,6 +118,7 @@ class LuaTypeGraph {
     ): ValueNode {
         val node = LazyValueElement(element, compute)
         _nodes += node
+        bumpRevision()
         return node
     }
 
@@ -95,6 +133,7 @@ class LuaTypeGraph {
     ): UseNode {
         val node = UseElement(element, type, declaredDemand)
         _nodes += node
+        bumpRevision()
         return node
     }
 
@@ -103,8 +142,9 @@ class LuaTypeGraph {
      * Typical uses: local variable declarations, function parameter bindings.
      */
     fun variable(element: PsiElement): VariableNode {
-        val node = VariableElement(element)
+        val node = VariableElement(element, this)
         _nodes += node
+        bumpRevision()
         return node
     }
 
@@ -861,6 +901,15 @@ class LuaTypeGraph {
     /** @return current per-run memo size; for tests asserting cache behaviour. */
     @org.jetbrains.annotations.TestOnly
     internal fun compatMemoSize(): Int = compatMemo.size
+
+    /**
+     * @return how many times [accessor] was re-derived from scratch at a walk root over this
+     * graph's lifetime — memo hits are not counted. This is the quantity BUG-473 regressed, and it
+     * is deterministic given a fixture, so it is what the routine-loop budget test asserts rather
+     * than a wall-clock figure.
+     */
+    @org.jetbrains.annotations.TestOnly
+    internal fun rootResolutionCount(accessor: RootAccessor): Long = rootResolutions[accessor.ordinal]
 
     private companion object {
         /** Distribution-nesting cutoff (TYPE-09-P2-04); assume-compatible beyond it (TYPE-DR-04). */
