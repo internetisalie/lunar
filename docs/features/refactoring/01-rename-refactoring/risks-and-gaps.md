@@ -733,12 +733,27 @@ red, and was removed rather than inverted — it asserted a false claim about th
   needs type inference to know *which* table, plus moving the `t["field"]` string form. REFACT-01
   ships the loud refusal (design §6) and nothing more. Revisit after TYPE work lands
   `LuaClassType.resolveMember` on the resolution path.
-- **TBD-2: `REFACT-01-16` — `@class` / `@alias` name propagation.** Deferred, priority `S`. The
-  `@param` half ships (design §3.6). The type-name half has no `PsiReference` anywhere under
-  `src/main/kotlin/net/internetisalie/lunar/luacats/`; type names reach navigation only through the
-  file-based `LuaCatsTypeNameIndex` + `LuaCatsTypeNavigation`, because LuaCATS tags are not stubbed
-  and a bare `--- @class Name` has no host declaration. Renaming them needs either a reference
-  implementation on the tag PSI or an index-driven rewrite — a feature-sized job. **DR-04** sizes it.
+- **TBD-2: `REFACT-01-16` — `@class` / `@alias` name propagation.** Deferred, priority `S`, and
+  **sized by DR-04 (2026-08-29): it is a feature of its own, not a REFACT-01 phase.** The `@param`
+  half ships (design §3.6). The type-name half has no `PsiReference` anywhere under
+  `src/main/kotlin/net/internetisalie/lunar/luacats/` — measured, not read: of 70 running PSI
+  elements spelling a type name, zero answer `getReferences()` non-empty, and neither tree holds a
+  `PsiNamedElement`. **The criterion applied:** a REFACT-01 phase is work its shipped components can
+  perform given one more step; this has no element for `Shift+F6` to start from, so the work is to
+  *create* the renameable symbol — upstream of everything REFACT-01 built, and unlike `-11`/`-12`/
+  `-17` it has no existing feature to move to.
+  **The index-driven alternative is not one.** `LuaCatsTypeNameIndex` maps *declaration sites* only,
+  so the DR-04 prototype rewrote the `@class` and left the use file byte-identical — a guaranteed
+  half-apply, whose damage is silent (`LuaTypeManager.resolveType` and `LuaCatsDeclaredType.isType`
+  both flip to false, demoting a documented type to prose with nothing reported).
+  **Two findings shrink it:** the use sites are already word-indexed
+  (`LuaFindUsagesProvider`'s `DefaultWordsScanner` covers `CommentTokens`, so the default
+  `ReferencesSearch` scan reaches every cats slot), and cats PSI reports `LuaLanguage`, so a
+  `psi.referenceContributor language="Lua"` suffices. **Stubbing the comment PSI is therefore NOT on
+  the critical path**, contrary to the standing "correct but heavy fix" note. **One widens it:**
+  there are five name slots, not two — `LuaCatsArgType`/`LuaCatsArgName` declaring, and
+  `LuaCatsNamedType` / `LuaCatsTypeParam` / `LuaCatsGenericType` using. Full evidence, the
+  15-file surface table and the verdict are in "DR-04 result" below.
 - **TBD-3: `REFACT-01-11` — validity tracking the language level.** Deferred, priority `C`, and it
   is not REFACT-01's to fix. `LuaNamesValidator` ignores its `project` argument and consults a fixed
   `LuaKeywords.RESERVED`. The exposure is one name wide: `global` is correctly absent from
@@ -756,7 +771,7 @@ red, and was removed rather than inverted — it asserted a false claim about th
 | `REFACT-01-00-DR-01` | Write a throwaway `BasePlatformTestCase` that renames a local via `myFixture.renameElementAtCaret` **against the current tree** and asserts the four-usage BUG-457 outcome, to confirm the fixture drives `substituteElementToRename` + `RenameProcessor` as `CodeInsightTestFixtureImpl.java:1092-1107` says. Discard after. | Every TC in the plan assumes this harness works | todo |
 | `REFACT-01-00-DR-02` | Grep the corpus (`tooling/corpus/`) for a block declaring the same local name twice, to size Gap 2.2 before anyone spends effort on it. | Gap 2.2 | todo |
 | `REFACT-01-00-DR-03` | Size receiver-type method resolution: can `LuaNameReference` resolve `obj:m()` via `LuaTypeManager.resolveType` / `LuaClassType.resolveMember` (see the type-engine notes in `.agents/AGENTS.md`) without a corpus regression? Outcome decides whether `REFACT-01-08`'s colon form is a follow-up feature or a TYPE-epic dependency. **Also owns Gap 2.4**: whatever makes the colon form renameable must simultaneously add a caret-based `self` guard in `substituteElementToRename` (`PsiUtilBase.getElementAtCaret(editor)`), because `self` resolves to the method-name leaf and would otherwise rename the method. | Risk 1.1, RD-2, Gap 2.4 | todo |
-| `REFACT-01-00-DR-04` | Size `@class`/`@alias` rename: prototype rewriting a type name through `LuaCatsTypeNameIndex` and count the surfaces that would need it (docs, completion, inspections). | TBD-2 | todo |
+| `REFACT-01-00-DR-04` | Size `@class`/`@alias` rename: prototype rewriting a type name through `LuaCatsTypeNameIndex` and count the surfaces that would need it (docs, completion, inspections). | TBD-2 | **done 2026-08-29 — the index answers navigation's question, not rename's: it maps declaration sites only, so the prototype's rewrite moved the `@class` and left every use byte-identical. 15 consuming files counted, 12 of which degrade SILENTLY. Verdict: a feature of its own, not a REFACT-01 phase. See below.** |
 | `REFACT-01-00-DR-05` | Enumerate what `t.field` resolves to for the four receiver shapes in Gap 2.3 and confirm each refuses or lands on a genuine `DOTTED_FUNCTION`. | Gap 2.3 | **done 2026-08-23 — all four shapes are safe; folded into design §6.1, see below** |
 | `REFACT-01-00-DR-06` | Confirm `LeafElement.replaceWithText` is a legal edit on a `LuaCatsArgName` child inside a `LuaCatsLazyCommentImpl` (a lazy-parseable node) — the one AST operation in this design with no existing precedent in the repo. If it is not, fall back to rebuilding the comment text. | Design §3.6 | **done 2026-08-23** — executed in Phase 6 and re-verified by review: `replaceWithText` reaches `ASTFactory.leaf` via `ChangeUtil`, neither parsing nor validating, and `LuaCatsElementType` is a plain `IElementType` so the interning branch is taken. |
 | `REFACT-01-00-DR-07` | Before writing §2.10's collectors, run one `BasePlatformTestCase` that puts `global count = 0` in `a.lua` and `print(count)` in `b.lua` and asserts what `LuaNameReference.resolve()` returns for `b.lua`'s `count` **on the current tree**. The design asserts it is null (nothing indexes `LuaGlobalVarDecl`) from reading `LuaGlobalAssignmentIndex.kt:95-107`, not from running it. If it already resolves, §2.10 is unnecessary and rows 5/7 alone finish the job. Paste the output into design §1's evidence table either way. | Design §2.10, Gap 2.5 | **done 2026-08-22 — it did NOT already resolve; §2.10 is load-bearing, measured** |
@@ -960,6 +975,194 @@ row-14 clause-1/3/4 cases (`t.field = 1`, `function g() cfg = 1 end`, `local cfg
 the predicate through `kindOf` on a leaf rather than through the indexer's enumeration, and require
 it to answer `null`.
 
+
+### DR-04 result (2026-08-29) — the index answers navigation's question, not rename's
+
+Run rather than read, in three `gce-builder` passes over a throwaway
+`LuaCatsTypeRenameProbeTest` (nine probes, deleted after the run; `git diff -- src/` empty). The
+fixture is `types.lua` declaring `--- @class Widget` + `local Widget = {}` + `--- @alias Handle
+string`, and `uses.lua` spelling `Widget` in ten tag positions — `@type`, `@param`, `@return`,
+`@class Panel : Widget`, `@field`, `Widget[]`, `table<string, Widget>`, `Widget|nil` in an `@alias`,
+`@cast`, and `fun(a: Widget): Widget`.
+
+| Probe | Question | Measured |
+| :-- | :--- | :--- |
+| P1 | does any type-name slot expose a `PsiReference`? | `slots=70 withReferences=0 withSingleReference=0` |
+| P2 | what does `LuaCatsTypeNameIndex` return for `Widget`? | `indexedFiles=[types.lua] stubDecls=1 spelledInUseFile=68` |
+| P3 | what does `ReferencesSearch` over the declaration slot find? | `classHits=0 aliasHits=0` |
+| P4 | apply the index-driven rewrite — what does it leave? | `rewrittenFiles=[types.lua] declHasGadget=true staleSpellings=68 useFileUnchanged=true` |
+| P5 | inventory of PSI shapes spelling the name | `NAME/LeafPsiElement=12 NAMED_TYPE=10 TYPE_PARAM=1` (+ the enclosing `ARG_TYPE`/`TYPE`/`UNION_TYPE`/… wrappers, and one Lua-side `ATT_NAME`/`NAME_REF`/`IDENTIFIER` for `local Widget = {}`) |
+| P6 | containment chain of a use site | `NAMED_TYPE < DISTINCT_TYPE < ARRAY_TYPE < UNION_TYPE < TYPE < ARG_TYPE < TYPE_TAG < COMMENT < LAZY_COMMENT` |
+| P7 | can the platform word index reach cats-comment use sites? | `files=[types.lua, uses.lua] … NAME=12 NAMED_TYPE=10 TYPE_PARAM=1 PARAMETERIZED_NAME=1 …` |
+| P8 | the generic-head shape `Widget<string>` | `GENERIC_TYPE=1 NAMED_TYPE=1 NAME=2` |
+| P9 | what a declaration-only rewrite does downstream | `before=resolveType=true isType=true` → `after=resolveType=false isType=false` |
+
+**The premise of TBD-2 holds, and P1 is stronger than the grep behind it.** `grep -rn
+'PsiReference\|ReferenceContributor\|getReferences\|PsiReferenceProvider\|ElementManipulator'
+src/main/kotlin/net/internetisalie/lunar/luacats/` returns nothing over 12 files, `grep -rln
+getReference src/main/gen/net/internetisalie/lunar/luacats/` returns nothing over the generated PSI,
+and `grep -rn 'PsiNamedElement\|PsiNameIdentifierOwner'` over both trees returns nothing either — so
+the tag name is not a *named* element, not only an unreferenced one. P1 then asks the running PSI:
+of the 70 elements spelling `Widget`, **zero** answer `getReferences()` or `getReference()`
+non-empty. Both registered `psi.referenceContributor`s (`plugin.xml:354-359`) are the label and
+`require` contributors; neither patterns on a cats element.
+
+**The index gives navigation's answer, not rename's — measured, and this is the crux DR-04 was
+written to settle.** `LuaCatsTypeNameIndex.Indexer.map` reads `LuaCatsClassTag`'s direct
+`LuaCatsArgType` child and `LuaCatsAliasTag`'s `LuaCatsArgName`; **nothing else is indexed**, so the
+index is a map of *declaration sites*, which is exactly what `LuaCatsTypeNavigation` needs to jump
+to a definition and exactly not what a rename needs. P2 proves the consequence rather than deriving
+it: querying `Widget` returns `types.lua` **only**, while `uses.lua` — which spells `Widget` in ten
+tags — is absent from the result. Note also that a `@class Panel : Widget` in `uses.lua` does not
+put `uses.lua` under the `Widget` key: `getChildOfType(tag, LuaCatsArgType)` takes the first direct
+child, and parent types hang off a `LuaCatsParentTypes` wrapper.
+
+**So the index-driven rewrite was prototyped, and it is a half-apply by construction.** P4 walks
+`getContainingFiles(KEY, "Widget")`, takes each `LuaCatsClassTag`'s `ARG_TYPE` leaf and applies
+`LeafElement.replaceWithText("Gadget")` inside a `WriteCommandAction` — the DR-06 idiom
+`LuaCatsParamRenamer` already ships. The declaration moves (`declHasGadget=true`) and **`uses.lua`
+comes back byte-identical** (`useFileUnchanged=true`, 68 stale spellings). An index-driven rewrite
+is therefore not a cheaper route to the same result; it is a different, wrong result, and it is
+`REFACT-01-16`'s own `Partial` failure mode written at project scale.
+
+**The damage from that half-apply is silent, and P9 measures it.** Against `--- @param target Widget
+the thing to wrap`, before the rewrite `LuaTypeManager.resolveType("Widget", …)` is non-null and
+`LuaCatsDeclaredType.isType` is `true`; after the declaration-only rewrite both are `false`. That
+predicate decides whether the renderer treats the token as a type or as the first word of the
+description (`LuaCatsDeclaredType.kt:50-61`), so the rendered doc and `LuaParameterInfoHandler`
+**silently demote the type to prose**. No annotator fires, no inspection reports, nothing goes red —
+the exposure is invisible until a user reads a doc popup.
+
+**Two findings make the real implementation cheaper than TBD-2 assumed, and one makes it wider.**
+
+- *Cheaper:* **the use sites are already word-indexed.** `LuaFindUsagesProvider.getWordsScanner`
+  builds a `DefaultWordsScanner` over `LuaSyntax.CommentTokens`
+  (`LuaFindUsagesProvider.kt:22-28`), and P7 confirms the consequence at runtime:
+  `PsiSearchHelper.processElementsWithWord(…, UsageSearchContext.IN_COMMENTS, caseSensitive = true)`
+  returns hits in **both** files and reaches all twelve cats `NAME` leaves. The chameleon is no
+  obstacle — the scan expanded `LAZY_COMMENT` itself (it appears in the hit set). So the expensive
+  half of an "index-driven rewrite", a new use-site index, **does not need building**: the platform's
+  default `ReferencesSearch` already performs this scan and asks each candidate for its references.
+  What is missing is only the references for it to ask about. Note the scan is deliberately
+  over-broad — its hits include `local Widget = {}`'s Lua-side `IDENTIFIER` and every enclosing
+  wrapper — so any consumer must filter to the cats slots itself.
+- *Cheaper:* **cats PSI reports `LuaLanguage`.** `LuaCatsElementType`'s constructor passes
+  `LuaLanguage` (`LuaCatsElementType.kt:23`), so a `psi.referenceContributor language="Lua"`
+  patterned on `LuaCatsNamedType` is a legal registration; no new language registration is needed.
+  *(Read from the constructor, not run.)*
+- *Wider:* **there are five name slots, not two.** Declarations: `LuaCatsArgType` as the direct
+  child of a `LuaCatsClassTag`, and `LuaCatsArgName` of a `LuaCatsAliasTag`. Uses: `LuaCatsNamedType`
+  (P5: 10 of the 11 uses — it covers unions, arrays, parent types, `@cast`, and `fun(…)` argument
+  and return slots alike), `LuaCatsTypeParam` (P5: the `Widget` in `table<string, Widget>`), and
+  `LuaCatsGenericType` (P8: the head of `Widget<string>`). A reference implementation that patterns
+  only on `LuaCatsNamedType` silently misses the last two.
+
+#### Surfaces that consume a type name, counted
+
+Reproduce with, from the repository root:
+
+```bash
+grep -rn "LuaCatsTypeNameIndex" --include=*.kt --include=*.java --include=*.xml src/
+grep -rn "LuaCatsClassTag\|LuaCatsAliasTag" --include=*.kt src/main/kotlin
+grep -rn "LuaClassNameIndex\|LuaAliasIndex" --include=*.kt src/main/kotlin
+grep -rln "LuaCatsClassTag\|LuaCatsAliasTag\|LuaClassNameIndex\|LuaAliasIndex\|LuaCatsTypeNameIndex\|LuaCatsNamedType\|LuaCatsArgType" \
+  src/main/kotlin/net/internetisalie/lunar/lang/completion/ src/main/kotlin/net/internetisalie/lunar/analysis/
+```
+
+**Fifteen production files** consume a LuaCATS type name. Classified by what a *declaration-only*
+rewrite — the most an index-driven route can perform — does to each:
+
+| # | Surface | File | Verdict |
+| :-- | :--- | :--- | :--- |
+| 1 | type resolution by name | `lang/psi/types/LuaTypeManagerImpl.kt` | **silently misses** — every stale use resolves to nothing (P9) |
+| 2 | `@param` type-vs-prose predicate | `luacats/lang/doc/LuaCatsDeclaredType.kt` | **silently misses** — flips `true`→`false`, demoting the type to description text (P9) |
+| 3 | LuaCATS doc rendering | `luacats/lang/doc/LuaCatsDocumentationRenderer.kt` | **silently misses** — via #2, and its own parent-class lookup dangles |
+| 4 | quick-doc target resolution | `lang/doc/LuaDocumentationTargetProvider.kt` | **silently misses** — a stale `@type Widget` has no target |
+| 5 | doc hyperlink handling | `lang/doc/LuaDocumentationLinkHandler.kt` | **silently misses** — links keyed on the old name dangle |
+| 6 | Lua-side doc rendering | `lang/doc/LuaDocumentationRenderer.kt` | **silently misses** — same lookup |
+| 7 | parameter info popup | `lang/insight/hint/LuaParameterInfoHandler.kt` | **silently misses** — via #2 |
+| 8 | method-chain inlay hints | `lang/insight/hint/LuaMethodChainInlayHintProvider.kt` | **silently misses** — `resolveType(receiverClass)` returns null |
+| 9 | type hierarchy (parents/children) | `lang/hierarchy/LuaHierarchyUtil.kt` | **silently misses** — `@class Panel : Widget` edges sever |
+| 10 | type hierarchy entry point | `lang/hierarchy/LuaTypeHierarchyProvider.kt` | **silently misses** — via #9 |
+| 11 | receiver member index | `lang/indexing/LuaReceiverMemberIndex.kt` | **silently misses** — members stay keyed to the old class name for stale uses |
+| 12 | name reference resolution | `lang/LuaNameReference.kt` | **silently misses** — class/alias lookups by the old name |
+| 13 | Go to Class / Go to Symbol | `lang/navigation/LuaCatsTypeNavigation.kt` (+ `LuaGotoClassContributor.kt`, `LuaGotoSymbolContributor.kt`) | **untouched** — it only ever wanted the declaration, which is the one thing the rewrite gets right |
+| 14 | global-symbol completion ranking | `lang/completion/GlobalSymbolRankingService.kt` | **untouched** — reads `getAllKeys(LuaClassNameIndex)`, recomputed from the stub |
+| 15 | stub hoisting of tag data | `lang/psi/stubs/impl/LuaLocalVarStubElementType.kt` | **untouched** — re-derives `className` from the rewritten comment on reindex |
+
+**Nothing *breaks* — everything either silently misses or is untouched, and that is the finding.**
+Twelve of the fifteen degrade invisibly; three are correct. There is no loud failure anywhere on the
+list, which is why a half-applied type rename would ship unnoticed.
+
+**Two of DR-04's own three named surfaces do not exist.** Its wording — "docs, completion,
+inspections" — was a guess, and only *docs* survives contact (rows 3–7, five files, the largest
+cluster). **Completion is one file and it is untouched** (row 14); there is **no completion of type
+names inside a LuaCATS comment at all** — `grep -rn "Cats\|COMMENT"
+src/main/kotlin/net/internetisalie/lunar/lang/completion/*.kt
+src/main/kotlin/net/internetisalie/lunar/lang/LuaCompletionContributor.kt` returns one unrelated hit
+(`LuaImportNameResolver.kt:52`). **Inspections are zero:** of the 16 classes registered as
+`implementationClass="…Inspection"` in `plugin.xml`, `grep -rl luacats` over them matches exactly
+one, `LuaDeprecatedApiInspection`, and its only cats import is `LuaCatsDeprecatedTag` — no inspection
+anywhere consumes a type name. Conversely DR-04 named none of the three surfaces that matter most:
+the **type engine** (row 1), **hierarchy** (rows 9–10), and **inlay hints** (row 8).
+
+#### Verdict: a feature of its own, not a REFACT-01 phase
+
+**The criterion, stated before the verdict: a REFACT-01 phase is work its shipped components can
+perform given one more step; a feature of its own is work that requires a component REFACT-01's
+design does not contain.** That is the line the three existing carve-outs already sit on
+(`REFACT-01-11` → REFACT-05, `-12` → REFACT-07, `-17` → REFACT-04), and it is why the `@param` half
+was a phase: `LuaCatsParamRenamer` starts from an element `LuaDeclarationSite` already classifies and
+`RenameProcessor` already renames, and walks to one attached comment.
+
+The type half fails that test at the first step. **There is no element for a rename to start from**
+— P1 measures zero references on all 70 slots, and no `PsiNamedElement` or `PsiNameIdentifierOwner`
+exists in either the hand-written or the generated cats PSI. `Shift+F6` on `--- @class Widget`
+cannot begin, so there is no "one more step" to add: the work is to *create the renameable symbol*,
+which is upstream of everything REFACT-01 built. The two carve-outs differ in one way, though —
+`-11`, `-12` and `-17` each moved to an existing owner, and this has none, so it wants a **new**
+feature rather than a transfer.
+
+**What that feature contains, sized from the probes:**
+
+| Component | Basis |
+| :-- | :--- |
+| `PsiNameIdentifierOwner` on `LuaCatsClassTag` / `LuaCatsAliasTag` | the two declaration slots (P5) |
+| `LuaCatsTypeReference` + one `psi.referenceContributor language="Lua"` | cats PSI reports `LuaLanguage` (`LuaCatsElementType.kt:23`); resolves via `LuaCatsTypeNameIndex`, which already answers name → declaration (P2) |
+| reference patterns for **three** use shapes | `LuaCatsNamedType`, `LuaCatsTypeParam` (P5), `LuaCatsGenericType` (P8) |
+| `handleElementRename` per shape, via `LeafElement.replaceWithText` | the DR-06 idiom `LuaCatsParamRenamer` already ships |
+| a `LuaFindUsagesProvider.canFindUsagesFor` branch | **no searcher needed** — the default `ReferencesSearch` word scan already reaches every cats use site (P7) |
+| `LuaDeclarationSite` / `LuaRenameProcessor` entry + in-place parity | the `REFACT-07-09` pattern |
+| regression coverage across 12 silently-degrading surfaces | the table above; none of them fails loudly (P9) |
+
+**`AGENTS.md`'s "stubbing the comment is the correct but heavy fix" is not on this critical path,
+and that is a correction rather than a nuance.** Stubbing buys fast cross-file lookup without
+de-stubbing; a rename needs *declaration lookup* (which `LuaCatsTypeNameIndex` already gives, P2)
+and *use-site enumeration* (which the platform word index already gives, P7). So the heavy fix can
+stay deferred, and the half of it `AGENTS.md` says stubbing would unlock — Find Usages and Rename on
+types via `PsiNameIdentifierOwner` — is exactly what this feature delivers without it.
+
+**One design question this spike deliberately does not answer**, because it is the new feature's to
+decide, not the sizing's: in the common idiom `--- @class Widget` above `local Widget = {}` the tag
+name and the Lua local are two different symbols. P2 measures that both exist — `indexedFiles`
+carries the tag, `stubDecls=1` carries the host `LuaLocalVarDecl` — and REFACT-01 today renames the
+local while leaving the tag, which is the converse of the half-apply P4 produces. Whether one rename
+must move both is a requirement, and it is unwritten.
+
+#### What TBD-2 got wrong
+
+Its premise and its "feature-sized job" conclusion both survive. Two of its framings do not:
+
+- **"Renaming them needs either a reference implementation on the tag PSI **or** an index-driven
+  rewrite."** The disjunction is false. P4 ran the index-driven rewrite and it rewrites the
+  declaration and nothing else; it is not an alternative route to a correct rename but a
+  guaranteed half-apply. The reference implementation is the only shape, and — per P7 — the index
+  work TBD-2 imagined as its alternative is largely already done and reusable *inside* it.
+- **"type names reach navigation only through the file-based `LuaCatsTypeNameIndex` +
+  `LuaCatsTypeNavigation`."** True of navigation and misleading as a summary of the exposure: the
+  same names reach the **type engine**, **hierarchy**, **inlay hints**, **parameter info** and five
+  **documentation** surfaces (fifteen files, table above), and navigation is one of the only three
+  that a declaration-only rewrite leaves correct.
 
 ### Gap 2.17 — cancelling a rename leaves the file inconsistent (CLOSED BY PHASE 8, 2026-08-25)
 
