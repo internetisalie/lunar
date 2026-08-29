@@ -236,6 +236,34 @@ tasks {
         dependsOn(prepareSandbox)
         systemProperty("sandbox.home", layout.buildDirectory.dir("idea-sandbox").get().asFile.absolutePath)
         systemProperty("plugin.name", providers.gradleProperty("pluginName").get())
+        // MAINT-38 tier 1 — Java Flight Recorder on demand: `./gradlew test -PjfrProfile`, or
+        // `-PjfrProfile=default` for the low-overhead event set. OFF unless asked for, so the
+        // routine loop starts no recording and carries no sampling cost.
+        //
+        // The gate is read once, here, and republished to the forked JVM as a system property so
+        // `JfrRecordingFlagTest` can assert that a recording is running exactly when the build was
+        // asked for one. The property is set UNCONDITIONALLY and the JVM arg conditionally, which is
+        // what makes that assertion able to fail: hoisting the `jvmArgs` call out of the `if` turns
+        // the default run red instead of silently taxing every future test run.
+        val jfrRequested = project.hasProperty("jfrProfile")
+        systemProperty("lunar.jfr.requested", jfrRequested.toString())
+        if (jfrRequested) {
+            val jfrRecordingDir = layout.buildDirectory.dir("jfr").get().asFile
+            doFirst { jfrRecordingDir.mkdirs() }
+            val jfrSettings = (project.property("jfrProfile") as? String)?.takeIf { it.isNotBlank() } ?: "profile"
+            // `filename=` pointing at a DIRECTORY makes the JVM mint one uniquely named file per
+            // fork (`hotspot-pid-<pid>-id-<n>-<timestamp>.jfr`), so forks never overwrite each
+            // other. A deep `stackdepth` is not optional here: the PSI/type-engine stacks this
+            // exists to attribute are far past JFR's 64-frame default, and a truncated stack loses
+            // precisely the caller frames that separate a cache miss from an inner hot loop.
+            jvmArgs(
+                "-XX:StartFlightRecording=name=lunar-test,settings=$jfrSettings," +
+                    "filename=${jfrRecordingDir.absolutePath},dumponexit=true",
+                "-XX:FlightRecorderOptions=stackdepth=1024",
+                "-XX:+UnlockDiagnosticVMOptions",
+                "-XX:+DebugNonSafepoints",
+            )
+        }
         // Performance/benchmark suites are excluded from the routine loop to keep it fast. Run the
         // whole suite including them on demand with `./gradlew test -PwithPerf`. (NB: the perf
         // suites currently have a warmup/isolation dependency and only pass as part of the full
