@@ -20,7 +20,7 @@ folders:
 - **Likelihood**: medium. **Every shape listed below** can produce it; each shape carrying a
   *Closed by* / *Reported by* clause is disposed of by the design section and tests it names, and
   the list is open — a new shape is added to it, never counted into a total here:
-  1. a declaration kind whose usages are not resolvable (the colon-method form, `t.field`);
+  1. a declaration kind whose usages are not resolvable (the colon-method form, `t.field`). **DR-03 (2026-08-29) measured this shape being REINTRODUCED by the obvious fix for it**: a prototype resolving `obj:m()` through `LuaTypeManager.resolveType` / `LuaClassType.resolveMember` reaches only a receiver carrying a cats-minted `className`, and with the `METHOD_FUNCTION` refusal lifted the three shapes it does not reach — a global table (`function Obj:renamed() end` beside `o:m()`), `setmetatable` OO, and the second segment of `B:m1():m2()` — each renamed the declaration and left every call site behind, reporting success. Whatever ships the colon form must ship a receiver-classification predicate that keeps the refusal as its else-branch; the resolution improvement alone converts this risk from contained to live. See "DR-03 result" below;
   2. a target the processor claims but whose usage search key is wrong;
   3. an in-place rename path that highlights fewer occurrences than the dialog path;
   4. **a non-file-local kind misclassified as file-local**, which makes §3.2 step 2 narrow the search
@@ -227,6 +227,16 @@ adjudicate.
   `"Obj:m"` — so **zero** call sites are found. Renaming it would be the BUG-457 defect again.
 - **Suggested amendment**: split into `-08a` (dotted, `S`, delivered) and `-08b` (colon, `S`,
   blocked on receiver-type method resolution — DR-03).
+- **DR-03 result (2026-08-29) sharpens the second half of this defect and corrects one clause.** "The colon
+  form cannot ship at all" is right about the mechanism and wrong as a statement about the type engine: for a
+  receiver whose graph type carries a `className` — a `---@class` local, a `---@type` local, or a `require` of
+  a `@class`-annotated module — `resolveType(className).resolveMember("m").sourceElement` returns the
+  `LuaFuncDecl`, and a prototype renamed `local b = Builder; b:setName()` end to end, which is the very case
+  this row records as unreachable. What does not exist is a `className` for un-annotated Lua: a plain table, a
+  global table, `setmetatable` OO and an un-annotated module return all infer `className = null`, so the
+  route reaches 0 of the 734 corpus files. **`-08b`'s blocker is therefore not "receiver-type method
+  resolution" — that exists — but class inference for un-annotated receivers, which is TYPE-epic work.**
+  Re-word `-08b` accordingly if the split is taken.
 
 ### RD-3: `REFACT-01-15` assumes the platform's persisted settings apply. They do not.
 
@@ -392,6 +402,16 @@ can be promoted from **(inferred)** to verified.
   DR-03's design decision to make, not this feature's, because it is only reachable once the colon
   form stops being refused.
 - **Resolved by**: folded into **DR-03**'s scope below; nothing to build in REFACT-01.
+- **DR-03 executed it (2026-08-29) and the premise HELD, both directions.** With the caret on `self` inside
+  `function Obj:m()`, `TargetElementUtil` returns the **`m` leaf** whose `parent.parent` is a
+  `LuaFuncNameMethod` and whose `kindOf` is `METHOD_FUNCTION`, while `PsiUtilBase.getElementAtCaret` returns
+  the `self` leaf — so with the refusal lifted, a caret on `self` did rename the method until the guard was
+  added. The control held too: for `function T.m(se<caret>lf, x)` both hooks return the same `self` leaf and
+  `kindOf` is `PARAMETER`, and that fixture renamed to `this` normally with the guard in place. **The
+  discriminator is `kindOf(caretElement) == null`**, not the text `"self"` — a parameter `self` is a
+  declaration site, a method's implicit `self` is not — and the whole guard is eight lines in
+  `substituteElementToRename` with one import and no `plugin.xml` entry. It ships with whatever makes the
+  colon form renameable, which per DR-03 is TYPE-epic-gated; nothing about the guard itself is a blocker.
 
 ### Gap 2.5: Lua 5.5 `global` declarations were invisible to the project-wide index
 
@@ -813,7 +833,7 @@ red, and was removed rather than inverted — it asserted a false claim about th
 | :-- | :--- | :--- | :--- |
 | `REFACT-01-00-DR-01` | Write a throwaway `BasePlatformTestCase` that renames a local via `myFixture.renameElementAtCaret` **against the current tree** and asserts the four-usage BUG-457 outcome, to confirm the fixture drives `substituteElementToRename` + `RenameProcessor` as `CodeInsightTestFixtureImpl.java:1092-1107` says. Discard after. | Every TC in the plan assumes this harness works | todo |
 | `REFACT-01-00-DR-02` | Grep the corpus (`tooling/corpus/`) for a block declaring the same local name twice, to size Gap 2.2 before anyone spends effort on it. | Gap 2.2 | todo |
-| `REFACT-01-00-DR-03` | Size receiver-type method resolution: can `LuaNameReference` resolve `obj:m()` via `LuaTypeManager.resolveType` / `LuaClassType.resolveMember` (see the type-engine notes in `.agents/AGENTS.md`) without a corpus regression? Outcome decides whether `REFACT-01-08`'s colon form is a follow-up feature or a TYPE-epic dependency. **Also owns Gap 2.4**: whatever makes the colon form renameable must simultaneously add a caret-based `self` guard in `substituteElementToRename` (`PsiUtilBase.getElementAtCaret(editor)`), because `self` resolves to the method-name leaf and would otherwise rename the method. | Risk 1.1, RD-2, Gap 2.4 | todo |
+| `REFACT-01-00-DR-03` | Size receiver-type method resolution: can `LuaNameReference` resolve `obj:m()` via `LuaTypeManager.resolveType` / `LuaClassType.resolveMember` (see the type-engine notes in `.agents/AGENTS.md`) without a corpus regression? Outcome decides whether `REFACT-01-08`'s colon form is a follow-up feature or a TYPE-epic dependency. **Also owns Gap 2.4**: whatever makes the colon form renameable must simultaneously add a caret-based `self` guard in `substituteElementToRename` (`PsiUtilBase.getElementAtCaret(editor)`), because `self` resolves to the method-name leaf and would otherwise rename the method. | Risk 1.1, RD-2, Gap 2.4 | **done 2026-08-29 — it resolves, and that is not enough. `resolveType(className).resolveMember(name).sourceElement` yields the `LuaFuncDecl` for a `@class`/`@type`-annotated receiver, cross-file included, and the prototype renames `local b = Builder; b:setName()` correctly. But `className` is minted only from a cats annotation: a plain table, a global table, `setmetatable` OO and an un-annotated module return all give null, and there lifting the refusal SILENTLY HALF-RENAMES (measured on three shapes). No corpus regression — 2887/2, both failures the deliberately-lifted refusals — but the corpus cannot regress: 0 of 734 files carry a `@class`, against 809 colon-method declarations. Verdict: a TYPE-epic dependency, not a phase; the cats-only follow-up feature is a user-visible no-op and is not worth cutting alone. Gap 2.4's premise held; its guard is 8 lines. See "DR-03 result" below.** |
 | `REFACT-01-00-DR-04` | Size `@class`/`@alias` rename: prototype rewriting a type name through `LuaCatsTypeNameIndex` and count the surfaces that would need it (docs, completion, inspections). | TBD-2 | **done 2026-08-29 — the index answers navigation's question, not rename's: it maps declaration sites only, so the prototype's rewrite moved the `@class` and left every use byte-identical. 15 consuming files counted, 12 of which degrade SILENTLY. Verdict: a feature of its own, not a REFACT-01 phase. See below.** |
 | `REFACT-01-00-DR-05` | Enumerate what `t.field` resolves to for the four receiver shapes in Gap 2.3 and confirm each refuses or lands on a genuine `DOTTED_FUNCTION`. | Gap 2.3 | **done 2026-08-23 — all four shapes are safe; folded into design §6.1, see below** |
 | `REFACT-01-00-DR-06` | Confirm `LeafElement.replaceWithText` is a legal edit on a `LuaCatsArgName` child inside a `LuaCatsLazyCommentImpl` (a lazy-parseable node) — the one AST operation in this design with no existing precedent in the repo. If it is not, fall back to rebuilding the comment text. | Design §3.6 | **done 2026-08-23** — executed in Phase 6 and re-verified by review: `replaceWithText` reaches `ASTFactory.leaf` via `ChangeUtil`, neither parsing nor validating, and `LuaCatsElementType` is a plain `IElementType` so the interning branch is taken. |
@@ -1206,6 +1226,169 @@ Its premise and its "feature-sized job" conclusion both survive. Two of its fram
   same names reach the **type engine**, **hierarchy**, **inlay hints**, **parameter info** and five
   **documentation** surfaces (fifteen files, table above), and navigation is one of the only three
   that a declaration-only rewrite leaves correct.
+
+### DR-03 result (2026-08-29) — the type route reaches only annotated receivers, and lifting the refusal half-renames the rest
+
+Run rather than read, in seven `gce-builder` passes over a throwaway `LuaDr03ProbeTest` (deleted
+after the run; `git diff -- src/` empty) plus a throwaway prototype patching
+`LuaNameReference.doMultiResolve` and `LuaRenameProcessor.substituteElementToRename`. All timings
+and counts below are from those runs at `a2a8758e`.
+
+#### 1. `resolveMember` does do the work `.agents/AGENTS.md` claims — with one correction
+
+Measured, not read. For a `@class`-annotated receiver,
+`LuaTypeManager.resolveType(className, file)` returns a `LuaClassType` whose
+`resolveMember(name).sourceElement` is the **`LuaFuncDecl` of `function Class:method`**, in the
+declaring file, cross-file included. That is exactly what a rename needs and it exists today.
+
+The correction the note does not carry: **the graph route yields no `sourceElement`.**
+`graphTypeToLuaType(getValueType(receiver))` gives a `LuaUnionType` whose `LuaClassType` member
+*has* the method, but `LuaUnionType.resolveMember` synthesises a fresh
+`LuaTypeMember(name, LuaUnionType(...))` (`LuaComplexTypes.kt:8-17`) with `sourceElement` at its
+default `null` — measured `memberDeep(setName) = src=null` on every shape that resolved. So a
+consumer wanting the declaration PSI must take the class NAME off the graph type and re-enter
+through `LuaTypeManager.resolveType`; it cannot read the member off the graph-derived type. The
+note's third trap ("nominal members reach a graph type only via `graphTypeToLuaType`") is right
+about members and wrong if read as "so use the graph type" — for `sourceElement` it is the one
+route that does not work.
+
+#### 2. What the prototype reached, and what it did not
+
+The prototype adds one branch to `doMultiResolve`: for a `nameRef` under a `LuaMethodExpr` that is
+the call's **first** `nameAndArgs`, take the receiver's graph type, recurse into `Union.types` for
+the first non-null `className`, and return `resolveType(className).resolveMember(name).sourceElement`.
+40 lines including the union recursion. With it, `LuaNameReference.declarationIdentifier` already
+normalises a `LuaFuncDecl` to the `funcNameMethod` leaf (`LuaDeclarationSite.functionNameLeafOf`),
+so `isReferenceTo` and `ReferencesSearch` needed **no** change.
+
+| Shape | receiver `className` | `resolve()` | end-to-end rename |
+| :--- | :--- | :--- | :--- |
+| A `---@class Builder` local, receiver `Builder` **and** the copy `local b = Builder` | `Builder` | the `LuaFuncDecl` | **correct** — declaration and both call sites |
+| D cross-file `require` of a `@class`-annotated module, direct and copied receiver | `Widget` | the `LuaFuncDecl` in `lib.lua` | **correct** — `lib.lua` and `use.lua` both rewritten |
+| F `---@type Builder` annotated local | `Builder` | the `LuaFuncDecl` | reached (1 reference found) |
+| B plain `local Obj = {}` with methods, no cats tag | **null** | null | **silent half-rename** |
+| C global `Obj = {}` with methods — TC-10's own fixture | **null** | null | **silent half-rename**: `function Obj:renamed() end` with `o:m()` left behind |
+| E `setmetatable` OO (`M.__index = M`, `M.new()`) | **null** | null | **silent half-rename**: `function M:renamed()` with `x:m()` and `M:m()` left behind |
+| G cross-file `require` of an **un**-annotated module | **null** | null | not reached |
+| chain 2nd segment `B:m1():m2()`, with `@class` **and** `---@return B` | n/a | null | **silent half-rename**: `function B:renamed()` with `B:m1():m2()` left behind |
+
+Shape A is the case RD-2 and `AGENTS.md` both name as impossible today — `local b = Builder;
+b:setName()` — and it renames correctly through the type route, from the declaration caret *and*
+from the call-site caret. That half of the note is confirmed.
+
+The chain row is the `AGENTS.md` warning that `visitFuncCall` only models
+`nameAndArgsList.firstOrNull()`, made concrete: the prototype declines the later segments on
+purpose, and declining is what produces the half-rename, because the refusal that used to catch
+them was removed.
+
+#### 3. The corpus answer — green, and the green is nearly vacuous
+
+`test -PwithCorpus --rerun --no-build-cache` with the prototype in and the probe removed:
+**2887 tests, 2 failed, 1 skipped** against the 2887 / 0 / 0 / 1 corpus baseline. Both failures are
+`LuaRenameTest.assertRefusedWith` (`:1217`) in `testColonMethodDeclarationIsRefused` and
+`testSelfInsideAMethodIsRefusedAsTheMethod` — the two tests that assert the refusal the prototype
+deliberately lifts. Every corpus class ran and was green, XML mtimes from the run:
+`BaselineRatchetTest` 35, `ParseOracleTest` 14, `LexerInvariantsTest` 8, `LuaCorpusSweepTest` 4,
+`LuaInspectionParityTest` 1, `LuaTortureCorpusTest` 1 — `failures="0" errors="0"` on all six. **No
+type or index answer moved.**
+
+**That is a true answer to the question DR-03 asks and the wrong gate to decide on.** Measured over
+the four pinned corpora (`test/corpus/{luacheck,luarocks,penlight,zerobrane}`):
+
+| Corpus | `.lua` files | files with `---@class` | files with **any** `---@`-tag | `function X:m()` decls | `:name(` call tokens |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| luacheck | 135 | 0 | 0 | 148 | 890 |
+| luarocks | 160 | 0 | 2 | 87 | 3129 |
+| penlight | 114 | 0 | 0 | 142 | 1203 |
+| zerobrane | 325 | 0 | 2 | 432 | 11114 |
+| **total** | **734** | **0** | **4** | **809** | **16336** |
+
+Not one file in 734 carries a `@class`. The branch's precondition is unsatisfiable across the
+entire corpus, so the corpus **cannot** regress — and equally cannot demonstrate the branch works.
+All 809 colon-method declarations and 16,336 colon-call sites fall in shapes B/C/E/G, which is where
+the prototype half-renames.
+
+#### 4. Cost: the branch is cheap, the thing it calls is not
+
+The branch itself is not the expense. On a 200-call-site file, warm:
+`200× getValueType` **2 ms**, `200× resolveType("Builder")` **3 ms**, first `resolve()` **0 ms**,
+remaining 199 resolves **44 ms**, all 200 again with `ResolveCache` warm **35 ms**.
+
+The expense is that the branch puts `LuaTypesSnapshot.forFile` on the reference-resolution path, and
+that call is **superlinear in call-site count when the receiver is `@class`-annotated**. Measured by
+a direct `forFile` call — so independent of the prototype, and re-measured **on the clean tree at
+`a2a8758e`** with `src/` restored:
+
+| call sites | `forFile` ms, `---@class` present | `forFile` ms, same file without the tag |
+| ---: | ---: | ---: |
+| 5 | 724 | 70 |
+| 10 | 139 | 70 |
+| 20 | 312 | 81 |
+| 40 | 1383 | 145 |
+| 80 | **12807** | 190 |
+| 200 (earlier run) | **344736** | ~1229 for 200 full resolves |
+
+Roughly ×9 per doubling past n=40 with the tag; flat without it. **This is a pre-existing type-engine
+defect, not something DR-03 introduces** — any inlay-hint or annotator pass over such a file already
+pays it — but it is disqualifying for the type route on `PsiReference.resolve()`, which the
+engineering contract's threading rule makes a hot path. Recommend filing it separately; it is not
+REFACT-01's to fix and it blocks anything that routes resolution through the type engine.
+
+#### 5. The `self` guard (Gap 2.4) — premise held, and the guard is eight lines
+
+Measured both directions:
+
+| Fixture | caret leaf (`PsiUtilBase.getElementAtCaret`) | `TargetElementUtil` result | `kindOf` |
+| :--- | :--- | :--- | :--- |
+| `function Obj:m() return se<caret>lf end` | `self` | the **`m` leaf**, `parent.parent` a `LuaFuncNameMethod` | `METHOD_FUNCTION` |
+| `function T.m(se<caret>lf, x)` | `self` | the **`self` leaf** itself | `PARAMETER` |
+
+Gap 2.4's premise **held exactly**: `self` inside a colon method resolves to the method-name leaf,
+so with the refusal lifted a caret on `self` would rename the method. The guard Gap 2.4 prescribes
+works and is the whole of it —
+
+```kotlin
+private fun caretIsOnSelfKeyword(editor: Editor?): Boolean {
+    val caretElement = editor?.let { PsiUtilBase.getElementAtCaret(it) } ?: return false
+    if (caretElement.text != "self") return false
+    return LuaDeclarationSite.kindOf(caretElement) == null
+}
+```
+
+— eight lines in `substituteElementToRename`, one import, no `plugin.xml` line. Executed: caret on
+`self` inside `Obj:m()` refuses; caret on the parameter `self` of `function T.m(self, x)` renames to
+`this` and rewrites its body use. The `kindOf(caretElement) == null` clause is what separates them
+and is load-bearing — a parameter `self` is a declaration site, a method's implicit `self` is not.
+
+#### 6. Verdict
+
+**The criterion, stated before the verdict, is DR-04's:** a REFACT-01 phase is work the shipped
+components can perform given one more step; a feature is work requiring a component the design does
+not contain.
+
+**Not a phase.** Two components are missing, and they are not the same size:
+
+1. **A receiver-classification predicate** — "this receiver has a nominal class, so every call site
+   is findable; this one does not, so refuse." Without it the prototype does not extend the rename,
+   it converts a correct refusal into Risk 1.1, measured on three shapes. This one is small (a
+   `className != null` test on the receiver's graph type, plus keeping the existing refusal as the
+   else-branch) but REFACT-01's design contains nothing like it.
+2. **A way for a class to arise from the OO Lua people actually write.** `LuaGraphType.Table.className`
+   is minted only from a cats annotation; `setmetatable(t, M)` / `M.__index = M` / an un-annotated
+   module return all yield `className = null` (shapes E, B, C, G — measured). This is a type-inference
+   capability, not a refactoring one.
+
+**Recommendation: a TYPE-epic dependency, and the narrow follow-up feature is NOT worth cutting on
+its own.** Component 1 alone would ship a colon rename that works for `@class`/`@type`-annotated
+receivers and refuses everything else — correct, safe, and on the corpus evidence a **no-op for
+users**: 0 of 734 real files would take the working branch, so every real colon rename would still
+hit a refusal, and the user-visible behaviour would be identical to today's. It would buy that
+nothing at the price of putting `LuaTypesSnapshot.forFile` — with the §4 blowup — on the resolve hot
+path. The version worth building needs component 2, which belongs to the TYPE epic; when
+`className` is minted from metatable/module-return OO, component 1 and the `self` guard are a small
+follow-up feature on top (≈40 + 8 lines, plus a refusal branch and its tests).
+
+**Until then the current refusal is the correct behaviour and `REFACT-01-08` stays `Partial`.**
 
 ### Gap 2.17 — cancelling a rename leaves the file inconsistent (CLOSED BY PHASE 8, 2026-08-25)
 
