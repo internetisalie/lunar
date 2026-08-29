@@ -1,17 +1,22 @@
 package net.internetisalie.lunar.lang.insight
 
 import com.intellij.codeInsight.TargetElementEvaluatorEx2
+import com.intellij.codeInsight.TargetElementUtilBase
+import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.util.ThreeState
 import net.internetisalie.lunar.lang.psi.LuaDeclarationKind
 import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
+import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 
 /**
- * What a Lua caret targets, on the two declaration shapes the platform's own rules get wrong.
+ * What a Lua caret targets, on the three declaration shapes the platform's own rules get wrong.
  *
  * [isAcceptableReferencedElement] keeps a caret that sits **on a file-local declaration** targeting
  * that declaration rather than the declaration it shadows (BUG-472 / BUG-470).
  * [getNamedElement] gives the numeric-`for` control variable a target at all (BUG-469).
+ * [adjustTargetElement] turns a dotted function's resolved declaration NODE into the IDENTIFIER
+ * leaf that declaration names, which is what a call-site caret needs to be renameable (BUG-465).
  *
  * `LuaResolveUtil.scopeCrawlUp` excludes a reference's own declaring statement from scope — that
  * is what makes the right-hand `x` of `local x = x` read the OUTER binding, as Lua requires — but
@@ -61,4 +66,65 @@ class LuaTargetElementEvaluator : TargetElementEvaluatorEx2() {
      */
     override fun getNamedElement(element: PsiElement): PsiElement? =
         element.takeIf { LuaDeclarationSite.kindOf(it) == LuaDeclarationKind.NUMERIC_FOR_VARIABLE }
+
+    /**
+     * Maps a resolved [LuaFuncDecl] down to the IDENTIFIER leaf it declares, so a caret on a
+     * `M.run()` **call site** targets the same element every other usage caret does (BUG-465,
+     * `REFACT-01-08`; DR-05 Gap 2.14).
+     *
+     * Measured on `function M.run() end` / `M.ru<caret>n()` through the editor's own data context,
+     * with nothing injected: `findTargetElement` returned `LuaFuncDeclImpl[function M.run() end]`,
+     * `LuaRenameProcessor.canProcessElement` was **false** for it — a [LuaFuncDecl] is neither a
+     * [net.internetisalie.lunar.lang.psi.LuaNameRef] nor a classified leaf — so
+     * `RenamePsiElementProcessorBase.forPsiElement` fell through to the platform default. The one
+     * claimant `RenameHandlerRegistry` returned — `PsiElementRenameHandler` — then refused with
+     * *"Caret should be positioned at symbol to be renamed"*; BUG-465's report names
+     * `error.cannot.be.renamed`, which is the neighbouring message, not the one that fires. The
+     * declaration caret was never affected: it resolves to a leaf or to its own `LuaNameRef`
+     * already.
+     *
+     * **Why this hook and not another.** `getElementByReference` carries no caret offset, and
+     * without the offset the receiver segment cannot be told from the name segment — the reason
+     * REFACT-01 left this gap open rather than widening `canProcessElement`. Of the two overrides
+     * that do carry it, both were measured to be reached with the [LuaFuncDecl] at this caret
+     * (`adjustReferenceOrReferencedElement(offset=25)` then `adjustTargetElement(offset=25)`), and
+     * this one is chosen because it runs **last**: `TargetElementUtilBase.findTargetElement` calls
+     * it after `doFindTargetElement` has finished, so [isAcceptableReferencedElement] and
+     * [getNamedElement] have already had their say and neither BUG-472's nor BUG-469's guard can be
+     * perturbed by what is returned here. Adjusting inside the reference branch would instead feed
+     * a different element to BUG-472's guard.
+     *
+     * **The name check is load-bearing, not defensive — it is what keeps Gap 2.10 closed.**
+     * [LuaDeclarationSite.identifierLeafOf] of a [LuaFuncDecl] is its **last** name segment, so an
+     * unguarded map answers `run` for a caret the user put somewhere else entirely, which is the
+     * silent misdirection REFACT-01 refused to ship. It is reachable: on
+     * `<caret>M = {}` / `function M.run() end` the platform hands the caret on `M` that same
+     * `LuaFuncDecl`, which `LuaRenameTest.testCaretOnAGlobalShadowedByADottedDeclarationIsRefusedNotMisdirected`
+     * has asserted since REFACT-01 and which reddens if this check is dropped. Requiring the
+     * reference at the caret to name the same segment the map would land on makes the redirect
+     * segment-faithful by construction rather than by luck, and it costs one text comparison.
+     * `TargetElementUtilBase.findReference` applies the platform's own offset adjustment and
+     * `ReferenceRange` containment test, so a caret at either edge of the identifier is answered
+     * the same way the target that arrived here was. The two carets on a function name's own
+     * receiver were measured never to reach here at all — at a call site `M` resolves to nothing,
+     * because the declaration is stub-indexed under `"M.run"`, and at the declaration `M` is
+     * already its own leaf, where `LuaRenameProcessor`'s receiver-segment refusal takes it.
+     *
+     * A PSI shape test plus one `findReferenceAt` walk, no resolve and no index read: this runs on
+     * the EDT for every Lua `findTargetElement`, including Go to Declaration and Quick Doc.
+     *
+     * The four parameters are the platform's ported signature, not a Lunar call shape; [flags] is
+     * unused because this adjustment is correct for every accepted-target combination.
+     */
+    override fun adjustTargetElement(
+        editor: Editor,
+        offset: Int,
+        flags: Int,
+        targetElement: PsiElement,
+    ): PsiElement {
+        val declaration = targetElement as? LuaFuncDecl ?: return targetElement
+        val declaredNameLeaf = LuaDeclarationSite.identifierLeafOf(declaration) ?: return targetElement
+        val caretReference = TargetElementUtilBase.findReference(editor, offset) ?: return targetElement
+        return if (caretReference.canonicalText == declaredNameLeaf.text) declaredNameLeaf else targetElement
+    }
 }

@@ -3,7 +3,7 @@ id: "BUG-465"
 title: "Rename from an `M.run()` call site is refused — TargetElementUtil hands back the whole LuaFuncDecl"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -71,3 +71,42 @@ declaration caret) needs as well; fix them together or not at all.
 A `BasePlatformTestCase` case with the caret on `M.ru<caret>n()`, asserting the rename applies to
 declaration and call sites both — today it throws the platform's `cannot be renamed` refusal, which
 makes it the reproduction and the regression test in one.
+
+## Resolution (2026-08-29)
+
+Closed by a third override on the already-registered `LuaTargetElementEvaluator` —
+`adjustTargetElement(editor, offset, flags, targetElement)` — which maps a resolved `LuaFuncDecl`
+down to the IDENTIFIER leaf it declares. No new `plugin.xml` line; one evaluator per language, as
+Gap 2.9's closure established.
+
+**Two corrections to the mechanism above, both measured on the builder through the editor's own
+data context with nothing injected.**
+
+1. Step 3 is not "no handler is selected". `RenameHandlerRegistry` *does* return exactly one
+   claimant — the platform's `PsiElementRenameHandler` — and the refusal comes from inside it,
+   because no Lunar *processor* claims the element. The observed message is **"Caret should be
+   positioned at symbol to be renamed"** (`RefactoringErrorHintException`), not
+   `error.cannot.be.renamed`. Steps 1 and 2 reproduced exactly as written.
+2. The fix sketch's preferred hook, `getElementByReference`, carries no caret offset and could not
+   have been used. Both offset-carrying hooks were measured to be reached with the `LuaFuncDecl` at
+   this caret; `adjustTargetElement` was chosen because it runs **last**, after
+   `isAcceptableReferencedElement` (BUG-472) and `getNamedElement` (BUG-469) have already answered,
+   so neither shipped override can be perturbed by it.
+
+**The caret offset is spent on a name check, and that check is load-bearing.**
+`identifierLeafOf(LuaFuncDecl)` is the *last* name segment, so the map only fires when the
+reference at the caret names that same segment. Dropping the check reddens
+`LuaRenameTest.testCaretOnAGlobalShadowedByADottedDeclarationIsRefusedNotMisdirected` — the caret on
+`M` of `M = {}` beside `function M.run() end` really is handed that `LuaFuncDecl`, which is Gap 2.10
+in the flesh. Implementing the sketch caret-blind reddens that case plus
+`testFunctionNameReceiverIsRefused` and `testIntermediateFunctionNameSegmentIsRefused`.
+
+Tests. `LuaRenameTest.testDottedFunctionCallSiteCaretTargetsTheDeclarationsNameLeaf` reads the
+target the editor's own data context produces;
+`…testRenamingADottedFunctionFromACallSiteRewritesDeclarationAndUsages` drives the document through
+the handler `RenameHandlerRegistry` selects, with the dialog intercepted — `renameElementAtCaret`
+bypasses `RenameHandler` selection and so cannot exercise this bug at all;
+`…testDottedCallSiteReceiverCaretIsNotRedirectedToTheNameSegment` is the receiver control.
+
+`REFACT-01-08` stays **Partial**: this was its second reason, and the first — the colon form
+`function Obj:m()`, whose `findReferences` returns zero references pending DR-03 — is untouched.

@@ -24,8 +24,10 @@ import com.intellij.refactoring.util.NonCodeSearchDescriptionLocation
 import com.intellij.testFramework.DumbModeTestUtils
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.UiInterceptors
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaElementFactory
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
+import net.internetisalie.lunar.lang.psi.LuaFuncName
 import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
 import net.internetisalie.lunar.lang.psi.LuaLabelName
 import net.internetisalie.lunar.lang.psi.LuaLabelRef
@@ -469,6 +471,106 @@ class LuaRenameTest : BasePlatformTestCase() {
         myFixture.renameElementAtCaret("start")
 
         myFixture.checkResult("M = {}\nfunction M.start() end\nM.start()\n")
+    }
+
+    /**
+     * BUG-465, layer 1 — the caret on a dotted function's CALL SITE reaches a renameable element.
+     *
+     * `REFACT-01-02` makes rename-from-usage the contract for every declaration kind, and the
+     * dotted function was the one exception. Measured on the builder before the fix, through the
+     * editor's own data context with nothing injected: `findTargetElement` returned
+     * `LuaFuncDeclImpl[function M.run() end]` — the whole declaration NODE, because
+     * `LuaNameReference` resolves a call site through the `"M.run"` stub key to the decl — and
+     * [LuaRenameProcessor.canProcessElement] is **false** for a node, so
+     * `RenamePsiElementProcessorBase.forPsiElement` selected no Lunar processor and the platform's
+     * own `error.cannot.be.renamed` fired.
+     *
+     * Both assertions are needed. The first names WHICH element the caret reached — asserting only
+     * that something is claimed would stay green for a fix that redirected the caret to the
+     * receiver `M`, which is the misdirection Gap 2.10 exists against.
+     *
+     * **Mutation (executed):** delete `LuaTargetElementEvaluator.adjustTargetElement`. RED — the
+     * target is the `LuaFuncDecl` again and `canProcessElement` is false.
+     */
+    @Test
+    fun testDottedFunctionCallSiteCaretTargetsTheDeclarationsNameLeaf() {
+        myFixture.configureByText("test.lua", "M = {}\nfunction M.run() end\nM.ru<caret>n()\n")
+
+        val target = TargetElementUtil.findTargetElement(myFixture.editor, CARET_TARGET_FLAGS)
+
+        assertEquals(
+            "a dotted call site must target the segment the declaration names, not the decl node (BUG-465)",
+            declarationNameLeaf(),
+            target,
+        )
+        assertTrue(
+            "and that target must be one the rename processor claims",
+            LuaRenameProcessor().canProcessElement(requireNotNull(target)),
+        )
+    }
+
+    /**
+     * BUG-465, layer 2 — the document, driven through the handler `RenameHandlerRegistry` selects
+     * for the real data context. `myFixture.renameElementAtCaret` bypasses [RenameHandler]
+     * selection entirely, so a case written on it cannot exercise a bug whose whole content is
+     * that the platform's own handler refused before Lunar's processor was consulted.
+     *
+     * The whole file is asserted: rewriting the declaration and leaving the call site behind is
+     * BUG-457's shape and is what a partial fix produces.
+     *
+     * `PsiElementRenameHandler` is the expected claimant — `LuaInplaceRenameHandler` gates on
+     * `kindOf(leaf)?.isFileLocal`, and `DOTTED_FUNCTION` is not file-local — so the dialog seam
+     * [renameViaSelectedHandler] intercepts is the right one.
+     *
+     * **Mutation (executed):** delete `LuaTargetElementEvaluator.adjustTargetElement`. RED —
+     * the platform refuses with `error.cannot.be.renamed`.
+     */
+    @Test
+    fun testRenamingADottedFunctionFromACallSiteRewritesDeclarationAndUsages() {
+        myFixture.configureByText("test.lua", "M = {}\nfunction M.run() end\nM.ru<caret>n()\nM.run()\n")
+
+        renameViaSelectedHandler("start")
+
+        myFixture.checkResult("M = {}\nfunction M.start() end\nM.start()\nM.start()\n")
+    }
+
+    /**
+     * BUG-465's control, and the reason the fix carries the caret offset — Gap 2.10 in the shape
+     * that is actually reachable at a CALL SITE.
+     *
+     * `LuaDeclarationSite.identifierLeafOf(LuaFuncDecl)` is the LAST name segment either way, so
+     * an adjustment that mapped a declaration node down without consulting the caret would answer
+     * `run` here. The receiver caret must keep targeting `M`: measured, `M` resolves to the
+     * `M = {}` global, and renaming it is a different, legitimate refactoring.
+     *
+     * The rename is asserted at `substituteElementToRename` rather than against file text, because
+     * what this case is about is WHICH element a rename would rewrite; how widely a global rename
+     * then reaches is `REFACT-01-07`'s question and asserting it here would couple two answers.
+     *
+     * The declaration-caret half of the same hazard is
+     * [testCaretOnAGlobalShadowedByADottedDeclarationIsRefusedNotMisdirected], which is where the
+     * `LuaFuncDecl` really does arrive at a caret on `M` and which reddens if the name check goes.
+     *
+     * **Mutation (executed):** replace the name check with the report's own fix sketch — map any
+     * caret inside a `funcName` to `identifierLeafOf` of the enclosing decl. RED — the rename
+     * rewrites `run` while the caret is on `M`.
+     */
+    @Test
+    fun testDottedCallSiteReceiverCaretIsNotRedirectedToTheNameSegment() {
+        myFixture.configureByText("test.lua", "M = {}\nfunction M.run() end\n<caret>M.run()\n")
+
+        val target = TargetElementUtil.findTargetElement(myFixture.editor, CARET_TARGET_FLAGS)
+
+        assertEquals("the receiver caret must not be redirected to the name segment (BUG-465)", "M", target?.text)
+        assertFalse(
+            "and it must not be the declaration's own name leaf",
+            target === declarationNameLeaf(),
+        )
+        assertEquals(
+            "and the element a rename would actually rewrite must still be the receiver",
+            "M",
+            LuaRenameProcessor().substituteElementToRename(requireNotNull(target), null)?.text,
+        )
     }
 
     /**
@@ -1046,6 +1148,17 @@ class LuaRenameTest : BasePlatformTestCase() {
         generateSequence(failure) { it.cause }
             .mapNotNull { it.message }
             .joinToString(" | ")
+
+    /**
+     * The IDENTIFIER leaf of the `function M.run()` declaration these BUG-465 cases share — found
+     * by PSI shape rather than by offset, so the fixtures stay readable when a line moves.
+     */
+    private fun declarationNameLeaf(): PsiElement =
+        LuaDeclarationSite.functionNameLeafOf(
+            requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaFuncName::class.java)) {
+                "no funcName in ${myFixture.file.text}"
+            },
+        )
 
     private fun leafAtCaret(): PsiElement =
         requireNotNull(myFixture.file.findElementAt(myFixture.caretOffset)) {

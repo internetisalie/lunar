@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Shift+F6 on an `M.run()` call now renames the dotted function it calls** (BUG-465). Renaming
+  from a *use* rather than from the declaration is how rename works for locals, parameters, `for`
+  variables, local functions and plain globals; a dotted function such as `function M.run()` was
+  the one exception, and putting the caret on the `run` of `M.run()` was refused outright with
+  *"Caret should be positioned at symbol to be renamed"*. It now renames the declaration and every
+  call site together, exactly as the declaration caret already did. The caret on the receiver `M`
+  is unaffected and still renames `M`, not `run`.
+
 - **Shift+F6 on the `i` in `for i = 1, 10 do` now renames it** (BUG-469). With the caret on a
   numeric-`for` loop's control variable the key did nothing at all — no dialog, no error, no
   balloon, and the Rename menu item greyed out — because that variable is the one Lua declaration

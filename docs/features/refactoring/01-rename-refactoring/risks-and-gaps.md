@@ -541,6 +541,12 @@ renaming **`run`**. `LuaRenameTest.testCaretOnAGlobalShadowedByADottedDeclaratio
 is the guard and the widening is its proven mutant. Design §6 previously claimed this fixture
 redirected to `M = {}` and renamed successfully; it does not.
 
+**Still CONTAINED after Gap 2.14's closure (2026-08-29), by construction rather than by luck.**
+`LuaTargetElementEvaluator.adjustTargetElement` now does map a `LuaFuncDecl` to that last name
+segment — but only when the reference at the caret names it, which this fixture's caret does not.
+That is what makes the guard above a live mutant detector rather than a historical note: dropping
+the name check turns the guard red.
+
 ### Gap 2.11: `goto` to a label that does not exist is renamed by the platform default (OPEN — REFACT-04 owns the closure)
 
 **Opened by this commit, and it ships as-is by decision at the Phase-2 review.** §3.0 rule 1 excludes
@@ -618,7 +624,7 @@ not renamed-usages from an unrenamed declaration. Two consequences worth having 
   gone and the null path is now the contract, with
   `LuaElementFactoryTest.testCreateIdentifierIsNullForANameThatCannotBeAnIdentifier` pinning it.
 
-### Gap 2.14: a caret on an `M.run()` CALL SITE cannot rename the dotted function — the same containment as Gap 2.10, and its cost (OPEN, filed as [[BUG-465]])
+### Gap 2.14: a caret on an `M.run()` CALL SITE cannot rename the dotted function — the same containment as Gap 2.10, and its cost (CLOSED — [[BUG-465]] resolved)
 
 Measured by **DR-05** (2026-08-23), which found it while checking the dotted-function control case;
 it is not a `t.field` shape, but it is the shape a user reaches by trying one.
@@ -653,6 +659,26 @@ extension — Gap 2.9's numeric-`for` declaration caret was the first, and is no
 requirement this feature has already delivered elsewhere rather than an unbuilt piece of it. The
 bug carries the mechanism, the containment argument and the fix sketch; a roadmap row carries the
 priority.
+
+**Closed 2026-08-29 by `LuaTargetElementEvaluator.adjustTargetElement`**, which maps a resolved
+`LuaFuncDecl` down to the IDENTIFIER leaf it declares — so a call-site caret targets the same
+element every other usage caret targets, and `canProcessElement` claims it. A third override on the
+component Gap 2.9 already closed through; no new `plugin.xml` line.
+
+Two measured corrections to the account above. The platform refusal is **"Caret should be
+positioned at symbol to be renamed"**, raised inside the one claimant `RenameHandlerRegistry` does
+return (`PsiElementRenameHandler`) — not `error.cannot.be.renamed` with no handler selected. And
+`getElementByReference`, which BUG-465's fix sketch named first, carries no caret offset; of the two
+hooks that do, `adjustTargetElement` was taken because it runs after `doFindTargetElement`, leaving
+this gap's two predecessors' overrides untouchable by it.
+
+**Gap 2.10 is not reopened, and the caret offset is what keeps it shut.** The map fires only when
+the reference at the caret names the same segment `identifierLeafOf` would land on, so the `M` of
+`M = {}` beside `function M.run() end` is still handed the `LuaFuncDecl` and still refused.
+`testCaretOnAGlobalShadowedByADottedDeclarationIsRefusedNotMisdirected` reddens if that check is
+dropped, and the caret-blind form of the fix sketch reddens it together with
+`testFunctionNameReceiverIsRefused` and `testIntermediateFunctionNameSegmentIsRefused` — both
+executed. `REFACT-01-08` remains `Partial` on the colon form alone.
 
 ### Gap 2.15: `function M.run()` beside `M.run = function() end` — the call sites unresolve and it went unreported (CLOSED in Phase 4; [[BUG-466]] resolved)
 
