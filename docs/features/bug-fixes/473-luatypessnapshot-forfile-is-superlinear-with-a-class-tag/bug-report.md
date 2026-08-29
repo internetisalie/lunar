@@ -30,16 +30,37 @@ b:setName("a")   -- × n
 
 Measure `LuaTypesSnapshot.forFile` on it.
 
-## Measured
+## Measured — timings only; there is no profile
 
-| call sites *n* | with `---@class` | same file, tag removed |
+Direct `forFile` calls on the clean tree at `a2a8758e`, prototype reverted.
+
+| call sites *n* | with `@class` | same file, tag removed |
 | ---: | ---: | ---: |
-| 40 | 1 383 ms | ~190 ms |
-| 80 | **12 807 ms** | ~190 ms |
-| 200 | **344 736 ms** | ~190 ms |
+| 10 | 139 ms | 70 ms |
+| 20 | 312 ms | 81 ms |
+| 40 | 1 383 ms | 145 ms |
+| 80 | **12 807 ms** | 190 ms |
 
-Roughly an order of magnitude per doubling — 200 call sites take **5.7 minutes**. Without the
-`---@class` the same file is flat at ~190 ms, so the tag is the trigger, not the file size.
+**×2.2, ×4.4, ×9.3 per doubling** — worse than quadratic and accelerating. Flat without the tag.
+
+**Two data points are deliberately excluded from the curve above, and should not be quoted as if
+they belonged to it:**
+
+- **n = 5 → 724 ms** is higher than n = 10 and n = 20. That is JIT warm-up, not the curve.
+- **n = 200 → 344 736 ms** comes from an **earlier run**, not this controlled series, and its
+  comparison figure (`~1229 ms for 200 full resolves`) measures something else entirely. It is
+  suggestive of where the curve goes and is **not evidence**. Re-measure it before citing it.
+
+**There is no profiling data, and no way to obtain any — see [[MAINT-38]].** No flame graph, no
+call-hierarchy trace, no per-method breakdown, no allocation counts, no cache hit/miss
+instrumentation. The repo has three performance *tests* (`GlobalSymbolCompletionPerformanceTest`,
+`GlobalSymbolPerformanceOptimizationTest`, `LuaUnionDistributionBenchmarkTest`) which assert
+wall-clock budgets — none of them caught this — but nothing that attributes time to frames.
+`LuaTypeSourceRecorder` is not profiling: its `SourceFrame` records which files and keys a
+snapshot consumed, which is a cache-correctness question.
+
+**So the first task is not to fix this bug — it is MAINT-38.** Diagnosing this one by reading
+source is guesswork, and the same blindness applies to every performance question after it.
 
 ## Expected
 

@@ -82,7 +82,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | DEBUG-07 | Lazy Remote Stack Evaluation — confirmed real, low value | todo | C | — | **measured 2026-08-22** (BUG-450 §5b): parse beats serialization at every size, but there is a ~30 ms PSI floor a payload bound cannot cross, and it is off-EDT — realistic case ~125 ms end to end | ✓ |
 | BUG-451 | luacheck `--std` overrides the project's `.luacheckrc`, false warnings on every rockspec and spec file | todo | S | — | one flag disables two mechanisms; user cannot override it | ✓ |
 | BUG-452 | luacheck exit 2 is a lint result, not a crash — the whole report is discarded | todo | S | — | a test pins the defect as intended | ✓ |
-| BUG-473 | `LuaTypesSnapshot.forFile` is superlinear in call-site count once a `---@class` is present | todo | M | — | measured 200 call sites = 344 736 ms vs ~190 ms untagged; on the resolve path, and 0 of 734 corpus files carry a `---@class` so the suite cannot see it | ✓ |
+| BUG-473 | `LuaTypesSnapshot.forFile` is superlinear in call-site count once a `---@class` is present | todo | M | — | controlled series n=10..80 grows x2.2, x4.4, x9.3 per doubling (12 807 ms at n=80) vs flat ~190 ms untagged; timings only, no profile; on the resolve path, and 0 of 734 corpus files carry a `@class` so the suite cannot see it | ✓ |
 | BUG-471 | A committed rename cannot be undone — *Edit ▸ Undo* is enabled and restores nothing | todo | S | — | reproduces on the DIALOG path too, so not REFACT-07's; typing-undo works in the same session; and on 2026-08-27 undo restored correctly in the VM-native sandbox — so the ENVIRONMENT is a live variable, rule it out first | ✓ |
 | BUG-453 | The human formatter is parsed instead of luacheck's documented editor interface | todo | S | — | escapes in tooltips; a configured formatter yields a silent false-clean | ✓ |
 | BUG-454 | Toggling a breakpoint mid-run deadlocks the debug session | todo | S | — | unanswered SETB held under writeMutex | ✓ |
@@ -111,6 +111,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
 | TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog | **in_progress** | C | — | MAINT-37 *(zerobrane member scope)* | ✓ |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | — | — | ✓ |
+| MAINT-38 | No way to attribute time — the plugin can detect a performance defect but cannot diagnose one | todo | S | — | three perf tests assert wall-clock budgets and none caught BUG-473; no profiler, no call-hierarchy trace, no per-frame attribution, so every performance diagnosis is guesswork; `LuaTypeSourceRecorder` brackets the type build already and is the obvious place to hang timings | ✓ |
 | MAINT-37 | Corpus sweeps run with pinned definition libraries | todo | S | **BUG-417** *(inspection independence — **done**; had to land first or the re-baseline would be unattributable)*; TARGET-08 *(done)* | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
