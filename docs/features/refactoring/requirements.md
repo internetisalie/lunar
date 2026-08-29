@@ -22,6 +22,7 @@ Lunar provides tools to safely restructure code and perform automated transforma
 | `REFACT-05` | **Name Validator** | **S** | Validate names for idiomatic conventions and suggest corrections. |
 | `REFACT-06` | **Stubs for Declaring Identifiers** | **C** | Generate `.lua` stub files for declaring external APIs. |
 | `REFACT-07` | **In-place (Inline) Rename** | **S** | Rename a file-local Lua declaration by typing in the editor, under a live template, instead of through the modal dialog. |
+| `REFACT-08` | **Rename a LuaCATS type name** | **S** | Rename a `@class` / `@alias` type name and carry every use with it. Blocked on a renameable symbol that does not exist: measured by `REFACT-01-00-DR-04`, no element spelling a type name answers `getReference()` and none is a `PsiNamedElement`. |
 | `INTENT-01` | **String Style Conversion** | **C** | Switch between different string quote styles. |
 | `INTENT-02` | **Invert If Statement** | **C** | Automatically flip an `if-else` block and its condition. |
 | `INTENT-03` | **Name Suggestion** | **S** | Suggest idiomatic names when creating new variables or functions. |

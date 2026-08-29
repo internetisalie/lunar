@@ -76,6 +76,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-443 | Quick Doc reported empty for `ngx.say` live, never reproduced | todo | C | — | — | — |
 | BUG-450 | The debugger's `STACK` payload is unbounded at both ends, and DEBUG-07 claimed otherwise | todo | C | — | — | ✓ |
 | REFACT-01 | Rename Refactoring — the real capability behind BUG-457's interim refusal | in_progress | M | — | BUG-457 (retires the refusal); shares machinery with REFACT-04 | Serial: rename machinery |
+| REFACT-08 | Rename a LuaCATS type name — the renameable symbol that does not exist yet | todo | S | REFACT-01 *(delegated from `-16`)* | sized by `REFACT-01-00-DR-04`: 70 elements spell a type name, zero answer `getReference()`; the index route is a measured SILENT half-apply | ✓ |
 | REFACT-04 | Label Refactoring — conflict detection, use scope, Structure View target | planned | S | REFACT-01 Phase 3 *(`LuaRenameCollisionUsageInfo`)* | BUG-458 *(safe-delete of a label)* | Serial: rename machinery |
 | DEBUG-06 | Debug Target Configuration — the severity ladder that lets a launch be refused | planned | S | — | BUG-455 *(Phase 2 retires it)*; BUG-461's `testCheckConfigurationThrowsWithoutRuntime` entry; DEBUG-05 *(validation model it extends)* | Serial: debug target |
 | DEBUG-05 | Remote Debugging — attach configuration, host field, bidirectional path mapping | planned | S | DEBUG-06 *(validation model)* | BUG-456 *(`-12`, wildcard bind)*; `-09` is a live defect in **local** debugging today | Serial: debug target |
