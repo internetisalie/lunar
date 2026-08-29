@@ -84,7 +84,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-451 | luacheck `--std` overrides the project's `.luacheckrc`, false warnings on every rockspec and spec file | todo | S | — | one flag disables two mechanisms; user cannot override it | ✓ |
 | BUG-452 | luacheck exit 2 is a lint result, not a crash — the whole report is discarded | todo | S | — | a test pins the defect as intended | ✓ |
 | BUG-471 | A committed rename cannot be undone — *Edit ▸ Undo* is enabled and restores nothing | todo | S | — | reproduces on the DIALOG path too, so not REFACT-07's; typing-undo works in the same session; and on 2026-08-27 undo restored correctly in the VM-native sandbox — so the ENVIRONMENT is a live variable, rule it out first | ✓ |
-| BUG-469 | Shift+F6 on a numeric-`for` variable reaches no rename handler at all | todo | C | — | DR-05 probes f/f2/f3: supplied is null and the registry returns an empty list; end-to-end NOT driven | ✓ |
 | BUG-453 | The human formatter is parsed instead of luacheck's documented editor interface | todo | S | — | escapes in tooltips; a configured formatter yields a silent false-clean | ✓ |
 | BUG-454 | Toggling a breakpoint mid-run deadlocks the debug session | todo | S | — | unanswered SETB held under writeMutex | ✓ |
 | BUG-455 | No run configuration can block a launch — the non-fatal exception tier is thrown | todo | S | — | RuntimeConfigurationError appears zero times in src/ | ✓ |

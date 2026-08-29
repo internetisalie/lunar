@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Shift+F6 on the `i` in `for i = 1, 10 do` now renames it** (BUG-469). With the caret on a
+  numeric-`for` loop's control variable the key did nothing at all — no dialog, no error, no
+  balloon, and the Rename menu item greyed out — because that variable is the one Lua declaration
+  the IDE could not resolve a rename target from. Renaming it from a *use* inside the loop body
+  always worked and still does; now both carets do the same thing. An in-place editing box is still
+  not offered there, as noted below — Shift+F6 opens the rename dialog.
+
 - **Renaming a `local` that shadows an earlier one of the same name now renames the one you put the
   caret on** (BUG-472, BUG-470). Given `local config = 1` followed by `local config = 2` and a
   `print(config)` that reads the second, renaming the second declaration used to rewrite the

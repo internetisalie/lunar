@@ -493,24 +493,38 @@ TC-03 is the only failure across 69 tests spanning `LuaRenameTest`, `LuaRenameCr
 `ShadowingVariableInspectionTest`. This means the same over-report existed in **Find Usages** and
 **Safe Delete** before Phase 2 and no test observed it; those subsystems now agree with rename.
 
-### Gap 2.9: the numeric-`for` declaration has no caret-reachable rename target (OPEN)
+### Gap 2.9: the numeric-`for` declaration has no caret-reachable rename target (CLOSED — [[BUG-469]] resolved)
 
 `numericForStatement ::= FOR IDENTIFIER '=' …` (`lua.bnf:152`) hangs the control variable's leaf
 directly off the statement — the one declaration kind with no `LuaNameRef`. The leaf therefore
 carries no `PsiReference`, and `LuaNumericForStatement` is a plain `ASTWrapperPsiElement`, so
-`TargetElementUtilBase.getNamedElement` finds no `PsiNamedElement` ancestor and
-`TargetElementUtil.findTargetElement` returns **null**. Measured: Shift+F6 with the caret on
-`for <caret>i` reports "cannot rename", where every other declaration kind renames.
+`TargetElementUtilBase.getNamedElement` found no `PsiNamedElement` ancestor and
+`TargetElementUtil.findTargetElement` returned **null**.
 
-**Impact is bounded and the feature still works**: `canProcessElement` claims the leaf, and rename
-from a *usage* (`print(<caret>i)`) redirects to it and rewrites the `for` header correctly — TC-05 is
-written that way and passes. Only the declaration-caret entry point is unavailable.
+**What Shift+F6 actually did, measured end-to-end** — which this section previously recorded as
+"reports 'cannot rename'", and that was wrong. Driven through the editor's own data context with
+nothing injected, on `for <caret>i = 1, 10 do print(i) end`: `findTargetElement` null,
+`PsiElementRenameHandler.getElement` null, `RenameHandlerRegistry.getRenameHandlers` **empty**, and
+the `RenameElement` action's `update` left the presentation **disabled**. No handler was reached, so
+no refusal was reported either — the key did nothing at all, with no dialog and no message.
+[[BUG-469]]'s Actual section was right and this one was not.
 
-**Closing it needs a `TargetElementEvaluatorEx2` for Lua** (a new `targetElementEvaluator` extension
-point), which is outside REFACT-01's design — §7 states that exactly one `plugin.xml` line changes.
-`LuaRenameTest.testNumericForDeclarationCaretHasNoRenameTargetAtAll` pins the current behaviour so
-that closing the gap goes red here and forces this section to be updated rather than silently
-diverging. REFACT-01-05 is recorded **Partial** for this reason.
+**Closed by `LuaTargetElementEvaluator.getNamedElement`**, which supplies the control variable's own
+IDENTIFIER leaf — the same element `LuaNameReference` already resolved to from a *usage* caret, so
+both carets now target one element rather than two. The `TargetElementEvaluatorEx2` this gap named
+as the required instrument had since arrived for BUG-472/BUG-470, so closing this cost one override
+on a registered component and no new `plugin.xml` line.
+
+Measured after the fix, same driver: `findTargetElement` returns the leaf, the data context supplies
+it, and `RenameHandlerRegistry` returns exactly one handler —
+`com.intellij.refactoring.rename.PsiElementRenameHandler`, the dialog path. No in-place handler
+claims it, because `LuaInplaceRenameHandler.declaringNameRefOf` ends at `leaf.parent as? LuaNameRef`
+and there is none; that is `REFACT-07-14`, and it is unchanged.
+
+`LuaRenameTest.testNumericForDeclarationCaretTargetsItsControlVariable`,
+`…SelectsExactlyOneRenameHandler` and `…RewritesEveryUsage` replace the case that pinned the
+limitation; `testRenamingANumericForVariableFromAUsageRewritesTheDeclaration` is the control. All
+four go through the real data context. REFACT-01-05 is **Full**.
 
 ### Gap 2.10: `TargetElementUtil` can hand rename a declaration NODE, and `identifierLeafOf` would misdirect it (CONTAINED)
 
@@ -622,7 +636,9 @@ Widening `canProcessElement` to admit declaration nodes would close this gap and
 reopen Gap 2.10's misdirection, because `identifierLeafOf(LuaFuncDecl)` is the *last* name segment
 either way and cannot tell "the user pointed at `run`" from "the user pointed at `M`". Closing it
 properly needs the caret offset, i.e. a `TargetElementEvaluatorEx2` for Lua — the same instrument
-Gap 2.9 needs for the numeric-`for` declaration, and out of scope here for the same reason.
+Gap 2.9 needed for the numeric-`for` declaration, and out of scope here for the same reason. That
+evaluator now exists (`LuaTargetElementEvaluator`) and Gap 2.9 is closed through it, so this gap's
+stated blocker is gone; what remains is [[BUG-465]]'s own work, not the missing extension point.
 
 **User-visible consequence, stated plainly:** renaming a dotted function works from its declaration
 (TC-09) and is refused from its call sites. That is a second reason `REFACT-01-08` is `Partial`
@@ -631,7 +647,8 @@ beyond the colon form, and it is recorded so the row's scope is not read as narr
 **Filed as [[BUG-465]] (2026-08-23), on the Phase-4 reviewer's judgement, and the reason is the
 `TargetElementEvaluatorEx2`.** A gap recorded only inside this feature's own document closes when
 the feature does; this one does not close with it. It is the **second** gap needing that one absent
-extension — Gap 2.9's numeric-`for` declaration caret is the first — and rename-from-usage
+extension — Gap 2.9's numeric-`for` declaration caret was the first, and is now closed through it
+— and rename-from-usage
 (`REFACT-01-02`) works for every other declaration kind, so the limitation is a defect against a
 requirement this feature has already delivered elsewhere rather than an unbuilt piece of it. The
 bug carries the mechanism, the containment argument and the fix sketch; a roadmap row carries the

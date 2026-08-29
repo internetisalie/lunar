@@ -1,6 +1,8 @@
 package net.internetisalie.lunar.refactoring.rename
 
 import com.intellij.codeInsight.TargetElementUtil
+import com.intellij.ide.DataManager
+import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.progress.ProgressIndicator
@@ -12,11 +14,16 @@ import com.intellij.psi.ElementDescriptionUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
+import com.intellij.refactoring.rename.PsiElementRenameHandler
+import com.intellij.refactoring.rename.RenameHandler
+import com.intellij.refactoring.rename.RenameHandlerRegistry
 import com.intellij.refactoring.rename.RenamePsiElementProcessor
+import com.intellij.refactoring.rename.RenameRefactoringDialog
 import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.refactoring.util.NonCodeSearchDescriptionLocation
 import com.intellij.testFramework.DumbModeTestUtils
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.UiInterceptors
 import net.internetisalie.lunar.lang.psi.LuaElementFactory
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
@@ -97,12 +104,13 @@ class LuaRenameTest : BasePlatformTestCase() {
     }
 
     /**
-     * TC-05 — REFACT-01-05, numeric `for`. Driven from the USAGE, which is a deviation from the
-     * plan's fixture and a measured one: see
-     * [testNumericForDeclarationCaretHasNoRenameTargetAtAll]. The declaration leaf is still what is
-     * renamed — the redirect through `substituteElementToRename` is what puts `idx` in the `for`
-     * header — so this is the same code path the plan meant to exercise, entered from the only
-     * caret position the platform can resolve.
+     * TC-05 — REFACT-01-05, numeric `for`, driven from the USAGE. Kept as the **control** for
+     * BUG-469: this caret resolved before that fix and must go on resolving after it, so a
+     * regression in [LuaTargetElementEvaluator] that reddens the declaration cases below cannot
+     * quietly take this one with it.
+     *
+     * The declaration leaf is what is renamed either way — the redirect through
+     * `substituteElementToRename` is what puts `idx` in the `for` header.
      */
     @Test
     fun testRenameNumericForVariable() {
@@ -114,29 +122,106 @@ class LuaRenameTest : BasePlatformTestCase() {
     }
 
     /**
-     * The numeric-`for` variable is the one declaration kind with no `LuaNameRef`: `numericForStatement
-     * ::= FOR IDENTIFIER '=' …` (`lua.bnf:152`) hangs the leaf directly off the statement. The leaf
-     * carries no reference and `LuaNumericForStatement` is a plain `ASTWrapperPsiElement`, so
-     * `TargetElementUtilBase.getNamedElement` finds no `PsiNamedElement` ancestor and
-     * `findTargetElement` returns **null** — Shift+F6 on `for <caret>i` reports "cannot rename",
-     * where every other declaration kind renames.
+     * BUG-469, layer 1 — the caret reaches the control variable at all.
      *
-     * Measured on the builder, not inferred. This test pins the limitation so that closing it (a
-     * `TargetElementEvaluatorEx2` for Lua) goes red here and forces the gap record to be updated
-     * rather than quietly diverging from it.
+     * The numeric-`for` variable is the one declaration kind with no `LuaNameRef`:
+     * `numericForStatement ::= FOR IDENTIFIER '=' …` (`lua.bnf:152`) hangs the leaf directly off the
+     * statement. The leaf carries no reference for `doFindTargetElement`'s reference branch and
+     * `LuaNumericForStatement` is a plain `ASTWrapperPsiElement`, so
+     * `TargetElementUtilBase.getNamedElement` found no `PsiNamedElement` ancestor either and
+     * `findTargetElement` returned **null**. This case previously asserted that null.
+     *
+     * Measured on the builder before the fix, driving `for <caret>i = 1, 10 do print(i) end`
+     * through the editor's own data context: `findTargetElement` null,
+     * `PsiElementRenameHandler.getElement` null, `RenameHandlerRegistry.getRenameHandlers` **empty**
+     * and the `RenameElement` action painted **disabled** — Shift+F6 did nothing at all, with no
+     * dialog and no error, exactly as BUG-469 reported.
+     *
+     * **Mutation (executed):** drop `LuaTargetElementEvaluator.getNamedElement`. RED —
+     * `findTargetElement` is null again.
      */
     @Test
-    fun testNumericForDeclarationCaretHasNoRenameTargetAtAll() {
+    fun testNumericForDeclarationCaretTargetsItsControlVariable() {
         myFixture.configureByText("test.lua", "for <caret>i = 1, 3 do print(i) end\n")
 
-        assertNull(
-            "if this resolves, the numeric-for gap is closed and TC-05 should move to the declaration caret",
+        assertEquals(
+            "Shift+F6 on a numeric-for declaration must target the control variable (BUG-469)",
+            leafAtCaret(),
             TargetElementUtil.findTargetElement(myFixture.editor, CARET_TARGET_FLAGS),
         )
         assertTrue(
-            "the declaration leaf itself is renameable — only the caret cannot reach it",
+            "and that target must be one the rename processor claims",
             LuaRenameProcessor().canProcessElement(leafAtCaret()),
         )
+    }
+
+    /**
+     * BUG-469, layer 2 — what Shift+F6 selects, read from the editor's own data context with
+     * **nothing injected**. `CommonDataKeys.PSI_ELEMENT` is where the defect was measured, and an
+     * injected element would measure this case's own assumption instead of the platform
+     * (`LuaInplaceRenameTest`'s class KDoc records why that distinction is binding here).
+     *
+     * The claimant is the platform's dialog handler, not an in-place one:
+     * `LuaInplaceRenameHandler.declaringNameRefOf` ends at `leaf.parent as? LuaNameRef`, which a
+     * numeric-`for` leaf has none of. That is `REFACT-07-14`'s claim and it is asserted in
+     * `LuaInplaceRenameTest`; asserting only the count here would be satisfied by an in-place
+     * handler taking the caret over.
+     *
+     * **Mutation (executed):** drop `LuaTargetElementEvaluator.getNamedElement`. RED — the handler
+     * list is empty.
+     */
+    @Test
+    fun testNumericForDeclarationCaretSelectsExactlyOneRenameHandler() {
+        myFixture.configureByText("test.lua", "for <caret>i = 1, 3 do print(i) end\n")
+        val context = contextAtCaret()
+
+        assertEquals(
+            "the data context must supply the control variable, not null (BUG-469)",
+            leafAtCaret(),
+            PsiElementRenameHandler.getElement(context),
+        )
+        val claimants = RenameHandlerRegistry.getInstance().getRenameHandlers(context)
+        assertEquals("Shift+F6 must select exactly one handler: $claimants", 1, claimants.size)
+        assertTrue(
+            "a numeric-for variable has no LuaNameRef to anchor a template on, so the dialog handler " +
+                "is the correct claimant: $claimants",
+            claimants.first() is PsiElementRenameHandler,
+        )
+    }
+
+    /**
+     * BUG-469, layer 3 — the document, driven through the handler the **registry** selected for the
+     * real data context rather than through `myFixture.renameElementAtCaret`, which bypasses
+     * `RenameHandler` selection entirely and so cannot exercise what this bug is about.
+     *
+     * The whole file is asserted, not "the header changed": rewriting the declaration and leaving
+     * the body behind is BUG-457's shape and is what a partial fix would produce.
+     *
+     * **Mutation (executed):** drop `LuaTargetElementEvaluator.getNamedElement`. RED —
+     * [renameViaSelectedHandler] finds no handler at the caret.
+     */
+    @Test
+    fun testRenamingANumericForVariableFromItsDeclarationRewritesEveryUsage() {
+        myFixture.configureByText("test.lua", "for <caret>i = 1, 3 do print(i) end\n")
+
+        renameViaSelectedHandler("idx")
+
+        myFixture.checkResult("for idx = 1, 3 do print(idx) end\n")
+    }
+
+    /**
+     * The **control** for the case above, on the caret REFACT-01-05 already claimed worked, through
+     * the same real-data-context driver. It was green before BUG-469's fix and must stay green: a
+     * change to [LuaTargetElementEvaluator] that redirected this caret elsewhere would otherwise be
+     * invisible.
+     */
+    @Test
+    fun testRenamingANumericForVariableFromAUsageRewritesTheDeclaration() {
+        myFixture.configureByText("test.lua", "for i = 1, 3 do print(<caret>i) end\n")
+
+        renameViaSelectedHandler("idx")
+
+        myFixture.checkResult("for idx = 1, 3 do print(idx) end\n")
     }
 
     /** TC-06 — REFACT-01-05, generic `for`: a different PSI shape from the numeric form. */
@@ -966,6 +1051,43 @@ class LuaRenameTest : BasePlatformTestCase() {
         requireNotNull(myFixture.file.findElementAt(myFixture.caretOffset)) {
             "no leaf at caret in ${myFixture.file.text}"
         }
+
+    /**
+     * The editor's own data context, with **nothing injected**. `CommonDataKeys.PSI_ELEMENT` is
+     * computed here by `TargetElementUtil.findTargetElement` through
+     * `TextEditorPsiDataRule`, which is the layer BUG-469 was a defect in; injecting the element
+     * would replace the measurement with the assumption.
+     */
+    private fun contextAtCaret(): DataContext =
+        DataManager.getInstance().getDataContext(myFixture.editor.contentComponent)
+
+    /**
+     * Renames through the handler `RenameHandlerRegistry` selects for [contextAtCaret], which is
+     * what <kbd>Shift+F6</kbd> does and what `myFixture.renameElementAtCaret` does not: the fixture
+     * helper calls the processor directly and never consults a [RenameHandler] at all.
+     *
+     * The new name is delivered by intercepting the dialog. `PsiElementRenameHandler.rename` offers
+     * it to `UiInterceptors` *before* its unit-test branch substitutes the first suggested name
+     * (`PsiElementRenameHandler.java:255-264`), so this is the only seam that both selects the
+     * handler and chooses the name. An interceptor that never fires leaves the document unchanged
+     * and the caller's `checkResult` red, which is the desired verdict.
+     */
+    private fun renameViaSelectedHandler(newName: String) {
+        val context = contextAtCaret()
+        val handler =
+            requireNotNull(RenameHandlerRegistry.getInstance().getRenameHandler(context)) {
+                "no rename handler claims the caret in ${myFixture.file.text}"
+            }
+        UiInterceptors.register(RenamingInterceptor(newName))
+        handler.invoke(myFixture.project, myFixture.editor, myFixture.file, context)
+    }
+
+    /** Performs the rename the intercepted dialog would have performed on OK. */
+    private class RenamingInterceptor(
+        private val newName: String,
+    ) : UiInterceptors.UiInterceptor<RenameRefactoringDialog>(RenameRefactoringDialog::class.java) {
+        override fun doIntercept(component: RenameRefactoringDialog) = component.performRename(newName)
+    }
 
     private fun assertRefusedWith(
         expectedFragment: String,

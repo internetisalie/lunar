@@ -194,35 +194,46 @@ class LuaInplaceRenameTest : BasePlatformTestCase() {
     }
 
     /**
-     * **Guard** — TC-12 (`REFACT-07-14`). A green run of this case is evidence that nothing
-     * regressed, not evidence that the feature works, and it must not be counted as coverage.
+     * TC-12 (`REFACT-07-14`) — no **in-place** handler claims a numeric-`for` control variable; the
+     * platform's dialog handler does.
      *
-     * No mutation in code this repo can edit reddens it, and that is measured rather than argued:
-     * at this caret the data context supplies **null** and `RenameHandlerRegistry` returns an
-     * **empty** handler list (DR-05 probes `f`, `f2` and `f3` — all three caret placements, so it
-     * is not a whitespace artifact). No Lunar predicate is on the path: the gate at
-     * `MemberInplaceRenameHandler.java:46` is never reached with a null element, and
-     * `LuaInplaceRenameHandler.declaringNameRefOf` returns at its first line for one. Widening
-     * §3.2's first clause from `LuaNameRef` to `PsiNamedElement` does not bring it into reach
-     * either, because `numericForStatement ::= FOR IDENTIFIER '='` (`lua.bnf:152`) produces no
-     * `LuaNameRef` to anchor on. The only reddening mutation is on the grammar, which is outside
-     * the routine sweep. `risks-and-gaps.md` Risk 1.7 carries the argument.
+     * **This case was a guard and is no longer one.** It previously asserted an *empty* handler
+     * list, on the measured ground that the data context supplied **null** at this caret (DR-05
+     * probes `f`/`f2`/`f3`) and no Lunar predicate was on the path. That ground was BUG-469 — a
+     * defect, not a property — and `LuaTargetElementEvaluator.getNamedElement` closed it: the
+     * context now supplies the control variable's IDENTIFIER leaf, so `PsiElementRenameHandler`
+     * claims it and Shift+F6 opens the rename dialog.
      *
-     * **Phase 4: recorded as a GUARD, not as a passed mutation.** No mutation was executed against
-     * this case, because none in code this repo can edit reaches it — the argument is the one above,
-     * measured by DR-05 probes `f`/`f2`/`f3`: the data context supplies **null** at this caret and the
-     * registry returns an empty handler list, so no Lunar predicate is on the path. Its green run in
-     * every Phase 4 run is evidence that nothing regressed, not evidence that the feature works.
+     * `REFACT-07-14` is unchanged by that and is still what this case asserts — its row already
+     * read "no inline template starts; the user gets whatever the dialog path gives them today".
+     * What the dialog path gives them is now a working rename rather than nothing.
+     *
+     * **The two assertions have different standing, and the difference is not cosmetic.**
+     *
+     * The **count** is mutation-proven. **Mutation (executed):** drop
+     * `LuaTargetElementEvaluator.getNamedElement`. RED — `expected:<1> but was:<0>`, the empty list
+     * this case used to assert.
+     *
+     * The **claimant identity** remains a **guard**, for a narrowed form of the original row's
+     * argument. It is no longer true that no Lunar predicate is on the path — an element is
+     * supplied now, so `LuaInplaceRenameHandler.declaringNameRefOf` runs to its last step. It is
+     * still true that no edit this repo can make reddens it: that step is
+     * `leaf.parent as? LuaNameRef`, and `numericForStatement ::= FOR IDENTIFIER '='`
+     * (`lua.bnf:152`) gives a numeric-`for` leaf no `LuaNameRef` parent for any variant of that
+     * step to return, so no in-place handler can claim this caret without a grammar change. Green
+     * on that half is evidence that nothing regressed, not that the clause works.
      */
     @Test
-    fun testNoHandlerClaimsANumericForControlVariable() {
+    fun testNoInplaceHandlerClaimsANumericForControlVariable() {
         myFixture.configureByText("test.lua", "for i<caret> = 1, 10 do\n  print(i)\nend\n")
 
         val claimants = renameHandlersAtCaret()
 
+        assertEquals("Shift+F6 must select exactly one handler: $claimants", 1, claimants.size)
         assertTrue(
-            "the platform supplies no element at a numeric-for control variable, so none may claim it: $claimants",
-            claimants.isEmpty(),
+            "a numeric-for variable has no nameRef to anchor a template on, so the dialog handler " +
+                "must be the claimant: $claimants",
+            claimants.single() is PsiElementRenameHandler,
         )
     }
 
