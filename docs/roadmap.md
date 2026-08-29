@@ -75,7 +75,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-443 | Quick Doc reported empty for `ngx.say` live, never reproduced | todo | C | — | — | — |
 | BUG-450 | The debugger's `STACK` payload is unbounded at both ends, and DEBUG-07 claimed otherwise | todo | C | — | — | ✓ |
-| REFACT-01 | Rename Refactoring — the real capability behind BUG-457's interim refusal | in_progress | M | — | BUG-457 (retires the refusal); shares machinery with REFACT-04 | Serial: rename machinery |
 | REFACT-08 | Rename a LuaCATS type name — the renameable symbol that does not exist yet | todo | S | REFACT-01 *(delegated from `-16`)* | sized by `REFACT-01-00-DR-04`: 70 elements spell a type name, zero answer `getReference()`; the index route is a measured SILENT half-apply | ✓ |
 | REFACT-04 | Label Refactoring — conflict detection, use scope, Structure View target | planned | S | REFACT-01 Phase 3 *(`LuaRenameCollisionUsageInfo`)* | BUG-458 *(safe-delete of a label)* | Serial: rename machinery |
 | DEBUG-06 | Debug Target Configuration — the severity ladder that lets a launch be refused | planned | S | — | BUG-455 *(Phase 2 retires it)*; BUG-461's `testCheckConfigurationThrowsWithoutRuntime` entry; DEBUG-05 *(validation model it extends)* | Serial: debug target |
@@ -83,6 +82,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | DEBUG-07 | Lazy Remote Stack Evaluation — confirmed real, low value | todo | C | — | **measured 2026-08-22** (BUG-450 §5b): parse beats serialization at every size, but there is a ~30 ms PSI floor a payload bound cannot cross, and it is off-EDT — realistic case ~125 ms end to end | ✓ |
 | BUG-451 | luacheck `--std` overrides the project's `.luacheckrc`, false warnings on every rockspec and spec file | todo | S | — | one flag disables two mechanisms; user cannot override it | ✓ |
 | BUG-452 | luacheck exit 2 is a lint result, not a crash — the whole report is discarded | todo | S | — | a test pins the defect as intended | ✓ |
+| BUG-473 | `LuaTypesSnapshot.forFile` is superlinear in call-site count once a `---@class` is present | todo | M | — | measured 200 call sites = 344 736 ms vs ~190 ms untagged; on the resolve path, and 0 of 734 corpus files carry a `---@class` so the suite cannot see it | ✓ |
 | BUG-471 | A committed rename cannot be undone — *Edit ▸ Undo* is enabled and restores nothing | todo | S | — | reproduces on the DIALOG path too, so not REFACT-07's; typing-undo works in the same session; and on 2026-08-27 undo restored correctly in the VM-native sandbox — so the ENVIRONMENT is a live variable, rule it out first | ✓ |
 | BUG-453 | The human formatter is parsed instead of luacheck's documented editor interface | todo | S | — | escapes in tooltips; a configured formatter yields a silent false-clean | ✓ |
 | BUG-454 | Toggling a breakpoint mid-run deadlocks the debug session | todo | S | — | unanswered SETB held under writeMutex | ✓ |
