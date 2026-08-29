@@ -3,7 +3,7 @@ id: "BUG-473"
 title: "`LuaTypesSnapshot.forFile` is superlinear in call-site count once a `@class` tag is present"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "planned"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -67,8 +67,16 @@ investigation.
 
 ## Expected
 
-Snapshot cost grows no worse than linearly in call-site count, and an annotated file is not
-dramatically more expensive than an unannotated one of the same size.
+**Not linear — that target is unreachable and was wrong as first written.** `LuaTypeGraph`'s
+transitive closure (`LuaTypeGraph.kt:9-10`) is O(n²) by construction, so no fix to this bug makes
+snapshot cost linear in call-site count.
+
+What is reachable, and what the fix is measured against: an annotated file is not *dramatically*
+more expensive than an unannotated one of the same size. The measured annotated/control ratio at
+n = 160 is **676×** today; the chosen Phase 1 brings it to **100×**, and the gated Phase 2 to
+**20×**, moving the growth exponent from ×15.8 to ×4.0 per doubling.
+
+Stating a linear target here would have made any real fix look like a failure.
 
 ## Why this is `high`
 
@@ -155,11 +163,371 @@ each pair triggers terminates almost immediately.
 
 ## Where to look
 
-`LuaTypesSnapshot.forFile`, and what it recomputes per call site once a class is in scope. The
-shape of the growth suggests work repeated per call site that should be computed once per file or
-cached — see the engineering contract's `CachedValuesManager` rule for bindings.
+**`LuaTypeGraph.checkTypes` and the three `VariableElement` accessors it drives**
+(`LuaTypeNodes.kt:125`, `:126`, `:140`), per the profile above — not `forFile`'s caching, which the
+profile ruled out.
+
+An earlier version of this section pointed at `forFile` and suggested caching. That was written
+before the recording existed and is wrong twice over: the cache is not thrashing, and caching the
+walk is the specific hazard "What this does not say" warns about. The fix is **not** obvious and
+this bug needs planning before implementation — start from BUG-390 (*type graph cycle guard
+defeated by lazy nodes*), BUG-419 and BUG-424.
 
 ## Evidence
 
 `docs/features/refactoring/01-rename-refactoring/risks-and-gaps.md`, `REFACT-01-00-DR-03`, and
 `.agents/handoffs/REFACT-01-00-DR-03-phase-1.md`.
+
+## Correction to the profiled diagnosis — it is `resolveRead`, and only `resolveRead`
+
+Measured 2026-08-29 on the builder (`debian13`, `test -PwithPerf --tests
+'*LuaClassTagSnapshotPerformanceTest*' --rerun --no-build-cache`) with throwaway counters compiled
+into `LuaTypeNodes`/`LuaTypeGraph` and reverted afterwards. The profile's *location* is right; its
+*weighting* is not.
+
+**The decisive experiment**, all four numbers from the same single-`n` harness so they compare
+directly. Clean engine at n = 80: **7 731 ms** and **8 087 ms** on two runs. Removing
+`resolveWrite`'s recursion entirely — every interior `VariableElement` member of `upSet` skipped,
+`92 064 935` interior calls reduced to **0**, verified by a counter: **8 044 ms** and **8 215 ms**.
+**It did not help at all.** Adding the identical change to `resolveRead`: **2 518 ms**. Measured
+again in the warmed-up sweep below, the same pair is 9 047 ms → 909 ms.
+
+So the "three `VariableElement` accessors" framing above spreads the blame three ways when the
+measurement puts effectively all of it on one:
+
+| accessor | root calls | interior calls **per root** | productive node visits | effect of removing its recursion |
+| :-- | ---: | ---: | ---: | :-- |
+| `resolveWrite` (`LuaTypeNodes.kt:153`) | 14 336 | 6 422 | 1 123 795 | **none measurable** (7 731/8 087 → 8 044/8 215 ms) |
+| `resolveRead` (`LuaTypeNodes.kt:182`) | 7 699 | 6 349 | 585 393 | **3.3× standalone, 9.9× warmed** (8 215 → 2 518 ms; 9 047 → 909 ms) |
+| `resolveDeclaredDemand` (`LuaTypeNodes.kt:142`) | 7 296 | not counted | 578 508 | folded into the write experiment; none measurable |
+
+Read the interior column carefully: `resolveWrite`'s 6 422 is a clean-engine measurement
+(92 064 935 calls over 14 336 roots); `resolveRead`'s 6 349 is measured on the write-flattened spike
+(92 065 177 over 14 501 roots), because the clean-engine read interior was never counted. The two
+walks cost the same *per root* — the up- and down-closures are mirror images (`propagateBiEdge`,
+`LuaTypeGraph.kt:853`) — and they still do not cost the same overall, because a *rejected* interior
+call is one `LinkedHashSet.add` while a *productive* `resolveRead` visit materialises two collections
+over the visited node's entire `downSet`
+(`.asSequence().map{}.filter{}.toList()` at `LuaTypeNodes.kt:186-201`, then
+`filterIsInstance<LuaGraphType.Table>()` at `:207`). The report already recorded that allocation
+site and then weighted `write` alongside it anyway.
+
+Three smaller corrections:
+
+- **Depth is not the cost; breadth is.** "82 nested `resolveRead` frames" describes one stack. The
+  quantity that scales is 585 393 productive `resolveRead` visits, each iterating a `downSet`
+  averaging ~76 members and allocating two collections over it.
+- **`resolveWrite (:171)` / `resolveRead (:201)` / `resolveDeclaredDemand (:146)` are sampled call
+  sites inside those functions, not their declarations** (`:153`, `:182`, `:142`). Both readings are
+  consistent with the source; the table reads as a declaration reference and is not one.
+- **"Expected: no worse than linear" is not reachable by any strategy evaluated below.** The best
+  measured result still grows ×4.0 per doubling, because the transitive closure the graph maintains
+  by construction (`LuaTypeGraph.kt:9-10`) is itself O(n²) in a connected component. The target this
+  report should be held to is *a fixed low polynomial degree and a bounded ratio against the
+  tag-free control*, not linearity.
+
+### Measured scaling, one harness, one machine
+
+Same fixture generator, same JVM, `n` swept in a single test method after warm-up. `n = 10` is
+JIT warm-up in every column and is excluded from the ratios.
+
+| n | clean engine, annotated | clean engine, control | root-memo (§S1) | closure-flattened read (§S3) |
+| ---: | ---: | ---: | ---: | ---: |
+| 10 | 563 ms | 43 ms | 492 ms | 469 ms |
+| 20 | 279 ms | 39 ms | 176 ms | 200 ms |
+| 40 | 966 ms | 73 ms | 484 ms | 343 ms |
+| 80 | 9 047 ms | 131 ms | 2 015 ms | 909 ms |
+| 160 | **143 326 ms** | 212 ms | 27 276 ms | **3 649 ms** |
+| growth per doubling | ×3.5, ×9.4, ×15.8 | flat | ×2.8, ×4.2, ×13.5 | ×1.7, ×2.6, ×4.0 |
+| ratio to control at n = 160 | **676×** | 1× | 100× | **20×** |
+
+### Graph shape at n = 80, annotated
+
+`nodes = 1 067`, of which `817` are `VariableElement`. `checkTypes` runs **2** fixed-point
+iterations and admits **14 508** pairs; **21 138** edge additions occur *inside* the first
+iteration. Root accessor calls during `checkTypes`: `write` 14 336, `read` 7 699, `declaredDemand`
+7 296. Distinct `(node, graph-revision)` keys among those same calls: **7 211 / 647 / 325** — i.e.
+50 %, 92 % and 96 % of the calls re-derive a result that has not changed since the last one.
+
+**The 5 s cutoff never fires.** `checkTypes(timeLimitMs = 5000)` (`LuaTypeGraph.kt:299`) is tested
+once per fixed-point iteration (`:319-322`), and iteration 1 alone took 7 253 ms. The designed safety
+break is structurally unable to bound a single iteration.
+
+## What BUG-390, BUG-419 and BUG-424 teach, and how this plan answers each
+
+**BUG-390 — the guard must survive every hop, and a special case is how it escapes.** The defect was
+a `is VariableElement` branch threading `visited` sitting *above* a generic `is ValueNode -> it.write`
+branch that did not; a lazy hop therefore restarted the guard with an empty set and recursed to a
+`StackOverflowError` on 30–43 % of corpus files. The fix collapsed both branches into the single
+`is ValueNode -> it.writeWith(visited)` at `LuaTypeNodes.kt:171` *precisely so the split cannot be
+reintroduced*, and the comment at `:167-170` says so.
+**How this plan answers it:** §S1 adds no branch to `resolveWrite`/`resolveRead`/
+`resolveDeclaredDemand` and does not touch `writeWith` (`:38`, `:108`, `:128`). It intercepts only
+the three public accessors (`:125`, `:126`, `:140`), each of which is by construction a walk *root*
+— it allocates the `mutableSetOf()` itself. The interior entry points (`writeWith` at `:128`,
+`resolveRead` at `:190`, `resolveDeclaredDemand` at `:146`) are never memo-consulted, so no path
+that carries a caller's guard is altered. §S3, which *does* change a walk, is quarantined behind a
+differential-equivalence gate (below) rather than shipped on reasoning.
+
+**BUG-419 — a verdict requires knowing both sides, and a flag lost in the middle of a walk is a
+silent behaviour change.** Its shipped fix turned on `UseNode.declaredDemand`, and the part worth
+carrying here is `VariableElement.declaredDemand` (`:140`): inheriting the `false` default demoted
+*every* declared-contract violation reached through a call, because the pair actually checked is
+(value, *variable*) and not (value, `@param` use node). A change in the middle of a resolution that
+looks like an optimisation can silently change which diagnostics are emitted.
+**How this plan answers it:** the emission surface is asserted directly, not inferred. The gate
+includes a `-PwithCorpus` sweep whose `LuaCorpusSweepTest.sweepAndRatchet` baselines count
+`LuaTypeAssignability` emissions per member, and the acceptance condition is **byte-identical
+baselines**, not "no test failed". §S1 is expected to be exactly identical; §S3 is measured *not* to
+be (below), which is why it is a separate phase.
+
+**BUG-424 — a fixture where nothing resolves cannot demonstrate the absence of a diagnostic.** The
+first metamethod probe read zero false positives because both operands were imprecise; the class was
+in fact the largest false-positive source, visible only once one side was precisely typed. Its second
+lesson is in this file: the `is UseNode -> it.read` branch at `LuaTypeNodes.kt:191-197` deliberately
+**preserves** the trait rather than projecting it, and the comment records that projecting at that hop
+lost the metamethod arm for every value reaching an operator through a variable.
+**How this plan answers it:** the regression fixtures are annotated and precisely typed on one side —
+the `---@class` fixture this bug is about is exactly that shape — and no proposal below changes what
+`resolveRead` *returns* for a `UseNode` member. §S3 changes the *order* in which those members are
+consulted, which is why its risk register names `mergeTableDemands` (`:212`, BUG-395) and the trait
+branch explicitly.
+
+## Fix Strategy
+
+Four strategies were implemented as throwaway spikes and measured; the tree was restored after each.
+
+### S1 — memoize the three root accessors, keyed on a graph revision counter. **CHOSEN, Phase 1.**
+
+`VariableElement` gains three memo fields, each an immutable `(revision, value)` reference:
+
+- `write` (`:125`), `read` (`:126`) and `declaredDemand` (`:140`) return the memo when its revision
+  equals the graph's current revision, else compute, store and return.
+- `LuaTypeGraph` gains a `revision: Long`, incremented at exactly three places: the successful
+  `to.upSet.add(from)` in `propagateDownward` (`:826`), the successful `from.downSet.add(to)` in
+  `propagateUpward` (`:840`), and every `_nodes += node` in the four factories (`value`, `lazyValue`,
+  `use`, `variable`). A fourth bump is required at `LuaGraphType.kt:393-394`, which mutates
+  `memberNode.upSet` / `downSet` **directly, bypassing `addEdge`** — the one production site that
+  does.
+- Node creation must bump it because a node can join a `LuaGraphType.Table`'s `localMembers` *after*
+  the `Table` was constructed (`LuaGraphType.kt:378-379`, `LuaTypesVisitor.kt:756`), which changes a
+  demand without changing an edge.
+
+**Measured:** ×4.5 at n = 80, ×5.3 at n = 160, ratio-to-control 676× → 100×. The spike used a
+JVM-global counter, which *over*-invalidates (another file's graph bumps this one's revision) and is
+therefore a **lower bound** on the per-graph variant's hit rate. Perf suite green (`failures="0"`).
+
+**What it does not do:** the exponent is unchanged (×13.5 per doubling at the top). S1 is a constant
+factor, not a fix for the growth curve.
+
+### S2 — exploit the closure invariant for `resolveWrite` / `resolveDeclaredDemand`. **REJECTED.**
+
+The graph maintains a transitive closure by construction (`LuaTypeGraph.kt:9-10`,
+`propagateDownward`/`propagateUpward`), so every node reachable from `M` is *already a direct member*
+of `M.upSet` and the recursion into `VariableElement` members re-derives a subset. Skipping those
+members makes the walk one level deep.
+
+Audited on the n = 80 annotated graph and on the tag-free control: **`upViol = 0`, `downViol = 0`**
+over 1 632 variable nodes — the closure invariant holds exactly. Differential audit of flattened vs
+recursive results: **`write` 0 mismatches / 1 632**, **`declaredDemand` 0 / 1 632**. The
+transformation is sound for both, because `resolveWrite` folds with a union that drops `Undefined`
+(`:158-164`) and `resolveDeclaredDemand` folds with `any` — both idempotent and order-insensitive.
+
+**Rejected anyway, on measurement:** it buys nothing (8 044 → 8 215 ms, inside noise) while touching
+the exact code BUG-390 was filed against. A correctness-neutral change with no measured benefit is
+not worth the review surface.
+
+### S3 — the same flattening for `resolveRead`. **Phase 2, gated.**
+
+**Measured:** ×9.9 at n = 80 (warmed sweep; ×3.3 on the standalone harness), ×39 at n = 160, ratio-to-control 676× → 20×, and the growth curve
+drops from ×15.8 to ×4.0 per doubling. It is the only strategy measured to change the exponent.
+
+**And it is not equivalent.** `resolveRead` folds with **first-wins** (`demands.firstOrNull()`,
+`:209`) plus a >1-table merge (`:207-208`, BUG-395), so it is order-dependent where the other two
+are not, and the recursion collapses each variable child to *one* demand while the flattened form
+sees all of that child's demands separately. Differential audit on the n = 80 annotated graph:
+**1 mismatch / 817 nodes.** Not zero.
+
+Phase 2 therefore ships only if a differential harness — the flattened result computed alongside the
+recursive one, mismatches counted, over the **full unit suite and the `-PwithCorpus` sweep** — either
+reports zero, or reports a set small enough to enumerate and adjudicate one by one. That harness is a
+task in its own right; see DR-4.
+
+### S4 — hoist `useNode.read` / `useNode.declaredDemand` out of the inner `valueNode` loop. **REJECTED.**
+
+The natural reading of `LuaTypeGraph.kt:355-372` is that `useNode.read` and `useNode.declaredDemand`
+are recomputed for every `valueNode`. They are — but only *inside* `if (checkedPairs.add(pair))`
+(`:361`), so a `useNode` whose pairs are all already checked pays nothing. Hoisting them to the
+`useNode` loop head makes them unconditional: **measured, root `read` calls went up, 7 699 → 14 501.**
+The redundancy is real (92 % by `(node, revision)`) but it is captured by S1 without changing when
+anything is evaluated. A *lazy* hoist would be a second mechanism for the same win and is not worth
+the second mechanism.
+
+### S5 — reduce the per-visit allocation inside `resolveRead`. **Adjunct, optional.**
+
+`LuaTypeNodes.kt:185-209` builds a sequence, maps, filters, `toList()`s, then `filterIsInstance`s —
+two collections per visit, 585 393 visits at n = 80. A single pass that tracks the first non-`Any` demand and
+only materialises a table list when a second `Table` appears is result-identical. It is a constant
+factor and **cannot change the exponent**, so it is worth doing only alongside S1/S3, never instead.
+
+### S6 — shrink the cross-product or the closure itself. **Out of scope, file separately.**
+
+`checkedPairs` (`:301`) already bounds each pair to one check for the life of the run, and the
+measured pair count (14 508) tracks the closure size, not redundant checking. Making the closure
+sparser — the actual O(n²) source — is an inference-engine redesign, not a bug fix.
+
+### Recommended order
+
+1. **Phase 1 = S1**, plus the call-count assertion below. Safe, measured 5×, ratio 676× → 100×.
+2. **Phase 2 = S3 (+ S5)**, only after DR-4's differential harness reports a mismatch set that can be
+   adjudicated. Measured 39×, ratio 676× → 20×.
+
+**The safe fix is smaller than the fast one, and that is the honest outcome here.** Phase 1 alone does
+not meet the "Expected" section as written; it makes an 80-call-site annotated file usable (2 s) and
+leaves a 160-call-site one bad (27 s). Phase 2 is what makes the curve tolerable, and it is the phase
+that can change what the engine infers.
+
+## Correctness argument — what the `visited` set guarantees, and why S1 preserves it
+
+**The invariant.** Within one resolution walk, each `VariableNode` contributes at most once, and a
+re-entry returns the *neutral element of that walk's fold*:
+
+| walk | guard line | re-entry returns | fold | neutral because |
+| :-- | :-- | :-- | :-- | :-- |
+| `resolveWrite` | `LuaTypeNodes.kt:154` | `Undefined` | union | `flatten` drops `Undefined` (`:161`) |
+| `resolveRead` | `:183` | `Any` | intersection, first-wins | `.filter { it != LuaGraphType.Any }` (`:200`) |
+| `resolveDeclaredDemand` | `:143` | `false` | `any` | `false` is the identity of `∨` |
+
+So the guard is simultaneously the termination device and the fold's identity. A result computed
+*under a non-empty guard* is therefore walk-relative: it is missing the contribution of every node
+the enclosing walk had already entered.
+
+**Why the memo is not walk-relative.** The three public accessors (`:125`, `:126`, `:140`) each open a
+walk with a **freshly allocated, empty** `mutableSetOf()`. At that entry the guard contributes
+nothing, so the value returned is a pure function of the graph's node and edge state — the same
+function, for the same node, until that state changes. S1 memoizes exactly and only that function.
+
+**Where the memo must never be consulted**, stated as an implementation constraint rather than an
+expectation: `ValueNode.writeWith` (`:38`), `LazyValueElement.writeWith` (`:108`),
+`VariableElement.writeWith` (`:128`), the `is VariableElement -> it.resolveRead(visited)` branch
+(`:190`), and `it.resolveDeclaredDemand(visited)` (`:146`). Every one of these receives a caller's
+guard. Consulting the memo from any of them reintroduces BUG-390 in reverse — instead of losing the
+guard, it would *ignore* it, returning a full result where the guard requires the neutral element,
+and a cycle would resolve to a type instead of `Undefined`. The regression test below asserts this
+directly.
+
+**Completeness of the invalidation key.** The memoized value depends on: the node's `upSet`/`downSet`
+membership; `UseElement.read` / `ValueElement.write`, both `val`s fixed at construction; and the
+contents of a `LuaGraphType.Table` reachable from either, whose `localMembers` map is populated after
+the `Table` is constructed. Bumping the revision on every edge addition **and** every node creation
+covers all three, because a member node is a node. Over-invalidation is always sound — it forces a
+recomputation that returns the same answer — so an imprecise counter costs speed, never correctness.
+
+**Threading.** Each memo is a single reference field holding an immutable `(revision, value)` pair, so
+a concurrent reader sees either the previous pair or the new one, never a torn one (`kotlin.Pair`'s
+components are `final`, so publication is safe). A stale read forces a recomputation and is harmless.
+Do **not** split it into two fields. The snapshot outlives `checkTypes` and is read from the
+annotator, completion, and inlay-hint paths, so this is a real concurrency surface and not a
+formality.
+
+**What cannot be argued, only measured.** That S1 changes no *diagnostic*. The argument above says
+each accessor returns the same value; it does not by itself prove the emission set is unchanged,
+because `checkTypes` interleaves reads with `addEdge` and a revision bump could in principle
+reorder nothing but still be got wrong in implementation. The corpus baselines are the assertion.
+
+## Test Strategy
+
+### 1. A performance assertion that can actually fail
+
+`LuaClassTagSnapshotPerformanceTest` is the right *fixture* and the wrong *budget*, and its own KDoc
+(`:22-25`) says why: a wall-clock budget "would go red on the fix as readily as on a regression", and
+the repo's existing budget suites did not catch this defect. Two assertions replace it, and only one
+of them is a timing assertion.
+
+**1a. Ratio against the in-JVM control — the timing assertion.** In one test method, one JVM, after
+warm-up, measure `LuaTypesSnapshot.forFile` on the annotated fixture at n = 160 and on the identical
+fixture with the tag removed, and assert `annotated / control ≤ 200`. The control absorbs machine
+speed, CI contention and JIT state — the three things that make an absolute millisecond budget flaky
+— so the threshold is a property of the engine, not of the host.
+
+Defensibility of 200, from the table above: pre-fix **676**, post-S1 **100**, post-S3 **20**. It sits
+2× above the Phase 1 result and 3.4× below the defect, so a regression restoring a third of the
+defect trips it, and normal noise does not. Tighten to 40 when Phase 2 lands; do not tighten it
+speculatively.
+
+Stays behind the `*Performance*` / `-PwithPerf` filter (`build.gradle.kts:272-276`): at n = 160 the
+pre-fix case is 143 s, which has no place in the routine loop. Note the recorded caveat at
+`build.gradle.kts:267-271` that the perf suites have a warm-up/isolation dependency and are expected
+to be run as part of a full `-PwithPerf` run.
+
+**1b. A root-resolution call-count budget — the assertion that cannot be flaky.** The quantity that
+actually regressed is not milliseconds, it is root accessor calls. Add `@TestOnly` counters to
+`LuaTypeGraph`, in the same spirit as the existing `compatMemoSize()` (`LuaTypeGraph.kt:863`),
+exposing the number of root `write` / `read` / `declaredDemand` resolutions performed during
+`checkTypes`, and assert fixed bounds for the n = 80 fixture. Measured pre-fix: **14 336 / 7 699 /
+7 296**; S1's distinct-key counts bound them at **7 211 / 647 / 325**. This is deterministic given
+the fixture, independent of the machine, and fails on exactly the regression this report describes —
+so it belongs in a normally-named test that the **routine loop runs**, not behind `-PwithPerf`.
+
+**Both assertions get a mutation proof** (`mutation-proof` skill): revert the memo, confirm each goes
+red; re-apply, confirm each goes green. An unproven perf assertion is the instrument that failed here
+already.
+
+### 2. Correctness regression tests
+
+Home: `src/test/kotlin/net/internetisalie/lunar/lang/types/LuaTypeGraphCycleGuardTest.kt`, which
+already owns BUG-390 and BUG-427 and constructs graphs directly.
+
+- **`guardedInteriorEntryIgnoresTheMemo`** — the test that fails if the fix breaks the cycle guard,
+  drawn from BUG-390's shape. Build a variable `v` whose `write` resolves to a concrete type; read
+  `v.write` so the memo is populated; then call `v.writeWith(mutableSetOf(v))` and assert it returns
+  `LuaGraphType.Undefined`, **not** the memoized type. Mutation proof: make `writeWith` consult the
+  memo — the test must go red. Repeat for `resolveRead`'s interior entry (expect `Any`).
+- **`memoIsInvalidatedByALaterEdge`** — read `v.write`, then `graph.addEdge(graph.value(anchor,
+  LuaGraphType.Number), v)`, then assert `v.write` reflects the new value. Mutation proof: delete the
+  bump in `propagateDownward` — red.
+- **`memoIsInvalidatedByALaterMemberNode`** — the `LuaGraphType.kt:393-394` path that bypasses
+  `addEdge`. This is the bump a reviewer is most likely to miss, so it gets its own test.
+- **`lazyNodeCycleTerminatesInsteadOfOverflowing`** and its two siblings already in the file must stay
+  green unmodified. If any of them needs editing, the change is wrong.
+
+### 3. Behavioural gates (not new tests — existing ones, run and compared)
+
+- Full unit suite, `--rerun --no-build-cache` (a cached `:test` reports a pass having run nothing).
+- `-PwithCorpus`, comparing `LuaCorpusSweepTest.sweepAndRatchet` baselines **byte-for-byte**, not
+  merely "green". A `LuaTypeAssignability` count that moves is a Phase-1 failure.
+- `ktlintCheck`.
+
+## Blast radius
+
+`VariableElement.write` / `.read` / `.declaredDemand` are read from, at minimum:
+
+- **The engine itself** — `LuaTypeGraph.addEdge` (`:136-141`), `doInstantiateGeneric` (`:191`),
+  `checkTypes` (`:346`, `:353-354`, `:362-368`), `checkTableCompatibility` (`:784-785`),
+  `checkFunctionCompatibility`, `LuaTypeNodes.mergeTableDemands` (`:212`).
+- **Snapshot query** — `LuaTypes.kt:76`, `:99` (`typeOf`), `LuaUnionDiagnostics.kt:65`.
+- **The visitor, mid-traversal** — `LuaTypesVisitor.kt` at `:168`, `:194`, `:345`, `:471`, `:473`,
+  `:657-658`, `:958-962`, `:985`, `:989`, `:1136`, `:1271`. These run **while edges are still being
+  added**, which is why an invalidation key that covers only edges (and not nodes) is not enough.
+- **User-visible surfaces** — `LuaCompletionContributor.kt:502`, `LuaInferredTypeAnnotator.kt:52`,
+  `LuaTypeInlayHintProvider.kt:139`, `LuaMethodChainInlayHintProvider.kt:240`,
+  `LuaOverrideLineMarkerProvider.kt:120`, and downstream of the emission set,
+  `LuaTypeAssignabilityInspection`, `LuaReturnTypeMismatchInspection`, `LuaTypeHypothesisAnnotator`.
+
+**The corpus cannot confirm this fix, and must still be run.** Zero of the 734 corpus files carry a
+`---@class`, so a green sweep says nothing about the annotated path — but the sweep is what detects a
+*general* inference regression, and it is exactly what caught BUG-390's 131-file highlight failure.
+Both statements are true at once. Separately, **a `---@class`-bearing fixture must be added to the
+corpus** or this coverage gap survives the fix; see DR-6.
+
+## De-risking tasks — what was not run
+
+| id | item | why it is open |
+| :-- | :-- | :-- |
+| DR-1 | Per-graph revision counter | The spike measured a JVM-global counter. Global over-invalidates, so its numbers are a lower bound and its correctness is strictly more conservative — but `VariableElement` has no back-reference to its graph today, and adding one is the actual implementation. **Read, not run.** |
+| DR-2 | Full unit suite + `-PwithCorpus` under S1 | Only `LuaClassTagSnapshotPerformanceTest` was run against the spikes. **Read, not run.** |
+| DR-3 | `ktlintCheck` | Not run against any spike. Format on the VM and rsync back — `run "ktlintFormat ktlintCheck"` cannot fail (BUG-445). |
+| DR-4 | S3 differential-equivalence harness | Flattened vs recursive `read`, mismatches counted over the full suite and the corpus. Measured 1/817 on the n = 80 fixture alone; the population-wide number is unknown and Phase 2 is blocked on it. |
+| DR-5 | `timeLimitMs` granularity | `checkTypes(timeLimitMs = 5000)` (`:299`) is checked once per fixed-point iteration (`:319-322`); iteration 1 measured 7 253 ms without tripping. Decide whether the cutoff belongs inside the node loop, and whether `ProgressManager.checkCanceled()` belongs there too — this path runs on the EDT in the reproduction. |
+| DR-6 | A `---@class` corpus fixture | The trigger condition is unsatisfiable on 100 % of the corpus. Until a fixture carries one, no sweep can regress-detect this bug. |
+| DR-7 | Live IDE verification | The measured harness calls `forFile` directly. The user-visible symptom is a freeze while editing an annotated module; confirm via the `verify-in-ide` flow. |
