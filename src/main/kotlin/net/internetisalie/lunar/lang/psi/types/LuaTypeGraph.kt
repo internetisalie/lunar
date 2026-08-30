@@ -339,12 +339,11 @@ class LuaTypeGraph {
         timeLimitMs: Long = 5000,
     ) {
         val checkedPairs = mutableSetOf<Pair<TypeNode, TypeNode>>()
-        var changed: Boolean
+        var changed = false
         var iterations = 0
         val startTime = System.currentTimeMillis()
 
         do {
-            changed = false
             iterations++
             // Clear the compatibility memo each fixed-point iteration (not just once per run):
             // addEdge grows up/down sets between iterations, so a (value, use) result cached in an
@@ -360,69 +359,104 @@ class LuaTypeGraph {
                 log.warn("Type checking exceeded time limit (${timeLimitMs}ms). Potential performance bottleneck.")
                 break
             }
-
-            // Progress = new edges OR new pairs EXAMINED — deliberately not the error count.
-            // Errors-as-progress coupled convergence to diagnostics: suppressing a false positive
-            // (BUG-416) silently ended iteration early, and the whole inspection profile of a
-            // corpus member flipped (LuaUndeclaredVariable 829 → 1647). A suppressed check still
-            // consumes its pair, so pair growth is the suppression-independent signal.
-            val initialCheckedCount = checkedPairs.size
-            val initialEdgeCount =
-                _nodes.sumOf {
-                    (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size }
-                        ?: 0
-                }
-
-            val currentNodes = _nodes.toList()
-            for (node in currentNodes) {
-                if (node is VariableElement) {
-                    val currentDownSet = node.downSet.toList()
-                    val currentUpSet = node.upSet.toList()
-                    // BUG-416: a value reaching a use through a variable is one REACHING DEFINITION.
-                    // With several of them, a Nil among the writes is optionality — the branch that
-                    // did not run — and flagging it produced 959 false positives on one corpus
-                    // member. With exactly one, the variable can hold nothing else, and a Nil is
-                    // certain (`local nothing = nil; count(nothing)` stays an error).
-                    val certain = currentUpSet.count { it is ValueNode && !it.declaredOrigin } == 1
-                    // BUG-441 (RC-2): this loop checks each reaching definition against the demand
-                    // ON ITS OWN — the variable's merged type is never the thing being checked, which
-                    // is why every "make the union gradual" design aimed at the type algebra failed.
-                    // Unknown-ness is therefore a property of the upSet as a whole and can only be
-                    // computed here: the string write in `local d = wx.thing; if c then d = "s" end`
-                    // is itself perfectly known, and what makes it unreportable is a SIBLING.
-                    val unknownProvenance =
-                        currentUpSet.any { it is ValueNode && isUnknown(it.write) }
-                    for (useNode in currentDownSet) {
-                        if (useNode !is UseNode) continue
-                        for (valueNode in currentUpSet) {
-                            if (valueNode !is ValueNode) continue
-
-                            val pair = Pair(valueNode, useNode)
-                            if (checkedPairs.add(pair)) {
-                                checkCompatibility(
-                                    valueNode.write,
-                                    useNode.read,
-                                    valueNode.element,
-                                    useNode.element,
-                                    certain = certain,
-                                    declaredDemand = useNode.declaredDemand,
-                                    unknownProvenance = unknownProvenance,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            val finalEdgeCount =
-                _nodes.sumOf {
-                    (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size }
-                        ?: 0
-                }
-            if (finalEdgeCount > initialEdgeCount || checkedPairs.size > initialCheckedCount) {
-                changed = true
-            }
+            changed = runFixedPointPass(checkedPairs)
         } while (changed)
+    }
+
+    /**
+     * One fixed-point pass over every variable node.
+     *
+     * @return whether the pass made progress. Progress = new edges OR new pairs EXAMINED —
+     * deliberately not the error count. Errors-as-progress coupled convergence to diagnostics:
+     * suppressing a false positive (BUG-416) silently ended iteration early, and the whole
+     * inspection profile of a corpus member flipped (LuaUndeclaredVariable 829 → 1647). A
+     * suppressed check still consumes its pair, so pair growth is the suppression-independent
+     * signal.
+     */
+    private fun runFixedPointPass(checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>): Boolean {
+        val initialCheckedCount = checkedPairs.size
+        val initialEdgeCount = edgeCount()
+        for (node in _nodes.toList()) {
+            if (node is VariableElement) checkNodePairs(node, checkedPairs)
+        }
+        return edgeCount() > initialEdgeCount || checkedPairs.size > initialCheckedCount
+    }
+
+    /** Total up/down-set membership across every variable node — the pass's progress signal. */
+    private fun edgeCount(): Int =
+        _nodes.sumOf {
+            (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size }
+                ?: 0
+        }
+
+    /**
+     * Check every (reaching definition, use) pair of one variable, each pair at most once for the
+     * life of the run.
+     *
+     * **BUG-473 Phase 2.** `write` is resolved for a given `valueNode` AT MOST ONCE PER VISIT of
+     * [node] — into `writesInVisit`, filled lazily on first need — rather than once per admitted
+     * pair. The inner loop re-reads the same value node for every use node, so this turns
+     * Θ(|upSet| × |downSet|) walk roots into Θ(|upSet|). On the one-`---@class` reproduction at 160
+     * call sites that is 27 372 root `write` resolutions down to 1 132 — quadratic to linear, 7n +
+     * 12 — and 26 791 ms down to 3 556 ms, with the growth exponent per doubling ×11.2 → ×5.9.
+     * Phase 1's per-node walk-root memo does not absorb any of it on its own, because this loop
+     * bumps the graph revision tens of thousands of times as it runs and invalidates every memo it
+     * would otherwise hit.
+     *
+     * Filled lazily and not up front: reading the whole `upSet` eagerly at the head of every visit
+     * is the variant DR-8 measured, and it pays 448 ms of prelude at that size resolving values
+     * many visits never ask for.
+     *
+     * The hoist changes WHEN a value is read, not what is resolved, and its staleness window is one
+     * visit of [node]: a pair checked earlier in this visit can add an edge that moves a later
+     * value node's `write`, and [checkedPairs] is monotone, so that pair is never re-examined.
+     * That equivalence is measured rather than proven — DR-8 found 0 mismatches over 4 172 026
+     * comparisons across the suite, the corpus sweeps and the annotated fixture — which is why
+     * [LuaTypePairWriteDifferential] ships as a standing gate rather than as a one-off spike.
+     */
+    private fun checkNodePairs(
+        node: VariableElement,
+        checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>,
+    ) {
+        val currentDownSet = node.downSet.toList()
+        val currentUpSet = node.upSet.toList()
+        // BUG-416: a value reaching a use through a variable is one REACHING DEFINITION.
+        // With several of them, a Nil among the writes is optionality — the branch that
+        // did not run — and flagging it produced 959 false positives on one corpus
+        // member. With exactly one, the variable can hold nothing else, and a Nil is
+        // certain (`local nothing = nil; count(nothing)` stays an error).
+        val certain = currentUpSet.count { it is ValueNode && !it.declaredOrigin } == 1
+        // BUG-441 (RC-2): this loop checks each reaching definition against the demand
+        // ON ITS OWN — the variable's merged type is never the thing being checked, which
+        // is why every "make the union gradual" design aimed at the type algebra failed.
+        // Unknown-ness is therefore a property of the upSet as a whole and can only be
+        // computed here: the string write in `local d = wx.thing; if c then d = "s" end`
+        // is itself perfectly known, and what makes it unreportable is a SIBLING.
+        val unknownProvenance =
+            currentUpSet.any { it is ValueNode && isUnknown(it.write) }
+        val writesInVisit = arrayOfNulls<LuaGraphType>(currentUpSet.size)
+        for (useNode in currentDownSet) {
+            if (useNode !is UseNode) continue
+            for (valueIndex in currentUpSet.indices) {
+                val valueNode = currentUpSet[valueIndex]
+                if (valueNode !is ValueNode) continue
+                if (!checkedPairs.add(Pair(valueNode, useNode))) continue
+
+                val valueWrite = writesInVisit[valueIndex] ?: valueNode.write.also { writesInVisit[valueIndex] = it }
+                if (LuaTypePairWriteDifferential.enabled) {
+                    LuaTypePairWriteDifferential.compare(valueWrite, valueNode.write)
+                }
+                checkCompatibility(
+                    valueWrite,
+                    useNode.read,
+                    valueNode.element,
+                    useNode.element,
+                    certain = certain,
+                    declaredDemand = useNode.declaredDemand,
+                    unknownProvenance = unknownProvenance,
+                )
+            }
+        }
     }
 
     private fun checkCompatibility(
@@ -947,3 +981,69 @@ data class ElementError(
      */
     val inferredValueType: String? = null,
 )
+
+/**
+ * BUG-473 Phase 2 — the equivalence gate for the per-visit `write` hoist in
+ * [LuaTypeGraph.checkNodePairs].
+ *
+ * The hoist is **measured-equivalent, not proven**: its staleness window is one outer-node visit,
+ * and the pair set is monotone, so a pair whose value node moved inside that window is never
+ * re-examined. This differential is the evidence for that equivalence, and it ships as a gate
+ * rather than as a discarded spike so a later change to the loop cannot silently invalidate it.
+ *
+ * While [enabled], every admitted pair additionally resolves `write` **live** and compares it with
+ * the hoisted value that was actually used. The observation is inert: resolving `write` reads the
+ * graph and never mutates it, so an observed run type-checks identically to an unobserved one — it
+ * only costs the resolutions the hoist exists to avoid. Off in production, where the whole
+ * instrument is one field read per pair.
+ *
+ * **Retention:** while enabled this holds two counters and at most [MAX_SAMPLES] rendered type
+ * names. It never holds a [TypeNode], a `PsiElement`, a `PsiFile` or a [LuaTypeGraph], so a gate
+ * left on leaks nothing beyond those strings, and [start] clears them at the head of every run.
+ * The mutable state is a deliberate deviation from the immutability default, on the same ground as
+ * [LuaTypeGraph.rootResolutionCount]: the quantity being asserted is a count over a run, and there
+ * is no run-scoped object the engine's callers can hand a test.
+ */
+@org.jetbrains.annotations.TestOnly
+internal object LuaTypePairWriteDifferential {
+    private const val MAX_SAMPLES = 20
+
+    private val mismatchShapes = linkedSetOf<String>()
+    private var comparisonCount = 0L
+    private var mismatchCount = 0L
+
+    var enabled: Boolean = false
+        private set
+
+    /** Arm the differential and discard any previous run's counts. */
+    fun start() {
+        mismatchShapes.clear()
+        comparisonCount = 0L
+        mismatchCount = 0L
+        enabled = true
+    }
+
+    /** Disarm. Callers arm in a test body and disarm in its `finally`. */
+    fun stop() {
+        enabled = false
+    }
+
+    fun comparisons(): Long = comparisonCount
+
+    fun mismatches(): Long = mismatchCount
+
+    /** Up to [MAX_SAMPLES] distinct `hoisted -> live` renderings, for adjudicating a non-zero run. */
+    fun mismatchShapes(): List<String> = mismatchShapes.toList()
+
+    fun compare(
+        hoisted: LuaGraphType,
+        live: LuaGraphType,
+    ) {
+        comparisonCount++
+        if (hoisted == live) return
+        mismatchCount++
+        if (mismatchShapes.size < MAX_SAMPLES) {
+            mismatchShapes.add("${hoisted.displayName()} -> ${live.displayName()}")
+        }
+    }
+}

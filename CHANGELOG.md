@@ -11,8 +11,21 @@
   graph walks for 80 call sites, half of them re-deriving an answer that had not changed — and now
   reuses a result until the graph it was computed from actually changes. Measured on the same file
   and machine, an annotated file went from 679× the cost of its unannotated control to 87×, and
-  145 seconds to 21 at 160 call sites. Annotated files that large are still slower than they should
-  be; the remaining growth needs a second change that is not yet safe to ship.
+  145 seconds to 21 at 160 call sites. Annotated files that large were still slower than they should
+  be, which is what the next entry addresses.
+
+- **The same annotated modules are now several times faster again** (BUG-473, Phase 2). Phase 1
+  ended the multi-minute freeze but left the cost still climbing steeply with file size: 160 colon
+  calls against an annotated class took 27 seconds to analyse. The checker was resolving the same
+  variable's type from scratch once for *every pair* of values and uses it compared — 27 372 full
+  graph walks where 1 132 were needed — because it adds edges to the graph as it runs and so kept
+  invalidating Phase 1's cache out from under itself. It now resolves each value once per variable
+  it visits. That file takes 3.6 seconds, an 80-call one takes 0.6 (was 2.4), and the number of
+  graph walks grows with the file rather than with its square. Every diagnostic the engine reported
+  before, it still reports — compared message-for-message and now pinned by a test, because the
+  fastest alternative fix silently deleted the `---@param` type errors on every method call. Large
+  annotated files are still slower than unannotated ones; what remains is a limitation in how method
+  calls are modelled, not a defect.
 
 - **Shift+F6 on an `M.run()` call now renames the dotted function it calls** (BUG-465). Renaming
   from a *use* rather than from the declaration is how rename works for locals, parameters, `for`

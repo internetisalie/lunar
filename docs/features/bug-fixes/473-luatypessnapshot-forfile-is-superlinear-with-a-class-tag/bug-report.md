@@ -65,7 +65,23 @@ source would have been guesswork, and the same blindness applied to every perfor
 it. MAINT-38 tier 1 is done and the recording's verdict is below; this bug is now a fix, not an
 investigation.
 
-## Where this stands after Phase 1
+## Where this stands after Phase 2
+
+**Both phases have shipped. The disposition below is a recommendation, and the decision to close is
+not taken here.**
+
+Phase 2 (V2, DR-8) shipped on `fix-bug-473-phase2-v2`: `checkTypes` resolves a value node's `write`
+once per outer-node visit rather than once per admitted pair. On the libvirt builder, n = 160 goes
+from **26 791 ms to 3 556 ms** (7.5×) and root `write` resolutions from **27 372 to 1 132** —
+quadratic to linear — with the growth exponent ×11.2 → ×5.9 per doubling and **the same diagnostics,
+message-for-message, at every size**. Ordinary suite 2 890 / 0 / 0 / 1, `-PwithCorpus`
+2 900 / 0 / 0 / 1, five sweep baselines byte-identical, ktlint clean. See
+[Phase 2 — delivered](#phase-2--delivered-v2).
+
+What is left is the Θ(n²) cross-product itself, which is an inference-engine redesign and no longer
+this report's shape of problem.
+
+### Where this stood after Phase 1
 
 **Mitigated, not resolved — and deliberately still open.**
 
@@ -77,12 +93,11 @@ on that basis.
 contexts, 191 semantically different across 52 files. It does not ship, and the growth exponent
 stays where it is. See "Phase 2 — blocked".
 
-**S6 has since been sized (DR-8) and it splits.** Its closure clause is confirmed an
-inference-engine redesign; its cross-product clause pointed at the wrong quantity and, in doing so,
-missed a phase-sized win — **V2**, hoisting `valueNode.write` out of the inner pair loop, which moves
-the growth exponent ×15.0 → ×4.7 per doubling with **0 mismatches over 4 172 026 differential
-comparisons** and both suites and all five sweep baselines unchanged. This report stays open on that
-basis, not merely because n = 160 costs 21 s.
+**S6 was sized by DR-8 and it splits.** Its closure clause is confirmed an inference-engine
+redesign; its cross-product clause pointed at the wrong quantity and, in doing so, missed a
+phase-sized win — **V2**, hoisting `valueNode.write` out of the inner pair loop. That win has since
+shipped as Phase 2. The report stayed open on that basis rather than merely because n = 160 cost
+21 s.
 
 ## Expected
 
@@ -373,7 +388,7 @@ reports zero, or reports a set small enough to enumerate and adjudicate one by o
 
 **DR-4 ran that harness and the set is neither.** 4 018 mismatching resolutions over 1 160 443,
 191 distinct semantically-different shapes across 52 corpus files. S3 does not ship on this
-evidence; see [Phase 2 — blocked](#phase-2--blocked-s3-fails-dr-4s-equivalence-gate).
+evidence; see [Phase 2 candidate S3 — blocked](#phase-2-candidate-s3--blocked-fails-dr-4s-equivalence-gate).
 
 ### S4 — hoist `useNode.read` / `useNode.declaredDemand` out of the inner `valueNode` loop. **REJECTED.**
 
@@ -623,10 +638,11 @@ recommendation is:
 2. ~~**Phase 2 = S3 (+ S5)**, only after DR-4's differential harness reports a mismatch set that can
    be adjudicated. Measured 39×, ratio 676× → 20×.~~ **Closed — DR-4 ran and S3 failed the gate.**
    The exponent stays where Phase 1 left it.
-3. **Phase 2 = V2** (DR-8): read `valueNode.write` once per outer-node visit instead of once per
-   admitted pair, in its lazy form. Measured 5.8× at n = 160, exponent ×15.0 → ×4.7 per doubling,
-   diagnostics identical at every size, and the S3 gate cleared including a mutation-proven
-   differential of 0 mismatches over 4 172 026 comparisons.
+3. **Phase 2 = V2** (DR-8). **Shipped** — see [Phase 2 — delivered](#phase-2--delivered-v2).
+   `valueNode.write` is read once per outer-node visit instead of once per admitted pair, in the
+   lazy form. Measured on delivery: 7.5× at n = 160, exponent ×11.2 → ×5.9 per doubling, root
+   `write` resolutions 27 372 → 1 132 (linear), diagnostics identical at every size, and the S3
+   gate cleared on every measure.
 
 **The safe fix was smaller than the fast one, and for one phase that was the whole story.** Phase 1
 alone does not meet the "Expected" section as written; it makes an 80-call-site annotated file usable
@@ -874,7 +890,7 @@ cost nothing established. **Recorded as unproven rather than reported as covered
 The exponent is untouched. An 80-call-site annotated file is usable at 2.6 s; a 160-call-site one is
 still 21 s. Closing that is S3, and S3 is gated on DR-4.
 
-## Phase 2 — blocked (S3 fails DR-4's equivalence gate)
+## Phase 2 candidate S3 — blocked (fails DR-4's equivalence gate)
 
 Measured 2026-08-29 on the GCE builder (`lunar-builder`, `e2-standard-8`) at `df332c34`, Phase 1
 in place. The harness is throwaway instrumentation and was reverted; `git diff -- src/` is empty.
@@ -1128,15 +1144,125 @@ the naming rule stays in force regardless, because it costs nothing and the effe
   machinery is [[MAINT-39]] step 3's problem, not this one's, and DR-6 was filed for the
   performance-regression reason.
 
+## Phase 2 — delivered (V2)
+
+Shipped on `fix-bug-473-phase2-v2`. V2 is the hoist DR-8 sized: `checkTypes` resolves a value
+node's `write` **once per outer-node visit**, into a per-visit slot filled lazily on first need,
+instead of once per admitted pair. It changes *when* a value is read, never what is resolved.
+
+### What shipped
+
+- **`LuaTypeGraph.checkNodePairs`** — the per-variable pair loop, extracted out of `checkTypes`
+  along with `runFixedPointPass` and `edgeCount`, carrying the hoist. The extraction is not
+  cosmetic: `checkTypes` was 64 logic lines against the contract's 30-line tripwire before this
+  change and the hoist needed a home; it is now 13, `checkNodePairs` 20, `runFixedPointPass` 6.
+  Iteration order, the cutoff checks, `compatMemo.clear()`'s position and the progress signal are
+  unchanged.
+- **The lazy form, not DR-8's eager one.** `arrayOfNulls<LuaGraphType>(upSet.size)`, filled at
+  first use. DR-8 measured the eager variant paying 448 ms of prelude at n = 160 resolving values
+  many visits never ask for — §S4's failure mode — so that variant did not ship.
+- **`LuaTypePairWriteDifferential`** — DR-8's throwaway harness, kept as a `@TestOnly` gate.
+- **`LuaTypePairWriteDifferentialTest`**, **`LuaAnnotatedClassDiagnosticsTest`**, and a re-baselined
+  `write` budget in `LuaTypeGraphRootResolutionBudgetTest`.
+
+### Measured, on the libvirt builder (`debian13`, 4 cores)
+
+One probe, one JVM per arm, identical fixtures; the "with hoist" and "hoist reverted" columns are
+the shipped code and mutant M-A of it. No ratio assertion was used as a measurement (BUG-474).
+
+| n | hoist reverted | with hoist | root `write`, reverted | root `write`, hoisted |
+| ---: | ---: | ---: | ---: | ---: |
+| 20 | 292 ms | 191 ms | 632 | 152 |
+| 40 | 425 ms | 301 ms | 2 052 | 292 |
+| 80 | 2 399 ms | 607 ms | 7 292 | 572 |
+| 160 | **26 791 ms** | **3 556 ms** | **27 372** | **1 132** |
+| growth per doubling | ×1.5, ×5.6, ×11.2 | ×1.6, ×2.0, ×5.9 | quadratic | 7n + 12 — linear |
+
+**7.5× at n = 160, and root `write` resolutions 24.2× fewer.** Diagnostics are identical at every
+size — 83 / 163 / 323 / 643, the same multiset message-for-message and tier-for-tier.
+
+### Three things DR-8 measured that did not reproduce exactly
+
+1. **Root `write` resolutions are lower than predicted: 1 132 at n = 160, not 1 293** (and 572 at
+   n = 80, not 653). DR-8's figure is its **eager** variant, which resolves every up-set value node
+   at the head of each visit. The lazy form skips the ones no admitted pair asks for. The budget was
+   therefore re-baselined to **600**, not the 653 the plan named.
+2. **The exponent lands at ×5.9 per doubling, not ×4.7**, and the speedup at n = 160 is 7.5× rather
+   than 5.8×. Both arms here are single-shot in one JVM that also ran the smaller sizes, where
+   DR-8's V2 column shared a heap with three other arms; the direction and the order of magnitude
+   reproduce, the third significant figure does not, and BUG-474 is the standing reason not to read
+   more into either number than that.
+3. **The differential's comparison count is not stable across run contexts.** The gate's fixtures
+   admitted 25 918 pairs with the class run alone and 5 644 inside the full suite — 4.6× apart, from
+   how much ambient stdlib/index state the graphs pick up. Mismatches were **0** in both and the
+   diagnostics were identical in both, so nothing the engine *concludes* varies; but a tight floor
+   on that count is not a portable assertion, and the first version of the gate went red in the full
+   suite for exactly that reason. The floor now sits at 1 000, and non-vacuity is carried by a
+   direct canary instead.
+
+### The gates, each with the mutant that proved it
+
+| gate | mutant | result |
+| :-- | :-- | :-- |
+| `LuaTypeGraphRootResolutionBudgetTest`, `write` ≤ 600 | **M-A** — the hoist reverted to a per-pair read | **red**: 7 292 against 600, 12.2× over |
+| `LuaTypePairWriteDifferentialTest.hoistedWriteMatchesTheLiveValueAtEveryAdmittedPair` | **M-B** — hoist `read` instead of `write` (DR-8's M-H) | **red**: 20 811 mismatches over 25 918 comparisons, shapes `fun(n) -> fun(n) \| fun(n)`, `string -> number \| string`, `Builder -> { ... } \| Builder`, … |
+| `…theDifferentialReportsAMismatchWhenGivenOne` | — | it *is* the mutation proof, run every time: the instrument is handed two differing types and must say so |
+| `LuaAnnotatedClassDiagnosticsTest`, all three cases | **M-C** — V1, dropping `checkTableCompatibility`'s reverse member edge | **red**: the `---@param` fixture drops 13 diagnostics to 3, all four ERROR-tier ones gone, `number is not assignable to string` surviving only as HYPOTHESIS; n = 20 drops 83 → 60, n = 40 drops 163 → 120 |
+
+M-C is the point of pinning the multiset rather than the count. V1 is the fastest thing this report
+measured and it passed every existing suite while deleting the user-visible `---@param` violation on
+every method call. That is now a red test, not an adjudication someone has to remember to perform.
+
+### The behavioural gate — compared, not just green
+
+- Ordinary suite, `ktlintCheck test --rerun --no-build-cache`: **2 890 / 0 / 0 / 1**, `BUILD
+  SUCCESSFUL`. Baseline at `280d8c1f` was 2 885; the five added tests account for the delta exactly.
+- `-PwithCorpus`, `--rerun --no-build-cache`: **2 900 / 0 / 0 / 1**. Baseline was 2 895, same +5.
+- **All five sweep `.baseline` files byte-identical** (`sha256sum`, compared against the pre-run
+  tree). `inspection.LuaTypeAssignability` — the count BUG-419's lesson names as the one that must
+  not move — reads 5 on `luarocks` and 5 on `penlight`, matching the committed baselines. No
+  `IMPROVED` or `REGRESSED` line in the sweep.
+- `ktlintCheck` clean, run alone (never paired with `ktlintFormat`, BUG-445).
+
+### What Phase 2 does not achieve
+
+**The annotated case is still not cheap, and the exponent is still above 1.** 3 556 ms at n = 160 is
+~15× its tag-free control, and the residual is the Θ(n²) cross-product itself, which DR-8's
+frozen-memo arm priced at ~2.8 s at that size. V2 buys a tolerable curve, not a flat one: 80 call
+sites now cost 0.6 s (was 2.4 s) and 160 cost 3.6 s (was 26.8 s).
+
+**The equivalence is measured, not proven,** and that is why the differential ships. The staleness
+window is one outer-node visit, and because the pair set is monotone a pair whose input moved inside
+that window is never re-examined. 4 172 026 comparisons in DR-8 and every run of the gate since have
+found no case where it matters. Nothing here rules one out.
+
+### Recommended disposition — a recommendation, not a decision taken
+
+**Close BUG-473 at the curve V2 leaves, and file the residual as TYPE-epic work.** The reasoning
+DR-8 gave for *not* closing at 87× was that one avenue had never been sized; it has now been sized
+and the phase it contained has shipped. What remains is not a bug in this report's sense — it is the
+engine's model of a method call, `LuaTypesVisitor.kt:926-929` minting a structurally identical
+member demand per call site and `checkTableCompatibility` wiring each bidirectionally into a clique.
+Every cheap bound on that was measured and every one changes what the engine infers. Closing here
+retires the report with its instruments left standing: the root-resolution budget, the diagnostics
+pin, the differential, and DR-6's corpus lane all remain, so the regression this report describes
+cannot come back unnoticed.
+
+**DR-7 (live IDE verification) stays open and is the one thing this phase did not do.** Every figure
+above comes from a harness calling `forFile` directly.
+
+The front-matter `status` is deliberately left at `in_progress`. Phase 2 is delivered; closing the
+report is the decision this section recommends and does not take.
+
 ## De-risking tasks
 
 | id | item | why it is open |
 | :-- | :-- | :-- |
 | DR-1 | Per-graph revision counter | **Settled — per-graph, shipped.** `VariableElement` carries a `LuaTypeGraph` back-reference and validates against `LuaTypeGraph.revision`. Decisive reason: a global counter makes the root-resolution counts order-dependent across a shared-JVM test run, and that count is the primary gate. The predicted lower-bound effect showed up — 87.2× against the spike's 100×. |
-| DR-2 | Full unit suite + `-PwithCorpus` under S1 | **Run.** Ordinary suite `--rerun --no-build-cache`: 2 885 / 0 / 0 / 1 (2 880 before, +5 new). `-PwithCorpus`: 2 893 / 0 / 0 / 1. Baselines byte-identical; the three `LuaUnusedLocal` `IMPROVED` lines reproduce on pristine `75957547` and are pre-existing. |
-| DR-3 | `ktlintCheck` | **Run, clean, no format pass needed.** `run ktlintCheck` alone (never paired with `ktlintFormat`, BUG-445). |
+| DR-2 | Full unit suite + `-PwithCorpus` | **Run under both phases.** Phase 1: ordinary 2 885 / 0 / 0 / 1 (2 880 before, +5 new), `-PwithCorpus` 2 893 / 0 / 0 / 1; the three `LuaUnusedLocal` `IMPROVED` lines reproduce on pristine `75957547` and are pre-existing. Phase 2: ordinary **2 890 / 0 / 0 / 1**, `-PwithCorpus` **2 900 / 0 / 0 / 1**, +5 new in each, no `IMPROVED`/`REGRESSED` line. Baselines byte-identical in both. |
+| DR-3 | `ktlintCheck` | **Run, clean, no format pass needed, under both phases.** `run ktlintCheck` alone (never paired with `ktlintFormat`, BUG-445). |
 | DR-4 | S3 differential-equivalence harness | **Run — S3 REJECTED.** Flattened vs recursive `read` at every root resolution, over the ordinary suite (163 152 comparisons, **2** mismatches, both a synthetic fixture), the `-PwithPerf` annotated fixtures (**0**) and `-PwithCorpus` (1 160 443 comparisons, **4 018** mismatches, 372 distinct contexts, 191 semantically different across 52 files). Not enumerable; see [Phase 2 — blocked](#phase-2--blocked-s3-fails-dr-4s-equivalence-gate). |
 | DR-5 | `timeLimitMs` granularity | `checkTypes(timeLimitMs = 5000)` (`:299`) is checked once per fixed-point iteration (`:319-322`); iteration 1 measured 7 253 ms without tripping. Decide whether the cutoff belongs inside the node loop, and whether `ProgressManager.checkCanceled()` belongs there too — this path runs on the EDT in the reproduction. |
 | DR-6 | A `---@class` corpus fixture | **Executed.** `src/test/resources/corpus/annotated/` — `builder.lua` (a `---@class` and 40 colon-call sites) and `shapes.lua` (the wider tag vocabulary) — plus `LuaAnnotatedFixtureSweepTest`, opt-in with `-PwithCorpus`. Gated on **root-resolution counts, never a duration** (BUG-474): 2 028 / 343 / 133 with the Phase 1 memo, 5 612 / 2 908 / 2 519 without it, budgets 3 000 / 500 / 250, mutation-proven red on all three. Costs 2.36 s of an 18-minute corpus run and moves no sweep baseline. Size reasoning and the three things it does *not* cover: [DR-6 — executed](#dr-6--executed-the-corpus-lane-now-carries-a-class). |
-| DR-8 | Size S6 — the last untried avenue | **Run — S6 SPLITS.** Its closure clause is confirmed a redesign (the mildest bound, dropping `checkTableCompatibility`'s reverse member edge, deletes an ERROR-tier `---@param` violation). Its cross-product clause named the wrong quantity: the pair loop is 4 % of the time and the accessor redundancy it induces is 93 % (27 372 root `write` resolutions over 327 distinct nodes at n = 160). **V2** — hoisting `valueNode.write` to one read per node visit — moves the exponent ×15.0 → ×4.7, is 5.8× at n = 160, and clears the gate S3 failed: 2 885 / 0 / 0 / 1 ordinary, 2 895 / 0 / 0 / 1 corpus, five baselines byte-identical, and a mutation-proven differential of **0 mismatches over 4 172 026 comparisons**. See [S6 — sized](#s6--shrink-the-cross-product-or-the-closure-itself-sized--it-splits-half-is-a-redesign-half-is-a-phase). |
-| DR-7 | Live IDE verification | The measured harness calls `forFile` directly. The user-visible symptom is a freeze while editing an annotated module; confirm via the `verify-in-ide` flow. |
+| DR-8 | Size S6 — the last untried avenue | **Run — S6 SPLITS.** Its closure clause is confirmed a redesign (the mildest bound, dropping `checkTableCompatibility`'s reverse member edge, deletes an ERROR-tier `---@param` violation). Its cross-product clause named the wrong quantity: the pair loop is 4 % of the time and the accessor redundancy it induces is 93 % (27 372 root `write` resolutions over 327 distinct nodes at n = 160). **V2** — hoisting `valueNode.write` to one read per node visit — moves the exponent ×15.0 → ×4.7, is 5.8× at n = 160, and clears the gate S3 failed: 2 885 / 0 / 0 / 1 ordinary, 2 895 / 0 / 0 / 1 corpus, five baselines byte-identical, and a mutation-proven differential of **0 mismatches over 4 172 026 comparisons**. See [S6 — sized](#s6--shrink-the-cross-product-or-the-closure-itself-sized--it-splits-half-is-a-redesign-half-is-a-phase). **V2 has since shipped as Phase 2.** |
+| DR-7 | Live IDE verification | **Still open after both phases, and the one gate neither performed.** The measured harness calls `forFile` directly. The user-visible symptom is a freeze while editing an annotated module; confirm via the `verify-in-ide` flow. |

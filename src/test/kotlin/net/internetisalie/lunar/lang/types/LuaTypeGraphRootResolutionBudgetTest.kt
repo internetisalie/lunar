@@ -21,10 +21,18 @@ import kotlin.test.assertTrue
  * `LuaClassTagSnapshotPerformanceTest` stays behind `-PwithPerf`. A wall-clock budget is the
  * instrument that already failed to catch this defect.
  *
- * The bounds are the measured post-fix counts with headroom — 7 292 / 647 / 325 on this fixture,
- * where read and declaredDemand land on the predicted distinct-key counts exactly and write is 81
- * over them, the snapshot's own post-`checkTypes` reads. Losing the memo restores the pre-fix
- * figures, which clear every bound by 1.7× to 14.6×.
+ * The bounds are the measured counts with headroom — 572 / 647 / 325 on this fixture.
+ *
+ * `write` was re-baselined from 8 500 to 600 by BUG-473 Phase 2. Phase 1's memo left it at 7 292
+ * here, quadratic in call-site count, because `checkTypes` bumps the graph revision tens of
+ * thousands of times mid-loop and invalidates the memo it would otherwise hit; Phase 2 resolves a
+ * value node's `write` once per outer-node visit instead of once per admitted pair, which makes the
+ * count linear (7n + 12 — 152 / 292 / 572 at n = 20 / 40 / 80). Leaving the budget at 8 500 after
+ * that would have made it assert nothing: reverting the hoist restores 7 292, 12.7× over the bound.
+ *
+ * DR-8 predicted 653 here (8n + 13). That figure is the **eager** variant it measured, which reads
+ * every up-set value node at the head of each visit; the shipped form fills its per-visit slots
+ * lazily on first need and so resolves 81 fewer roots on this fixture.
  */
 class LuaTypeGraphRootResolutionBudgetTest : BaseDocumentTest() {
     @Test
@@ -67,7 +75,7 @@ class LuaTypeGraphRootResolutionBudgetTest : BaseDocumentTest() {
     private companion object {
         const val CALL_SITE_COUNT = 80
 
-        const val WRITE_BUDGET = 8_500L
+        const val WRITE_BUDGET = 600L
         const val READ_BUDGET = 1_000L
         const val DECLARED_DEMAND_BUDGET = 500L
     }
