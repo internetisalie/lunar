@@ -319,6 +319,11 @@ tasks {
                 // shares the sweeps' JVM and shifts their counts. Measured: including it moved
                 // luacheck's LuaTypeAssignability by +12. Run it by name.
                 excludeTestsMatching("*InspectionParityTest")
+                // BUG-473 DR-6: the annotated fixture the pinned corpora cannot supply — 0 of
+                // their 734 files carry a `---@` tag. Same opt-in and the same naming rule as the
+                // line above: it belongs in the corpus lane but must stay outside the
+                // `--tests '*Corpus*'` shape the sweeps' baselines were recorded in.
+                excludeTestsMatching("*AnnotatedFixtureSweepTest")
                 isFailOnNoMatchingTests = false
             }
         }

@@ -3,8 +3,8 @@ id: "BUG-473"
 title: "`LuaTypesSnapshot.forFile` is superlinear in call-site count once a `@class` tag is present"
 type: "bug"
 parent_id: "BUG"
-status: "planned"
-priority: "high"
+status: "in_progress"
+priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
@@ -64,6 +64,23 @@ snapshot consumed, which is a cache-correctness question.
 source would have been guesswork, and the same blindness applied to every performance question after
 it. MAINT-38 tier 1 is done and the recording's verdict is below; this bug is now a fix, not an
 investigation.
+
+## Where this stands after Phase 1
+
+**Mitigated, not resolved — and deliberately still open.**
+
+Phase 1 (S1) shipped in `df332c34`: ratio 678.8× → **87.2×**, n=160 from 145 269 ms to **21 284 ms**.
+The acute case is gone; a normal annotated module is usable again. Priority drops `high` → `medium`
+on that basis.
+
+**Phase 2 (S3) is rejected on DR-4's measurement, not deferred** — 4 018 mismatches over 372
+contexts, 191 semantically different across 52 files. It does not ship, and the growth exponent
+stays where it is. See "Phase 2 — blocked".
+
+**What remains is S6** — shrink the cross-product or the closure itself — which the plan scoped out
+and did not size. It is the only avenue left, and nothing has established it is tractable. This
+report stays open rather than closing at 87×, because **n = 160 still costs 21 s** and that is still
+a freeze; closing it would record a fix that the Expected section does not support.
 
 ## Expected
 
@@ -337,7 +354,7 @@ transformation is sound for both, because `resolveWrite` folds with a union that
 the exact code BUG-390 was filed against. A correctness-neutral change with no measured benefit is
 not worth the review surface.
 
-### S3 — the same flattening for `resolveRead`. **Phase 2, gated.**
+### S3 — the same flattening for `resolveRead`. **REJECTED on DR-4’s measurement.**
 
 **Measured:** ×9.9 at n = 80 (warmed sweep; ×3.3 on the standalone harness), ×39 at n = 160, ratio-to-control 676× → 20×, and the growth curve
 drops from ×15.8 to ×4.0 per doubling. It is the only strategy measured to change the exponent.
@@ -350,8 +367,11 @@ sees all of that child's demands separately. Differential audit on the n = 80 an
 
 Phase 2 therefore ships only if a differential harness — the flattened result computed alongside the
 recursive one, mismatches counted, over the **full unit suite and the `-PwithCorpus` sweep** — either
-reports zero, or reports a set small enough to enumerate and adjudicate one by one. That harness is a
-task in its own right; see DR-4.
+reports zero, or reports a set small enough to enumerate and adjudicate one by one.
+
+**DR-4 ran that harness and the set is neither.** 4 018 mismatching resolutions over 1 160 443,
+191 distinct semantically-different shapes across 52 corpus files. S3 does not ship on this
+evidence; see [Phase 2 — blocked](#phase-2--blocked-s3-fails-dr-4s-equivalence-gate).
 
 ### S4 — hoist `useNode.read` / `useNode.declaredDemand` out of the inner `valueNode` loop. **REJECTED.**
 
@@ -379,8 +399,9 @@ sparser — the actual O(n²) source — is an inference-engine redesign, not a 
 ### Recommended order
 
 1. **Phase 1 = S1**, plus the call-count assertion below. Safe, measured 5×, ratio 676× → 100×.
-2. **Phase 2 = S3 (+ S5)**, only after DR-4's differential harness reports a mismatch set that can be
-   adjudicated. Measured 39×, ratio 676× → 20×.
+2. ~~**Phase 2 = S3 (+ S5)**, only after DR-4's differential harness reports a mismatch set that can
+   be adjudicated. Measured 39×, ratio 676× → 20×.~~ **Closed — DR-4 ran and S3 failed the gate.**
+   The exponent stays where Phase 1 left it.
 
 **The safe fix is smaller than the fast one, and that is the honest outcome here.** Phase 1 alone does
 not meet the "Expected" section as written; it makes an 80-call-site annotated file usable (2 s) and
@@ -518,13 +539,14 @@ already owns BUG-390 and BUG-427 and constructs graphs directly.
 `---@class`, so a green sweep says nothing about the annotated path — but the sweep is what detects a
 *general* inference regression, and it is exactly what caught BUG-390's 131-file highlight failure.
 Both statements are true at once. Separately, **a `---@class`-bearing fixture must be added to the
-corpus** or this coverage gap survives the fix; see DR-6.
+corpus** or this coverage gap survives the fix; DR-6 has since added one.
 
 ## Phase 1 — delivered (S1)
 
-Shipped on `fix-bug-473-phase1`. **Phase 2 (S3) remains open and this report stays `planned`
-because of it** — S1 is a constant factor and does not touch the growth exponent, which is the part
-the "Expected" section is held to.
+Shipped on `fix-bug-473-phase1`. S1 is a constant factor and does not touch the growth exponent,
+which is the part the "Expected" section is held to. **Phase 2 was the answer to that and DR-4
+rejected it**, so Phase 1 is the whole of the fix; whether to close this report at 87× with the
+exponent unmoved is the one decision left open.
 
 ### What was memoized, and what deliberately was not
 
@@ -625,14 +647,268 @@ cost nothing established. **Recorded as unproven rather than reported as covered
 The exponent is untouched. An 80-call-site annotated file is usable at 2.6 s; a 160-call-site one is
 still 21 s. Closing that is S3, and S3 is gated on DR-4.
 
-## De-risking tasks — what was not run
+## Phase 2 — blocked (S3 fails DR-4's equivalence gate)
+
+Measured 2026-08-29 on the GCE builder (`lunar-builder`, `e2-standard-8`) at `df332c34`, Phase 1
+in place. The harness is throwaway instrumentation and was reverted; `git diff -- src/` is empty.
+
+### How the harness observed without changing behaviour
+
+`VariableElement.read` computed both forms at the same root and returned the recursive one. The
+flattened candidate is `resolveRead` with its one recursive hop —
+`is VariableElement -> it.resolveRead(visited)` — replaced by a contribution of `Any`, which the
+existing `.filter { it != LuaGraphType.Any }` drops. That is §S2's transformation applied to the
+read walk: one level deep, on the argument that a transitively-closed `downSet` already contains
+the child's own demands as direct members.
+
+Four properties make the observation inert, and three of them are asserted rather than argued:
+
+- The flattened value is passed to the collector and discarded. Nothing reads it, stores it or
+  memoizes it, and `resolveReadFlattened` opens no walk and consults no `RootMemo`.
+- Comparing at the **root** is complete for this transformation. `resolveRead` has exactly two
+  entry points — the `read` getter and its own recursion — and S3 deletes the second, so a root
+  result is the only thing S3 can change.
+- Ordinary suite **2 885 / 0 / 0 / 1** and `-PwithCorpus` **2 893 / 0 / 0 / 1**, both identical to
+  the `df332c34` baselines, `--rerun --no-build-cache` on each.
+- The five `src/test/resources/corpus/*.baseline` files are byte-identical (`sha256sum`) to the
+  committed ones after the sweep — the assertion BUG-419's lesson asks for.
+
+### The counts
+
+| run | comparisons | mismatching resolutions | distinct contexts |
+| :-- | ---: | ---: | ---: |
+| ordinary suite, `test --rerun --no-build-cache` | 163 152 | **2** | 2 |
+| suite + annotated perf fixtures, `-PwithPerf` | 165 421 | **2** | 2 |
+| suite + corpus, `-PwithCorpus` | 1 160 443 | **4 018** | 372 |
+| corpus alone (the `-PwithCorpus` delta) | 997 291 | **4 016** | ≥ 370 |
+
+**The ordinary suite's two are enumerable and benign.** Both are
+`LuaTypeGraphCycleGuardTest.guardedReadEntryIgnoresTheMemo` (`guardedread.lua`), which builds
+`first.downSet = {second, use(Number)}` and `second.downSet = {first, use(String)}` by mutating the
+sets **directly, bypassing `addEdge`** — so no closure is propagated and `use(String)` is not a
+member of `first.downSet`. Rooted at `first` the recursion answers `String` and the flattened form
+answers `Number`; rooted at `second`, the mirror. The fixture violates S3's precondition on purpose,
+because the precondition is not what it exists to test. Adjudication: **not evidence against S3**,
+but it is the reason S3's soundness cannot be typed or asserted — `OrderedSet` is mutable by
+anyone, and its own KDoc names two production/test paths that bypass `addEdge`.
+
+**The annotated fixtures produce none.** `-PwithPerf` adds the n = 10…160 `---@class Builder`
+fixtures — the exact graph this bug is about, and the graph §S3's `1 mismatch / 817` came from —
+and contributes 2 269 comparisons and **zero** mismatches.
+
+**The corpus is what disqualifies S3**, and the corpus contains no `---@class` at all.
+
+### The corpus set, classified
+
+372 distinct contexts over 72 files. Of those, **181 print identically** at the granularity the
+collector records (class name, exactness, member *names*, supertype display names, metamethods) and
+differ only by `LuaGraphType.Table`'s data-class equality over `localMembers`, whose `VariableNode`
+values compare by identity. Equal in meaning is not established for them either — identical member
+*names* says nothing about the member nodes' types — so they are neither dismissed nor counted as
+semantic.
+
+**191 are semantically different, across 52 files**, and they are not a long tail of one shape:
+
+| recursive → flattened | distinct shapes |
+| :-- | ---: |
+| `Table` → `Lengthable` | 73 |
+| `Table` → `Nil` | 22 |
+| `Table` → `Numberable` | 17 |
+| `String` → `Stringable` | 14 |
+| `Table` → `Stringable` | 13 |
+| `Table` → `Undefined` | 13 |
+| `Table` → `String` | 6 |
+| `Stringable` → `Lengthable`, `Stringable` → `Table` | 5, 4 |
+| `String` → `Numberable`, `Number` → `Numberable` | 4, 4 |
+| 11 further pairs | 1–3 each |
+
+Worked instances: `fs.lua` demands `Table{sub}` recursively and `Stringable` flattened;
+`test_env.lua` `Table{gsub}` → `String`; `dkjson.lua` `String` → `Numberable`; `queries.lua`
+`Table{match}` → `Lengthable`. The `downSet` sizes involved run **min 2, median 8, max 73** — this
+is not a deep-graph phenomenon that only large annotated files reach.
+
+### The mechanism, and what §S3 got wrong about it
+
+§S3 named the risk correctly as first-wins order dependence and pointed at `mergeTableDemands`. The
+measurement sharpens it in three ways.
+
+1. **The lost quantity is BUG-395's accumulation, not an ordering nicety.** The recursion collapses
+   a variable child to one demand, and when that child has several member demands, the one it
+   collapses to is a **merged** `Table`. The parent's `downSet` does not contain that merge — it
+   contains the constituents. Flattening therefore does not "see all of the child's demands
+   separately" in any useful sense: it sees them competing under `demands.firstOrNull()` against
+   every non-table demand, and a trait or a `nil` frequently wins. The 22 `Table → Nil` and 13
+   `Table → Undefined` shapes are outright demand loss.
+2. **§S2's audit does not transfer, and the reason is the fold, not the closure.** `downViol = 0`
+   over 1 632 nodes says the closure holds; `write` folds with an order-insensitive union and
+   `declaredDemand` with `any`, so for those two the closure is sufficient. `read` folds with
+   first-wins plus a conditional merge, which is neither idempotent nor order-insensitive, so a
+   sound closure buys it nothing. Measured, not reasoned.
+3. **`1 mismatch / 817 nodes` pointed at the wrong population and the wrong shape.** At the surface
+   the engine actually consults, the annotated graph produces zero and ordinary unannotated Lua
+   produces 4 018. S3's hazard is not in the `---@class` path this bug is about.
+
+### Verdict
+
+**S3 is blocked.** The gate asked for zero or an enumerable set; it returned 4 018 changed
+resolutions in 191 distinct semantic shapes across 52 files, every one of which would flow into
+`checkTypes`'s compatibility checks, `LuaTypes.typeOf`, completion, the inlay-hint providers and the
+assignability inspection. Adjudicating them one by one is not a smaller task than re-deriving what
+`read` should mean.
+
+**BUG-473 therefore stops at Phase 1**: 87.2× against the control at n = 160 on the builder it was
+measured on, with the growth exponent unmoved at ×13.5 per doubling. No variant of S3 was sought
+after the gate failed — the harness exists to decide the question, not to be re-run against
+reformulations until one passes.
+
+**Not run, deliberately.** A whole-graph sweep comparing *every* `VariableElement` — including nodes
+no caller in the run queries, which is the population §S3's `817` counted — was written and left
+unrun. The root-call surface had already exceeded the gate by three orders of magnitude and a wider
+population can only enlarge the set.
+
+### One thing DR-4 measured that is not about S3
+
+`LuaClassTagSnapshotPerformanceTest.testAnnotatedSnapshotStaysWithinRatioOfTheUnannotatedControl`
+**fails at `df332c34` with no source edits at all** on the GCE `e2-standard-8` builder:
+**339.8×** (39 761 ms annotated vs 117 ms control at n = 160) against its 200× limit, where Phase 1
+measured **87.2×** on the libvirt `debian13` builder. It is not the instrumentation — the
+instrumented run measured 365.3× and the reverted tree 339.8×, and the remote source was verified
+free of the harness before the second run. At n = 80 the two hosts agree (3 037 ms vs 2 621 ms); the
+divergence is at n = 160, where the annotated case is 1.87× worse here and the control 2.1× better.
+
+The assertion's premise — "the control absorbs machine speed … so the threshold is a property of
+the engine, not of the host" — does not hold when one side is superlinear and the other is linear.
+A host that runs the linear side faster and the superlinear side slower moves the ratio by ~4×.
+That needs its own filing; DR-4 records it and does not fix it.
+
+## DR-6 — executed: the corpus lane now carries a `---@class`
+
+Added 2026-08-29 on `maint-39-luacats-corpus`. This is step 1 of [[MAINT-39]]'s three, and only
+step 1: it does **not** admit real annotated projects, which stay blocked on the growth exponent
+Phase 1 did not move.
+
+### What was added
+
+Two on-disk Lua files under `src/test/resources/corpus/annotated/`, and one test —
+`LuaAnnotatedFixtureSweepTest` — which copies them into the project the way the pinned sweeps copy
+theirs, enables the sweeps' same ten language-only inspections, and highlights every file.
+
+| file | what it carries | what it gates |
+| :-- | :-- | :-- |
+| `builder.lua` | `---@class` + `@field` + `@param` + `@return`, and **40 colon-call sites** | the root-resolution budget |
+| `shapes.lua` | `@alias`, `@field`, `@class X : Y`, `@param`, `@return`, `@type`; almost no call sites | parses cleanly, highlights without throwing |
+
+It is opt-in with `-PwithCorpus` and deliberately **not** named `*Corpus*`, following the rule
+`LuaInspectionParityTest` already follows: anything inside the `--tests '*Corpus*'` filter shares
+the sweeps' JVM and shifts their counts, and the ratchet's contract is that recording and
+verification share the invocation shape (BUG-418).
+
+### Why 40 call sites, and not 10 or 160
+
+Sized against the curve, on the builder, through the highlight path — each row is one measurement
+of the reproduction shape at that call-site count, memo present and memo defeated (mutant M1,
+`atRoot` never consults the memo):
+
+| n | write on / off | read on / off | declaredDemand on / off | annotated highlight, on / off |
+| ---: | :-- | :-- | :-- | :-- |
+| 10 | 224 / 546 | 89 / 315 | 45 / 226 | 213 ms / 321 ms |
+| 20 | 634 / 1 466 | 169 / 805 | 85 / 636 | 522 ms / 755 ms |
+| 40 | 2 054 / 4 506 | 329 / 2 385 | 165 / 2 056 | 1 082 ms / 3 341 ms |
+| 60 | 4 274 / 8 903 | 489 / 4 765 | 245 / 4 276 | 5 061 ms / 21 960 ms |
+| 80 | 7 294 / 15 063 | 649 / 7 945 | 325 / 7 296 | 13 343 ms / 53 104 ms |
+
+Two things decide the size, and neither is realism:
+
+- **The memo already separates at n = 10** — 3.5× on `read`, 5.0× on `declaredDemand` — so the
+  fixture does not need to be large to be non-decorative. The claim that only a big annotated file
+  engages the memo is false, measured.
+- **Cost is what runs away, not signal.** n = 80 costs 13.3 s through the highlight path and n = 160
+  is the 21 s case this report is still open over. n = 40 costs ~1 s and separates 2.2× / 7.2× /
+  12.5×. Doubling from 20 to 40 buys roughly double the `read` and `declaredDemand` margin for
+  +0.6 s; doubling again buys 1.7× more margin for +12 s.
+
+40 is the point where a *partial* reversal — the memo left on one accessor, or invalidated too
+eagerly — still clears a budget set at ~1.5× the observed count, while the fixture's contribution to
+the sweep stays under one part in four hundred. n = 20 was measured and would also work; n = 80 and
+above are rejected on cost alone.
+
+### It engages the memo — measured on the fixture as committed, not on the sizing shape
+
+| accessor | memo on | memo off (M1) | budget | budget clears memo-off by |
+| :-- | ---: | ---: | ---: | ---: |
+| `write` | 2 028 | 5 612 | 3 000 | 1.87× |
+| `read` | 343 | 2 908 | 500 | 5.82× |
+| `declaredDemand` | 133 | 2 519 | 250 | 10.1× |
+
+### Mutation proof — a Phase-1 reversal goes red, on all three
+
+Mutant M1 (`atRoot` computes without consulting `RootMemo`) makes
+`testAnnotatedFixtureStaysWithinItsRootResolutionBudget` fail with all three accessors named:
+
+```
+WRITE was re-derived at a walk root 5612 times, over its budget of 3000
+READ was re-derived at a walk root 2908 times, over its budget of 500
+DECLARED_DEMAND was re-derived at a walk root 2519 times, over its budget of 250
+```
+
+The test measures all three accessors before asserting on any of them, deliberately: an
+`assertTrue` per accessor stops at `write`, which has the *weakest* separation of the three, and
+would have left `read` and `declaredDemand` unproven. The first mutation run did exactly that and
+the test was restructured before the proof was accepted.
+
+`src/main/kotlin` was byte-identical to `HEAD` before and after each mutation (`git diff --stat`
+empty).
+
+### What it costs the sweep
+
+Two full `test -PwithCorpus --rerun --no-build-cache` runs on the builder (`debian13`), the first on
+a pristine `d521dad8` with the fixture and its test removed, the second with them restored:
+
+| | before | after |
+| :-- | ---: | ---: |
+| whole `:test` task | 17 m 42 s | 18 m 00 s |
+| `LuaAnnotatedFixtureSweepTest` | — | **2.36 s** |
+| luacheck sweep | 56 960 ms | 63 606 ms |
+| luarocks sweep | 171 178 ms | 164 405 ms |
+| penlight sweep | 42 605 ms | 40 491 ms |
+| zerobrane sweep | 164 631 ms | 169 860 ms |
+| four sweeps, total | 435 374 ms | 438 362 ms |
+| suite | 2 893 / 0 / 0 / 1 | **2 895 / 0 / 0 / 1** |
+
+The fixture costs **2.36 s of an 18-minute run**. The four sweeps move by −6.8 s to +6.6 s with
+mixed signs, which is run-to-run variance on a shared host and not attributable to the fixture — it
+never enters their trees.
+
+**The sweeps' five `.baseline` files are byte-identical across both runs** (`sha256sum`). That is
+worth recording because BUG-418 predicts otherwise: adding `LuaInspectionParityTest` to the same
+JVM moved luacheck's `LuaTypeAssignability` by +12. This fixture moved nothing. Two small files that
+resolve nothing across the corpus tree are evidently below whatever threshold that effect needs;
+the naming rule stays in force regardless, because it costs nothing and the effect is real.
+
+### What this does not do, stated plainly
+
+- **It is not a second copy of the routine-loop gate's coverage.** `LuaTypeGraphRootResolutionBudgetTest`
+  already asserts the same quantity at n = 80 on every push. What is new here is the *lane* and the
+  *shape*: on-disk, VFS-backed, index-visible annotated Lua driven through `copyDirectoryToProject`
+  + `doHighlighting` with the sweeps' ten inspections, in the run where the corpus is swept.
+- **The highlight path is not materially more expensive than a bare `forFile`.** Measured on the
+  n = 80 sizing shape: 7 294 / 649 / 325 through highlighting against Phase 1's 7 292 / 647 / 325
+  through a direct `forFile`. +2 / +2 / 0. Anyone hoping the sweep's own machinery would expose
+  additional root resolutions should stop hoping; it does not.
+- **It does not give the annotated path a ratcheted baseline.** These files are not a
+  `CorpusEntry`: `CorpusSweep.run` requires a manifest pin and a `.corpus-sha` from
+  `fetch-corpus.py`, which an in-repo fixture has neither of. Wiring an in-repo corpus into that
+  machinery is [[MAINT-39]] step 3's problem, not this one's, and DR-6 was filed for the
+  performance-regression reason.
+
+## De-risking tasks
 
 | id | item | why it is open |
 | :-- | :-- | :-- |
 | DR-1 | Per-graph revision counter | **Settled — per-graph, shipped.** `VariableElement` carries a `LuaTypeGraph` back-reference and validates against `LuaTypeGraph.revision`. Decisive reason: a global counter makes the root-resolution counts order-dependent across a shared-JVM test run, and that count is the primary gate. The predicted lower-bound effect showed up — 87.2× against the spike's 100×. |
 | DR-2 | Full unit suite + `-PwithCorpus` under S1 | **Run.** Ordinary suite `--rerun --no-build-cache`: 2 885 / 0 / 0 / 1 (2 880 before, +5 new). `-PwithCorpus`: 2 893 / 0 / 0 / 1. Baselines byte-identical; the three `LuaUnusedLocal` `IMPROVED` lines reproduce on pristine `75957547` and are pre-existing. |
 | DR-3 | `ktlintCheck` | **Run, clean, no format pass needed.** `run ktlintCheck` alone (never paired with `ktlintFormat`, BUG-445). |
-| DR-4 | S3 differential-equivalence harness | Flattened vs recursive `read`, mismatches counted over the full suite and the corpus. Measured 1/817 on the n = 80 fixture alone; the population-wide number is unknown and Phase 2 is blocked on it. |
+| DR-4 | S3 differential-equivalence harness | **Run — S3 REJECTED.** Flattened vs recursive `read` at every root resolution, over the ordinary suite (163 152 comparisons, **2** mismatches, both a synthetic fixture), the `-PwithPerf` annotated fixtures (**0**) and `-PwithCorpus` (1 160 443 comparisons, **4 018** mismatches, 372 distinct contexts, 191 semantically different across 52 files). Not enumerable; see [Phase 2 — blocked](#phase-2--blocked-s3-fails-dr-4s-equivalence-gate). |
 | DR-5 | `timeLimitMs` granularity | `checkTypes(timeLimitMs = 5000)` (`:299`) is checked once per fixed-point iteration (`:319-322`); iteration 1 measured 7 253 ms without tripping. Decide whether the cutoff belongs inside the node loop, and whether `ProgressManager.checkCanceled()` belongs there too — this path runs on the EDT in the reproduction. |
-| DR-6 | A `---@class` corpus fixture | The trigger condition is unsatisfiable on 100 % of the corpus. Until a fixture carries one, no sweep can regress-detect this bug. |
+| DR-6 | A `---@class` corpus fixture | **Executed.** `src/test/resources/corpus/annotated/` — `builder.lua` (a `---@class` and 40 colon-call sites) and `shapes.lua` (the wider tag vocabulary) — plus `LuaAnnotatedFixtureSweepTest`, opt-in with `-PwithCorpus`. Gated on **root-resolution counts, never a duration** (BUG-474): 2 028 / 343 / 133 with the Phase 1 memo, 5 612 / 2 908 / 2 519 without it, budgets 3 000 / 500 / 250, mutation-proven red on all three. Costs 2.36 s of an 18-minute corpus run and moves no sweep baseline. Size reasoning and the three things it does *not* cover: [DR-6 — executed](#dr-6--executed-the-corpus-lane-now-carries-a-class). |
 | DR-7 | Live IDE verification | The measured harness calls `forFile` directly. The user-visible symptom is a freeze while editing an annotated module; confirm via the `verify-in-ide` flow. |
