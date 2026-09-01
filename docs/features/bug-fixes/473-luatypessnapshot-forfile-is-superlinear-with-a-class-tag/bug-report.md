@@ -3,7 +3,7 @@ id: "BUG-473"
 title: "`LuaTypesSnapshot.forFile` is superlinear in call-site count once a `@class` tag is present"
 type: "bug"
 parent_id: "BUG"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -67,8 +67,8 @@ investigation.
 
 ## Where this stands after Phase 2
 
-**Both phases have shipped. The disposition below is a recommendation, and the decision to close is
-not taken here.**
+**Both phases have shipped, DR-7 has been executed, and this report is CLOSED.** The residual is
+filed as [[TYPE-12]].
 
 Phase 2 (V2, DR-8) shipped on `fix-bug-473-phase2-v2`: `checkTypes` resolves a value node's `write`
 once per outer-node visit rather than once per admitted pair. On the libvirt builder, n = 160 goes
@@ -1251,8 +1251,43 @@ cannot come back unnoticed.
 **DR-7 (live IDE verification) stays open and is the one thing this phase did not do.** Every figure
 above comes from a harness calling `forFile` directly.
 
-The front-matter `status` is deliberately left at `in_progress`. Phase 2 is delivered; closing the
-report is the decision this section recommends and does not take.
+**Taken 2026-08-30.** DR-7 ran (above) and closed the last open gate: the engine resolves correctly
+and stays responsive in a live IDE at both 160 and 320 call sites. The report is `done`; the residual
+clique is [[TYPE-12]].
+
+## DR-7 — executed (the editor path is off-EDT)
+
+Run 2026-08-30 on the libvirt builder (`debian13`, 4 cores), GoLand **2026.1.3** sandbox on Xvfb
+`:99`, `Loaded custom plugins: lunar (0.18.0)` confirmed fresh in `idea.log` before anything was
+read. Three fixtures in a disposable project: `annotated160.lua` and `annotated320.lua` (one
+`---@class Builder`, `---@param n string`, `---@return Builder`, N colon calls) and `control160.lua`
+with the tags stripped.
+
+| fixture | highlighting completes | typed input lands | freeze events |
+| :-- | :-- | :-- | :-- |
+| `control160.lua` | within the first capture | — | 0 |
+| `annotated160.lua` | between +5 s and +15 s | **< 1 s** (16 chars, caret at 169:17) | 0 |
+| `annotated320.lua` | between +20 s and +45 s | **< 1 s** (caret at 329:17) | 0 |
+
+The engine is demonstrably live in the IDE, not merely quiet: the `{ ... } | Builder` union renders
+as an inlay hint, the `---@param` violation raises its marker, and parameter info shows
+`Builder:setName(n: string)` — i.e. the class, the method and the annotation all resolved.
+
+**The symptom is not a freeze.** Across the sandbox's entire history there are **zero**
+`threadDumps-freeze-*` directories, and that absence is not a dead instrument:
+`PerformanceWatcherImpl` logs responsiveness on every startup including this run's. A `jstack` taken
+while a 320-call file was analysing puts the type engine on **three `JobScheduler FJ pool` daemon
+threads** (~45 s CPU each) with the **EDT parked `WAITING` and carrying no Lunar frame at all**.
+
+So what a user experiences on a large annotated module is **highlighting that arrives late**, not an
+unresponsive editor. That corrects this report's own framing, and it retires DR-5's premise: the
+`timeLimitMs` cutoff and a possible `ProgressManager.checkCanceled()` are a latency and
+cancellation question, not a freeze one.
+
+**What this gate did not do.** It did not re-measure the pre-fix engine live — the before/after
+remains the harness's. And IDE wall-clock is longer than the harness's per-call figure (~10 s at
+n = 160 against 3 556 ms) because a daemon pass costs more than one `forFile`; the two numbers
+measure different things and should not be compared directly.
 
 ## De-risking tasks
 
@@ -1262,7 +1297,7 @@ report is the decision this section recommends and does not take.
 | DR-2 | Full unit suite + `-PwithCorpus` | **Run under both phases.** Phase 1: ordinary 2 885 / 0 / 0 / 1 (2 880 before, +5 new), `-PwithCorpus` 2 893 / 0 / 0 / 1; the three `LuaUnusedLocal` `IMPROVED` lines reproduce on pristine `75957547` and are pre-existing. Phase 2: ordinary **2 890 / 0 / 0 / 1**, `-PwithCorpus` **2 900 / 0 / 0 / 1**, +5 new in each, no `IMPROVED`/`REGRESSED` line. Baselines byte-identical in both. |
 | DR-3 | `ktlintCheck` | **Run, clean, no format pass needed, under both phases.** `run ktlintCheck` alone (never paired with `ktlintFormat`, BUG-445). |
 | DR-4 | S3 differential-equivalence harness | **Run — S3 REJECTED.** Flattened vs recursive `read` at every root resolution, over the ordinary suite (163 152 comparisons, **2** mismatches, both a synthetic fixture), the `-PwithPerf` annotated fixtures (**0**) and `-PwithCorpus` (1 160 443 comparisons, **4 018** mismatches, 372 distinct contexts, 191 semantically different across 52 files). Not enumerable; see [Phase 2 — blocked](#phase-2--blocked-s3-fails-dr-4s-equivalence-gate). |
-| DR-5 | `timeLimitMs` granularity | `checkTypes(timeLimitMs = 5000)` (`:299`) is checked once per fixed-point iteration (`:319-322`); iteration 1 measured 7 253 ms without tripping. Decide whether the cutoff belongs inside the node loop, and whether `ProgressManager.checkCanceled()` belongs there too — this path runs on the EDT in the reproduction. |
+| DR-5 | `timeLimitMs` granularity | `checkTypes(timeLimitMs = 5000)` (`:299`) is checked once per fixed-point iteration (`:319-322`); iteration 1 measured 7 253 ms without tripping. Decide whether the cutoff belongs inside the node loop, and whether `ProgressManager.checkCanceled()` belongs there too. **The EDT premise is withdrawn:** DR-7's `jstack` shows the editor path running entirely on `JobScheduler FJ pool` threads with no Lunar frame on the EDT, so this is a latency question, not a freeze one. |
 | DR-6 | A `---@class` corpus fixture | **Executed.** `src/test/resources/corpus/annotated/` — `builder.lua` (a `---@class` and 40 colon-call sites) and `shapes.lua` (the wider tag vocabulary) — plus `LuaAnnotatedFixtureSweepTest`, opt-in with `-PwithCorpus`. Gated on **root-resolution counts, never a duration** (BUG-474): 2 028 / 343 / 133 with the Phase 1 memo, 5 612 / 2 908 / 2 519 without it, budgets 3 000 / 500 / 250, mutation-proven red on all three. Costs 2.36 s of an 18-minute corpus run and moves no sweep baseline. Size reasoning and the three things it does *not* cover: [DR-6 — executed](#dr-6--executed-the-corpus-lane-now-carries-a-class). |
 | DR-8 | Size S6 — the last untried avenue | **Run — S6 SPLITS.** Its closure clause is confirmed a redesign (the mildest bound, dropping `checkTableCompatibility`'s reverse member edge, deletes an ERROR-tier `---@param` violation). Its cross-product clause named the wrong quantity: the pair loop is 4 % of the time and the accessor redundancy it induces is 93 % (27 372 root `write` resolutions over 327 distinct nodes at n = 160). **V2** — hoisting `valueNode.write` to one read per node visit — moves the exponent ×15.0 → ×4.7, is 5.8× at n = 160, and clears the gate S3 failed: 2 885 / 0 / 0 / 1 ordinary, 2 895 / 0 / 0 / 1 corpus, five baselines byte-identical, and a mutation-proven differential of **0 mismatches over 4 172 026 comparisons**. See [S6 — sized](#s6--shrink-the-cross-product-or-the-closure-itself-sized--it-splits-half-is-a-redesign-half-is-a-phase). **V2 has since shipped as Phase 2.** |
-| DR-7 | Live IDE verification | **Still open after both phases, and the one gate neither performed.** The measured harness calls `forFile` directly. The user-visible symptom is a freeze while editing an annotated module; confirm via the `verify-in-ide` flow. |
+| DR-7 | Live IDE verification | **Executed 2026-08-30 — and it corrected the symptom's description.** GoLand 2026.1.3 on the libvirt builder, `lunar (0.18.0)` loaded. 160 call sites highlight in ~10 s, 320 in 20–45 s, and **neither freezes**: typed input lands within 1 s at both sizes, and the sandbox has **zero** `threadDumps-freeze-*` across its whole history with `PerformanceWatcherImpl` proven live. `jstack` during analysis puts the work on three `JobScheduler FJ pool` threads with **zero Lunar frames on the EDT**. See [DR-7 — executed](#dr-7--executed-the-editor-path-is-off-edt). |
