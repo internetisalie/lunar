@@ -3,7 +3,7 @@ id: "BUG-471"
 title: "A committed rename cannot be undone — Edit ▸ Undo is enabled but restores nothing, on both rename paths"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -106,9 +106,42 @@ it only because both paths reach that method. Prove which frame owns the command
 Note that `BUG-468` also lives in that method's rewrite loop, for a different reason (cancellation
 mid-loop). They are not the same defect and neither fix implies the other.
 
+## Verified 2026-09-02 — the restore failure does NOT reproduce; the label defect does
+
+Run on the **VM-native `runIde` sandbox** (GoLand `GO-2026.1.3`, plugin load confirmed fresh at
+`2026-09-02 10:50:16` — the log is append-only, so the last line was checked against today's date,
+not the first). Both rename routes, this report's own fixture, file content read **from disk after
+<kbd>Ctrl+S</kbd>** rather than from a screenshot.
+
+| route | fixture | after rename | after one <kbd>Ctrl+Z</kbd> |
+| :-- | :-- | :-- | :-- |
+| **in-place** (REFACT-07) | `local config = 2` / `print(config)` | `local settings = 2` / `print(settings)` | **`local config = 2` / `print(config)`** — restored |
+| **dialog** (REFACT-01) | `gconfig = 1` / `print(gconfig)` | `gsettings = 1` / `print(gsettings)` | **`gconfig = 1` / `print(gconfig)`** — restored |
+
+A **headless control** was run first, before touching the IDE: a `BasePlatformTestCase` that renames
+through `myFixture.renameElementAtCaret` and then calls `UndoManager.undo`. It reports
+`isUndoAvailable=true` and restores the pre-rename text exactly. So the processor does produce a
+single undoable command, which is what `LuaRenameProcessor.renameElement`'s KDoc asserts and what
+this report contradicted.
+
+**Disposition: the restore half of this report is an artifact of the containerized IDE**, which is
+the deprecated verification path. Four independent observations now say undo works — the headless
+fixture, the VM-native sandbox on both routes today, and `BUG-472`'s run on 2026-08-27 — against one
+container. This report's own first instruction was to rule the environment out before investigating,
+and that instruction was right.
+
+**What this does not establish.** The container was **not** re-run, so this does not prove the
+container still fails, nor identify what about it differs. If the container path is ever revived,
+expect this to return there and treat it as a harness defect at that point.
+
+**The cosmetic label below is a different matter — it reproduces here**, on the in-place path, and
+is carried forward as [[BUG-475]].
+
 ## Separate, and cosmetic
 
-On the in-place path the undo entry reads **"Undo Renaming Lua Name Ref Impl cou…"** — the PSI
+**Carried forward as [[BUG-475]]; confirmed live on 2026-09-02 in the VM-native sandbox, where the
+Edit menu reads `Undo Renaming Lua Name Ref Impl con…`.** On the in-place path the undo entry reads
+**"Undo Renaming Lua Name Ref Impl cou…"** — the PSI
 implementation class name, de-camel-cased — because nothing supplies an `ElementDescriptionProvider`
 for the `LuaNameRef` composite. The dialog path's label is properly user-facing. This is REFACT-07's,
 it is user-visible, and it is independent of the restore failure above.

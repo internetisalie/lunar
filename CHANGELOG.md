@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The undo entry after an in-place rename now names the symbol** (BUG-475). Renaming a local with
+  <kbd>Shift+F6</kbd> and opening *Edit* showed **"Undo Renaming Lua Name Ref Impl con…"** — the
+  plugin's own PSI implementation class, de-camel-cased by the platform, in user-visible text. It now
+  reads *"Undo Renaming local variable config…"*, matching the rename dialog's wording, which was
+  already correct. The undo itself always worked; only its label was wrong.
+
 - **Editing a `---@class`-annotated module no longer freezes the IDE for minutes** (BUG-473,
   Phase 1). A single `---@class` tag made type inference superlinear in the number of colon calls
   against that class: a file with 80 call sites took 12.8 seconds to analyse, one with 160 took

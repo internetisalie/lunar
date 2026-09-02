@@ -395,6 +395,9 @@
             implementation="net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler"/>
     <nameSuggestionProvider
             implementation="net.internetisalie.lunar.refactoring.rename.LuaNameSuggestionProvider"/>
+    <!-- BUG-475: without this the platform de-camel-cases LuaNameRefImpl into the undo entry. -->
+    <elementDescriptionProvider
+            implementation="net.internetisalie.lunar.refactoring.LuaElementDescriptionProvider"/>
     <lang.namesValidator
             language="Lua"
             implementationClass="net.internetisalie.lunar.refactoring.LuaNamesValidator"/>
