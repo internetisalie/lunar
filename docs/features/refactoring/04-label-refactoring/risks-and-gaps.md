@@ -224,6 +224,35 @@ a live `goto` still needs, which is a worse outcome than `::::`.
   branch to `identifierLeafFor`, and add a test that Safe Delete of a label **with** a `goto` raises a
   conflict rather than deleting. See Gap 2.3.
 
+### RD-5: `implementation-plan.md`'s TC-04-M fixture predates REFACT-07 broadening the predicate it tests
+
+`implementation-plan.md`'s TC-04-M names `local x = 1`'s `LuaNameRef` as the negative case for
+`LuaRefactoringSupportProvider.isMemberInplaceRenameAvailable` — expecting `false`. That was true when
+this design was written, evidenced by the (correct, at the time) reading in `requirements.md`:
+*"`isMemberInplaceRenameAvailable` returns `true` for exactly one type, `LuaLabelName`"*.
+
+**REFACT-07 Phases 7-8 (`c52d333b`), which landed after this feature's design, broadened the
+predicate**: `isMemberInplaceRenameAvailable` now also returns `true` for a **file-local**
+declaration's `LuaNameRef` (`LuaRefactoringSupportProvider.kt:87-95`,
+`LuaDeclarationKind.isFileLocal`). `local x = 1` is a file-local `LOCAL_VARIABLE`, so the plan's
+literal fixture now asserts `false` for an input that is actually `true` — confirmed by the
+already-passing `LuaInplaceRenameTest.testMemberInplaceRenameIsOfferedForAFileLocalDeclaration`,
+whose fixture (`local counter = 0`) is the same shape.
+
+- **Where this surfaced**: Phase 1, writing TC-04-M into `LuaLabelRenameTest.kt`
+  (`testInPlaceRenameAvailabilityConjuncts`).
+- **Resolution applied**: the test uses a **global** declaration's `LuaNameRef` as the negative case
+  instead (`::top::` / `x = 1`) — `LuaDeclarationKind.GLOBAL_VARIABLE.isFileLocal` is `false`,
+  confirmed by the same test file's `testMemberInplaceRenameIsWithheldFromAGlobalDeclaration`. This
+  preserves `REFACT-04-09`'s intent (a label is offered in-place rename; something that is not a
+  label is not) with a fixture that is actually `false` under the code as it stands. The deviation is
+  recorded in the test's own KDoc as well as here.
+- **Not applicable elsewhere in this plan**: Phase 3's TC-04-D/E/F/G/H/L/N and Phase 2's TC-04-I/J
+  do not go through `isMemberInplaceRenameAvailable` at all, so this staleness is local to TC-04-M.
+- **Proposed `implementation-plan.md` edit** (not applied — this file is the tracked-status record;
+  the plan text is left as the historical draft): TC-04-M's fixture description should read "a
+  global declaration's `LuaNameRef`" in place of "`local x = 1`'s `LuaNameRef`".
+
 ## Design Gaps
 
 ### Gap 2.1: The conflict model uses PSI block ancestry; the resolver uses `statementList`
@@ -283,13 +312,115 @@ a live `goto` still needs, which is a worse outcome than `::::`.
 | ID | Action | Resolves | Status |
 | :--- | :--- | :--- | :--- |
 | `REFACT-04-00-DR-01` | Obtain a Lua 5.5 interpreter (build from source into `~/Documents/src/lua/interpreters/lua-5.5.x`) and run design §1's P-a…P-e matrix against it. Record the outcome in design §1's executed table and, if 5.5 diverges from 5.4, in §3.4's tier test. | Risk 1.5; `REFACT-04-08`'s unverified 5.5 claim | todo |
-| `REFACT-04-00-DR-02` | Live in-place rename of a label via the `verify-in-ide` flow: confirm `MemberInplaceRenamer` is the handler, that committing runs a `RenameProcessor` (design §1 evidence table, read-derived from `MemberInplaceRenamer.java:309-317`), and that a colliding new name raises the conflicts dialog. | `REFACT-04-09`; the one read-derived claim on which Phase 3's user-visible behaviour depends | todo |
-| `REFACT-04-00-DR-03` | Live F2 on a label node in the Structure View after Phase 4: confirm the rename dialog opens instead of *"cannot be renamed"*. | `REFACT-04-14` | todo |
+| `REFACT-04-00-DR-02` | Live in-place rename of a label via the `verify-in-ide` flow: confirm `MemberInplaceRenamer` is the handler, that committing runs a `RenameProcessor` (design §1 evidence table, read-derived from `MemberInplaceRenamer.java:309-317`), and that a colliding new name raises the conflicts dialog. | `REFACT-04-09`; the one read-derived claim on which Phase 3's user-visible behaviour depends | **done** |
+| `REFACT-04-00-DR-03` | Live F2 on a label node in the Structure View after Phase 4: confirm the rename dialog opens instead of *"cannot be renamed"*. | `REFACT-04-14` | **done** |
 | `REFACT-04-00-DR-04` | Before Phase 3: check whether REFACT-01 §2.1's `LuaDeclarationSite.declarationNodeOf` move and BUG-458's `declarationNodeFor` fix have landed, and in which order; record where the label branch belongs. | Gap 2.3, RD-4 | todo |
 | `REFACT-04-00-DR-05` | Before writing TC-04-D: run one throwaway rename through `myFixture.renameElementAtCaret` with a deliberately broken `findCollisions` that always emits one collision, and confirm `ConflictsInTestsException` is thrown. Proves the fixture reaches `findCollisions` at all before seven tests are written against the assumption. | The read-derived claim `RenameUtil.java:103` → `RenameProcessor.java:179-182` | todo |
 
 DR-01 and DR-04 gate nothing and may run in parallel with Phase 1. DR-05 gates the *writing* of
 Phase 3's tests. DR-02 and DR-03 are post-phase live checks, recorded here so they are not lost.
+
+### DR-02 outcome (executed, REFACT-04 Phase 3, 2026-09-02)
+
+Run on `lunar-builder` (native `runIde`, Xvfb `:99`, `scrot`/`xdotool` — the `verify-in-ide` flow),
+against a freshly built plugin (`Loaded custom plugins: lunar (0.18.0)`, timestamp confirmed same-run
+per the append-only-log trap). Fixture, a throwaway `dr02_label.lua` in the disposable `proj` scratch
+project (default `languageLevel`, i.e. `LUA54`):
+
+```lua
+local n = 0
+::a::
+n = n + 1
+do
+  if n < 2 then goto a end
+  ::b::
+end
+print("n="..n)
+```
+
+1. **Caret on `::b::`, `Shift+F6`.** The identifier went into an editable in-place template (status
+   bar `6:5 (1 char)`, the label text boxed inline) — confirms `MemberInplaceRenameHandler.isAvailable`
+   resolved true and `MemberInplaceRenamer` is the handler, not the dialog. Typed `a`, pressed `Enter`.
+2. **A "Conflicts Detected" modal appeared** (not a silent apply) titled *1 conflicts*, listing under
+   `dr02_label.lua`: *"Renaming this label to 'a' duplicates the label declared on line 2. Lua 5.4 and
+   later reject the file with "label 'a' already defined"; this project is configured for Lua 5.4."*
+   — the exact `refactoring.rename.label.conflict.duplicate` message, byte-for-byte. This confirms
+   `Enter` commits through a real `RenameProcessor` (not `VariableInplaceRenamer`'s lighter path,
+   which never calls `RenameUtil.findUsages`) and that `findCollisions` is reached from the in-place
+   route — the one hazard design §2.2 named as unreachable from a headless test (the `…Base`
+   `ClassCastException` risk this phase's `RenamePsiElementProcessor` superclass choice avoids).
+3. **Cancel** (`Escape`) aborted cleanly — `cat dr02_label.lua` afterward still read `::b::`
+   unchanged; no half-apply.
+4. **Regression check, same session**: caret back on `::b::`, `Shift+F6` → `zzz` → `Enter` (a
+   non-colliding name) applied **instantly with no dialog** — `::zzz::` in the buffer immediately.
+   Confirms the conflict check does not fire on safe renames and the happy path (`REFACT-04-02`,
+   `-09`) is unaffected live.
+
+**Screenshots** (session-scratch, not repo-tracked): in-place edit box active
+(`dr02-4.png`/`dr02-5.png`), the Conflicts Detected dialog with the exact message
+(`dr02-6.png`), post-cancel unchanged buffer (`dr02-7.png`), non-colliding apply
+(`dr02-8.png`).
+
+**Teardown**: the launched `runIde` tree (wrapper + `gradlew` + GoLand JBR + `fsnotifier`, 4 PIDs)
+was killed and confirmed gone; the throwaway fixture file was deleted from the scratch project;
+`git status --porcelain` on the repo was clean of any DR-02 side effect throughout.
+
+All three things DR-02 was opened to confirm are now **executed, not read-derived**: `-09`'s
+in-place-availability claim, the `RenamePsiElementProcessor` superclass choice (§2.2), and `-07`'s
+conflicts-dialog behaviour (§3.3) all hold live, at the one boundary (in-place commit) no unit test
+can reach.
+
+### DR-03 outcome (executed, REFACT-04 Phase 4, 2026-09-02)
+
+Run on `lunar-builder` (native `runIde`, Xvfb `:99`, `scrot`/`xdotool` — the `verify-in-ide` flow),
+against a freshly built plugin (log truncated before launch; `Loaded custom plugins: lunar (0.18.0)`
+confirmed same-run, not a stale append-only-log line). Fixture, a throwaway `dr03_label.lua` in the
+disposable `proj` scratch project reused from DR-02 (default `languageLevel`, i.e. `LUA54`):
+
+```lua
+local n = 0
+::top::
+n = n + 1
+if n < 3 then goto top end
+print(n)
+```
+
+1. **Opened the file, `Alt+7` to open the Structure View.** The tree showed `dr03_label.lua` → `n`
+   (variable icon) → `top` (bookmark icon) — the label node Phase 4 changes `getValue()` for.
+2. **Clicked the `top` node to select it** (confirmed selected — blue highlight — in the screenshot).
+3. **`F2` sent directly to the tree produced no visible effect** — no in-place box, no dialog, no
+   error balloon, three consecutive attempts. This is left unexplained (a focus-transfer quirk of
+   `xdotool click` against this specific `JTree` under Xvfb is the likely cause, not a plugin defect
+   — nothing in Phase 4's diff touches key-event routing), and is recorded rather than glossed over.
+4. **`Refactor ▸ Rename…` (the `Shift+F6` action) with the same selection opened the Rename dialog**:
+   *"Rename label 'top' and its usages to:"*, pre-filled `top`. This is the outcome DR-03 was opened
+   to confirm — a real rename dialog, not *"Cannot perform refactoring — the caret should be
+   positioned at the name of an element to be renamed"* or similar. The Structure View's `getValue()`
+   is what fed this action's data context, since the editor caret was still at `1:1` from the file
+   having just been opened (screenshot confirms `1:1` in the status bar at the moment the menu was
+   invoked) — not the label the dialog names.
+5. **Completed the rename** (typed `loop`, clicked *Refactor*) as a stronger check than opening the
+   dialog alone: the buffer became `::loop::` / `goto loop` (both occurrences, one commit) and the
+   Structure View node relabelled to `loop` live — confirming the platform's rename pipeline, not
+   just the dialog, resolves correctly from a Structure-View-selected `LuaLabelName`.
+
+**Screenshots** (session-scratch, not repo-tracked): Structure View with the `top` node selected
+(`dr03-6.png`), the Refactor menu with *Rename…* enabled from that selection (`dr03-9.png`), the
+Rename dialog (`dr03-10.png`), and the post-refactor buffer + tree both reading `loop`
+(`dr03-12.png`).
+
+**Teardown**: the launched `runIde` tree (wrapper bash, `gradlew`, GoLand JBR, `fsnotifier` — 4 PIDs,
+identified by parent/child relationship, not by killing on sight) was killed and confirmed gone; the
+pre-existing Gradle and Kotlin compiler daemons (started before this session, ~3.2h uptime) were left
+running, matching this skill's teardown scope. The throwaway fixture file was deleted from the scratch
+project; `git status --porcelain` on the repo was clean of any DR-03 side effect throughout.
+
+`REFACT-04-14` is now **executed, not read-derived**: the Structure View publishes a
+`PsiNameIdentifierOwner` for a label node and the platform's rename entry point resolves it to a real
+rename dialog that performs the rename correctly. The one open item is #3 above (`F2` not firing
+directly on the tree) — not a regression this phase introduced (no keybinding code changed), and not
+blocking, since `Shift+F6` / `Refactor ▸ Rename…` is the same action DR-02 already verified as the
+live rename entry point elsewhere in this feature.
 
 ## Test Case Gaps
 
@@ -310,8 +441,12 @@ Three further gaps are real but not headlessly closable:
 - **`REFACT-04-09` in-place rename** cannot be exercised without an editor whose settings enable it
   (`MemberInplaceRenameHandler.isAvailable`'s third conjunct). TC-04-M asserts the two conjuncts that
   are observable; DR-02 covers the rest.
-- **`REFACT-04-14` F2 from the Structure View** needs a real tool window and data context. TC-04-K
-  asserts the precondition; DR-03 covers the rest.
+- **`REFACT-04-14` rename from the Structure View** needed a real tool window and data context. TC-04-K
+  asserted the precondition; DR-03 (executed above) confirmed the rest live — `Refactor ▸ Rename…`
+  from a Structure-View-selected label node opens a working rename dialog. A raw `F2` key sent
+  directly to the tree under `xdotool` did not fire in that run; DR-03's outcome records this as an
+  open, non-blocking item rather than treating `Shift+F6`/`Refactor ▸ Rename…` firing as a lesser
+  substitute — it is the same action DR-02 already established as the live rename entry point.
 - **Cross-version behaviour.** No test runs a real interpreter over the renamed file. The executed
   matrices in `requirements.md` and design §1 are the substitute, and they are planning evidence, not
   a regression gate. A test that shelled out to `~/bin/lua` would be the `LuaRecursiveReferenceTest`

@@ -2,8 +2,8 @@
 id: REFACT-04
 title: "04: Label Refactoring"
 type: feature
-status: "planned"
-vf_icon: 📋
+status: "done"
+vf_icon: ✅
 priority: "medium"
 parent_id: REFACT/INTENT
 folders: ["[[features/refactoring/requirements|requirements]]"]
@@ -168,22 +168,22 @@ feature: everything below is what *one* real `PsiNameIdentifierOwner` buys, and 
 | :--- | :--- | :---: | :---: | :--- |
 | `REFACT-04-00` | **Feature attributed to components that exist** | **M** | **Superseded** | The epic's *"Implemented (`LuaLabelFindUsagesProvider`, `LuaLabelRefactoringSupportProvider`)"* names two deleted classes. The capability lives in `LuaRefactoringSupportProvider` (`plugin.xml:384`), `LuaFindUsagesProvider` (`:375`), `LuaSafeDeleteProcessor` (`:387`) and `LuaNamesValidator` (`:391`). Recorded as `Superseded` because the *attribution* was replaced by shipped work (`3cafe73e`, `ab85c066`), not because the feature was. |
 | `REFACT-04-01` | **A label declaration is a renameable named element** | **M** | **Full** | `LuaLabelName : LuaNameDeclElement : PsiNameIdentifierOwner`, with `getNameIdentifier()` returning the IDENTIFIER child and `setName` replacing it through `LuaElementFactory.createIdentifier`. The single precondition the platform imposes, and the only element in the plugin that meets it. |
-| `REFACT-04-02` | **Rename the declaration; every bound `goto` follows** | **M** | **Full** | `::myLabel::` + `goto myLabel` → both rewritten. The rewrite of each usage is `LuaLabelReference.handleElementRename`, which calls `setName` on the `LuaLabelRef` composite. Covered end to end by `LuaLabelRenameTest.testRenameFromDeclaration` — but **only for a single `goto`**; see Verification. |
-| `REFACT-04-03` | **Rename invoked from a `goto` usage** | **M** | **Full** | Caret on `goto my<caret>Label` renames the declaration and all usages. Works because `LuaLabelRef`'s reference resolves to a `PsiNameIdentifierOwner`, so `TargetElementUtil`'s `REFERENCED_ELEMENT_ACCEPTED` branch yields a legal rename target — the branch that fails for every other Lua symbol ([[REFACT-01]] `-02`). `LuaLabelRenameTest.testRenameFromReference`. |
-| `REFACT-04-04` | **Function-boundary isolation** | **M** | **Full** | Two functions may each hold `::L::`; renaming one must not touch the other. Enforced in `LuaLabelReference.walkLabelScopes`, which stops at `LuaFuncDef`/`LuaFuncDecl`/`LuaLocalFuncDecl`/`LuaGlobalFuncDecl` — the PSI counterpart of the executed *"no visible label 'out'"* rule. `LuaLabelRenameTest.testScopeIsolatedRename`. |
-| `REFACT-04-05` | **Shadowed labels renamed by binding, not by spelling** | **S** | **Partial** | On 5.2/5.3 an inner `::a::` may legally shadow an outer one (executed above); renaming the outer must rewrite only the `goto`s that bind to it. The substrate is right — `processLabelDeclarations` walks a block's **direct** statements only, so an inner label is invisible from outside, and `isReferenceTo` re-resolves each candidate rather than matching text. `Partial` because **no test renames under shadowing**; `LuaLabelResolutionTest.testSiblingBlockResolution` proves the resolver, not the rename. |
-| `REFACT-04-06` | **New name is a valid, non-reserved identifier** | **M** | **Full** | Executed: `::end::` and `::goto::` are both `<name> expected` at every level, so rejecting reserved words is unconditionally correct for labels. Delegated to `LuaNamesValidator` / [[REFACT-05]], not duplicated. Unlike [[REFACT-01]] `-10`, here the validator is **not** inert: the rename UI that consults it is reachable. |
-| `REFACT-04-07` | **Collision with a mutually visible label is caught** | **M** | **Not Implemented** | The one rule a rename can break, and nothing checks it. No `renamePsiElementProcessor` is registered, so `findExistingNameConflicts` is the platform's empty default. Executed cost, same rename: **5.3 → a silently different program (`n=2` becomes `n=1`); 5.4 → `label 'a' already defined`**. The rule to implement is exact and needs no invention: conflict iff another label of the new name is declared in a block that is an **ancestor-or-self, or descendant**, of this label's block **within the same function** — sibling blocks do not collide (executed: `do ::a:: end do ::a:: end` is OK on every version). |
-| `REFACT-04-08` | **The collision rule tracks the configured language level** | **S** | **Not Implemented** | Follows from `-07` and from the executed matrix: shadowing is **legal on 5.2/5.3 and an error on 5.4+**, so the same rename is a hard block at one level and at most a warning at another. Any check must read `LuaProjectSettings.getInstance(project).state.languageLevel` — as `LuaLanguageLevelInspection` and `LuaCompletionContributor` (`level >= LuaLanguageLevel.LUA52`) already do — rather than assuming one dialect. **Lua 5.5 behaviour is unverified**: no 5.5 interpreter on this host, and 5.5 is a supported level. |
-| `REFACT-04-09` | **In-place (inline) rename in the editor** | **S** | **Full (not verified live)** | `isMemberInplaceRenameAvailable` returns `elementToRename is LuaLabelName`; `MemberInplaceRenameHandler.isAvailable` additionally requires `PsiNameIdentifierOwner`, which `LuaLabelName` satisfies. Both halves are read and correct. **Not observable headlessly** — the handler also requires `editor.getSettings().isVariableInplaceRenameEnabled()` — and **no test asserts even the boolean**: `grep -rn isMemberInplaceRenameAvailable src/test/` is empty. Needs a live IDE session (the `verify-in-ide` loop). |
+| `REFACT-04-02` | **Rename the declaration; every bound `goto` follows** | **M** | **Full** | `::myLabel::` + `goto myLabel` → both rewritten. The rewrite of each usage is `LuaLabelReference.handleElementRename`, which calls `setName` on the `LuaLabelRef` composite. Covered end to end by `LuaLabelRenameTest.testRenameFromDeclaration` and, for the multi-`goto` case the coverage-gap note below used to name, `.testRenameRewritesEveryBoundGoto` (TC-04-A, REFACT-04 Phase 1). |
+| `REFACT-04-03` | **Rename invoked from a `goto` usage** | **M** | **Full** | Caret on `goto my<caret>Label` renames the declaration and all usages. Works because `LuaLabelRef`'s reference resolves to a `PsiNameIdentifierOwner`, so `TargetElementUtil`'s `REFERENCED_ELEMENT_ACCEPTED` branch yields a legal rename target — the branch that fails for every other Lua symbol ([[REFACT-01]] `-02`). `LuaLabelRenameTest.testRenameFromReference`. The dangling-`goto` half (a `goto` with no visible label) is closed by REFACT-04 Phase 3's `LuaLabelRenameProcessor.substituteElementToRename`, which refuses rather than renaming a `LuaLabelRef` in place — `LuaLabelConflictTest.testRenameFromAGoto` (TC-04-N). |
+| `REFACT-04-04` | **Function-boundary isolation** | **M** | **Full** | Two functions may each hold `::L::`; renaming one must not touch the other. Enforced in `LuaLabelScopes.walkLabelScopes` (moved verbatim from `LuaLabelReference` in REFACT-04 Phase 2, boundary test delegated to `LuaLabelScopes.isFunctionBoundary`), which stops at `LuaFuncDef`/`LuaFuncDecl`/`LuaLocalFuncDecl`/`LuaGlobalFuncDecl` — the PSI counterpart of the executed *"no visible label 'out'"* rule. `LuaLabelRenameTest.testScopeIsolatedRename`, and `LuaLabelResolutionTest`/`LuaLabelCompletionTest` as the regression gate for the move. |
+| `REFACT-04-05` | **Shadowed labels renamed by binding, not by spelling** | **S** | **Full** | On 5.2/5.3 an inner `::a::` may legally shadow an outer one (executed above); renaming the outer must rewrite only the `goto`s that bind to it. The substrate is right — `processLabelDeclarations` walks a block's **direct** statements only, so an inner label is invisible from outside, and `isReferenceTo` re-resolves each candidate rather than matching text. Was `Partial` because no test renamed under shadowing; closed by REFACT-04 Phase 1's `LuaLabelRenameTest.testRenameUnderShadowingRewritesOnlyTheBoundGotos` (TC-04-C), mutation-confirmed against the `resolved === owner` identity test. `LuaLabelResolutionTest.testSiblingBlockResolution` remains the resolver-only regression guard. |
+| `REFACT-04-06` | **New name is a valid, non-reserved identifier** | **M** | **Full** | Executed: `::end::` and `::goto::` are both `<name> expected` at every level, so rejecting reserved words is unconditionally correct for labels. Delegated to `LuaNamesValidator` / [[REFACT-05]], not duplicated. Unlike [[REFACT-01]] `-10`, here the validator is **not** inert: the rename UI that consults it is reachable — `LuaNamesValidatorTest.testRenameUtilReachesValidatorForLabel` (TC-04-O, REFACT-04 Phase 1) asserts `RenameUtil.isValidName` reaches the validator for a `LuaLabelName`, not merely that the validator's own booleans are correct. |
+| `REFACT-04-07` | **Collision with a mutually visible label is caught** | **M** | **Full** | Closed by REFACT-04 Phase 3: `LuaLabelRenameProcessor` (`refactoring/rename/LuaLabelRenameProcessor.kt`), registered as a `renamePsiElementProcessor`, delegates `findCollisions` to `LuaLabelConflictDetector`. **This requirement's own rule statement was wrong** — "ancestor-or-self, or descendant" reports on legal code; executed, `do ::a:: end` followed by `::a::` is legal on 5.2.4, 5.3.6 **and 5.4.7** (design §1 rows P-b/P-e). The implemented rule (design §3.2) is directional: conflict iff the two share a function and one is declared in an enclosing-or-same block of the other **and the outer one comes first in source order**. `risks-and-gaps.md` RD-1 records the defect. `LuaLabelConflictTest`: `testDuplicateLabelRenameRefusedAt54` (TC-04-D), `testSiblingBlocksDoNotCollide` (TC-04-F, negative), `testEarlierLabelInAClosedBlockDoesNotCollide` (TC-04-G, the RD-1 guard), `testLabelInANestedFunctionNeverCollides` (TC-04-H), `testLabelProcessorIsTheOneThePlatformSelects` (TC-04-L, wiring). All five mutation-confirmed. |
+| `REFACT-04-08` | **The collision rule tracks the configured language level** | **S** | **Full** | Closed by REFACT-04 Phase 3: `LuaLabelConflictDetector`'s `messageFor` reads `LuaProjectSettings.getInstance(project).state.languageLevel` and selects `refactoring.rename.label.conflict.duplicate` at `>= LUA54` or `…conflict.rebind` below it (design §3.4) — one conflicts-dialog mechanism, tiered by message, not two severities (`risks-and-gaps.md` RD-2 records why a second, harder mechanism does not exist in the platform). `LuaLabelConflictTest.testDuplicateLabelRenameRefusedAt54` (TC-04-D) and `.testSameRenameReportedDifferentlyAt53` (TC-04-E), both mutation-confirmed against the tier comparison. **Lua 5.5 behaviour remains unverified** (DR-01, unresolved): no 5.5 interpreter on this host; the `>=` comparison fails safe by giving 5.5 the stricter 5.4+ wording. |
+| `REFACT-04-09` | **In-place (inline) rename in the editor** | **S** | **Full (verified live)** | `isMemberInplaceRenameAvailable` returns `true` for a `LuaLabelName` (among others, since REFACT-07); `MemberInplaceRenameHandler.isAvailable` additionally requires `PsiNameIdentifierOwner`, which `LuaLabelName` satisfies. Both halves are asserted by `LuaLabelRenameTest.testInPlaceRenameAvailabilityConjuncts` (TC-04-M, REFACT-04 Phase 1). The one conjunct no unit test can reach — `editor.getSettings().isVariableInplaceRenameEnabled()` — was confirmed by **DR-02** (REFACT-04 Phase 3, live `runIde` session): `Shift+F6` on a label activated the in-place editable template, `Enter` committed through a real `RenameProcessor` (reaching `findCollisions`, raising the exact conflicts-dialog message for a colliding name), and a non-colliding rename applied instantly with no dialog. Outcome recorded in `risks-and-gaps.md`. |
 | `REFACT-04-10` | **The rename UI calls the target a "label"** | **C** | **Full** | `LuaFindUsagesProvider.getType` returns `"label"` and `getDescriptiveName` the identifier text, so the dialog and preview read *Rename label 'done'* rather than *Rename element*. Asserted by `LuaFindUsagesTest.testCanFindUsagesForLabel`. |
-| `REFACT-04-11` | **The usage search stays inside the containing function** | **S** | **Not Implemented** | A label is invisible outside its function (executed) and can never be referenced from another file, so the search scope is knowable exactly. `LuaNameDeclElementImpl` does **not** override `getUseScope` (`grep -rn getUseScope src/main/kotlin` → one hit, in `LuaSafeDeleteProcessor`, and it only *reads* `.useScope`), so the platform falls back to a project-wide scope and every rename word-indexes the whole project to find at most a handful of in-function `goto`s. Correctness is preserved by `isReferenceTo`; cost is not. A `LocalSearchScope` over the enclosing function is the fix. |
+| `REFACT-04-11` | **The usage search stays inside the containing function** | **S** | **Full** | A label is invisible outside its function (executed) and can never be referenced from another file, so the search scope is knowable exactly. REFACT-04 Phase 2 adds `LuaNameDeclElementImpl.getUseScope()` (`LuaBaseElements.kt`), gated on `this is LuaLabelName`, returning `LocalSearchScope(LuaLabelScopes.functionScopeOf(this))` — the enclosing function, or the containing `LuaFile` for a top-level label. Correctness was already preserved by `isReferenceTo`; this removes the cost. Covered by `LuaLabelRenameTest.testLabelUseScopeIsEnclosingFunction` (TC-04-I) and `.testTopLevelLabelUseScopeIsFile` (TC-04-J), both mutation-confirmed. `TC-04-A` (multi-`goto`) is the regression gate that the narrowing did not drop a usage. |
 | `REFACT-04-12` | **Find Usages on a label** | **S** | **Full** | Delegated to [[NAV-02]] `NAV-02-03`, not duplicated. Noted here only because rename consumes the same search, and because labels take a **different path** from every other symbol: `LuaNameReferenceSearcher` returns early for `LuaLabelName`, leaving the platform's default named-element searcher to drive `LuaLabelReference`. |
 | `REFACT-04-13` | **Safe Delete of a label removes the whole `::name::`** | **S** | **Not Implemented** | `LuaSafeDeleteProcessor.handlesElement` accepts a `LuaLabelName` (asserted by `LuaSafeDeleteTest.testLabelDeclarationIsAvailable`), but `declarationNodeFor` elevates a leaf only when its parent is a `LuaNameRef`; a label's parent is a `LuaLabel`, so it returns the `LuaLabelName` unchanged and the surrounding `::` `::` survive. Executed: **`::::` is `<name> expected near '::'` on every version** — the refactoring would leave the file unparseable. **(inferred)** end to end; no test deletes a label, only checks availability. The fix is one `is LuaLabelName -> element.parent` branch. |
-| `REFACT-04-14` | **Rename from the Structure View** | **C** | **Not Implemented** | Labels appear in the structure view (`LuaLabelStructureViewTreeElement`, `LuaStructureViewTest.testLabelNodeLeafPresentation`), but its `getValue()` returns `labelName.identifier` — the **IDENTIFIER leaf**. `StructureViewComponent` publishes exactly that as `CommonDataKeys.PSI_ELEMENT` (line 861), and a leaf is not a `PsiNamedElement`, so **(inferred)** F2 there reports *cannot be renamed* even though F2 in the editor works. Returning the `LuaLabelName` instead would fix it; navigation, the reason the leaf was chosen, works from either. |
+| `REFACT-04-14` | **Rename from the Structure View** | **C** | **Full (verified live)** | Closed by REFACT-04 Phase 4: `LuaLabelStructureViewTreeElement.getValue()` now returns `myLabel.labelName` (a `LuaLabelName`, `PsiNameIdentifierOwner`) instead of `labelName.identifier` — the IDENTIFIER leaf `StructureViewComponent` published as `CommonDataKeys.PSI_ELEMENT` before this phase. Asserted by `LuaStructureViewTest.testLabelNodeValueIsRenameableLabelName` (TC-04-K), mutation-confirmed. `getPresentation()`'s null-tolerant read and `LuaStructureViewModel.SUITABLE_CLASSES` are untouched (design §2.6; the latter is Gap 2.2, out of scope). **DR-03 executed** (live `runIde` session): selecting the label node in the Structure View and invoking `Refactor ▸ Rename…` opened the rename dialog (not *"cannot be renamed"*), and completing it renamed both the label and its `goto` in one commit. Outcome recorded in `risks-and-gaps.md`. |
 | `REFACT-04-15` | **Rename is one undoable command** | **C** | **Full** | Platform-supplied — `RenameProcessor` runs inside a `WriteCommandAction`, so declaration and usages undo together. Recorded because the requirement is about the user, and *not* implemented by Lunar: an override here would replace working behaviour. |
 | `REFACT-04-16` | **Availability under language level 5.1** | **C** | **Won't** | At 5.1 a label is a syntax error in real Lua (executed) but still parses in Lunar, and `LuaLanguageLevelInspection` already reports it with `RemoveLabelFix`. Rename stays offered on purpose: gating it would remove a way to clean the code up and duplicate the inspection. **This decision is recorded here for the first time** — nothing in the repo states it, and the current behaviour is a side effect of the grammar being level-agnostic rather than a choice anyone made. |
-| `REFACT-04-17` | **Rename a label with no `goto`** | **C** | **Full** | A label with zero references renames the declaration and reports no usages. Legal Lua (a label is a void statement); the degenerate case of `-02`. |
+| `REFACT-04-17` | **Rename a label with no `goto`** | **C** | **Full** | A label with zero references renames the declaration and reports no usages. Legal Lua (a label is a void statement); the degenerate case of `-02`. Covered by `LuaLabelRenameTest.testRenameWithNoGotoRenamesDeclarationAlone` (TC-04-B, REFACT-04 Phase 1). |
 | `REFACT-04-18` | **Refactorings other than rename** | **W** | **Won't** | The epic row says *"renaming and refactoring of `goto` labels"*, which reads wider than what exists. Convert-`goto`-to-`break`, hoist-a-label, extract-loop: all require control-flow rewriting that changes semantics in ways Lua's jump rules make hard to prove safe (`LuaControlFlowBuilder` models labels but performs no rewriting). Out of scope by decision; an intention under the `INTENT` half of this epic would be the right home if it is ever wanted. |
 | `REFACT-04-19` | **Cross-file rename** | **W** | **Won't** | A label cannot be referenced from another file — executed: it is not even visible from another *function*. Listed so the absence reads as a language fact rather than a gap, and so `-11` is understood as a scope that is too **wide**, not too narrow. |
 | `REFACT-04-20` | **Rename never creates a jump-into-block or jump-into-local error** | **S** | **Full** | Guaranteed by construction, and the reason `-07` is the only conflict row: renaming relabels, it does not move code, so the two positional rules (executed: *"no visible label"* on a jump into a block, *"jumps into the scope of local 'x'"*) cannot be newly violated by a rename. Recorded explicitly so a future implementer of `-07` does not build machinery for rules a rename cannot break. |
@@ -200,13 +200,19 @@ feature: everything below is what *one* real `PsiNameIdentifierOwner` buys, and 
 - **Action**: Rename to `L2`.
 - **Output**: only `a`'s label and `goto` change; `b` is untouched.
 
-### TC-REFACT-04-07: Collision is refused or warned (not yet satisfied)
+### TC-REFACT-04-07: Collision is refused or warned (satisfied, REFACT-04 Phase 3)
 - **Input**: `::a::` / `n = n + 1` / `do if n < 2 then goto a end ::<caret>b:: end`.
 - **Action**: Rename `b` to `a`.
-- **Expected**: at level 5.4/5.5, a blocking conflict — the result does not compile. At 5.2/5.3, a
-  warning that `goto a` will rebind from the outer label to the inner one.
-- **Actual**: the rename proceeds silently. Executed consequence: `n=2` becomes `n=1` on 5.3.6; on
-  5.4.7 the file fails to load with `label 'a' already defined on line 2`.
+- **Expected as originally written**: at level 5.4/5.5, a blocking conflict — the result does not
+  compile. At 5.2/5.3, a warning that `goto a` will rebind from the outer label to the inner one.
+  **This wording is imprecise** — the platform's rename pipeline has exactly one conflict surface
+  (a conflicts dialog the user may Continue past), not a separate "blocking" mechanism at 5.4+;
+  `risks-and-gaps.md` RD-2 records why a truthful hard block is not achievable and what was chosen
+  instead (one mechanism, tiered by message).
+- **Now**: `LuaLabelConflictTest.testDuplicateLabelRenameRefusedAt54` (TC-04-D) drives exactly this
+  fixture at `LUA54` and asserts `BaseRefactoringProcessor.ConflictsInTestsException` is thrown with
+  an "already defined" message; `.testSameRenameReportedDifferentlyAt53` (TC-04-E) drives it at
+  `LUA53` and asserts a "jump to the nearer label" message instead. Both mutation-confirmed.
 
 ### TC-REFACT-04-13: Safe Delete leaves valid syntax (not yet satisfied)
 - **Input**: `::done::` with no `goto`.
@@ -219,15 +225,21 @@ feature: everything below is what *one* real `PsiNameIdentifierOwner` buys, and 
 | Row | Covered by |
 | :--- | :--- |
 | `-01` | `LuaLabelRenameTest.testNameIdentifierOwner` |
-| `-02` | `LuaLabelRenameTest.testRenameFromDeclaration` |
+| `-02` | `LuaLabelRenameTest.testRenameFromDeclaration`, `.testRenameRewritesEveryBoundGoto` (TC-04-A) |
 | `-03` | `LuaLabelRenameTest.testRenameFromReference` |
 | `-04` | `LuaLabelRenameTest.testScopeIsolatedRename` |
-| `-06` | `LuaNamesValidatorTest` (booleans only — see [[REFACT-05]]) |
+| `-05` | `LuaLabelRenameTest.testRenameUnderShadowingRewritesOnlyTheBoundGotos` (TC-04-C) |
+| `-06` | `LuaNamesValidatorTest` (booleans) plus `.testRenameUtilReachesValidatorForLabel` (TC-04-O — the *path*, see [[REFACT-05]]) |
+| `-09` | `LuaLabelRenameTest.testInPlaceRenameAvailabilityConjuncts` (TC-04-M) — the two headlessly observable conjuncts only; the third needs a live IDE (DR-02) |
 | `-10`, `-12` | `LuaFindUsagesTest.testCanFindUsagesForLabel`, `.testLabelUsagesCount` |
 | `-13` | `LuaSafeDeleteTest.testLabelDeclarationIsAvailable` — availability **only**; nothing deletes a label |
 | `-14` | `LuaStructureViewTest.testLabelNodeLeafPresentation` — presentation only; nothing renames from the tree |
 | `-16` | `LuaLanguageLevelInspectionTest.labelNotAllowedInLua51`, `.labelAllowedInLua52`, `.removeGotoQuickFixDeletesStatement` — the inspection, not the refactoring |
-| `-05`, `-07`, `-08`, `-09`, `-11`, `-15`, `-17`, `-20` | **Nothing** |
+| `-17` | `LuaLabelRenameTest.testRenameWithNoGotoRenamesDeclarationAlone` (TC-04-B) |
+| `-11` | `LuaLabelRenameTest.testLabelUseScopeIsEnclosingFunction` (TC-04-I), `.testTopLevelLabelUseScopeIsFile` (TC-04-J) |
+| `-07` | `LuaLabelConflictTest.testDuplicateLabelRenameRefusedAt54` (TC-04-D), `.testSiblingBlocksDoNotCollide` (TC-04-F), `.testEarlierLabelInAClosedBlockDoesNotCollide` (TC-04-G), `.testLabelInANestedFunctionNeverCollides` (TC-04-H), `.testLabelProcessorIsTheOneThePlatformSelects` (TC-04-L) |
+| `-08` | `LuaLabelConflictTest.testDuplicateLabelRenameRefusedAt54` (TC-04-D), `.testSameRenameReportedDifferentlyAt53` (TC-04-E) |
+| `-15`, `-20` | **Nothing** — both are true by construction/platform-supplied; `risks-and-gaps.md` "Test Case Gaps" records why no test can fail for either. |
 
 Supporting coverage that the rename rows rest on but do not themselves exercise:
 `LuaLabelResolutionTest` (`testBackwardLabelResolution`, `testForwardLabelResolution`,
@@ -236,15 +248,23 @@ Supporting coverage that the rename rows rest on but do not themselves exercise:
 `testSiblingBlockCompletion`, `testFunctionBoundaryCompletion`). Label *binding* is well tested;
 label *rename* is tested only in its three simplest shapes.
 
-**Three coverage gaps worth naming, all found by writing this table:**
+**Three coverage gaps were named here and are now closed by REFACT-04 Phase 1** (`implementation-plan.md`, no production code changed):
 
-1. **No test renames a label with more than one `goto`.** All three rename tests use exactly one
-   reference. The multi-reference path is the platform's `RenameProcessor` loop and is very likely
-   fine, but `-02` claims "every bound `goto`" and one reference does not demonstrate "every".
-2. **No test renames under shadowing** (`-05`), which is the case where "rewrite the right ones" has
-   any content.
-3. **Nothing at all exercises `-09` in-place rename**, not even the boolean, and it cannot be
-   exercised headlessly.
+1. ~~No test renames a label with more than one `goto`.~~ Closed by TC-04-A
+   (`testRenameRewritesEveryBoundGoto`), mutation-confirmed against `LuaLabelReference.isReferenceTo`.
+2. ~~No test renames under shadowing~~ (`-05`). Closed by TC-04-C
+   (`testRenameUnderShadowingRewritesOnlyTheBoundGotos`), mutation-confirmed against the
+   `resolved === owner` identity test.
+3. ~~Nothing exercises `-09` in-place rename, not even the boolean.~~ Partially closed by TC-04-M
+   (`testInPlaceRenameAvailabilityConjuncts`), which asserts the two headlessly observable conjuncts
+   — `PsiNameIdentifierOwner` and `isMemberInplaceRenameAvailable`. The third conjunct
+   (`editor.getSettings().isVariableInplaceRenameEnabled()`) still needs a live IDE session (DR-02);
+   see `risks-and-gaps.md`.
+
+TC-04-M's negative fixture deviates from `implementation-plan.md`'s literal text — see
+`risks-and-gaps.md` RD-5: REFACT-07 (landed after this design) broadened
+`isMemberInplaceRenameAvailable` to also cover file-local declarations, so `local x = 1` is no longer
+a valid negative case and a global declaration is used instead.
 
 **Recorded nowhere else in the repo:** `-07`/`-08` (silent rebinding on 5.2/5.3, compile error on
 5.4+, no conflict detection at all), `-11` (project-wide search scope for a function-local symbol),
@@ -259,6 +279,63 @@ value is right. `done` was never earned — one `Must` row (`-07`) and four `Sho
 demonstrably works, and which is the only rename in the plugin that does. `scripts/lint_planning.py`
 rejected anything above `todo` while this feature had no `design*.md`, and writing one was named here
 as the first task. **That task is done**: `design.md`, `implementation-plan.md` and
-`risks-and-gaps.md` landed on 2026-08-22, so the feature moves to `planned` — the unmet rows above
-are specified down to their tests and have not been started. Read `planned` as "the remaining work is
+`risks-and-gaps.md` landed on 2026-08-22, so the feature moved to `planned` — the unmet rows above
+are specified down to their tests and had not been started. Read `planned` as "the remaining work is
 planned and not yet begun", not "nothing exists", which was never true here.
+
+**Phase 1 (`implementation-plan.md`) landed with no production code changed** — five tests
+(TC-04-A/-B/-C/-M/-O) that close three of this section's named coverage gaps and mutation-confirm
+`-02`, `-05`, `-06`, `-09` (partial), `-17` for the first time. `-05` moved `Partial` → `Full`. Status
+moves to `in_progress`: real work has started, but `-07`/`-08`/`-11`/`-13` remain `Not Implemented`
+and `-09`/`-14` remain unverified live.
+
+**Phase 2 (`implementation-plan.md`) lands the label scope model and the use-scope narrowing.**
+`LuaLabelScopes` (new, `lang/psi/LuaLabelScopes.kt`) centralizes the function-boundary rule that
+`LuaLabelReference` used to own alone — `walkLabelScopes` moved verbatim, boundary test delegated to
+the new `isFunctionBoundary`. `LuaNameDeclElementImpl.getUseScope()` (new override, gated on
+`this is LuaLabelName`) narrows a label's use scope to its enclosing function, or the containing
+`LuaFile` for a top-level label. Two new tests, TC-04-I and TC-04-J, both mutation-confirmed; the
+move's regression gate (`LuaLabelResolutionTest`, `LuaLabelCompletionTest`) and the narrowing's
+regression gate (`LuaFindUsagesTest.testLabelUsagesCount`, `LuaSafeDeleteTest.testLabelDeclarationIsAvailable`,
+and Phase 1's TC-04-A) are all green. `-11` moves `Not Implemented` → `Full`; `-04` stays `Full`
+(extraction only, no behaviour change). Status stays `in_progress`: `-07`/`-08`/`-13` remain
+`Not Implemented` and `-09`/`-14` remain unverified live.
+
+**Phase 3 (`implementation-plan.md`) lands the conflict check.** `LuaLabelConflictDetector` (new,
+`refactoring/rename/LuaLabelConflictDetector.kt`) implements the corrected duplicate-label rule
+(design §3.2, `risks-and-gaps.md` RD-1) and emits REFACT-01's `LuaRenameCollisionUsageInfo` — no new
+carrier defined. `LuaLabelRenameProcessor` (new, same package) extends `RenamePsiElementProcessor`
+and `DumbAware`, overrides exactly `canProcessElement`, `substituteElementToRename` and
+`findCollisions`, and is registered as a `renamePsiElementProcessor` in `plugin.xml` with no `order`
+attribute. Three bundle keys added (`refactoring.rename.label.conflict.duplicate`, `…conflict.rebind`,
+`…unresolvedGoto`); nothing removed. Seven new tests in the new `LuaLabelConflictTest`
+(TC-04-D/-E/-F/-G/-H/-L/-N), all mutation-confirmed — nine mutations run in total, since TC-04-H and
+TC-04-L each have two named mutations and both were executed. `-07` and `-08` move `Not Implemented`
+→ `Full`; `-03`'s dangling-`goto` half closes (TC-04-N). **DR-02 executed** (in-place rename, live
+IDE) — outcome recorded in `risks-and-gaps.md`. Full suite green: 2913 tests / 0 failures / 0 errors /
+1 skipped across 466 files (baseline 2906/465 + this phase's 7 tests in 1 new file — exact
+reconciliation, no unexplained delta). `ktlintCheck` clean. Status stays `in_progress`: `-13` remains
+`Not Implemented` (delegated to [[BUG-458]]) and `-09`/`-14` remain unverified live; Phase 4
+(Structure View rename target) is the only remaining `todo` phase.
+
+**Phase 4 (`implementation-plan.md`) lands the Structure View fix.** `LuaLabelStructureViewTreeElement.getValue()`
+(`lang/structure/LuaLabelStructureViewTreeElement.kt`) now returns `myLabel.labelName` instead of
+`labelName.identifier ?: labelName.firstChild ?: labelName` — design §2.6's one-line change.
+`getPresentation()`'s null-tolerant read and `LuaStructureViewModel.SUITABLE_CLASSES` are untouched,
+as instructed; the latter's disagreement with the new `getValue()` type is Gap 2.2, recorded as
+out-of-scope future work. One new test, TC-04-K (`LuaStructureViewTest.testLabelNodeValueIsRenameableLabelName`),
+mutation-confirmed: reverting `getValue()` to its old form reddened exactly that test (1 of 16) and no
+other. `-14` moves `Not Implemented` → `Full (verified live)`. **DR-03 executed** (Structure View
+rename, live IDE) — outcome recorded in `risks-and-gaps.md`; the one open item there (a raw `F2` not
+firing directly on the tree under `xdotool`) is non-blocking and not a regression this phase
+introduced. Full suite green: 2914 tests / 0 failures / 0 errors / 1 skipped across 466 files
+(baseline 2913 + this phase's 1 new test — exact reconciliation, no unexplained delta). `ktlintCheck`
+clean.
+
+**All four phases of `implementation-plan.md` are now done.** Status moves to `done`. The one
+remaining unmet row, `-13` (S, Safe Delete of a label), stays `Not Implemented` and delegated to
+[[BUG-458]] (itself still `todo`) — it was never a phase of this plan (`implementation-plan.md`'s
+Requirement → Phase Coverage table lists it as "Delegated to BUG-458", not assigned to Phase 1-4),
+so it does not gate this feature's own completion, the same treatment `-00`, `-06` and `-12` already
+get for work this feature depends on but does not itself deliver. `-16`/`-18`/`-19` are `Won't` by
+recorded decision, not gaps.

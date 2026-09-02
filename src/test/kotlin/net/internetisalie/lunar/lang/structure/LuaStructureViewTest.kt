@@ -4,11 +4,13 @@ import com.intellij.icons.AllIcons
 import com.intellij.ide.structureView.TreeBasedStructureViewBuilder
 import com.intellij.ide.util.treeView.smartTree.Sorter
 import com.intellij.ide.util.treeView.smartTree.TreeElement
+import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFinalStatement
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLabel
+import net.internetisalie.lunar.lang.psi.LuaLabelName
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -145,6 +147,21 @@ class LuaStructureViewTest : BasePlatformTestCase() {
         assertEquals("top", labelNode.presentation.presentableText)
         assertSame(AllIcons.Nodes.Bookmark, labelNode.presentation.getIcon(false))
         assertEmpty(labelNode.children)
+    }
+
+    // Phase 4: Structure View rename target — REFACT-04-14
+
+    @Test
+    fun testLabelNodeValueIsRenameableLabelName() {
+        val luaSource = luaFile("::top::")
+        val labelNode =
+            rootChildren(luaSource)
+                .filterIsInstance<LuaLabelStructureViewTreeElement>()
+                .first()
+        val value = labelNode.value
+        assertInstanceOf(value, LuaLabelName::class.java)
+        assertInstanceOf(value, PsiNameIdentifierOwner::class.java)
+        assertEquals("top", (value as LuaLabelName).name)
     }
 
     @Test

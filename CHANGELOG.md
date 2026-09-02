@@ -2,6 +2,18 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Renaming a `::label::` now warns you before it changes what your program does, or refuses to
+  produce a file that won't compile** (REFACT-04). Lua allows the same label name to be reused in a
+  nested block — and, on Lua 5.4 and later, a *rename* is the one thing that can turn that into a
+  compile error (`label 'x' already defined`), or on 5.2/5.3 silently rebind a `goto` to the wrong
+  target with no error at all. Renaming a label to a name already in scope now opens a Conflicts
+  dialog naming exactly what would happen for your project's configured Lua version, instead of
+  applying the rename and leaving you to find out from the interpreter. The search a label rename
+  runs is also narrower now — it never looked outside the label's own function (Lua doesn't allow
+  it to), it just used to search the whole project anyway. And the label shown in the Structure View
+  can now be renamed directly from there (<kbd>Shift+F6</kbd> or *Refactor ▸ Rename…*) — it used to
+  report *cannot be renamed* there even though renaming the same label from the editor always worked.
+
 - **Renaming a Lua file no longer corrupts a `require` whose module name starts or ends with a
   quote or bracket character** (BUG-467). The plugin measured a string literal's delimiters as a run
   of characters drawn from `"'[=` — it has to include `=`, because a long bracket is `[==[` — so a

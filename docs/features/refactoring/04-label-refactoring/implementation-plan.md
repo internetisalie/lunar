@@ -77,37 +77,40 @@ Phases 1, 2 and 4 have **no** dependency on REFACT-01 and may land at any time.
   beyond a single-`goto` fixture.
 - **Production code changed**: none.
 - **Tasks**:
-  - [ ] Extend `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaLabelRenameTest.kt`
+  - [x] Extend `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaLabelRenameTest.kt`
         with **TC-04-A** (multi-`goto`), **TC-04-B** (no `goto`) and **TC-04-C** (rename under
         shadowing) — closes the three coverage gaps `requirements.md` names in its Verification
         section.
-  - [ ] Add **TC-04-M** to `LuaLabelRenameTest` — the two headlessly observable conjuncts of
-        `MemberInplaceRenameHandler.isAvailable` (design §1 Target State).
-  - [ ] Add **TC-04-O** to `src/test/kotlin/net/internetisalie/lunar/refactoring/LuaNamesValidatorTest.kt`
+  - [x] Add **TC-04-M** to `LuaLabelRenameTest` — the two headlessly observable conjuncts of
+        `MemberInplaceRenameHandler.isAvailable` (design §1 Target State). **Deviation**: the
+        negative fixture is a global declaration's `LuaNameRef`, not `local x = 1` as originally
+        written here — `risks-and-gaps.md` RD-5.
+  - [x] Add **TC-04-O** to `src/test/kotlin/net/internetisalie/lunar/refactoring/LuaNamesValidatorTest.kt`
         — `RenameUtil.isValidName` against a `LuaLabelName`, proving the validator is on the label
         rename path (design §6 E-7).
 - **Exit criteria**: TC-04-A, -B, -C, -M, -O green; full suite green; each of the five confirmed
-  against the mutation named in its row of "Test Cases" below.
+  against the mutation named in its row of "Test Cases" below. **Met** — see the Phase 1 entry in
+  "Verification Tasks" and `requirements.md`'s Verification table.
 
 ### Phase 2: Label scope model and use scope [Must] — REFACT-04-04, -11
 
 - **Goal**: one function-boundary rule, used by resolution and by search; a label's usage search stops
   at its own function.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.psi.LuaLabelScopes`
+  - [x] Create `net.internetisalie.lunar.lang.psi.LuaLabelScopes`
         (`src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaLabelScopes.kt`) with
         `isFunctionBoundary`, `walkLabelScopes`, `functionScopeOf`, `blockOf`,
         `labelsInFunctionScope` — realizes design §2.1. `walkLabelScopes` is
         `LuaLabelReference.kt:69-89` **moved verbatim** with the boundary test delegated to
         `isFunctionBoundary`; do not "improve" it while moving.
-  - [ ] Edit `net.internetisalie.lunar.lang.LuaLabelReference`: delete the private
+  - [x] Edit `net.internetisalie.lunar.lang.LuaLabelReference`: delete the private
         `walkLabelScopes` and point its two call sites (`:39`, `:61`) at `LuaLabelScopes` — realizes
         design §2.5. Nothing else in the file changes.
-  - [ ] Add `getUseScope()` to `net.internetisalie.lunar.lang.psi.LuaNameDeclElementImpl`
+  - [x] Add `getUseScope()` to `net.internetisalie.lunar.lang.psi.LuaNameDeclElementImpl`
         (`lang/psi/LuaBaseElements.kt:53-71`) exactly as design §2.4 writes it, **including the
         `this !is LuaLabelName` guard** — realizes design §2.4, §3.5. The guard is unreachable today
         and is required anyway; design §2.4 says why.
-  - [ ] Add **TC-04-I** and **TC-04-J**.
+  - [x] Add **TC-04-I** and **TC-04-J**.
 - **Exit criteria**: TC-04-I, -J green. `LuaLabelResolutionTest` (5 tests) and `LuaLabelCompletionTest`
   (4 tests) green — they are the gate for the `walkLabelScopes` move.
   `LuaFindUsagesTest.testLabelUsagesCount` and `LuaSafeDeleteTest.testLabelDeclarationIsAvailable`
@@ -118,22 +121,23 @@ Phases 1, 2 and 4 have **no** dependency on REFACT-01 and may land at any time.
 
 - **Goal**: a rename that would duplicate or shadow a visible label is reported before it is applied,
   with a message that matches the configured language level.
-- **Blocked on**: REFACT-01 Phase 3 (see "Blocking dependency").
+- **Blocked on**: REFACT-01 Phase 3 (see "Blocking dependency"). **Landed** — `LuaRenameCollisionUsageInfo`
+  exists at `refactoring/rename/LuaRenameConflictDetector.kt:54`; Phase 3 consumed it verbatim.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.refactoring.rename.LuaLabelConflictDetector`
+  - [x] Create `net.internetisalie.lunar.refactoring.rename.LuaLabelConflictDetector`
         (`src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaLabelConflictDetector.kt`)
         with `LuaLabelRenameTarget` and `collisions(target)` — realizes design §2.3, **§3.2**, §3.3,
         §3.4. Emit **REFACT-01's** `LuaRenameCollisionUsageInfo`; define no new carrier.
-  - [ ] Implement §3.2 **as written, including the source-order test in both bullets.** Dropping it
+  - [x] Implement §3.2 **as written, including the source-order test in both bullets.** Dropping it
         gives the rule `requirements.md` states, which is wrong: executed on this host, `do ::a:: end`
         followed by `::a::` is legal on 5.2.4, 5.3.6 **and 5.4.7** (design §1, rows P-b/P-e).
         TC-04-G is the guard.
-  - [ ] Implement §3.3 step 5's `labelsInFunctionScope` filter
+  - [x] Implement §3.3 step 5's `labelsInFunctionScope` filter
         (`functionScopeOf(it) === scope`). `PsiTreeUtil.findChildrenOfType` descends into nested
         `LuaFuncDef`s and their labels can never collide. TC-04-H is the guard, and its fixture nests
         the second function inside the first **on purpose**: a sibling function is not a descendant of
         `scope`, so it cannot exercise this filter at all. Do not simplify that fixture.
-  - [ ] Create `net.internetisalie.lunar.refactoring.rename.LuaLabelRenameProcessor`
+  - [x] Create `net.internetisalie.lunar.refactoring.rename.LuaLabelRenameProcessor`
         (`…/LuaLabelRenameProcessor.kt`) extending **`RenamePsiElementProcessor`**, not
         `RenamePsiElementProcessorBase`, and implementing **`DumbAware`** — realizes design §2.2,
         §3.0, §3.1, §3.3. Neither is a style choice: `MemberInplaceRenamer.MyRenameProcessor` casts
@@ -145,32 +149,36 @@ Phases 1, 2 and 4 have **no** dependency on REFACT-01 and may land at any time.
         `DumbAware` the conflict check silently vanishes while the project is indexing. Design §2.2
         lists why every override is index-free and names the platform precedent
         (`RenamePsiFileDumbProcessor.kt:34`).
-  - [ ] Override **only** `canProcessElement`, `substituteElementToRename` and `findCollisions`.
+  - [x] Override **only** `canProcessElement`, `substituteElementToRename` and `findCollisions`.
         Design §3.6 enumerates the seven hooks that must stay inherited and what each omission
         preserves. Adding `renameElement` or `findReferences` replaces working code and fails review.
-  - [ ] Register the processor in `src/main/resources/META-INF/plugin.xml` immediately after the
+  - [x] Register the processor in `src/main/resources/META-INF/plugin.xml` immediately after the
         existing `<renamePsiElementProcessor>` (currently lines 389-390), **with no `order`
         attribute** — realizes design §7.
-  - [ ] Add the three keys `refactoring.rename.label.conflict.duplicate`, `…conflict.rebind` and
+  - [x] Add the three keys `refactoring.rename.label.conflict.duplicate`, `…conflict.rebind` and
         `…unresolvedGoto` to `src/main/resources/net/internetisalie/lunar/LuaBundle.properties`,
-        with the `''` apostrophe escaping design §7 specifies. Remove nothing —
-        `refactoring.rename.unsupported` (`:145`) belongs to REFACT-01 Phase 2.
-  - [ ] Add **TC-04-D**, **-E**, **-F**, **-G**, **-H**, **-L**, **-N** in a new
+        with the `''` apostrophe escaping design §7 specifies. Remove nothing — the REFACT-01 refusal
+        key this bullet originally cited (`refactoring.rename.unsupported`) has since been renamed
+        `refactoring.rename.unsupportedTarget` and moved to `:151`; it still belongs to REFACT-01 and
+        is untouched here.
+  - [x] Add **TC-04-D**, **-E**, **-F**, **-G**, **-H**, **-L**, **-N** in a new
         `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/LuaLabelConflictTest.kt`.
 - **Exit criteria**: all seven new TCs green; Phase 1 and Phase 2 TCs still green; full suite green.
-  DR-02 executed and its outcome recorded in `risks-and-gaps.md`.
+  DR-02 executed and its outcome recorded in `risks-and-gaps.md`. **Met** — see the Phase 3 entry in
+  "Verification Tasks".
 
 ### Phase 4: Structure View rename target [Could] — REFACT-04-14
 
 - **Goal**: the element the Structure View publishes for a label is renameable.
 - **Tasks**:
-  - [ ] Change `LuaLabelStructureViewTreeElement.getValue()` to `myLabel.labelName`
+  - [x] Change `LuaLabelStructureViewTreeElement.getValue()` to `myLabel.labelName`
         (`lang/structure/LuaLabelStructureViewTreeElement.kt:25-28`) — realizes design §2.6. Do not
         touch `getPresentation()`'s null-tolerant read; do not touch
         `LuaStructureViewModel.SUITABLE_CLASSES`.
-  - [ ] Add **TC-04-K**.
+  - [x] Add **TC-04-K**.
 - **Exit criteria**: TC-04-K green; `LuaStructureViewTest` green; full suite green. DR-03 executed and
-  its outcome recorded.
+  its outcome recorded. **Met** — see the Phase 4 entry in "Verification Tasks" and DR-03's outcome in
+  `risks-and-gaps.md`.
 
 ## Requirement → Phase Coverage
 
@@ -441,35 +449,70 @@ extension registration order (design §6 E-1).
 
 ## Verification Tasks
 
-- [ ] **Automated**: TC-04-A … TC-04-O, in `LuaLabelRenameTest` (A, B, C, M),
+- [x] **Automated**: TC-04-A … TC-04-O, in `LuaLabelRenameTest` (A, B, C, M),
       `LuaLabelConflictTest` (D, E, F, G, H, L, N), `LuaLabelScopeTest` (I, J),
       `LuaStructureViewTest` (K), `LuaNamesValidatorTest` (O).
-- [ ] **Mutation confirmation**: for each of the fifteen TCs, apply the mutation named in its row,
+      **Phase 1 done** — A, B, C, M landed in `LuaLabelRenameTest`, O in `LuaNamesValidatorTest`, all
+      green. **Phase 3 done** — D, E, F, G, H, L, N landed in the new `LuaLabelConflictTest`, all
+      green (7/7). I/J landed in Phase 2 (`LuaLabelRenameTest`, not a separate `LuaLabelScopeTest` —
+      that file name in this row was never created). **Phase 4 done** — K landed in
+      `LuaStructureViewTest` (`testLabelNodeValueIsRenameableLabelName`), green.
+- [x] **Mutation confirmation**: for each of the fifteen TCs, apply the mutation named in its row,
       confirm the test fails, revert with the `temporary-edits` skill (never `git checkout`), and
       record the result in the phase's commit message. Two claims in this plan are *not* covered by a
       mutation and must be stated as such rather than asserted: `REFACT-04-15` and `REFACT-04-20`
       (`risks-and-gaps.md` "Test Case Gaps").
-- [ ] **Regression, Phase 2**: `LuaLabelResolutionTest`, `LuaLabelCompletionTest`, `LuaFindUsagesTest`,
+      **Phase 1's five (A, B, C, M, O) confirmed** — each mutation named in its "Test Cases" row was
+      applied, reddened the named test, and was reverted via `temporary-edits`
+      (`git status --porcelain` clean on every production file afterwards). Recorded in the Phase 1
+      commit message.
+      **Phase 3's seven (D, E, F, G, H, L, N) confirmed** — nine mutations run in total (TC-04-H and
+      TC-04-L each name two mutations in their "Test Cases" row; both were executed for each). Every
+      one CAUGHT — reddened exactly the named test(s) for the stated reason — and every file was
+      restored via `temporary-edits`/`mutation-proof` (`git diff --stat` empty on every production
+      file after each restore). TC-04-G's mutation reddened *only* `testEarlierLabelInAClosedBlockDoesNotCollide`,
+      confirming the design's own claim that dropping the order test from the first bullet alone
+      (which is what TC-04-F's fixture would reach) does not redden TC-04-F. Recorded in the Phase 3
+      commit message.
+      **Phase 4's one (K) confirmed** — TC-04-K's named mutation (revert `getValue()` to
+      `labelName.identifier ?: labelName.firstChild ?: labelName`) was applied via `temporary-edits`,
+      reddened exactly `testLabelNodeValueIsRenameableLabelName` (1 failure of 16 in
+      `LuaStructureViewTest`, all others unaffected), and was reverted (`scratch_end`, `git status
+      --porcelain` clean). GREEN re-confirmed after restore (17/17, including the new test).
+- [x] **Regression, Phase 2**: `LuaLabelResolutionTest`, `LuaLabelCompletionTest`, `LuaFindUsagesTest`,
       `LuaSafeDeleteTest` — the four suites the `walkLabelScopes` move and the `getUseScope` narrowing
-      can break.
-- [ ] **Full suite**, every phase: `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache"`.
-- [ ] **Corpus sweep**: **not required.** This feature changes no type inference, no index and no
+      can break. Re-confirmed green as part of Phase 3's full-suite runs.
+- [x] **Full suite**, every phase: `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache"`.
+      **Phase 3**: 2913 tests / 0 failures / 0 errors / 1 skipped across 466 files — exact
+      reconciliation against the pre-phase baseline (2906/465) plus this phase's 7 tests in 1 new
+      file. `ktlintCheck` clean.
+      **Phase 4**: 2914 tests / 0 failures / 0 errors / 1 skipped across 466 files — exact
+      reconciliation against the Phase 3 baseline (2913) plus this phase's 1 new test (TC-04-K).
+      `ktlintCheck` clean.
+- [x] **Corpus sweep**: **not required.** This feature changes no type inference, no index and no
       resolution result — `getUseScope` narrows a *search*, and `walkLabelScopes` moves without
-      changing behaviour. If Phase 2 is implemented by touching `LuaLabelReference.resolve` or
-      `LuaBlock.processLabelDeclarations` (it must not be), the sweep becomes required:
-      `run "test -PwithCorpus --rerun --no-build-cache"`.
-- [ ] **DR-02 (live)**: in-place rename of a label, via the `verify-in-ide` flow. Confirms
+      changing behaviour. Phase 3's `LuaLabelConflictDetector` only compares PSI declaration
+      positions and reads no index either. If Phase 2 is implemented by touching
+      `LuaLabelReference.resolve` or `LuaBlock.processLabelDeclarations` (it must not be), the sweep
+      becomes required: `run "test -PwithCorpus --rerun --no-build-cache"`.
+- [x] **DR-02 (live)**: in-place rename of a label, via the `verify-in-ide` flow. Confirms
       `MemberInplaceRenamer` is the handler, that Enter commits through a `RenameProcessor`, and that
-      a colliding new name raises the conflicts dialog rather than silently applying. Record the
-      outcome in `risks-and-gaps.md`.
-- [ ] **DR-03 (live)**: F2 on a label node in the Structure View after Phase 4. Confirms the dialog
-      opens rather than *"cannot be renamed"*.
+      a colliding new name raises the conflicts dialog rather than silently applying. **Executed**
+      2026-09-02 on `lunar-builder` (native `runIde`) — outcome recorded in `risks-and-gaps.md`
+      "DR-02 outcome". All three confirmations held; a non-colliding rename also applied cleanly with
+      no dialog (regression check).
+- [x] **DR-03 (live)**: F2 on a label node in the Structure View after Phase 4. Confirms the dialog
+      opens rather than *"cannot be renamed"*. **Executed** 2026-09-02 on `lunar-builder` (native
+      `runIde`) — outcome recorded in `risks-and-gaps.md` "DR-03 outcome". `Refactor ▸ Rename…` from
+      a Structure-View-selected label node opened the rename dialog and the completed rename updated
+      both the label and its `goto` in one commit; a raw `F2` sent directly to the tree did not fire
+      and is recorded as an open, non-blocking item rather than silently substituted away.
 
 ## Task Summary
 
 | Phase | Status | Priority |
 | :--- | :--- | :--- |
-| Phase 1: Coverage backfill for the shipped core | todo | Must |
-| Phase 2: Label scope model and use scope | todo | Must |
-| Phase 3: Conflict detection | todo | Must |
-| Phase 4: Structure View rename target | todo | Could |
+| Phase 1: Coverage backfill for the shipped core | done | Must |
+| Phase 2: Label scope model and use scope | done | Must |
+| Phase 3: Conflict detection | done | Must |
+| Phase 4: Structure View rename target | done | Could |

@@ -391,6 +391,8 @@
             implementation="net.internetisalie.lunar.refactoring.LuaSafeDeleteProcessor"/>
     <renamePsiElementProcessor
             implementation="net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor"/>
+    <renamePsiElementProcessor
+            implementation="net.internetisalie.lunar.refactoring.rename.LuaLabelRenameProcessor"/>
     <renameHandler
             implementation="net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler"/>
     <nameSuggestionProvider

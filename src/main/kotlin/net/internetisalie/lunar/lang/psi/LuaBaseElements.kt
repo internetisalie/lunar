@@ -14,6 +14,8 @@ import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
+import com.intellij.psi.search.LocalSearchScope
+import com.intellij.psi.search.SearchScope
 import com.intellij.psi.stubs.IStubElementType
 import com.intellij.psi.stubs.StubElement
 import com.intellij.psi.tree.ILazyParseableElementType
@@ -67,6 +69,17 @@ abstract class LuaNameDeclElementImpl(
             }
         }
         return this
+    }
+
+    // A label is invisible outside its own function (REFACT-04-04, -11), so its use scope is
+    // exactly that function rather than the platform's default module-wide scope. The gate is
+    // unreachable today — `labelName` is the only grammar rule using this mixin (`lua.bnf:251-254`)
+    // — but the scope is a property of Lua's label rule, not of `LuaNameDeclElement` in general; a
+    // future rule sharing this mixin must not silently inherit it.
+    override fun getUseScope(): SearchScope {
+        if (this !is LuaLabelName) return super.getUseScope()
+        val boundary = LuaLabelScopes.functionScopeOf(this) ?: return super.getUseScope()
+        return LocalSearchScope(boundary)
     }
 }
 

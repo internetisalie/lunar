@@ -22,8 +22,5 @@ class LuaLabelStructureViewTreeElement(
 
     override fun getChildren(): Array<TreeElement> = emptyArray()
 
-    override fun getValue(): Any {
-        val labelName = myLabel.labelName
-        return labelName.identifier ?: labelName.firstChild ?: labelName
-    }
+    override fun getValue(): Any = myLabel.labelName
 }

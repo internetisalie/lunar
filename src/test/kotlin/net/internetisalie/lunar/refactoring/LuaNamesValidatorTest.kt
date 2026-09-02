@@ -1,7 +1,10 @@
 package net.internetisalie.lunar.refactoring
 
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.refactoring.rename.RenameUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.LuaKeywords
+import net.internetisalie.lunar.lang.psi.LuaLabelName
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -62,5 +65,31 @@ class LuaNamesValidatorTest : BasePlatformTestCase() {
             assertTrue("'$word' should be a keyword", validator.isKeyword(word, null))
             assertFalse("'$word' should not be an identifier", validator.isIdentifier(word, null))
         }
+    }
+
+    /**
+     * TC-04-O (`REFACT-04-06`) — `RenameUtil.isValidName` reaches [LuaNamesValidator] through
+     * `LanguageNamesValidation` for a [LuaLabelName], proving the validator is on the label
+     * rename **path** rather than merely correct in isolation (design §6 E-7). The other tests in
+     * this class already assert the validator's own booleans; this one asserts the platform wiring
+     * that puts a `LuaLabelName` in front of it.
+     *
+     * **Mutation:** drop the `&& !LuaKeywords.isReserved(name)` clause from
+     * [LuaNamesValidator.isIdentifier] (`LuaNamesValidator.kt:18-21`) — `"end"` would then be
+     * accepted as a valid label rename target.
+     */
+    @Test
+    fun testRenameUtilReachesValidatorForLabel() {
+        val file = myFixture.configureByText("test.lua", "::<caret>top::")
+        val labelName = PsiTreeUtil.findChildOfType(file, LuaLabelName::class.java)!!
+
+        assertFalse(
+            "a reserved word must be rejected as a label rename target",
+            RenameUtil.isValidName(project, labelName, "end"),
+        )
+        assertTrue(
+            "a plain identifier must be accepted as a label rename target",
+            RenameUtil.isValidName(project, labelName, "finished"),
+        )
     }
 }

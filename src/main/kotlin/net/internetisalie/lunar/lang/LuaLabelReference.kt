@@ -4,19 +4,14 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementResolveResult
-import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiPolyVariantReference
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.ResolveResult
 import com.intellij.psi.ResolveState
 import net.internetisalie.lunar.lang.LuaIcons.FILE
-import net.internetisalie.lunar.lang.psi.LuaBlock
-import net.internetisalie.lunar.lang.psi.LuaFuncDecl
-import net.internetisalie.lunar.lang.psi.LuaFuncDef
-import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLabelName
-import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaLabelScopes
 import net.internetisalie.lunar.lang.psi.processLabelDeclarations
 
 class LuaLabelReference(
@@ -36,7 +31,7 @@ class LuaLabelReference(
     private fun resolveLabel(): LuaLabelName? {
         val ref = myElement ?: return null
         val processor = LuaLabelScopeProcessor(name)
-        walkLabelScopes(ref) { block ->
+        LuaLabelScopes.walkLabelScopes(ref) { block ->
             block.processLabelDeclarations(processor, ResolveState.initial())
         }
         return processor.result
@@ -58,33 +53,11 @@ class LuaLabelReference(
     override fun getVariants(): Array<Any> {
         val ref = myElement ?: return emptyArray()
         val processor = LuaLabelCompletionScopeProcessor()
-        walkLabelScopes(ref) { block ->
+        LuaLabelScopes.walkLabelScopes(ref) { block ->
             block.processLabelDeclarations(processor, ResolveState.initial())
         }
         return processor.results.values
             .map { LookupElementBuilder.create(it.identifier.text).withIcon(FILE) }
             .toTypedArray()
-    }
-
-    private fun walkLabelScopes(
-        start: PsiElement,
-        visit: (LuaBlock) -> Boolean,
-    ) {
-        var current: PsiElement? = start
-        while (current != null && current !is PsiFile) {
-            if (current is LuaBlock) {
-                if (!visit(current)) {
-                    return
-                }
-            }
-            if (current is LuaFuncDef ||
-                current is LuaFuncDecl ||
-                current is LuaLocalFuncDecl ||
-                current is LuaGlobalFuncDecl
-            ) {
-                return
-            }
-            current = current.parent
-        }
     }
 }
