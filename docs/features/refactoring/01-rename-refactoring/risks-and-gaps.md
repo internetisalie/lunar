@@ -20,7 +20,7 @@ folders:
 - **Likelihood**: medium. **Every shape listed below** can produce it; each shape carrying a
   *Closed by* / *Reported by* clause is disposed of by the design section and tests it names, and
   the list is open — a new shape is added to it, never counted into a total here:
-  1. a declaration kind whose usages are not resolvable (the colon-method form, `t.field`). **DR-03 (2026-08-29) measured this shape being REINTRODUCED by the obvious fix for it**: a prototype resolving `obj:m()` through `LuaTypeManager.resolveType` / `LuaClassType.resolveMember` reaches only a receiver carrying a cats-minted `className`, and with the `METHOD_FUNCTION` refusal lifted the three shapes it does not reach — a global table (`function Obj:renamed() end` beside `o:m()`), `setmetatable` OO, and the second segment of `B:m1():m2()` — each renamed the declaration and left every call site behind, reporting success. Whatever ships the colon form must ship a receiver-classification predicate that keeps the refusal as its else-branch; the resolution improvement alone converts this risk from contained to live. See "DR-03 result" below;
+  1. a declaration kind whose usages are not resolvable (the colon-method form, `t.field`). **DR-03 (2026-08-29) measured this shape being REINTRODUCED by the obvious fix for it**: a prototype resolving `obj:m()` through `LuaTypeManager.resolveType` / `LuaClassType.resolveMember` reaches only a receiver carrying a cats-minted `className`, and with the `METHOD_FUNCTION` refusal lifted the three shapes it does not reach — a global table (`function Obj:renamed() end` beside `o:m()`), `setmetatable` OO, and the second segment of `B:m1():m2()` — each renamed the declaration and left every call site behind, reporting success. Whatever ships the colon form must ship a **declaration** predicate — rename only where [[TYPE-13]]'s `LuaMemberDeclarations.declarationOf` returns a declaration and `TYPE-13-00-DR-02`'s completeness rule allows it — keeping the refusal as its else-branch; the resolution improvement alone converts this risk from contained to live. (DR-03 concluded the predicate had to be *receiver classification*, a `className != null` test. TYPE-13's DR-01 measured that premise away: the plain-table and global-table shapes already resolve structurally to a real declaration node with no `className` at all, so classifying the receiver is neither necessary nor sufficient — what is missing is the declaration handle.) See "DR-03 result" below;
   2. a target the processor claims but whose usage search key is wrong;
   3. an in-place rename path that highlights fewer occurrences than the dialog path;
   4. **a non-file-local kind misclassified as file-local**, which makes §3.2 step 2 narrow the search
@@ -1368,19 +1368,27 @@ not contain.
 
 **Not a phase.** Two components are missing, and they are not the same size:
 
-1. **A receiver-classification predicate** — "this receiver has a nominal class, so every call site
-   is findable; this one does not, so refuse." Without it the prototype does not extend the rename,
-   it converts a correct refusal into Risk 1.1, measured on three shapes. This one is small (a
-   `className != null` test on the receiver's graph type, plus keeping the existing refusal as the
-   else-branch) but REFACT-01's design contains nothing like it.
-2. **A way for a class to arise from the OO Lua people actually write.** `LuaGraphType.Table.className`
-   is minted only from a cats annotation; `setmetatable(t, M)` / `M.__index = M` / an un-annotated
-   module return all yield `className = null` (shapes E, B, C, G — measured). This is a type-inference
-   capability, not a refactoring one.
+1. **A predicate that decides when the rename is safe** — without it the prototype does not extend
+   the rename, it converts a correct refusal into Risk 1.1, measured on three shapes. DR-03 framed
+   this as *receiver classification* ("this receiver has a nominal class, so every call site is
+   findable"), a `className != null` test on the receiver's graph type. **That framing is
+   superseded and must not be built.** [[TYPE-13]]'s DR-01 measured the structural route resolving
+   the plain-table and global-table shapes to the declaration's own `:m` node with `className =
+   null`, so a class name is neither necessary nor sufficient. The predicate `REFACT-09` ships is a
+   *declaration* test — `LuaMemberDeclarations.declarationOf(member) != null`, plus
+   `TYPE-13-00-DR-02`'s completeness rule — with the existing refusal as its else-branch. Either
+   way, REFACT-01's design contains nothing like it.
+2. **A way for the OO Lua people actually write to yield a declaration.** DR-03 stated this as
+   "a way for a *class* to arise": `LuaGraphType.Table.className` is minted only from a cats
+   annotation; `setmetatable(t, M)` / `M.__index = M` / an un-annotated module return all yield
+   `className = null` (shapes E, B, C, G — measured). [[TYPE-13]] delivers the capability without
+   minting a class name — it carries the declaring node through structural member resolution — but
+   the conclusion that this is a **type-inference capability, not a refactoring one**, and belongs
+   to the TYPE epic, is unchanged and is why TYPE-13 exists.
 
 **Recommendation: a TYPE-epic dependency, and the narrow follow-up feature is NOT worth cutting on
-its own.** Component 1 alone would ship a colon rename that works for `@class`/`@type`-annotated
-receivers and refuses everything else — correct, safe, and on the corpus evidence a **no-op for
+its own.** Component 1 alone — in DR-03's `className != null` form — would ship a colon rename that
+works for `@class`/`@type`-annotated receivers and refuses everything else — correct, safe, and on the corpus evidence a **no-op for
 users**: 0 of 734 real files would take the working branch, so every real colon rename would still
 hit a refusal, and the user-visible behaviour would be identical to today's. It would buy that
 nothing at the price of putting `LuaTypesSnapshot.forFile` — with the §4 blowup — on the resolve hot
@@ -1388,7 +1396,8 @@ path. The version worth building needs component 2, which belongs to the TYPE ep
 `className` is minted from metatable/module-return OO, component 1 and the `self` guard are a small
 follow-up feature on top (≈40 + 8 lines, plus a refusal branch and its tests).
 
-**Until then the current refusal is the correct behaviour and `REFACT-01-08` stays `Partial`.**
+**Until then the current refusal is the correct behaviour and `REFACT-01-08` stays `Partial`.** The
+successor work is filed: [[TYPE-13]] owns the declaration handle and [[REFACT-09]] owns the rename.
 
 ### Gap 2.17 — cancelling a rename leaves the file inconsistent (CLOSED BY PHASE 8, 2026-08-25)
 

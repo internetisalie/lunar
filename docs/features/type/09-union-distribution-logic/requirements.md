@@ -51,9 +51,9 @@ Implementing this feature improves the accuracy and reliability of the IDE's sta
 - **Error Reporting**: Detailed diagnostics identifying which specific union member(s) caused a mismatch.
 
 ### Out of Scope
-- **Flow-Sensitive Narrowing**: (Handled by TYPE-12).
-- **Generic Constraints**: (Handled by TYPE-13).
-- **Overload Resolution**: (Handled by TYPE-11).
+- **Flow-Sensitive Narrowing**: (Handled by [[TYPE-08]], *Flow-Sensitive Types*).
+- **Generic Constraints**: (Handled by [[TYPE-05]], *Generics Support*).
+- **Overload Resolution**: `@overload` is out of this feature's scope and no TYPE feature owns it yet — see this file's own limitation note above.
 
 ## 3. Functional Requirements
 
