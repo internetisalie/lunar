@@ -62,11 +62,17 @@ class LuaRequireReferenceContributor : PsiReferenceContributor() {
                 ?.text == "require"
         }
 
-        /** Strips the quote or long-bracket delimiters; null when nothing is left. */
+        /**
+         * Strips the quote or long-bracket delimiters; null when nothing is left.
+         *
+         * BUG-467: `trim` took a character SET, so it ate a module name's own leading or trailing
+         * `"`, `'`, `[`, `]` or `=` — `require("=m6")` read as `m6`. The delimiters are parsed as a
+         * grammar instead; the body is returned exactly as written.
+         */
         fun moduleNameOf(stringElement: PsiElement): String? {
             val text = stringElement.text
-            if (text.length < 2) return null
-            return text.trim('"', '\'', '[', ']', '=').ifEmpty { null }
+            val (start, endExclusive) = LuaStringLiteralText.bodyRange(text) ?: return null
+            return text.substring(start, endExclusive).ifEmpty { null }
         }
     }
 }

@@ -3,7 +3,7 @@ id: "BUG-467"
 title: "A `require` literal whose module name begins with a delimiter character is mis-sliced on file rename"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -64,3 +64,25 @@ Mutation that must turn it red: restore the `indexOfFirst { it !in DELIMITER_CHA
 Note the trap — a fixture whose module name starts with an ordinary letter passes under **both** the
 correct and the broken implementation, so the fixture's *first character* is the test. This is the
 same shape as [[BUG-463]] §5, where a fixture rooted at `/` stays green under the mutation.
+
+## Fixed 2026-09-02
+
+`LuaStringLiteralText.bodyRange` parses the delimiters as a grammar — one of `"`, `'`, or `[` `=`*n*
+`[`, with the closing run's length derived from the opening one — and returns the body's half-open
+range. Both mis-slicing sites now use it: `LuaRequireReference.renamedLiteral` (which had the
+`indexOfFirst { it !in DELIMITER_CHARS }` scan, and whose now-unused `DELIMITER_CHARS` constant is
+deleted) and `LuaRequireReferenceContributor.moduleNameOf` (which had the `trim` with the same
+membership-vs-position confusion, and which ate a **trailing** delimiter character as well).
+
+Three cases added to `LuaRequireRenameTest`, all three red under the mutation §4 names — restoring
+`indexOfFirst { it !in DELIMITER_CHARS }` and the `trim` — while the pre-existing TC-18a/b/c stay
+green under that same mutation, which is exactly the trap §4 warned about.
+
+**§4's stated expected output is wrong, and following it would have produced a wrong test.** It says
+`require("=m6")` renamed to `helpers.lua` must produce `require("=helpers")`. It must produce
+`require("helpers")`: `.` is the only module separator this plugin understands, so the whole old
+name is replaced, and the `=` belonged to the old file's name rather than to a package prefix. The
+defect was the mis-slice, not a lost prefix. This was caught by running the test, not by reading it —
+the first version of the case asserted §4's value and failed against a correct implementation.
+
+Full suite 2899/0/0/1 across 465 files.

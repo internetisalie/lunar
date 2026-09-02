@@ -2,6 +2,15 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Renaming a Lua file no longer corrupts a `require` whose module name starts or ends with a
+  quote or bracket character** (BUG-467). The plugin measured a string literal's delimiters as a run
+  of characters drawn from `"'[=` — it has to include `=`, because a long bracket is `[==[` — so a
+  module name whose own body began with one of those had it eaten as delimiter. `require("=m6")`
+  read as module `m`, and renaming the file produced `require("=helpers66")`, a broken reference.
+  Delimiters are now parsed as the grammar they are. The failure was always visible rather than
+  silent — an unresolved require, not one quietly repointed at a different module — and no package
+  manager produces such a name, which is why this ranked low.
+
 - **The undo entry after an in-place rename now names the symbol** (BUG-475). Renaming a local with
   <kbd>Shift+F6</kbd> and opening *Edit* showed **"Undo Renaming Lua Name Ref Impl con…"** — the
   plugin's own PSI implementation class, de-camel-cased by the platform, in user-visible text. It now

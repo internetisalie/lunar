@@ -73,6 +73,48 @@ class LuaRequireRenameTest : BasePlatformTestCase() {
         assertConsumerText("local u = require(\"util\")\n", consumer)
     }
 
+    /**
+     * BUG-467 — a module name whose body itself begins with a delimiter character.
+     *
+     * `DELIMITER_CHARS` had to contain `=`, because a long bracket is `[==[`, so measuring the
+     * opening run by set membership consumed the `=` that is part of the NAME. `require("=m6")`
+     * read its module as `m` and the rename produced `require("=helpers66")` — a broken reference.
+     *
+     * **The first character of the fixture is the test.** A module name starting with an ordinary
+     * letter passes under both the correct and the broken implementation, which is why Phase 5's
+     * own TC-18a/b/c did not catch this.
+     */
+    @Test
+    fun testRenameFileWithAModuleNameStartingWithADelimiterCharacter() {
+        val consumer = renameModuleFile("=m6.lua", "local u = require(\"=m6\")\n")
+
+        // `helpers`, not `=helpers`: `.` is the only module separator, so the whole old name is
+        // replaced. The `=` belonged to the OLD file's name, not to a package prefix. BUG-467 §4
+        // states this case's expected output as `require("=helpers")`, which is wrong for that
+        // reason — the defect is the mis-slice, not a lost prefix.
+        assertConsumerText("local u = require(\"helpers\")\n", consumer)
+    }
+
+    /** BUG-467, the other end: `trim` ate a TRAILING delimiter character too. */
+    @Test
+    fun testRenameFileWithAModuleNameEndingInADelimiterCharacter() {
+        val consumer = renameModuleFile("m6=.lua", "local u = require(\"m6=\")\n")
+
+        assertConsumerText("local u = require(\"helpers\")\n", consumer)
+    }
+
+    /**
+     * BUG-467 — the long-bracket form must still measure its own level correctly once the
+     * delimiters are parsed rather than trimmed. `[==[` closes with `]==]`, and the body here
+     * starts with `=`, so a naive scan would over-consume into the name.
+     */
+    @Test
+    fun testRenameFileInsideALeveledLongBracketWhoseBodyStartsWithEquals() {
+        val consumer = renameModuleFile("=m6.lua", "local u = require [==[=m6]==]\n")
+
+        assertConsumerText("local u = require [==[helpers]==]\n", consumer)
+    }
+
     private fun renameModuleFile(
         modulePath: String,
         consumerText: String,

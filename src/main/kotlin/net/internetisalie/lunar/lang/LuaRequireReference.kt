@@ -44,13 +44,6 @@ class LuaRequireReference(
 
     companion object {
         /**
-         * The quote and long-bracket characters a Lua string literal may open and close with. They
-         * are stripped to read the module name and re-emitted verbatim to write it back, so
-         * `require 'app.util'` never becomes `require "app.helpers"`.
-         */
-        private const val DELIMITER_CHARS = "\"'[="
-
-        /**
          * The string carrying the module name, for whichever call shape [element] hosts — or null
          * when [element] is not a `require` argument position at all.
          *
@@ -74,9 +67,11 @@ class LuaRequireReference(
          * [oldLiteral] with its module name repointed at [newFileName], delimiters and package
          * prefix preserved — or null when [oldLiteral] is not a delimited literal with a body.
          *
-         * Lua's long brackets are symmetric by construction (`[==[` closes with `]==]`), as are
-         * quotes, so the closing run is the same length as the opening one and needs no second
-         * scan. `.` is the only module separator this plugin understands
+         * Delimiters are located by [LuaStringLiteralText.bodyRange], which parses them as a
+         * grammar; measuring them as a run of characters drawn from `"'[=` mis-slices a body that
+         * itself starts or ends with one of those (BUG-467). They are re-emitted verbatim, so
+         * `require 'app.util'` never becomes `require "app.helpers"`. `.` is the only module
+         * separator this plugin understands
          * (`resolveModuleCandidates` maps it to `/`), so only the last dotted segment is replaced:
          * renaming `app/util.lua` moves `app.util` to `app.helpers`, not to `helpers`.
          */
@@ -84,9 +79,7 @@ class LuaRequireReference(
             oldLiteral: String,
             newFileName: String,
         ): String? {
-            val openIndex = oldLiteral.indexOfFirst { it !in DELIMITER_CHARS }
-            if (openIndex < 1) return null
-            val closeIndex = oldLiteral.length - openIndex
+            val (openIndex, closeIndex) = LuaStringLiteralText.bodyRange(oldLiteral) ?: return null
             if (closeIndex <= openIndex) return null
             val oldModule = oldLiteral.substring(openIndex, closeIndex)
             val newBase = newFileName.removeSuffix(".lua")
