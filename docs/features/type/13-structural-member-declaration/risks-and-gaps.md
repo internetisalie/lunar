@@ -191,6 +191,40 @@ Phase 1 (the mint sites are in the snapshot path) and assert **nothing** about P
 
 - **Action:** Phase 4 adds the post-conversion budget method. Until it lands, "the budget test passes"
   must not be read as evidence about the conversion path.
+- **Closed by Phase 4** —
+  `conversionPathStaysWithinItsRootResolutionBudget` in `LuaTypeGraphRootResolutionBudgetTest` now
+  calls `graphTypeToLuaType` and reaches `LuaMemberDeclarations.declaringNodeOf`. Measured:
+  `WRITE` = 574, `READ` = 648 (budgets 620 / 700, ~8% headroom). See Gap 2.10 for what this new gate
+  can and cannot catch: `requirements.md` case 15's prescribed mutation does not redden it on the
+  80-call-site fixture, for a structural reason rather than a headroom one.
+
+## Gap 2.10 — Case 15's mutation cannot redden the fixture it was written against
+
+`requirements.md` case 15 prescribes: have `declaringNodeOf` read `node.write` at each step instead
+of relying on `declaresMember` to short-circuit, expecting the `WRITE` budget to be exceeded.
+Executed, on the annotated-call-site fixture, under three variants — (a) add an unconditional
+`candidate.write` read ahead of the existing `declaresMember` check; (b) remove the `declaresMember`
+short-circuit entirely and read `write` unconditionally at each step; (c) as (b), with the BFS left
+free to walk the full `upSet` fan-out to the `MAX_VISITED = 64` cap. **All three reproduced
+`WRITE` = 574 exactly — the mutation does not redden.**
+
+- **Root cause, confirmed with a temporary visited-count probe (not committed):** on this fixture,
+  `Table.localMembers["setName"]` **is** the `declaresMember = true` node itself — `declaringNodeOf`
+  returns it at BFS step 0 without ever touching `upSet`. Variant (c) showed `upSet` from that same
+  node fans out to 64+ nodes, but every one of them already has its `write` resolved in the
+  `RootMemo` from the ordinary type-check pass `LuaTypesSnapshot.forFile` performs before the test
+  ever calls `graphTypeToLuaType` — so a duplicate read of an already-memoized
+  `(node, graph-revision)` key costs nothing, by the exact mechanism BUG-473's fix relies on.
+- **Consequence:** the new budget method is a real gate for a regression that makes `declaringNodeOf`
+  reach **previously-unresolved** nodes (a widened traversal into a colder part of the graph), but it
+  cannot detect a regression that only re-reads nodes the initial type-check pass already warmed —
+  which is exactly the shape case 15's literal mutation takes on this fixture. This is not a
+  headroom problem; a tighter budget would not have caught it either, since the count genuinely does
+  not move.
+- **Action:** no roadmap row minted. A fixture whose `declaresMember` member sits `upSet` hops away
+  from nodes the initial full-file pass never visits would be needed to exercise this mutation; none
+  of TYPE-13's existing fixtures has that shape, and building one is not required by any `Must`
+  requirement — `TYPE-13-11`'s budget still catches the class of regression BUG-473 itself was.
 
 ## Gap 2.6 — The DR-05 measurements live only in this document
 
@@ -285,6 +319,101 @@ declaration through `scope.lookup` → a shared `VariableNode` → the `funcName
   an assertion phrased as "`declarationOf` is null-or-the-decl" would survive the mutation.
 - **Recorded because it is easy to lose:** an implementer simplifying case 4 to "same as case 3, but
   global" deletes the only coverage the global shape has.
+
+## Gap 2.11 — TYPE-13-08 stays refused: `moduleType` carries zero members before `fromLuaType` ever runs
+
+`implementation-plan.md` Phase 5 asks whether a `require`d module's declaration can be made to reach
+the receiver's node **without changing a merge**. Executed with a temporary probe (`temporary-edits`,
+reverted; no production or test file carries this code), on
+`Type13DeclarationLookupTest`'s own case-14 fixture — `mod.lua` = `local M = {} ; function M:m() end ;
+return M`, `a.lua` = `local M = require('mod') ; M:m()`:
+
+```
+moduleType class=LuaTableLiteralType value={  }
+member m sourceElement=null class=null
+```
+
+`LuaTypeManagerImpl.getModuleType`
+([LuaTypeManagerImpl.kt:272-284](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypeManagerImpl.kt))
+takes the stub fast path first (`psiFile.stub?.exportedTypeString`), which is null here — this
+fixture's `return M` has no `---@type`/`---@class` tag for `extractExportedType`
+([LuaFileElementType.kt:33-90](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaFileElementType.kt))
+to read, so it falls through to `LuaTypesSnapshot.forFile(psiFile).getFileReturnType()`. That accessor
+([LuaTypesVisitor.kt:337-346](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypesVisitor.kt))
+reads `rootReturnNodes.firstOrNull()?.write` **directly** — it does not go through
+`LuaTypesSnapshot.typeOf`'s write/read merge that `getValueType` uses, and it is that merge (not `.write`
+alone) that carries `m` on every DR-05a fixture that resolves it. So the member the require boundary
+would need to carry across the graph is not on the `LuaType` `resolveModule` returns, before `putGraphMember`,
+`fromLuaType` or `LuaGraphType.memberNodeFor` ([LuaGraphType.kt:385-396](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaGraphType.kt))
+ever run.
+
+- **Why `memberNodeFor` alone cannot fix this.** `memberNodeFor` is the drop point *if* `moduleType` had
+  a member to give it — it mints a fresh `VariableNode` per member from `graph.firstNodeElement()`
+  (this file's anchor) and takes only `member.type`, discarding `LuaTypeMember.sourceElement`
+  entirely; plumbing `sourceElement` through would be a mint-site change, not a merge change, and
+  would be in scope by the letter of the Phase 5 constraint. But it is moot here: there is no
+  `sourceElement` arriving at `fromLuaType`'s `LuaTableLiteralType` branch
+  ([LuaGraphType.kt:282-290](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaGraphType.kt))
+  to plumb, because `moduleType.getMembers()` is already empty by the time it gets there.
+- **Why the demand-node route (the thing that actually makes case 14 `HIT`) cannot reach a
+  declaration either.** `M:m()` in `a.lua` independently mints its own member-demand node for `m`
+  on `M` (`LuaTypesVisitor.kt:927`-area, left at the `declaresMember` default by design), and it is
+  *this* node — not anything from `require` — that wins `LuaGraphType.Table.getMembers()`'s
+  local-over-super merge and is what `Type13DeclarationLookupTest.crossFileRequireReportsNoDeclaration`
+  finds as `resolveMember=HIT`. Its `upSet` is empty by construction (DR-05a already records this
+  shape), and reaching into that merge to prefer a require-supplied node over the local demand is the
+  one exact case `implementation-plan.md`'s out-of-scope list and design §8 forbid
+  (`LuaGraphType.Table.getMembers()`'s supertype merge).
+- **Root cause is one layer under TYPE-13, not inside it.** `getFileReturnType`'s `.write`-only read is
+  a pre-existing gap in the require/module-export path — nothing this feature's Phases 1-4 touch — and
+  fixing it (routing it through `typeOf`'s merge, or something equivalent) is a change to how a file's
+  exported type is computed generally, well outside a "cross-file declaration reach" feature and with
+  its own cost/correctness profile (every `require` caller project-wide, not just colon calls).
+- **Action:** the assertion is **not flipped**. `TYPE-13-08`'s existing behaviour — *resolves to a
+  member, reports no declaration* — is correct and is now backed by an executed measurement of why,
+  not just by the DR-05a table. No roadmap row minted for the `getFileReturnType` gap: it is not a
+  regression, and TYPE-13-08's `Should` priority does not license reaching into module-export
+  computation to close it.
+
+## Gap 2.12 — TYPE-13-09's second segment: `visitFuncCall` reports the wrong VALUE, not merely no declaration
+
+`implementation-plan.md` Phase 5 asks for a measurement of the chain's **second** segment (DR-01
+measured only the first). Executed with a temporary probe (reverted), on the annotated chain
+`---@class B ; local B = {} ; ---@return B ; function B:m1() end ; function B:m2() end ; local x = B ;
+x:m1():m2()` — the same shape as `requirements.md` DR-01 fixture E, extended with the trailing
+`:m2()` call:
+
+```
+nameAndArgsCount=2
+chainValue(x:m1():m2()) = Union(Table(className=B, localMembers={m1, m2}), Table(className=B, localMembers={m1, m2}))
+chainLuaType = B
+m2 via resolveMember on the chain's OWN reported value = HIT, sourceElement=FUNC_DECL
+```
+
+`x:m1():m2()` parses as **one** `LuaFuncCall` PSI node with `varOrExp = x` and a two-element
+`nameAndArgsList` (`funcCall ::= varOrExp nameAndArgs+`, `lua.bnf:297`) — there is no second PSI node
+for the `:m2()` step. `visitFuncCall` reads only `o.nameAndArgsList.firstOrNull()`
+([LuaTypesVisitor.kt:893](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypesVisitor.kt))
+and, because `m1` is declared-typed (`---@return B`), takes the declared-type branch, seeds
+`elementNodes[o]` from `m1`'s declared return (`B`) and **returns** — `:m2()` is never visited, so
+`elementNodes[o]` is never touched again.
+
+- **The consequence is stronger than "no declaration": the whole chain expression reports the wrong
+  type.** `getValueType(theWholeFuncCall)` returns `B` — the type of `x:m1()`, not of `x:m1():m2()`.
+  Asking `resolveMember("m2")` on that value *does* hit, but only because `B` happens to declare `m2`
+  as a member of itself; the hit is a member of the **receiver**, not a return value of calling it, and
+  a differently-typed `m2` (or a `B` with no `m2` at all) would silently report `m1`'s own member set
+  in its place. This is a coincidence of the fixture, not a resolution path a consumer can rely on.
+- **There is no PSI handle for "the value of `x:m1()`" to resolve `m2` against**, because chained
+  segments share one `LuaFuncCall` node — `implementation-plan.md`'s routing note ("the nominal route
+  already carries the declaration") is only true for the **first** segment; there is nothing analogous
+  for the second, and building one means minting a node per intermediate `nameAndArgs` step inside
+  `visitFuncCall` — the exact widening `implementation-plan.md` and `AGENTS.md` both say not to do
+  here.
+- **Action:** `TYPE-13-09` stays `Future Work`. No fix attempted, per the plan's explicit instruction.
+  A future implementer picking this up should route through `visitFuncCall`'s per-segment modeling
+  (TYPE-12's neighbourhood, per the plan) rather than trying to patch this feature's declaration
+  lookup around it — the gap is upstream of any node this feature's `declaringNodeOf` ever sees.
 
 ## De-risking actions
 

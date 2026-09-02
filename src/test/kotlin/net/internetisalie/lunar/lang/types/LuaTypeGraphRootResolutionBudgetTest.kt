@@ -1,8 +1,11 @@
 package net.internetisalie.lunar.lang.types
 
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.BaseDocumentTest
+import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
+import net.internetisalie.lunar.lang.psi.types.LuaUnionType
 import net.internetisalie.lunar.lang.psi.types.RootAccessor
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
@@ -47,6 +50,52 @@ class LuaTypeGraphRootResolutionBudgetTest : BaseDocumentTest() {
         }
     }
 
+    /**
+     * TYPE-13 Phase 4 — `annotatedClassFixtureStaysWithinItsRootResolutionBudget` above stops at
+     * `LuaTypesSnapshot.forFile`; it never calls `graphTypeToLuaType`, so it cannot see the walk
+     * `LuaMemberDeclarations.declaringNodeOf` performs when a member is populated
+     * (`TYPE-13`'s design §4.3 `putGraphMember`). This method converts the last call site's
+     * receiver — `b:setName("a79")` — and re-asserts the write/read budgets against that path.
+     *
+     * Measured on the 80-call-site fixture at commit time: `WRITE` = 574, `READ` = 648 — 2 and 1
+     * over the pre-conversion walk (572/647). Budgets below carry ~8% headroom over that
+     * measurement.
+     *
+     * **Mutation finding (`requirements.md` case 15), executed and reverted:** the prescribed
+     * mutation — have `declaringNodeOf` read `node.write` at each step instead of relying on
+     * `declaresMember` to short-circuit — does **not** redden this test, on this fixture, under
+     * three variants tried (read-then-shortcut; unconditional-read-with-shortcut-removed;
+     * unconditional-read walking the full `upSet` fan-out to the 64-node cap). All three reproduced
+     * `WRITE` = 574 exactly. Root cause, confirmed with a temporary visited-count probe: `setName`'s
+     * member node (`Table.localMembers["setName"]`) is minted directly at the declaration site with
+     * `declaresMember = true`, so the correct code already returns it at step 0 without touching
+     * `upSet` at all on this fixture — and every node reachable from it via `upSet` (the BFS
+     * traversed 64 of them before hitting `MAX_VISITED`) already has its `write` resolved in the
+     * `RootMemo` from the ordinary type-check pass that `LuaTypesSnapshot.forFile` performs before
+     * this method ever calls `graphTypeToLuaType`. A duplicate read of an already-memoized
+     * `(node, graph-revision)` key is free by the same mechanism BUG-473 relies on, so this
+     * particular mutation is invisible to this counter on this fixture regardless of how
+     * aggressively `declaringNodeOf` re-reads `write` — not because the budget carries slack, but
+     * because the read it adds can never be a cache miss here. A fixture whose `declaresMember`
+     * member sits one or more `upSet` hops away from nodes the initial pass never visits would be
+     * needed to exercise this mutation; none of the existing TYPE-13 fixtures has that shape.
+     */
+    @Test
+    fun conversionPathStaysWithinItsRootResolutionBudget() {
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            configureByText(annotatedCallSiteFixture())
+            val types = LuaTypesSnapshot.forFile(myFixture.file) as LuaTypesSnapshot
+
+            val receiverRef =
+                PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java).last { it.text == "b" }
+            val converted = types.graphTypeToLuaType(types.getValueType(receiverRef))
+            assertTrue((converted as LuaUnionType).types.any { it.resolveMember("setName") != null })
+
+            assertWithinBudget(types, RootAccessor.WRITE, CONVERSION_WRITE_BUDGET)
+            assertWithinBudget(types, RootAccessor.READ, CONVERSION_READ_BUDGET)
+        }
+    }
+
     private fun assertWithinBudget(
         types: LuaTypesSnapshot,
         accessor: RootAccessor,
@@ -78,5 +127,9 @@ class LuaTypeGraphRootResolutionBudgetTest : BaseDocumentTest() {
         const val WRITE_BUDGET = 600L
         const val READ_BUDGET = 1_000L
         const val DECLARED_DEMAND_BUDGET = 500L
+
+        // TYPE-13 Phase 4 — measured, see conversionPathStaysWithinItsRootResolutionBudget's KDoc.
+        const val CONVERSION_WRITE_BUDGET = 620L
+        const val CONVERSION_READ_BUDGET = 700L
     }
 }

@@ -751,7 +751,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 // Undefined, not nil: an unmodeled field initializer must not declare the
                 // member to be nil — that is the placeholder misreading of BUG-416.
                 val valNode = firstNode(unwrapExpression(valExpr)) ?: graph.value(valExpr, LuaGraphType.Undefined)
-                val memberNode = graph.variable(field)
+                val memberNode = graph.variable(field, declaresMember = true)
                 graph.addEdge(valNode, memberNode)
                 localMembers[key] = memberNode
             }
@@ -829,7 +829,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         funcName.funcNamePropertyList.forEach { prop ->
             val propName = prop.nameRef?.text
             if (propName != null) {
-                val memberNode = graph.variable(prop)
+                val memberNode = graph.variable(prop, declaresMember = true)
                 val tableConstraint = LuaGraphType.Table(localMembers = mapOf(propName to memberNode))
                 graph.addEdge(calleeNode, graph.use(prop, tableConstraint))
                 calleeNode = memberNode
@@ -845,7 +845,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         if (method != null) {
             val methodName = method.nameRef?.text
             if (methodName != null) {
-                val memberNode = graph.variable(method)
+                val memberNode = graph.variable(method, declaresMember = true)
                 val tableConstraint = LuaGraphType.Table(localMembers = mapOf(methodName to memberNode))
                 graph.addEdge(calleeNode, graph.use(method, tableConstraint))
                 calleeNode = memberNode
@@ -1195,7 +1195,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                     if (varElement.varSuffixList.firstOrNull()?.indexExpr != o) return
                 }
                 if (receiverNode == null) return
-                val memberNode = graph.variable(o)
+                val memberNode = graph.variable(o, declaresMember = isAssignmentTarget(o))
                 val tableConstraint = LuaGraphType.Table(localMembers = mapOf(nameRef.text to memberNode))
                 graph.addEdge(receiverNode, graph.use(o, tableConstraint))
                 elementNodes[o] = listOf(memberNode)
@@ -1203,6 +1203,21 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         } else if (o.expr != null) {
             seedSubscriptElement(o)
         }
+    }
+
+    /**
+     * TYPE-13 design §3.3, property (P): the node minted above for `o` may claim a declaration only
+     * when the assignment writes the name `o` carries directly on the `var`'s bare head — that is,
+     * when no navigation step stands between the head and `o`. A `var` applies exactly two step
+     * kinds to its head (`varSuffix ::= nameAndArgs* indexExpr`), so both must be tested: counting
+     * suffixes alone bounds the index steps but says nothing about a call step bundled inside the
+     * sole suffix (`t().m = f` is one `varSuffix` whose `nameAndArgsList` is `[()]`).
+     */
+    private fun isAssignmentTarget(o: LuaIndexExpr): Boolean {
+        val enclosingVar = PsiTreeUtil.getParentOfType(o, LuaVar::class.java) ?: return false
+        if (enclosingVar.parent !is LuaVarList) return false
+        val soleSuffix = enclosingVar.varSuffixList.singleOrNull() ?: return false
+        return soleSuffix.nameAndArgsList.isEmpty() && soleSuffix.indexExpr === o
     }
 
     /**

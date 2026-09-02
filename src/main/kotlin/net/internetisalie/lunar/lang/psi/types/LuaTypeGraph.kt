@@ -141,8 +141,11 @@ class LuaTypeGraph {
      * Creates a mutable [VariableNode] with no type initially ([LuaGraphType.Undefined]).
      * Typical uses: local variable declarations, function parameter bindings.
      */
-    fun variable(element: PsiElement): VariableNode {
-        val node = VariableElement(element, this)
+    fun variable(
+        element: PsiElement,
+        declaresMember: Boolean = false,
+    ): VariableNode {
+        val node = VariableElement(element, this, declaresMember)
         _nodes += node
         bumpRevision()
         return node

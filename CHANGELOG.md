@@ -2,6 +2,17 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A member resolved on a plain table, a global table, or a `setmetatable`-based class now carries
+  its declaration — not only when the receiver has an `---@class` tag** (TYPE-13). The engine could
+  previously trace a colon call like `obj:method()` back to the `function Obj:method()` that
+  declares it only when `obj`'s type carried a LuaCATS annotation; a corpus measurement found 809
+  colon-method declarations across 734 files, and not one of them was annotated. The engine now
+  recovers the same declaration from the code's structure instead of from a tag — for plain and
+  global tables directly, and for `setmetatable`-based OO through its supertype chain, without
+  changing what any inspection or diagnostic reports. This is groundwork, not a new command: it
+  does not rename a colon method itself, and a `require`d module's declaration, or the second call
+  in a chain like `obj:m1():m2()`, still report no declaration.
+
 - **Renaming a `::label::` now warns you before it changes what your program does, or refuses to
   produce a file that won't compile** (REFACT-04). Lua allows the same label name to be reused in a
   nested block — and, on Lua 5.4 and later, a *rename* is the one thing that can turn that into a

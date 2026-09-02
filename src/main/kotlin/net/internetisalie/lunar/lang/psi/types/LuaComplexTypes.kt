@@ -1,5 +1,7 @@
 package net.internetisalie.lunar.lang.psi.types
 
+import com.intellij.psi.PsiElement
+
 class LuaUnionType(
     val types: Set<LuaType>,
 ) : LuaType {
@@ -9,22 +11,33 @@ class LuaUnionType(
         // In a union, we can only resolve a member if it's present in ALL types
         // OR we return a union of the members' types.
         // For now, let's keep it simple: if any type can't resolve it, it's null.
-        val members = types.map { it.resolveMember(name) }
-        if (members.any { it == null }) return null
+        val members = types.mapNotNull { it.resolveMember(name) }
+        if (members.size != types.size) return null
 
-        // Return a member with a union type of all resolved members
-        return LuaTypeMember(name, LuaUnionType(members.map { it!!.type }.toSet()))
+        // TYPE-13-06/§4.4: carry the declaration forward — the first arm that has one wins,
+        // matching getMembers' putIfAbsent below.
+        return LuaTypeMember(
+            name,
+            LuaUnionType(members.map { it.type }.toSet()),
+            sourceElement = members.firstNotNullOfOrNull { it.sourceElement },
+        )
     }
 
     override fun getMembers(): Map<String, LuaTypeMember> {
-        val allMembers = mutableMapOf<String, MutableSet<LuaType>>()
+        val typesByName = linkedMapOf<String, MutableSet<LuaType>>()
+        val declarationByName = linkedMapOf<String, PsiElement>()
         for (type in types) {
             for ((name, member) in type.getMembers()) {
-                allMembers.getOrPut(name) { mutableSetOf() }.add(member.type)
+                typesByName.getOrPut(name) { mutableSetOf() }.add(member.type)
+                member.sourceElement?.let { declarationByName.putIfAbsent(name, it) }
             }
         }
-        return allMembers.mapValues { (name, typeSet) ->
-            LuaTypeMember(name, if (typeSet.size == 1) typeSet.first() else LuaUnionType(typeSet))
+        return typesByName.mapValues { (name, typeSet) ->
+            LuaTypeMember(
+                name,
+                if (typeSet.size == 1) typeSet.first() else LuaUnionType(typeSet),
+                sourceElement = declarationByName[name],
+            )
         }
     }
 

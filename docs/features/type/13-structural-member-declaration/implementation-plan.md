@@ -179,6 +179,30 @@ root and the `WRITE` budget is exceeded. Observe red, revert.
 
 **Verification:** full suite plus corpus, as Phase 3.
 
+**Outcome (executed):** both questions were measured with a temporary probe (`temporary-edits`,
+reverted — no production or test file carries the probe code) and both came back negative, so this
+phase lands as documentation only: `risks-and-gaps.md` Gap 2.11 and Gap 2.12.
+
+- `TYPE-13-08` is **not flipped**. `moduleType.getMembers()` is already empty by the time
+  `LuaGraphType.fromLuaType`/`memberNodeFor` would run — `LuaTypeManagerImpl.getModuleType`'s AST
+  fallback reads `getFileReturnType()`, which is `.write` alone rather than `typeOf`'s write/read
+  merge, so there is no `sourceElement` for a mint-site fix to plumb through. The node that actually
+  resolves `m` on the receiver (`Type13DeclarationLookupTest.crossFileRequireReportsNoDeclaration`'s
+  `HIT`) is a same-file member-demand node the call site mints independently of `require`, and
+  preferring a require-supplied node over it would mean changing `LuaGraphType.Table.getMembers()`'s
+  local-over-super merge — the one merge this phase, like every phase before it, must not touch.
+- `TYPE-13-09` stays `Future Work`, unattempted. The second segment's actual defect is stronger than
+  "no declaration": `visitFuncCall` seeds the whole chain's value from the first segment's declared
+  return and never visits the second, so `getValueType` on `x:m1():m2()` reports `B` — `m1()`'s
+  return type — not `m2()`'s. Fixing it means modeling multiple `nameAndArgs` per `LuaFuncCall`
+  inside `visitFuncCall`, which is exactly the widening the plan says belongs to [[TYPE-12]]'s
+  neighbourhood, not here.
+
+Since neither measurement changed production code, the corpus lane (`-PwithCorpus`) was not re-run
+for this phase — Phase 3's clean run (24m49s) stands, and Phase 4 correctly skipped it for the same
+reason. The full suite (`test --rerun --no-build-cache`, no `-PwithCorpus`) was run to confirm no
+regression from the doc-only change; its result is recorded in `requirements.md`'s status update.
+
 ## Out of scope for every phase
 
 - Changing `LuaTypesSnapshot.typeOf`'s write/read merge or `LuaGraphType.Table.getMembers()`'s
@@ -192,17 +216,17 @@ root and the `WRITE` budget is exceeded. Observe red, revert.
 
 ## Definition of done
 
-- [ ] Phases 1–4 complete; Phase 5 complete or its deferral recorded with a measurement.
-- [ ] Every `M` requirement except `TYPE-13-10` has a test whose named mutation was **executed** and
+- [x] Phases 1–4 complete; Phase 5 complete or its deferral recorded with a measurement.
+- [x] Every `M` requirement except `TYPE-13-10` has a test whose named mutation was **executed** and
       observed red; `TYPE-13-10`'s argument stands as recorded in `requirements.md`.
-- [ ] Full suite green on the builder with `--rerun --no-build-cache`.
-- [ ] Corpus ratchet green with `-PwithCorpus` — no `Corpus regression:` failure; any
+- [x] Full suite green on the builder with `--rerun --no-build-cache`.
+- [x] Corpus ratchet green with `-PwithCorpus` — no `Corpus regression:` failure; any
       `[corpus] IMPROVED` line is re-recorded rather than ignored.
-- [ ] `LuaAnnotatedClassDiagnosticsTest` unchanged; `LuaTypeGraphRootResolutionBudgetTest` unchanged
+- [x] `LuaAnnotatedClassDiagnosticsTest` unchanged; `LuaTypeGraphRootResolutionBudgetTest` unchanged
       in its existing method and passing in its new one.
-- [ ] `ktlintCheck` green, run on its own.
-- [ ] `Type13Dr01StructuralReachProbe`'s TYPE-13-05 tripwire — the assertion that fixture D's member
+- [x] `ktlintCheck` green, run on its own.
+- [x] `Type13Dr01StructuralReachProbe`'s TYPE-13-05 tripwire — the assertion that fixture D's member
       node is still the call-site `LuaMethodExprImpl` — is **expected to keep passing**: this feature
       does not change which node wins the merge, only which declaration is reported alongside it. If
       it fails, a merge was changed and design §8 was violated.
-- [ ] `REFACT-01-08` is **not** touched — it flips to `Full` only when [[REFACT-09]] ships.
+- [x] `REFACT-01-08` is **not** touched — it flips to `Full` only when [[REFACT-09]] ships.

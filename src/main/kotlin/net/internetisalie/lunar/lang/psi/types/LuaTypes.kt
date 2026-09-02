@@ -174,17 +174,46 @@ class LuaTypesSnapshot(
             // the type manager, so method-aware members reach nominal consumers such as
             // LuaParameterInlayHintsProvider.resolveMember and the NAV-05/06 hierarchy walk.
             (nominal as? LuaClassType)?.let { members.putAll(it.getMembers()) }
-            type.getMembers().forEach { (name, node) ->
-                members[name] = LuaTypeMember(name, graphTypeToLuaType(node.write, visited)) // graph members win
-            }
+            type.getMembers().forEach { putGraphMember(members, it, visited) }
             return placeholder
         }
         val placeholder = LuaTableLiteralType(members)
         visited[type] = placeholder
-        type.getMembers().forEach { (name, node) ->
-            members[name] = LuaTypeMember(name, graphTypeToLuaType(node.write, visited))
-        }
+        type.getMembers().forEach { putGraphMember(members, it, visited) }
         return placeholder
+    }
+
+    /**
+     * TYPE-13 design §4.3: the one place both [tableToLuaType] branches build a structural member,
+     * so the nominal-preservation rule below cannot drift between them.
+     *
+     * The `type` argument is computed exactly as it was before this feature — same node, same
+     * expression — so a member's TYPE never moves (TYPE-13-10). What changes is `sourceElement`:
+     * where a nominal member is already present (the `className` branch, seeded from
+     * `LuaTypeManager.resolveType`), its element is authoritative and is preserved unconditionally —
+     * annotations beat inference — and only the TYPE is refreshed from the graph (the pre-existing
+     * "graph members win" rule). Where no nominal member exists, the declaration is recovered from
+     * the winning node's `upSet` via [LuaMemberDeclarations.declaringNodeOf], which returns null
+     * (never a wrong element) when no mint site declaring this member is reachable.
+     */
+    private fun putGraphMember(
+        members: MutableMap<String, LuaTypeMember>,
+        entry: Map.Entry<String, VariableNode>,
+        visited: MutableMap<LuaGraphType, LuaType>,
+    ) {
+        val (name, node) = entry
+        val graphType = graphTypeToLuaType(node.write, visited)
+        val existing = members[name]
+        members[name] =
+            if (existing?.sourceElement != null) {
+                existing.copy(type = graphType)
+            } else {
+                LuaTypeMember(
+                    name,
+                    graphType,
+                    sourceElement = LuaMemberDeclarations.declaringNodeOf(node)?.element,
+                )
+            }
     }
 
     private fun functionToLuaType(

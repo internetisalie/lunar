@@ -77,6 +77,14 @@ interface VariableNode :
 
     /** All downstream nodes that draw values *from* this variable. */
     val downSet: OrderedSet<TypeNode>
+
+    /**
+     * True when this node was minted to bind a member name that Lua source DECLARES, rather than
+     * one a use site demands. Set at the mint site (TYPE-13 design §3.2), never inferred from
+     * [TypeNode.element]'s PSI class: `function t.m()` and `t.m = …` mint different classes, and a
+     * `LuaIndexExpr` is a declaration or a use depending on its position.
+     */
+    val declaresMember: Boolean get() = false
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +127,7 @@ internal class UseElement(
 internal class VariableElement(
     override val element: PsiElement,
     private val graph: LuaTypeGraph,
+    override val declaresMember: Boolean = false,
 ) : VariableNode {
     override val upSet: OrderedSet<TypeNode> = OrderedSet(graph::bumpRevision)
     override val downSet: OrderedSet<TypeNode> = OrderedSet(graph::bumpRevision)
