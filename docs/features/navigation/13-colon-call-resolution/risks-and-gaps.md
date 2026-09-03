@@ -84,7 +84,17 @@ the number of distinct `function X:m()` declarations for which at least one call
 | **total** | **734** | **941** | **14 116** | **11 411** | **372** | **68** | **84** |
 
 **So the headline is: 84 of 941 colon-method declarations — 8.9% — gain a resolving call site on the
-pinned corpus, and 372 of 14 116 call sites — 2.6% — resolve.** That is not the 0 of 941
+pinned corpus, and 372 of 14 116 call sites — 2.6% — resolve.**
+
+> **Superseded as the shipped figure.** Phase 4 re-ran this measurement against the **shipped** code
+> and got **67 of 941 and 315 of 14 116** — the difference is zerobrane alone, at 188 / 56 against
+> this run's 245 / 73, reproduced three independent ways. See "The shipped-code re-measurement"
+> below, which also locates the shortfall upstream of this feature. The numbers in this section are
+> the prototype's and are kept as the record of what the design was planned on; **67 / 315 is what
+> ships**. Every qualitative claim below — non-zero, concentrated in ZeroBrane, module-style projects
+> reaching nothing — survives the correction unchanged.
+
+That is not the 0 of 941
 [[REFACT-09]] measured, and it is not a large number either. It is also **concentrated**: 73 of the
 84 are in one project, ZeroBrane Studio, whose OO is written as a file-local `local Pack = {}` plus
 `function Pack:method()` plus in-file `p:method()` calls — the one shape [[TYPE-13]] reaches. The
@@ -201,6 +211,100 @@ other's correction. Both measured at `66141703` with
 `find <tree> -name '*.lua' -not -path '<tree>/3rd/*' -exec grep -l -- '---@' {} + | wc -l`, scoped
 to the whole tree and to `meta script tools` respectively; the denominators are 432 and 275 by the
 same command without `grep`. Neither is a sample of anything. That is stated rather than argued away, and Gap 2.1 carries the consequence.
+
+#### Phase 4 execution — every denominator reproduces; the shipped code reaches 67 of the 84 declarations
+
+Executed at `adc581f1` on the gce builder against the **shipped** `LuaColonCallResolution` rather
+than the prototype transcription. The probe calls the public `declarationLeafOf`, whose body *is*
+the Method's point-5 agreement rule (`declarationLeaves(...).singleOrNull()`), so §3.3-§3.5 are the
+shipped clauses and not a second copy of them. One `BasePlatformTestCase` method per corpus, which
+satisfies the Method's point 2 — the light fixture builds the project per method, so one method is
+one fixture project. The instrument was reverted: `git status --porcelain` is clean and
+`src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaColonCallResolution.kt` is md5-identical to
+`HEAD` in both the working tree and the builder's copy.
+
+**The three denominators reproduce exactly, and so do the two the Method mentions only in passing.**
+Read before the numerator, as the protocol requires:
+
+| corpus | files | colon-method decls | raw `LuaMethodExpr` | colon call sites | bare-name first-segment |
+| :-- | --: | --: | --: | --: | --: |
+| luacheck | 135 | 142 | 806 | 805 | 490 |
+| luarocks | 160 | 80 | 1 952 | 1 952 | 1 389 |
+| penlight | 114 | 147 | 984 | 984 | 777 |
+| zerobrane | 325 | 572 | 10 449 | 10 375 | 8 755 |
+| **total** | **734** | **941** | **14 191** | **14 116** | **11 411** |
+
+Every cell matches table 1, including the raw/under-call gap of 75 sites split **74 zerobrane, 1
+luacheck** — the `varSuffix`-parented sites of the Method's point 4, reproduced independently here.
+
+**The numerator does not reproduce, and the difference is entirely zerobrane:**
+
+| corpus | sites resolving — DR-01 | sites resolving — shipped | decls gaining a site — DR-01 | decls — shipped |
+| :-- | --: | --: | --: | --: |
+| luacheck | 14 | **14** | 3 | **3** |
+| luarocks | 101 | **101** | 4 | **4** |
+| penlight | 12 | **12** | 4 | **4** |
+| zerobrane | 245 | **188** | 73 | **56** |
+| **total** | **372** | **315** | **84** | **67** |
+
+**So the shipped code reaches 67 of 941 colon-method declarations — 7.1% — and 315 of 14 116 call
+sites — 2.2%.**
+
+**The reproducibility protocol passes, and passes three ways.** The two passes over one copied tree
+agreed field for field in every corpus method; zerobrane run **alone** returned the same 188 / 56 as
+zerobrane run in-class behind penlight, which rules out cross-method fixture contamination; and the
+guard-off control below returned it a third time.
+
+**188 / 56 is DR-01's recorded outlier plus one in each column** (187 / 55), and that reframes the
+outlier rather than repeating it: the anomaly is the value this instrument returns against the
+shipped code, and **245 / 73 is the figure that now fails to reproduce**. DR-01's "no identified
+cause" stands only for the +1.
+
+**Two hypotheses were executed rather than argued.**
+
+1. **The `isSnapshotUnderConstruction` guard — refuted.** It is the one clause the shipped
+   `declarationLeafOf` carries that §3.3-§3.5 does not (it is §3.6 decision 3), so it was the first
+   suspect. Commented out and zerobrane re-measured alone: **188 / 56, unchanged**. The guard costs
+   no reach on this corpus, which is what DR-03 predicts — 0 `---@` tags across all 734 files means
+   there is no expected-callback seeding for it to withdraw. Reverted with
+   `git show HEAD:<path> > <path>`.
+2. **Where the accepted sites are lost — located.** A stage tally over zerobrane's 8 755 bare-name
+   first-segment sites:
+
+   | stage | sites |
+   | :-- | --: |
+   | the receiver's type carries no such member (§3.4 finds nothing) | 1 362 |
+   | a member is found and `LuaMemberDeclarations.declarationOf` returns **null** | 7 183 |
+   | the declaration is a `LuaField`, refused by §3.5's `as? LuaFuncDecl` | 22 |
+   | resolved | 188 |
+
+   The four sum to 8 755. **No site is lost at §3.5's leaf mapping and none is ambiguous** — both
+   counts are 0 — and §3.5's only refusal is the 22 `LuaField`s `requirements.md` case 11 exists to
+   prevent. The shortfall therefore sits **upstream of this feature**, in `LuaType.resolveMember` /
+   `LuaMemberDeclarations.declarationOf`, not in any clause NAV-13 ships — the same surface the
+   case-15 note attributes to [[TYPE-13]] Gaps 2.7 and 2.11.
+
+**What is not established, stated rather than papered over.** The prototype was never stage-tallied
+and no run of it survives, so *which* of the first two rows grew is unknown. The claim made here is
+bounded to what was executed: the denominators are identical, every refusal inside
+`LuaColonCallResolution` is accounted for, and the guard is excluded — so the difference lies in the
+type engine's answer, not in the transcription of §3.3-§3.5. **DR-01's 372 / 84 is left standing as
+the prototype's measurement rather than overwritten**, per `implementation-plan.md` Phase 4.
+
+**Risk 1.1's disposition is unchanged, and DR-01 pre-committed to that**: "at 55 or at 84 the
+conclusion — small on un-annotated code, and the annotated shape is where the value is — is the
+same." The reach stays non-zero and concentrated: 56 of the 67 declarations are ZeroBrane's.
+
+**The corpus lane, for the record.** `test -PwithCorpus --rerun --no-build-cache` at `adc581f1`:
+BUILD SUCCESSFUL in 20 min 49 s, **483 classes / 3 032 tests / 0 failures / 0 errors / 1 skipped**,
+with `LuaCorpusSweepTest` (4 tests), `LuaInspectionParityTest` (1) and `LuaTortureCorpusTest` (1)
+all carrying XML `timestamp` attributes inside the run window (18:57:51Z, 19:07:50Z and 19:09:58Z
+against a window of 18:54:30Z-19:15:22Z) — checked because `--rerun` does not clear
+`build/test-results/test/` when the task is skipped, and the directory held two stale XMLs from an
+earlier filtered run when this one started. **No `Corpus regression:` line and no
+`[corpus] IMPROVED` line.** The wall-clock sits beside the prototype's 20 min 5 s and [[TYPE-13]]
+Phase 3's 24 min 49 s **as context only**: three uncontrolled runs on a shared builder bound
+nothing, and Gap 2.3's bound is Phase 3's case-20 test.
 
 ---
 
@@ -469,6 +573,41 @@ measured. Stated rather than papered over.
 `implementation-plan.md` Phase 3 commits this measurement against the shipped code, as a test, in
 place of the wall-clock note.
 
+#### Phase 3 execution — the shipped-code form reproduces DR-04, and corrects two things
+
+Executed on top of `7cf880bf` (gce-builder, `test --rerun --no-build-cache`). The shipped test
+takes its baseline **in process**: it builds all `K` snapshots, sums the counters, resolves every
+site, and sums again. That is a different construction from DR-04's (which compared a pre-feature
+run against the prototype), and it produced the **same numbers** — `WRITE` 198→218, 396→436,
+792→872, 1584→1744 and `READ` 94→114, 188→228, 376→456, 752→912 at `K` = 2/4/8/16. The two
+constructions agreeing value for value is what says the in-process baseline is the no-branch
+baseline: the lexical path the branch replaced charges no root resolution, so building the snapshots
+*is* the pre-feature cost. The assertion committed is the per-site ratio (one `WRITE` and one `READ`
+per resolved site), not those totals.
+
+**Correction 1 — the guard mutation is not a falsifier for this test.** `requirements.md` case 20
+listed the `isSnapshotUnderConstruction` removal as its reddening mutation. Executed against the
+shipped test: it stays **green**. The un-guarded branch's extra cost is charged during snapshot
+*construction*, which lands in the baseline, and a before/after delta cannot see a term present in
+both halves. Cases 16 and 17 carry that falsifier and both were observed red (`WRITE` 812 over 600,
+814 over 620, and the new un-annotated method at 485 over 180). This test's own reachable falsifier
+is case 1's — delete the colon branch from `LuaNameReference.multiResolve` — **executed**, red at
+`expected:<20> but was:<0>` on the anti-vacuity assertion. Case 20's mutation column now says so.
+
+**Correction 2 — the test cannot live in `LuaTypeGraphRootResolutionBudgetTest`, for a harness
+reason that would have made it pass while asserting nothing.** That class extends `BaseDocumentTest`,
+which builds `LightTempDirTestFixtureImpl(false)`; with `usePlatformSourceRoot = false` the fixture
+creates added files under `temp:///root`, outside any source root, so `LuaTypeManagerImpl`'s
+`GlobalSearchScope.allScope` lookup never finds a `---@class` declared in a sibling file.
+`BasePlatformTestCase` passes `true`. Measured rather than read off the constructor: in that harness
+the ring resolved **0 of 20** sites at `K` = 2 with the receiver typing as `{  }`, while a same-file
+control in the same harness resolved 1 of 1 — so the fixture shape and the branch were both fine and
+only the file's scope was not. Had the anti-vacuity assertion been omitted, the delta would have been
+0 = 0 and the test would have been green over nothing. It ships as
+`net.internetisalie.lunar.lang.types.LuaColonCallCrossFileFanOutTest` on `BasePlatformTestCase`;
+re-basing the budget class instead would have perturbed the pre-existing budgets `NAV-13-06` requires
+to hold unchanged, and `design.md` §2.4 adds only the budget method to that class in any case.
+
 ---
 
 ### DR-05 result — the consumer set, enumerated from inside the branch
@@ -489,7 +628,7 @@ pre-change and post-change consumer sets. It captured `Thread.currentThread().st
 to `net.internetisalie.lunar` frames excluding the recorder's own and `multiResolve` itself, and kept
 the first three as the route. One instrument covers **both** APIs, because
 `LuaNameReference.resolve()` is implemented as `multiResolve(false)` and a single-result unwrap
-([LuaNameReference.kt:255-257](../../../../src/main/kotlin/net/internetisalie/lunar/lang/LuaNameReference.kt)) —
+([LuaNameReference.kt:275-277](../../../../src/main/kotlin/net/internetisalie/lunar/lang/LuaNameReference.kt)) —
 which is also why a grep over the two resolution spellings cannot be complete: a `resolve()` caller
 that does not spell `.reference?.resolve()` (`LuaRenameProcessor` and `LuaDocumentationTargetProvider`
 both bind the reference to a local first) is invisible to both.
@@ -517,7 +656,7 @@ findings below are the call site's.
 | :-- | :-- | :-- |
 | `LuaDeprecatedApiInspection$buildVisitor$1.visitNameRef:37` | `multiResolve` | every fixture |
 | `LuaUnusedLocalInspection.collectUsedDeclarations:147` ← `checkFile:82` | `multiResolve` | only the fixture with a local of the member's name |
-| `LuaNameReferenceSearcher.processQuery:76` → `LuaNameReference.isReferenceTo:260` (its `resolve()` call at `:267`) → `resolve:255` | `resolve()` | every fixture containing a `function t:m()` |
+| `LuaNameReferenceSearcher.processQuery:76` → `LuaNameReference.isReferenceTo:280` (its `resolve()` call at `:287`) → `resolve:276` | `resolve()` | every fixture containing a `function t:m()` |
 | `LuaDocumentationTargetProvider.resolveDocumentationTarget:152` ← `documentationTargets:70` | `resolve()` | every fixture |
 | `LuaRenameProcessor.resolvedDeclarationLeaf:378` ← `substituteElementToRename:107` | `resolve()` | every fixture |
 | `LuaParameterInlayHintsProvider.isStdlibCall:191` ← `collectParameterHints:50` | `resolve()` | every fixture |
@@ -573,6 +712,28 @@ in `isColonCallMemberName` and needs no other production change, so `requirement
 criterion — re-enumerate against the shipped code and confirm no route is missing from §7 — is a
 cheap re-run rather than a re-derivation. Reading gates again does not discharge it.
 
+**Finding 6 — re-run against the shipped code, and it names no route §7 omits.** The same instrument
+(`recordCaller` in `isColonCallMemberName`, `net.internetisalie.lunar` frames excluding the recorder
+and `multiResolve`, first three kept) was re-applied to the shipped `LuaColonCallResolution` and the
+five fixtures driven through every surface above, branch off and on. **Nine routes recorded, and they
+are §7's nine, one for one.** Only the frame *positions* moved: the branch §2.2 adds shifts
+`LuaNameReference.kt` by twenty-one lines, so the searcher route now records `resolve:276` ←
+`isReferenceTo:287`, and both tables above are re-based on the shipped file.
+
+Two things worth stating, because neither is visible in a route list alone:
+
+- **`LuaParameterInfoHandler` is only reachable with the caret inside the argument list.** A first
+  pass placed the caret on the member name and the handler recorded **no** route at all; with the
+  caret at `t:m(1<caret>, 2)` — DR-05's own spelling — it records
+  `resolveCandidates:68 ← findElementForParameterInfo:40` as before. A surface driven at the wrong
+  caret is indistinguishable from a consumer that does not exist, which is the same failure mode
+  Finding 4's negative result is careful about.
+- **A bare `LuaNameReference.resolve` entry frame, with no Lunar caller above it, appears once
+  `findAllGutters` / `availableIntentions` / `completeBasic` run.** That is the platform acting on
+  `LuaNameReference` directly, and it is exactly the class of consumer §7's "What bounds this
+  enumeration" states no derivation over Lunar source can list. Recorded here as an observation
+  rather than left as an argument.
+
 ### DR-06 result — the mirror direction, and the surface set derived from `plugin.xml`
 
 **The question.** DR-05 answered *which consumers reach a colon member name* and *what the call site
@@ -614,10 +775,15 @@ column.
 | `local t = {}` / `function t:m() end` / `local m = 1` / `t:m()` | `m@38` `LOCAL_VARIABLE` | `[46]` → `[]` | `m@24`: `[]` → `[46]` |
 | `local function m() end` / `local t = {}` / `function t:m() end` / `t:m()` / `m()` | `m@15` `LOCAL_FUNCTION` | `[47, 57, 61]` → `[47, 61]` | `m@47`: `[]` → `[57]` |
 | `function m() end` / `local t = {}` / `function t:m() end` / `t:m()` | `m@9` `GLOBAL_FUNCTION` | `[41, 51]` → `[41]` | `m@41`: `[]` → `[51]` |
-| `local t = {}` / `function t:m() end` / `local function f(m)` / `t:m()` / `return m` / `end` | `m@49` `PARAMETER` | `[56, 69]` → `[69]` | `m@24`: `[]` → `[56]` |
+| `local t = {}` / `function t:m() end` / `local function f(m)` / `t:m()` / `return m` / `end` | `m@49` `PARAMETER` | `[54, 65]` → `[65]` | `m@24`: `[]` → `[54]` |
 | `---@class Builder` / `local Builder = {}` / `function Builder:setName(n) end` / `local setName = 7` / `---@type Builder` / `local b` / `b:setName("x")` | `setName@75` `LOCAL_VARIABLE` | `[114]` → `[]` | `setName@54`: `[]` → `[114]` |
 | `local m = {}` / `function m:m() end` / `m:m()` | `m@6` `LOCAL_VARIABLE` — the receiver | `[32, 34]` → `[32]` | `m@24`: `[]` → `[34]` |
 | `local t = {}` / `local zz = 1` / `t:zz()` | `zz@19` `LOCAL_VARIABLE` | `[28]` → `[]` | none — the member is unresolvable |
+
+The `PARAMETER` row's usage offsets are `54`/`65` rather than the `56`/`69` first recorded: the fixture
+as spelled above indents nothing, and `56`/`69` are what a two-space-indented function body gives. The
+transition is unchanged — the declaration loses the call site and the method leaf gains it — and `m@49`,
+which the fixture's first three lines fix, was right in both readings.
 
 **Finding 2 — the unresolvable-member row is not a transfer.** Where the member resolves to nothing, the usage
 leaves the declaration's set and joins no other, and `resolve()` on `t:zz()`'s `zz@28` moves from
@@ -709,6 +875,32 @@ plus a `probeEnabled` flag, and the probe is one `BasePlatformTestCase`. Every e
 `git show HEAD:<path> > <path>` and the untracked files deleted from **both** the working tree and
 the builder's copy, which was then re-synced; `git status` is clean and neither tree contains
 `LuaColonCallResolution` or the probe.
+
+**Finding 10 — re-run against the shipped code, with the surface set re-derived by both halves.**
+The mirror sweep was re-driven on the shipped branch — every element-taking API at **every**
+`LuaNameRef` identifier leaf of all eight fixtures, one `configureByText` name reused, branch off
+against branch on, diffed field by field. **Every off/on difference it reports is one §7 already
+carries**, and the fields that must not move did not: `canFindUsagesFor` is identical at every leaf
+of every fixture, and `LuaSafeDeleteProcessor.findUsages` returns `ReferencesSearch`'s offsets
+everywhere, off and on. The `PARAMETER` row's offsets are re-measured above; no other figure moved.
+
+Two differences the sweep surfaces that the tables state less sharply:
+
+- **At a call site with no same-named declaration in scope, `substituteElementToRename` throws on
+  *both* sides** — `Cannot determine which declaration this name refers to` before, the colon-method
+  refusal after. Finding 4's "moves from returning the declaration's leaf to throwing" holds for the
+  shapes that *have* a same-named declaration; where none exists the refusal's **reason** changes and
+  its outcome does not.
+- **The rename diff repeats at every leaf that is a usage of the same declaration**, not only at the
+  declaration itself — the plain call `m()`, the receiver of `m:m()`, the `return m` of the parameter
+  fixture. Each renames the same declaration, so each carries the same off/on text.
+
+**The `plugin.xml` derivation, by both halves of §7's rule:** **186** registered
+`net.internetisalie.lunar.*` classes, every one resolved to a declaring file, **0** ambiguous and
+**0** unresolved; **16** match the call half, **3** the receive half, **0** both. That is §7's
+16 / 3 / 0 unchanged — no consumer has been added or removed. The recomputed residue is **seven**
+rather than six, and the seventh is this feature's own `LuaColonCallResolution`; the residue table in
+§7 carries it.
 
 ### DR-07 result — the consumers that receive the element instead of resolving it
 
@@ -854,10 +1046,10 @@ the builder's copy; `git status --porcelain` is clean and neither tree contains
 
 ### Risk 1.1 — Reach is small on un-annotated code, and the feature could be judged not worth its surface [Medium]
 
-- **Impact**: 84 of 941 declarations on the pinned corpus, 73 of them in one project. A reader who
-  sizes the feature by that number alone will conclude it is not worth a branch in the single hottest
-  resolution path in the plugin.
-- **Why it is not High**: the number that matters for [[REFACT-09]] is not 84 but *non-zero* — that
+- **Impact**: 67 of 941 declarations on the pinned corpus (the shipped-code figure; the prototype
+  measured 84), 56 of them in one project. A reader who sizes the feature by that number alone will
+  conclude it is not worth a branch in the single hottest resolution path in the plugin.
+- **Why it is not High**: the number that matters for [[REFACT-09]] is not 67 but *non-zero* — that
   feature is blocked on the existence of a usage set, not on its size, and DR-01 table 3 shows the
   set is now correct where it exists. And the un-annotated corpus is the *worst* case: the annotated
   substitute reaches 45.1%, and the annotated shape is the one the IDE's own users are most likely to
@@ -1089,6 +1281,19 @@ a real seeding.
   probe committed and the substitute tree pinned, which is a corpus-management change.
 - **Cases 15 and 18 of `requirements.md` have no falsifying mutation**, each for a stated reason.
   They are pins, not acceptance.
+- **Case 14's stated mutation is unreachable from case 14's fixture, and the row's real falsifier is
+  case 1's.** Executed in Phase 2 against the shipped code. The fall-through mutation (§3.6 decision 1)
+  only changes behaviour where `declarationLeafOf` returns **null**; on
+  `local t = {}` ; `function t:m() end` ; `local m = 1` ; `t:m()` the branch *succeeds* at `m@24`, so
+  the mutated line never runs and the row stayed **green** under it — while case 13, whose fixture has
+  no resolving receiver, reddened as stated. The reachable falsifier is case 1's — delete the colon
+  branch — and it was observed reddening **case 14's own test** at `expected:<24> but was:<38>`,
+  exactly the `LeafPsiElement@38` the pre-change measurement transcribes. No clause of
+  `declarationLeafOf` separates case 14 from case 1, because the branch is exclusive by construction
+  and so has no choice point at which it could prefer the local. `requirements.md` case 14 is
+  corrected to say so. The row is not weakened by this: its `Then` column — `m@24`, not `m@38` — is
+  what the withdrawal claims, and it is falsifiable and was falsified.
+
 - **Case 19's mutation is the branch itself, not a clause of it.** The seeding withdrawal follows
   from the branch returning null mid-build, so the mutation that reddens it — delete the colon branch
   — is case 1's. That is a real, reachable falsifier for case 19: with the branch deleted the lambda

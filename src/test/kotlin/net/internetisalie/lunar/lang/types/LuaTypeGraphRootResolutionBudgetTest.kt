@@ -3,11 +3,14 @@ package net.internetisalie.lunar.lang.types
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.BaseDocumentTest
+import net.internetisalie.lunar.lang.psi.LuaMethodExpr
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import net.internetisalie.lunar.lang.psi.types.LuaUnionType
 import net.internetisalie.lunar.lang.psi.types.RootAccessor
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -96,6 +99,64 @@ class LuaTypeGraphRootResolutionBudgetTest : BaseDocumentTest() {
         }
     }
 
+    /**
+     * NAV-13 Phase 3, `requirements.md` case 16 — the un-annotated colon-call resolution path has a
+     * committed cost, and it is the path no budget method above reaches: each of those uses
+     * [annotatedCallSiteFixture], whose `---@class` receiver takes the *nominal* route, while
+     * `local t = {}` / `function t:m(n) end` resolves structurally through the receiver's own table
+     * node (design §2.4).
+     *
+     * Two anti-vacuity properties, both required by the plan and both load-bearing here: every one of
+     * the 80 call sites is asserted to resolve, so the budget cannot be met by resolving nothing; and
+     * they are resolved [RESOLUTION_PASSES] times, so a per-resolution cost is visible rather than
+     * amortised into the first pass.
+     *
+     * **Measured on this fixture at commit time** (`7cf880bf` plus this phase, gce-builder,
+     * `test --rerun --no-build-cache`): `WRITE` = 165, `READ` = 83 — reproducing the prototype's
+     * 165 / 83 exactly (`risks-and-gaps.md` DR-02 Finding 5). The budgets below are those counts with
+     * ~9% and ~11% headroom, following the `CONVERSION_*` convention.
+     *
+     * That the 160 resolutions add nothing over the snapshot build is not slack: `LuaNameReference`
+     * places the colon branch *above* `ResolveCache`, and the repeats are absorbed by the `RootMemo`
+     * BUG-473 introduced (DR-02 Finding 4.3). What this budget is a falsifier for is the
+     * [net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor.isSnapshotUnderConstruction] guard:
+     * removing it takes the *annotated* fixture's `WRITE` from 572 to 812 and reddens the two budget
+     * methods above — executed for this phase, at 812 and 814 against budgets of 600 and 620. It
+     * reddens **this** method too, at `WRITE` = 485 against the 180 below, which is DR-02 Finding 4's
+     * un-annotated un-guarded cell: the budget is a falsifier for the guard, not just a record of it.
+     */
+    @Test
+    fun colonCallSiteResolutionStaysWithinItsRootResolutionBudget() {
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            configureByText(unannotatedCallSiteFixture())
+            val types = LuaTypesSnapshot.forFile(myFixture.file) as LuaTypesSnapshot
+
+            repeat(RESOLUTION_PASSES) { assertEveryColonCallSiteResolves() }
+
+            assertWithinBudget(types, RootAccessor.WRITE, COLON_WRITE_BUDGET)
+            assertWithinBudget(types, RootAccessor.READ, COLON_READ_BUDGET)
+        }
+    }
+
+    /**
+     * Asserts the configured file carries exactly [CALL_SITE_COUNT] colon call sites and that every
+     * one of them resolves — the anti-vacuity half of the budget above.
+     */
+    private fun assertEveryColonCallSiteResolves() {
+        val sites =
+            PsiTreeUtil
+                .findChildrenOfType(myFixture.file, LuaNameRef::class.java)
+                .filter { it.parent is LuaMethodExpr }
+        assertEquals(
+            CALL_SITE_COUNT,
+            sites.size,
+            "fixture drift: the budget is measured over $CALL_SITE_COUNT call sites",
+        )
+        sites.forEach {
+            assertNotNull(it.reference?.resolve(), "the colon call site '${it.text}' must resolve to its declaration")
+        }
+    }
+
     private fun assertWithinBudget(
         types: LuaTypesSnapshot,
         accessor: RootAccessor,
@@ -121,6 +182,20 @@ class LuaTypeGraphRootResolutionBudgetTest : BaseDocumentTest() {
             """.trimMargin()
     }
 
+    /**
+     * The un-annotated counterpart to [annotatedCallSiteFixture] — no `---@class`, so the receiver
+     * carries no nominal type and the member is found on its own table node.
+     */
+    private fun unannotatedCallSiteFixture(): String {
+        val callSites = (0 until CALL_SITE_COUNT).joinToString("\n") { "t:m(\"a$it\")" }
+        return """
+            |local t = {}
+            |function t:m(n) end
+            |
+            |$callSites
+            """.trimMargin()
+    }
+
     private companion object {
         const val CALL_SITE_COUNT = 80
 
@@ -131,5 +206,13 @@ class LuaTypeGraphRootResolutionBudgetTest : BaseDocumentTest() {
         // TYPE-13 Phase 4 — measured, see conversionPathStaysWithinItsRootResolutionBudget's KDoc.
         const val CONVERSION_WRITE_BUDGET = 620L
         const val CONVERSION_READ_BUDGET = 700L
+
+        // NAV-13 Phase 3 — measured 165 / 83, see
+        // colonCallSiteResolutionStaysWithinItsRootResolutionBudget's KDoc.
+        const val COLON_WRITE_BUDGET = 180L
+        const val COLON_READ_BUDGET = 92L
+
+        /** Resolving twice makes a per-resolution cost visible (`implementation-plan.md` Phase 3). */
+        const val RESOLUTION_PASSES = 2
     }
 }

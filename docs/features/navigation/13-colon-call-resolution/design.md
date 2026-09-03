@@ -253,7 +253,11 @@ that all of them resolve, so it can neither pass vacuously nor hide a per-resolu
   `---@class Builder / local Builder = {} / function Builder:setName(n) end / local b = Builder /
   b:setName("x")`: `receiverType.resolveMember("setName")` is a **MISS**, and the arm loop finds
   `setName@54`. On the corpus and the annotated substitute the arm loop raises the declarations that
-  gain a resolving call site from 68 to 84 (of 941) and from 50 to 121 (of 268) respectively.
+  gain a resolving call site from 68 to 84 (of 941) and from 50 to 121 (of 268) respectively. Those
+  are the prototype's totals; against the shipped code the corpus figure is 67 of 941
+  (`risks-and-gaps.md`, "The shipped-code re-measurement"), and the arm loop's *contribution* is
+  independently confirmed rather than inferred — `implementation-plan.md` Phase 2 executed the
+  drop-the-arm-loop mutation and it reddened `requirements.md` case 4 and **nothing else**.
 - **Why `.distinct()` here and `singleOrNull` in `declarationLeafOf` (§3.6), not `firstOrNull`.**
   Arms are ordered by `LuaTypeAlgebra.canonicalize`'s `displayName()` sort
   ([LuaTypeAlgebra.kt:58-61](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypeAlgebra.kt)),
@@ -499,7 +503,7 @@ to `net.internetisalie.lunar` frames, on every call whose element *is* a colon m
 fixtures were then driven through every user-facing surface with the branch off and on. One
 instrument covers `resolve()` and `multiResolve` alike, because `LuaNameReference.resolve()` is
 implemented on top of `multiResolve`
-([LuaNameReference.kt:255-257](../../../../src/main/kotlin/net/internetisalie/lunar/lang/LuaNameReference.kt)).
+([LuaNameReference.kt:275-277](../../../../src/main/kotlin/net/internetisalie/lunar/lang/LuaNameReference.kt)).
 `risks-and-gaps.md` DR-05 carries the instrument, the fixtures and the raw output.
 
 **Surfaces driven, and from where.** One sweep per end of the binding, because a surface that takes
@@ -526,7 +530,7 @@ frame, not a grep hit.
 | Route (recorded entry frame) | API | Effect of this change, executed |
 | :-- | :-- | :-- |
 | [`LuaExpectedCallbackResolver.resolveMethodCalleeType:48`](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaExpectedCallbackResolver.kt) ← `LuaTypesVisitor.propagateExpectedLambdaParams:1106` | `resolve()` | **a deliberate inference change** — the pre-feature resolve could return a `LuaFuncDecl` node whose `parent.parent` is the enclosing `LuaFuncDecl`, seeding a lambda parameter from that enclosing declaration's `---@param`; the guard withdraws it. §3.6 decision 3, `requirements.md` case 19 |
-| [`LuaNameReferenceSearcher.processQuery:76`](../../../../src/main/kotlin/net/internetisalie/lunar/lang/insight/LuaNameReferenceSearcher.kt) → `LuaNameReference.isReferenceTo:260` (its `resolve()` call at `:267`) → `resolve:255` | `resolve()` | **the enabling change, and it is a transfer rather than a gain** — §3.7. Executed on `local t = {}` / `function t:m(alpha, beta) end` / `t:m(1, 2)`: `REFSEARCH on 'm' -> 0 []` before, `-> 1 [45]` after. On a fixture where a same-named declaration is in scope the same call site simultaneously **leaves** that declaration's usage set: on `local t = {}` / `function t:m() end` / `local m = 1` / `t:m()`, the method leaf `m@24` moves `[] → [46]` while the local `m@38` moves `[46] → []`. Every consumer built on `ReferencesSearch` inherits both halves — see "The mirror direction" below |
+| [`LuaNameReferenceSearcher.processQuery:76`](../../../../src/main/kotlin/net/internetisalie/lunar/lang/insight/LuaNameReferenceSearcher.kt) → `LuaNameReference.isReferenceTo:280` (its `resolve()` call at `:287`) → `resolve:276` | `resolve()` | **the enabling change, and it is a transfer rather than a gain** — §3.7. Executed on `local t = {}` / `function t:m(alpha, beta) end` / `t:m(1, 2)`: `REFSEARCH on 'm' -> 0 []` before, `-> 1 [45]` after. On a fixture where a same-named declaration is in scope the same call site simultaneously **leaves** that declaration's usage set: on `local t = {}` / `function t:m() end` / `local m = 1` / `t:m()`, the method leaf `m@24` moves `[] → [46]` while the local `m@38` moves `[46] → []`. Every consumer built on `ReferencesSearch` inherits both halves — see "The mirror direction" below |
 | [`LuaDeprecatedApiInspection$buildVisitor$1.visitNameRef:37`](../../../../src/main/kotlin/net/internetisalie/lunar/analysis/inspections/LuaDeprecatedApiInspection.kt) | `multiResolve` | **a warning is withdrawn at some call sites and appears at others** — both directions are in scope; the subsection below carries each measurement. `NAV-13-08` governs them |
 | [`LuaUnusedLocalInspection.collectUsedDeclarations:147`](../../../../src/main/kotlin/net/internetisalie/lunar/analysis/inspections/LuaUnusedLocalInspection.kt) ← `checkFile:82` | `multiResolve` | a declaration kept alive **only** by a same-named colon member name is now reported unused, in every kind `classify` records ([:106-113](../../../../src/main/kotlin/net/internetisalie/lunar/analysis/inspections/LuaUnusedLocalInspection.kt)). Executed: on `local t = {}` / `function t:m() end` / `local m = 1` / `t:m()`, no warning before, `Unused local variable 'm'` at `38..39` after; on `for m in pairs(t) do t:m() end` with the same declarations, `Unused local variable 'm'` at `36`; and on a parameter `function f(m)` whose only use is `t:m()`, `Unused parameter 'm'` at `49` — the last only with `checkParameters = true`, which defaults to `false` and has no settings UI ([:36](../../../../src/main/kotlin/net/internetisalie/lunar/analysis/inspections/LuaUnusedLocalInspection.kt)). Those are DR-01 table 3's local-variable bindings — 175 across the pinned corpus, 17 across the substitute |
 | [`LuaRenameProcessor.resolvedDeclarationLeaf:378`](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt) ← `substituteElementToRename:107` | `resolve()` | **rename on a colon call site stops retargeting a same-named local and is refused instead**, at the existing `METHOD_FUNCTION → refuse(…, "refactoring.rename.colonMethod")` clause ([:111-112](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt)) — no change to the processor. Executed on the same fixture, **as an API call**: `substituteElementToRename` returned `LeafPsiElement@38 'm'` (the local) before and throws `RefactoringErrorHintException: Cannot perform refactoring.` after. **Pre-feature the IDE does not take this route at that caret** — `RenameHandlerRegistry` selects `LuaInplaceRenameHandler` and the processor is never consulted; the API measurement is what the processor *would* answer, and the route the user actually gets is in §"The receive-the-element consumers". Post-feature the registry selects `PsiElementRenameHandler`, which is what makes this row the route the IDE takes. The refusal's **message** states a reason this feature falsifies — `risks-and-gaps.md` Technical Debt carries it, and NAV-13 does not reword it because it adds no user-visible string |
@@ -566,7 +570,7 @@ so one column carries both.
 | `local t = {}` / `function t:m() end` / `local m = 1` / `t:m()` | `m@38` `LOCAL_VARIABLE` | `[46]` → `[]` | `m@24`: `[]` → `[46]` | `t:RENAMED()` → **`t:m()`** |
 | `local function m() end` / `local t = {}` / `function t:m() end` / `t:m()` / `m()` | `m@15` `LOCAL_FUNCTION` | `[47, 57, 61]` → `[47, 61]` | `m@47`: `[]` → `[57]` | `t:RENAMED()` → **`t:m()`** |
 | `function m() end` / `local t = {}` / `function t:m() end` / `t:m()` | `m@9` `GLOBAL_FUNCTION` | `[41, 51]` → `[41]` | `m@41`: `[]` → `[51]` | `t:RENAMED()` → **`t:m()`** |
-| `local t = {}` / `function t:m() end` / `local function f(m)` / `t:m()` / `return m` / `end` | `m@49` `PARAMETER` | `[56, 69]` → `[69]` | `m@24`: `[]` → `[56]` | `t:RENAMED()` → **`t:m()`** |
+| `local t = {}` / `function t:m() end` / `local function f(m)` / `t:m()` / `return m` / `end` | `m@49` `PARAMETER` | `[54, 65]` → `[65]` | `m@24`: `[]` → `[54]` | `t:RENAMED()` → **`t:m()`** |
 | `---@class Builder` / `local Builder = {}` / `function Builder:setName(n) end` / `local setName = 7` / `---@type Builder` / `local b` / `b:setName("x")` | `setName@75` `LOCAL_VARIABLE` | `[114]` → `[]` | `setName@54`: `[]` → `[114]` | `b:RENAMED("x")` → **`b:setName("x")`** |
 | `local m = {}` / `function m:m() end` / `m:m()` | `m@6` `LOCAL_VARIABLE` — the **receiver** | `[32, 34]` → `[32]` | `m@24`: `[]` → `[34]` | `RENAMED:RENAMED()` → **`RENAMED:m()`** |
 | `local t = {}` / `local zz = 1` / `t:zz()` | `zz@19` `LOCAL_VARIABLE` | `[28]` → `[]` | **none** — the member is unresolvable | `t:RENAMED()` → **`t:zz()`** |
@@ -731,7 +735,9 @@ own answer stand, and it needs no change.
 The rule greps the **declaring file** of a registered class, so a registered consumer that delegates
 its resolve to a helper elsewhere is caught only through that helper's own registration. The residue
 is enumerable rather than hypothetical: every file under `src/main/kotlin` naming a call or receive
-spelling that is **not** the declaring file of any registered class. At `7a1dc387` there are six.
+spelling that is **not** the declaring file of any registered class. At `7a1dc387` there were six.
+Re-derived against the **shipped** code there are **seven**: the branch's own
+`LuaColonCallResolution`, which did not exist at `7a1dc387`, is itself residue by this rule.
 
 | Residue file | Reached from | Status |
 | :-- | :-- | :-- |
@@ -741,6 +747,7 @@ spelling that is **not** the declaring file of any registered class. At `7a1dc38
 | [`LuaCatsTypeReference`](../../../../src/main/kotlin/net/internetisalie/lunar/lang/LuaCatsTypeReference.kt) | LuaCATS type-name leaves | structurally excluded — a colon member name is Lua PSI, not LuaCats |
 | [`LuaLabelReference`](../../../../src/main/kotlin/net/internetisalie/lunar/lang/LuaLabelReference.kt) | `LuaLabelName` / `LuaLabelRef` | structurally excluded — a colon member name is neither |
 | [`LuaRenameConflictDetector`](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt) | `LuaRenameProcessor.findCollisions:178` | **a user-visible flip** — driven below |
+| [`LuaColonCallResolution`](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaColonCallResolution.kt) | `LuaNameReference.multiResolve` | **this feature's own class**, added by Phase 1 and absent at `7a1dc387`. It matches the rule on a **KDoc mention** of `PsiReference.resolve()` (`:23`), not on a call — it resolves members through the type engine and calls no resolve API. Nothing downstream consumes it except the branch §2.2 adds |
 
 **`LuaRenameConflictDetector` — a rename conflict is withdrawn together with the usage that raised
 it.** Clause C1 `captures` ([:154-172](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt))

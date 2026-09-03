@@ -1552,6 +1552,13 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         internal fun inProgressSnapshot(file: PsiFile): LuaTypes? = inProgressBuilds.get()[file]?.buildSnapshot(file)
 
         /**
+         * NAV-13: is a snapshot for [file] under construction on this thread? An O(1) map probe that
+         * builds nothing — [inProgressSnapshot] answers the same question by *building* a snapshot,
+         * which is the work `LuaColonCallResolution`'s guard exists to avoid (design §2.3).
+         */
+        internal fun isSnapshotUnderConstruction(file: PsiFile): Boolean = inProgressBuilds.get().containsKey(file)
+
+        /**
          * TYPE-08: maps `type()` return strings to a factory yielding a **fresh** graph type per
          * lookup (requirements §TYPE-08-01). MAINT-25-01: `table`/`function` must be distinct
          * instances per narrowing site so a later copy-on-augment (setmetatable) never leaks members

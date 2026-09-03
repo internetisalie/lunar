@@ -11,6 +11,7 @@ import net.internetisalie.lunar.lang.indexing.*
 import net.internetisalie.lunar.lang.navigation.LuaGlobalAssignmentNavigation
 import net.internetisalie.lunar.lang.navigation.LuaMemberFieldNavigation
 import net.internetisalie.lunar.lang.path.PathConfiguration
+import net.internetisalie.lunar.lang.psi.LuaColonCallResolution
 import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
@@ -33,8 +34,27 @@ class LuaNameReference(
     PsiPolyVariantReference {
     private val name = element.text.substring(textRange.startOffset, textRange.endOffset)
 
+    /**
+     * NAV-13: a colon call's member name is a table key, not a variable, so it resolves through the
+     * receiver's type and **never** falls through to the lexical path below — an answer from that
+     * path is unsound for it (design §3.6 decision 1; the pre-feature code bound 441 of the corpus's
+     * colon member names to a local, a local function or an unrelated global).
+     *
+     * The branch sits here rather than in [doMultiResolve] because
+     * `LuaColonCallResolution`'s in-progress guard makes the answer depend on *when* it is asked:
+     * `ResolveCache` would retain the mid-build refusal for the rest of the PSI generation, leaving
+     * every colon call in that file resolving to nothing. Bypassing the cache costs 2 `WRITE` and 1
+     * `READ` root resolutions over 160 consecutive resolutions — BUG-473's `RootMemo` absorbs the
+     * repeats (design §3.6 decision 2).
+     */
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
         val hostElement = myElement ?: return ResolveResult.EMPTY_ARRAY
+        if (LuaColonCallResolution.isColonCallMemberName(hostElement)) {
+            val target =
+                LuaColonCallResolution.declarationLeafOf(hostElement)
+                    ?: return ResolveResult.EMPTY_ARRAY
+            return arrayOf(PsiElementResolveResult(target))
+        }
         return ResolveCache
             .getInstance(hostElement.project)
             .resolveWithCaching(this, RESOLVER, /* needToPreventRecursion = */ false, incompleteCode)
