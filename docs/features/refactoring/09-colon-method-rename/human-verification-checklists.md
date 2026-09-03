@@ -91,6 +91,24 @@ that no text changes in the editor, and that the balloon is dismissible.
   happens without the guard.
 - **Result**: ⬜ Pass / ⬜ Fail
 
+### Scenario 2.6: A bracket-spelled access to the member
+- **Setup**: `local t = {}` / `function t:m() end` / `t:m()` / `print(t["m"])`.
+- **Steps**: caret on the declaration's `m`; <kbd>Shift+F6</kbd>.
+- **Expected**: *The receiver's value escapes at 't' (bracket index step), so not every call site of
+  this method can be found.* File unchanged. **This is the balloon a user sees for an array-style
+  `t[1] = 0` as well** (`risks-and-gaps.md` Gap 2.6) — judge whether the wording is understandable
+  for that case, since it is the one deliberate over-refusal a user is likely to meet.
+- **Result**: ⬜ Pass / ⬜ Fail
+
+### Scenario 2.7: A dotted read of another member
+- **Setup**: `local t = {}` / `function t:m() end` / `function t:a() self:m() end` /
+  `local other = {}` / `function other:m() end` / `t.a(other)`.
+- **Steps**: caret on the `m` of `function t:m()`; <kbd>Shift+F6</kbd>.
+- **Expected**: *The receiver's value escapes at 't' (member read '.a'), so not every call site of
+  this method can be found.* File unchanged. Without this refusal the rename **succeeds** and
+  rewrites `self:m()` to `self:n()`, which `t.a(other)` then calls on a table that has no `n`.
+- **Result**: ⬜ Pass / ⬜ Fail
+
 ## 3. Conflicts
 
 ### Scenario 3.1: The receiver already has the new name

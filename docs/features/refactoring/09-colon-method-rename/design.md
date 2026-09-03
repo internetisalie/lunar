@@ -35,20 +35,20 @@ does scan every `LuaNameRef` of the right text, colon call sites included, but g
 
 | Component | file:line | This design |
 | :-- | :-- | :-- |
-| `LuaRenameProcessor` | `LuaRenameProcessor.kt:65` | **Extended.** Three overrides gain a `METHOD_FUNCTION` branch; the write path (`renameElement`, `preparedUsageRewrites`, `preparedDeclarationRewrite`, the non-cancelable section) is reused verbatim and is what delivers `REFACT-09-06`. |
-| `LuaRenameConflictDetector` / `LuaRenameCollisionUsageInfo` | `LuaRenameConflictDetector.kt:57`, `:117` | **Extended.** `collisions` gains a `METHOD_FUNCTION` arm; the carrier is the existing `LuaRenameCollisionUsageInfo` and no new `UsageInfo` subclass is introduced. |
-| `LuaLabelRenameProcessor` (REFACT-04) | `LuaLabelRenameProcessor.kt:33-36` | **Precedent, not touched.** It is the worked example of `RenamePsiElementProcessor` + `DumbAware` with only `canProcessElement` / `substituteElementToRename` / `findCollisions` overridden. This feature does **not** add a second processor — see §9 Alternative A. |
+| `LuaRenameProcessor` | `LuaRenameProcessor.kt:65` | **Extended.** `substituteElementToRename` and `findReferences` gain a `METHOD_FUNCTION` branch and `findCollisions` is untouched (§2.2); the write path (`renameElement`, `preparedUsageRewrites`, `preparedDeclarationRewrite`, the non-cancelable section) is reused verbatim and is what delivers `REFACT-09-06`. |
+| `LuaRenameConflictDetector` / `LuaRenameCollisionUsageInfo` | `LuaRenameConflictDetector.kt:111`, `:54` | **Extended.** `collisions` gains a `METHOD_FUNCTION` arm; the carrier is the existing `LuaRenameCollisionUsageInfo` and no new `UsageInfo` subclass is introduced. |
+| `LuaLabelRenameProcessor` (REFACT-04) | `LuaLabelRenameProcessor.kt:38-40` | **Precedent, not touched.** It is the worked example of `RenamePsiElementProcessor` + `DumbAware` with only `canProcessElement` / `substituteElementToRename` / `findCollisions` overridden. This feature does **not** add a second processor — see §9 Alternative A. |
 | `LuaDeclarationSite` | `LuaDeclarationSite.kt:41` | **Reused unchanged.** `kindOf`, `identifierLeafOf` and `functionNameLeafOf` are the classifier; no new classification rule is added. |
-| `LuaMemberDeclarations.declarationOf` | `LuaMemberDeclarations.kt:46` | **Reused unchanged.** Its `public` visibility exists for this caller ([[TYPE-13]] design §3.5). |
+| `LuaMemberDeclarations.declarationOf` | `LuaMemberDeclarations.kt:48` | **Reused unchanged.** Its `public` visibility exists for this caller ([[TYPE-13]] design §3.5). |
 | `LuaTypeInlayHintProvider.unwrapExpression` | `LuaTypeInlayHintProvider.kt:20` | **Reused unchanged.** The receiver handle rule ([[TYPE-13]] requirements case 17: the handle is the `LuaNameRef`, not `LuaFuncCall.varOrExp`). |
-| `LuaTargetElementEvaluator.adjustTargetElement` | `LuaTargetElementEvaluator.kt:117-127` | **Not touched.** Its body opens `targetElement as? LuaFuncDecl ?: return targetElement`. Requirements case 2's executed mutation shows the call-site caret is carried by §2.2's new substitution branch alone: removing that branch refuses the call-site caret while the declaration caret still renames. |
+| `LuaTargetElementEvaluator.adjustTargetElement` | `LuaTargetElementEvaluator.kt:119-129` | **Not touched.** Its body opens `targetElement as? LuaFuncDecl ?: return targetElement`. Requirements case 2's executed mutation shows the call-site caret is carried by §2.2's new substitution branch alone: removing that branch refuses the call-site caret while the declaration caret still renames. |
 | `LuaInplaceRenameHandler` / `LuaRefactoringSupportProvider.isMemberInplaceRenameAvailable` | `LuaInplaceRenameHandler.kt:129-136`, `LuaRefactoringSupportProvider.kt:87-95` | **Not touched, and inert by construction.** Both gate on `kindOf(...)?.isFileLocal == true`; `METHOD_FUNCTION.isFileLocal` is `false` ([LuaDeclarationSite.kt:27](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSite.kt)), so a colon method never reaches an in-place template and always takes the dialog path. |
 
 ### Target state
 
 One new file — `LuaColonMethodRename` — decides, for a colon-method declaration leaf, either a
 **Plan** (the declaration plus the exact set of call-site `LuaNameRef`s to rewrite) or a **refusal
-message**. `LuaRenameProcessor` consults it from three hooks and otherwise behaves as it does today.
+message**. `LuaRenameProcessor` consults it from its substitution and usage-collection hooks, `LuaRenameConflictDetector` consults it for the member-name conflict (§5), and everything else behaves as it does today.
 
 ```
 caret ──▶ LuaRenameProcessor.substituteElementToRename
@@ -99,7 +99,7 @@ internal object LuaColonMethodRename {
 }
 ```
 
-### 2.2 `LuaRenameProcessor` — three edits, nothing else
+### 2.2 `LuaRenameProcessor` — what changes, and what does not
 
 `substituteElementToRename` ([:101-117](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt)):
 
@@ -122,7 +122,7 @@ with two new private members:
 ```kotlin
     private fun colonCallSiteDeclarationLeaf(element: PsiElement): PsiElement? {
         val leaf = if (element is LuaNameRef) element.identifier else element
-        return leaf?.let { LuaColonMethodRename.declarationLeafOfCallSite(it) }
+        return LuaColonMethodRename.declarationLeafOfCallSite(leaf)
     }
 
     private fun colonMethodSubstitution(
@@ -149,8 +149,9 @@ The colon branch supplies its own set instead of narrowing a scope, because the 
 problem: `ReferencesSearch` returns 0 at every scope (requirements Overview).
 
 `findCollisions` ([:169-179](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt))
-is **unchanged**; the new arm lives in `LuaRenameConflictDetector.collisions` (§5), which is where the
-other three rules live.
+is **unchanged**; the new arm lives in `LuaRenameConflictDetector.collisions` (§5), which is where
+**every** rule that function selects by `LuaDeclarationKind` already lives. §5 enumerates them from
+the source rather than by number.
 
 ## 3. Algorithms
 
@@ -177,7 +178,8 @@ separate same-named members of *different* receivers — the one job DR-02 measu
    ([lua.bnf:164-166, 189](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/lua.bnf)).
    A null is refused with `colonMethod.notADeclaration`.
 2. `file = declaration.containingFile`; `memberName = leaf.text`;
-   `receiverName = declaration.funcName.nameRef.text`.
+   `receiverName = funcNameOf(declaration)?.nameRef?.text` (§3.8 — the AST-node read, never
+   `LuaFuncDecl.getFuncName()`). A null is refused with `colonMethod.notADeclaration`.
 3. **R1 — a unique file-local receiver binding.** `bindings = declarationLeavesNamed(file, receiverName)`
    (§3.3.1). Accept only if `bindings.size == 1` **and**
    `LuaDeclarationSite.kindOf(bindings.single())?.isFileLocal == true`. Otherwise refuse with
@@ -213,7 +215,9 @@ prescriptive, not illustrative — do not inline it back.
             PsiTreeUtil.getParentOfType(declarationLeaf, LuaFuncDecl::class.java)
                 ?: return refusal(LuaBundle.message("refactoring.rename.colonMethod.notADeclaration"))
         val file = declaration.containingFile
-        val receiverName = declaration.funcName.nameRef.text
+        val receiverName =
+            funcNameOf(declaration)?.nameRef?.text
+                ?: return refusal(LuaBundle.message("refactoring.rename.colonMethod.notADeclaration"))
         val receiverLeaf =
             uniqueFileLocalBinding(file, receiverName)
                 ?: return refusal(LuaBundle.message("refactoring.rename.colonMethod.receiverNotLocal", receiverName))
@@ -259,14 +263,117 @@ prescriptive, not illustrative — do not inline it back.
 The rule, stated as a property rather than as a shape list, following [[TYPE-13]] design §3.3:
 
 > **(E)** An occurrence of the receiver binding **escapes** unless it is one of: the binding's own
-> declaration; the head of a function name; the head of a colon call; or the head of a `var` whose
-> steps are all index steps and whose first index step does not name the member being renamed.
+> declaration; the head of a function name; the head of a bare colon call; or the head of a `var`
+> whose steps are all index steps, whose **first** index step is a `.name` step naming a member
+> **other than** the one being renamed, and which is a **write** — the `var` is an assignment
+> target and that step is its only step.
+>
+> A `var` whose first index step is a `.name` step naming the member **being** renamed is not an
+> escape but a `DottedMember` refusal, which carries its own message.
 
-(E) closes over the grammar's step alphabet. `var ::= nameRef varSuffix*` and
-`varSuffix ::= nameAndArgs* indexExpr` ([lua.bnf:292-294](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/lua.bnf))
-give a `var` exactly two step kinds — an **index** step and a **call** step — so both must be tested.
+(E) closes over the grammar's step alphabet **and over both spellings of an index step**.
+`var ::= nameRef varSuffix*` and `varSuffix ::= nameAndArgs* indexExpr`
+([lua.bnf:292-294](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/lua.bnf))
+give a `var` exactly two step kinds — an **index** step and a **call** step — and
+`indexExpr ::= ('[' expr ']') | ('.' nameRef)` ([lua.bnf:301](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/lua.bnf))
+gives an index step exactly two spellings, of which only the second names its member in the PSI:
+`LuaIndexExpr.getNameRef()` is `@Nullable`
+(`src/main/gen/net/internetisalie/lunar/lang/psi/LuaIndexExpr.java`) and is null for `t["m"]`.
+Each way of writing a step — a call step, a `.name` index step, a bracket index step — is decided
+below; none falls through to a silent drop.
 Counting suffixes tests only the index steps: `t().x` is **one** `varSuffix` whose `nameAndArgsList`
 is `[()]`. That clause is falsified from its own fixture by requirements case 12.
+
+#### Each index-step spelling, and the executed counterexample behind its clause
+
+Probe-label legend for the transcripts below: `-reviewed` is the run with the clause under
+discussion **removed**, `-fixed` the run with it present; `CLASSIFY[…]` lines are the PSI shape of
+the same fixture, and `WPROBE[…]` lines come from the write/read fixtures. All were executed on the
+gce builder against a throwaway prototype at `128ba091`, since reverted.
+
+**A bracket step names its member too, and `nameRef` cannot read it.** Executed on `128ba091`
+against a throwaway prototype of this design, fixture
+`local t = {}` / `function t:<caret>m() end` / `t:m()` / `print(t["m"])`, PSI shape first:
+
+```
+CLASSIFY[F1] ref='t' var='t["m"]' varParent=LuaVarOrExpImpl suffixes=1 callStep=false firstIndexNameRef=null firstIndexExpr="m"
+```
+
+With the bracket spelling left to compare `null` against the member name, the whole predicate
+**accepts** and the rename half-applies:
+
+```
+PROBE[F1-reviewed] RENAMED
+PROBE[F1-reviewed]   2| function t:n() end
+PROBE[F1-reviewed]   4| print(t["m"])          <- left on the old name
+```
+
+With the escape below, the same fixture refuses and the file is byte-identical:
+
+```
+PROBE[F1-fixed] REFUSED  Cannot perform refactoring. | The receiver's value escapes at 't' (bracket index step), so not every call site of this method can be found.
+PROBE[F1-fixed]   text-unchanged=true
+```
+
+**The decision, stated:** a bracket index step **escapes**, without reading the expression inside
+it. The alternative — treat `t["m"]` as in scope by matching a string literal's content — needs a
+literal reader that is correct for `"m"`, `'m'`, `[[m]]` and every long-bracket level, and is
+*still* undecidable for `t[k]`; the delimiter-as-a-grammar lesson of [[BUG-467]] is the record of
+what that costs. Escaping needs none of it and is the refusing direction. Its price is that a
+`t[...]` read or write anywhere in the declaring file refuses the rename, which is stated as a
+residual in `risks-and-gaps.md` Gap 2.6. `t["m"]` therefore refuses through `receiverEscapes`, not
+through `dottedAccess`; both refuse and leave the file byte-identical.
+
+**Obtaining a member's value rebinds `self`.** §3.4 rewrites `self:m()` sites on the argument that
+`self` denotes the receiver binding. `self` is bound at *call* time, and a dotted invocation
+supplies it explicitly, so that argument survives only while no member of the receiver can be
+obtained as a value. Executed, on
+`local t = {}` / `function t:<caret>m() end` / `function t:a() self:m() end` / `local other = {}` /
+`function other:m() end` / `t.a(other)`:
+
+```
+CLASSIFY[F2] ref='t' var='t.a' varParent=LuaVarOrExpImpl suffixes=1 callStep=false firstIndexNameRef=a firstIndexExpr=null
+
+PROBE[F2-reviewed] RENAMED
+PROBE[F2-reviewed]   2| function t:n() end
+PROBE[F2-reviewed]   3| function t:a() self:n() end
+PROBE[F2-reviewed]   5| function other:m() end     <- not renamed, and `t.a(other)` calls it
+PROBE[F2-reviewed]   6| t.a(other)
+```
+
+Without the member-read escape, a first index step naming a member *other* than the renamed one is
+`Unrelated`, the whole predicate accepts, and it rewrites `self:m()` into a call on a member `other`
+does not have. With the escape the same fixture refuses:
+
+```
+PROBE[F2-fixed] REFUSED  Cannot perform refactoring. | The receiver's value escapes at 't' (member read '.a'), so not every call site of this method can be found.
+PROBE[F2-fixed]   text-unchanged=true
+```
+
+**The escape is on obtaining the value, not on the call shape**, and that distinction was measured.
+Storing the member first defeats a rule keyed on "the `var` is a suffixed call head", because
+`local f = t.a` is not a call head at all. Same fixture with `t.a(other)` replaced by
+`local f = t.a` / `f(other)`:
+
+```
+PROBE[F2b-reviewed] RENAMED       -- accepted, `self:n()` rewritten, `function other:m()` untouched
+PROBE[F2b-fixed] REFUSED  Cannot perform refactoring. | The receiver's value escapes at 't' (member read '.a'), so not every call site of this method can be found.
+```
+
+**A write is not a read, and the exception is what keeps the feature's own shape acceptable.** A
+`var` that is an assignment target with exactly one index step obtains nothing, so it stays
+`Unrelated`; anything else — a read, or a target with a step in front of the last one — escapes.
+Executed:
+
+| fixture (caret on the declared `m`) | outcome |
+| :-- | :-- |
+| `local t = {}` / `t.count = 0` / `function t:m() end` / `t:m()` | `PROBE[WRITE-other] RENAMED` |
+| `local C = {}` / `function C:m() self.count = 1 end` / `C:m()` | `PROBE[WRITE-self] RENAMED` |
+| `local t = {}` / `function t:m() end` / `local c = t.count` / `t:m()` | `PROBE[READ-other] REFUSED … escapes at 't' (member read '.count')` |
+| `local t = {}` / `function t:m() end` / `t.a.b = 1` / `t:m()` | `PROBE[WRITE-nested] REFUSED … escapes at 't' (member read '.a')` |
+
+`t.a.b = 1` refuses because its first step obtains `t.a` before the write happens to `b` — which is
+why the exception is written over the step **count** and not over "is an assignment target".
 
 ```kotlin
     private sealed interface Verdict {
@@ -285,15 +392,31 @@ is `[()]`. That clause is falsified from its own fixture by requirements case 12
         val parent = occurrence.parent
         if (parent is LuaFuncName) {
             val nameLeaf = LuaDeclarationSite.functionNameLeafOf(parent)
-            return if (nameLeaf.text == target.memberName) Verdict.MemberDeclaration(nameLeaf) else Verdict.Unrelated
+            return if (nameLeaf.text == target.memberName) {
+                Verdict.MemberDeclaration(nameLeaf)
+            } else {
+                Verdict.Unrelated
+            }
         }
         if (parent !is LuaVar) return Verdict.Escape("parent=${parent?.javaClass?.simpleName}")
         val suffixes = parent.varSuffixList
         if (suffixes.isEmpty()) return bareOccurrence(parent, target)
         if (suffixes.any { it.nameAndArgsList.isNotEmpty() }) return Verdict.Escape("call step in a suffix")
-        val firstIndexName = suffixes.first().indexExpr.nameRef?.text
-        return if (firstIndexName == target.memberName) Verdict.DottedMember else Verdict.Unrelated
+        val firstIndexName =
+            suffixes.first().indexExpr.nameRef?.text
+                ?: return Verdict.Escape("bracket index step")
+        if (firstIndexName == target.memberName) return Verdict.DottedMember
+        if (!isSoleAssignmentTarget(parent)) return Verdict.Escape("member read '.$firstIndexName'")
+        return Verdict.Unrelated
     }
+
+    /**
+     * A write that obtains nothing: `t.a = 1`. `assignmentStatement ::= varList '=' exprList`
+     * (lua.bnf:122) puts an assignment target's `var` under a `LuaVarList` and nothing else does,
+     * and one step means the whole `var` is the write's destination.
+     */
+    private fun isSoleAssignmentTarget(luaVar: LuaVar): Boolean =
+        luaVar.varSuffixList.size == 1 && luaVar.parent is LuaVarList
 
     private fun bareOccurrence(
         luaVar: LuaVar,
@@ -303,7 +426,11 @@ is `[()]`. That clause is falsified from its own fixture by requirements case 12
         val call = varOrExp.parent as? LuaFuncCall ?: return Verdict.Escape("bare, not a call head")
         val first = call.nameAndArgsList.firstOrNull() ?: return Verdict.Escape("bare, no nameAndArgs")
         val methodExpr = first.methodExpr ?: return Verdict.Escape("bare, dotted call")
-        return if (methodExpr.nameRef.text == target.memberName) Verdict.CallSite(methodExpr.nameRef) else Verdict.Unrelated
+        return if (methodExpr.nameRef.text == target.memberName) {
+            Verdict.CallSite(methodExpr.nameRef)
+        } else {
+            Verdict.Unrelated
+        }
     }
 ```
 
@@ -316,9 +443,16 @@ Why each branch is where it is, and what it refuses:
 - **A bare `var` that is not a colon-call head → escape.** `t` alone in `return t` is also a
   suffix-free `LuaVar`; only the colon-call-head shape is admitted. `t.x()` is *not* here — its
   `var` is `t.x`, which has a suffix and is judged by the index branch.
+- **A bracket index step → escape**, before any name comparison, because the step's name is not in
+  the PSI to compare. This is the only branch that reads a `null` as a refusal rather than as a
+  mismatch, and it is the one the executed counterexample above reached.
 - **`DottedMember`** is a refusal, not a rename: `t.m` is the same member as `t:m` under a spelling
   this feature does not rewrite. Its measured value is requirements case 11 (`print(t.m)`) and
-  case 18 (`self.m = 1`).
+  case 18 (`self.m = 1`). It is tested **before** the write exception, so `t.m = 1` refuses as
+  dotted access rather than passing as a harmless write.
+- **A member read → escape; a sole-step member write → `Unrelated`.** This is what makes §3.4's
+  `self` clause sound; requirements case 25 is the read it must refuse and case 26 the write it
+  must not.
 
 #### 3.3.1 `declarationLeavesNamed(file, name)` — R1's binding lookup
 
@@ -329,7 +463,7 @@ Why each branch is where it is, and what it refuses:
     ): List<PsiElement> =
         PsiTreeUtil
             .findChildrenOfType(file, LuaNameRef::class.java)
-            .mapNotNull { it.identifier }
+            .map { it.identifier }
             .filter { leaf ->
                 leaf.text == name &&
                     LuaDeclarationSite.kindOf(leaf) != null &&
@@ -345,7 +479,7 @@ Why each branch is where it is, and what it refuses:
 **The receiver-segment exclusion is load-bearing and was measured.** `kindOf` of the `t` in
 `function t:m()` is `GLOBAL_FUNCTION`, not null — `kindFromNameRefGrandParent`'s
 `grandParent is LuaFuncName -> GLOBAL_FUNCTION` row
-([LuaDeclarationSite.kt:236](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSite.kt))
+([LuaDeclarationSite.kt:240](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSite.kt))
 — so without the exclusion every `function t:…()` counts as a second declaration of `t`, R1's
 `bindings.size == 1` fails, and **every** accepting fixture refuses. Executed: with the exclusion
 removed, every fixture whose unmutated outcome is a rename or a conflict — requirements cases 1, 2,
@@ -378,17 +512,51 @@ occurrence of that name in the file denotes that one binding.
     ): Boolean {
         val resolved = selfRef.reference?.resolve() ?: return false
         if (LuaDeclarationSite.kindOf(resolved) != LuaDeclarationKind.METHOD_FUNCTION) return false
-        val enclosing = PsiTreeUtil.getParentOfType(resolved, LuaFuncDecl::class.java) ?: return false
-        return enclosing.funcName.nameRef.text == target.receiverLeaf.text
+        val enclosing = PsiTreeUtil.getParentOfType(resolved, LuaFuncName::class.java) ?: return false
+        return enclosing.nameRef.text == target.receiverLeaf.text
     }
 ```
 
 **`self` is a second spelling of the receiver, and the type engine cannot see it.** [[TYPE-13]]
 Gap 2.7 measured `self:b()`'s winning member node with an **empty `upSet`**, so `declarationOf` is
 null for every `self:` call — and `function C:a() self:b() end` is ordinary Lua OO, not a corner.
-This design decides it **syntactically instead**, which is sound under R1+R3: `self` inside a method
-declared on the binding denotes that binding, and R3 has already refused every position through
-which some *other* value could reach that parameter.
+This design decides it **syntactically instead**.
+
+**What that rests on, stated precisely.** `self` is bound at *call* time by the invoking receiver,
+so "`self` inside a method declared on the binding denotes that binding" is not a property of the
+declaration — it is a property of every invocation of that method, and a dotted invocation supplies
+the first argument explicitly. The clause is therefore sound only while **no value of any member of
+the receiver can be obtained anywhere in the file**: obtaining `t.a` is exactly what lets
+`t.a(other)`, or `local f = t.a` followed by `f(other)`, run `a`'s body with `self` bound to
+something else. §3.3's member-read escape **is** that condition, and it is what this clause rests
+on. It does not rest on R3 refusing "every position through which some other value could reach that
+parameter": that is false as written, and §3.3 records the executed fixture on which the predicate
+accepted and rewrote a `self:m()` site into a call on a member the actual receiver does not have.
+
+These consequences are what make the argument closed rather than merely plausible, and each is
+checked against the classifier rather than assumed:
+
+- **A member value cannot be obtained any other way.** With the receiver's own value already
+  escaping at every non-`var` position (`parent !is LuaVar`) and at every bare non-colon-call
+  position, and with bracket steps escaping too, a `.name` index step is the only remaining route
+  to a member of the binding. A colon call does not count: it pins the receiver by construction.
+- **`self` cannot be reassigned into, stored, or passed.** Measured — every `self` occurrence of
+  each fixture, with the branch `classify`/`bareOccurrence` would take:
+
+  ```
+  SELF[assign] varParent=LuaVarImpl grandParent=LuaVarListImpl  resolvedKind=METHOD_FUNCTION verdict=Escape(bare, parent not varOrExp)
+  SELF[assign] varParent=LuaVarImpl grandParent=LuaVarOrExpImpl resolvedKind=null            verdict=CallSite/Unrelated (colon call head)
+  SELF[stored] varParent=LuaVarImpl grandParent=LuaVarOrExpImpl resolvedKind=METHOD_FUNCTION verdict=Escape(bare, not a call head)
+  SELF[passed] varParent=LuaVarImpl grandParent=LuaVarOrExpImpl resolvedKind=METHOD_FUNCTION verdict=Escape(bare, not a call head)
+  ```
+
+  `varList ::= var {',' var}*` occurs only in `assignmentStatement` (lua.bnf:122, :167), so an
+  assignment target is the one `var` position whose parent is a `LuaVarList` and never a
+  `LuaVarOrExp` — `self = C` therefore escapes before anything is rewritten. The `assign` fixture's
+  **second** row is the one worth keeping: after `self = C`, the `self` of the following `self:m()`
+  resolves to the assignment rather than to the method, so `LuaDeclarationSite.kindOf` is `null`,
+  `selfBindsTo` declines it, and R5 then finds an undecided `LuaMethodExpr` and refuses on that
+  route as well. Both halves decline, independently.
 
 `selfBindsTo` uses `resolve()` — unlike §3.3.1 — because here resolution is exactly right:
 `LuaScopeProcessor` resolves `self` to the enclosing method's `funcNameMethod.nameRef.identifier`
@@ -400,7 +568,8 @@ it resolves to that local, whose `kindOf` is `LOCAL_VARIABLE`, and the guard dec
 This one clause carries both directions and each has its own fixture: requirements case 4 is a
 `self:` call the scan must find (dropping the clause refuses a rename that should succeed), and
 case 18 is a `self.m = 1` write the scan must refuse (dropping the clause performs a rename that
-leaves the write behind).
+leaves the write behind). Requirements case 25 is the third direction the counterexample added: a
+`self:` call the scan must find **and** a dotted read of another member that must refuse it.
 
 ### 3.5 `decideRemainingSites` — R5
 
@@ -453,7 +622,7 @@ leaves the write behind).
     }
 ```
 
-Three properties, each grounded:
+Each property below is grounded:
 
 1. **Only the first `nameAndArgs` of a `LuaFuncCall` has a receiver this can type.** [[TYPE-13]]
    Gap 2.12 measured `visitFuncCall` seeding the whole call's value from the **first** segment's
@@ -495,7 +664,7 @@ refused the case where it is the *same* receiver.
   so `grep PsiUtilBase src/main` returning nothing is expected rather than a fictional symbol.
 - **The discriminator is `caret.text != leaf.text`, not the literal `"self"`.** The same comparison
   `LuaTargetElementEvaluator.adjustTargetElement` already uses
-  ([:126](../../../../src/main/kotlin/net/internetisalie/lunar/lang/insight/LuaTargetElementEvaluator.kt)).
+  ([:128](../../../../src/main/kotlin/net/internetisalie/lunar/lang/insight/LuaTargetElementEvaluator.kt)).
   A text test for `"self"` would be wrong in the other direction: `function T.m(self, x)` is legal
   Lua whose `self` is an ordinary `PARAMETER` and must rename normally (`REFACT-01` TC-19c, still
   green). It would also be wrong for a **call-site** caret, where `caret.text == leaf.text == "m"`
@@ -515,7 +684,7 @@ refused the case where it is the *same* receiver.
         val nameRef = leaf.parent as? LuaNameRef ?: return null
         val methodExpr = nameRef.parent as? LuaMethodExpr ?: return null
         val declaration = structuralDeclarationOf(methodExpr) ?: selfRouteDeclaration(methodExpr) ?: return null
-        return (declaration as? LuaFuncDecl)?.funcName?.funcNameMethod?.nameRef?.identifier
+        return funcNameOf(declaration as? LuaFuncDecl ?: return null)?.funcNameMethod?.nameRef?.identifier
     }
 ```
 
@@ -528,19 +697,151 @@ refused the case where it is the *same* receiver.
         if (receiver.text != "self") return null
         val resolved = receiver.reference?.resolve() ?: return null
         if (LuaDeclarationSite.kindOf(resolved) != LuaDeclarationKind.METHOD_FUNCTION) return null
-        val enclosing = PsiTreeUtil.getParentOfType(resolved, LuaFuncDecl::class.java) ?: return null
+        val enclosingReceiver =
+            PsiTreeUtil.getParentOfType(resolved, LuaFuncName::class.java)?.nameRef?.text ?: return null
         return PsiTreeUtil
-            .findChildrenOfType(enclosing.containingFile, LuaFuncDecl::class.java)
+            .findChildrenOfType(resolved.containingFile, LuaFuncName::class.java)
             .firstOrNull { candidate ->
-                candidate.funcName.funcNameMethod?.nameRef?.text == methodExpr.nameRef.text &&
-                    candidate.funcName.nameRef.text == enclosing.funcName.nameRef.text
-            }
+                candidate.funcNameMethod?.nameRef?.text == methodExpr.nameRef.text &&
+                    candidate.nameRef.text == enclosingReceiver
+            }?.let { PsiTreeUtil.getParentOfType(it, LuaFuncDecl::class.java) }
     }
 ```
 
 It only **substitutes**; the returned leaf then goes through `planFor` like any other, so a wrong
 guess is refused there rather than acted on. Requirements case 3 is its fixture and case 2's
 mutation is its falsifier.
+
+#### The traversal enumerates `LuaFuncName`, never `LuaFuncDecl.getFuncName()`
+
+`LuaFuncDecl.getFuncName()` is `findNotNullChildByClass`
+([LuaFuncDeclImpl.java:46-50](../../../../src/main/gen/net/internetisalie/lunar/lang/psi/impl/LuaFuncDeclImpl.java)),
+and `funcDecl ::= FUNCTION funcName funcBody` carries `pin = 1`
+([lua.bnf:189-190](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/lua.bnf)) — so a
+`LuaFuncDecl` node exists with **no** `FUNC_NAME` child whenever a keyword sits in the name slot,
+and the getter raises `TestLoggerAssertionError` from `PsiElementBase.notNullChild` (an
+internal-error balloon in production). This is the SYNTAX-18 hazard
+[LuaDeclarationSite.kt:203-229](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSite.kt)
+already closes for its own rows, by reading `node.findChildByType(LuaElementTypes.FUNC_NAME)`
+instead of the getter.
+
+A traversal is where that bites hardest: it evaluates the accessor on **every** declaration in the
+file until its predicate matches, so one malformed `function` above the matching method raises —
+and half-typed `function` headers are an ordinary transient state, on the EDT, in
+`substituteElementToRename`. §6's row covers only a caret **on** the malformed declaration, which
+is a different position. Executed, on the fixture of requirements case 30:
+
+```
+B1[b1broken] decl0 hasFuncNameNode=true  text='function C:a() self:m() end'
+B1[b1broken] decl1 hasFuncNameNode=false text='function'
+B1[b1broken] specifiedGetterForm=THREW TestLoggerAssertionError
+B1[b1broken] fixedNodeForm=ok(null)
+B1[b1control] decl0 hasFuncNameNode=true text='function C:a() self:m() end'
+B1[b1control] decl1 hasFuncNameNode=true text='function C:m() end'
+B1[b1control] specifiedGetterForm=ok(function C:m() end)
+B1[b1control] fixedNodeForm=ok(function C:m() end)
+```
+
+Enumerating `LuaFuncName` rather than `LuaFuncDecl` removes the accessor entirely instead of
+guarding it: `funcName ::= nameRef funcNameProperty* funcNameMethod?` declares **no pin**
+([lua.bnf:164-166](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/lua.bnf)), so a
+partial `funcName` is rolled back rather than built, a malformed declaration contributes no
+`LuaFuncName` at all and is simply absent from the collection, and `LuaFuncName.getNameRef()` /
+`LuaFuncNameMethod.getNameRef()` are safe for every node that *is* in it.
+
+**The same reading is used at every site that needs a declaration's `funcName`**, not only at the
+one that can currently reach a malformed node — `planFor` step 2 (§3.2), `selfBindsTo` (§3.4),
+`declarationLeafOfCallSite` above, and `memberDeclarationsNamed` (§3.9) all go through:
+
+```kotlin
+    private fun funcNameOf(declaration: LuaFuncDecl): LuaFuncName? =
+        declaration.node
+            .findChildByType(LuaElementTypes.FUNC_NAME)
+            ?.psi as? LuaFuncName
+```
+
+The three sites other than `selfRouteDeclaration` are reached only from a leaf or a resolve result
+whose own ancestor chain contains the `funcName`, so the getter would not raise there today. They
+are written the same way regardless: a hazard closed at some sites and left open at others is the
+shape that put this defect in the design in the first place, and `funcNameOf` returning null is
+already a refusal (`colonMethod.notADeclaration`) rather than a new branch.
+
+### 3.9 `callSiteReferences` and `memberDeclarationsNamed` — the two remaining public functions
+
+**`callSiteReferences(declarationLeaf)`** is `planFor`'s accepted set, expressed as the
+`PsiReference`s `LuaRenameProcessor.findReferences` must return:
+
+```kotlin
+    fun callSiteReferences(declarationLeaf: PsiElement): List<PsiReference> =
+        planFor(declarationLeaf).callSites.mapNotNull { it.reference }
+```
+
+- **A refusing plan yields an empty list, and that is not a silent skip.** `findReferences` is
+  reached only after `substituteElementToRename` returned non-null, which requires the same
+  `planFor` call to have accepted (§2.2). An empty list here therefore means "this declaration has
+  no call sites", which is `§6`'s zero-call-site row and is correct. The one route that could reach
+  it with a refusing plan is a `kind == METHOD_FUNCTION` guard broadened to other kinds — which is
+  exactly requirements case 19's executed mutant, and it is red there.
+- **`mapNotNull` drops nothing reachable.** `LuaNameRefBaseImpl.getReference()`
+  ([LuaBaseElements.kt:130-137](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaBaseElements.kt))
+  returns null only when `getName()` is null, and every element in `callSites` is a
+  `LuaMethodExpr.nameRef` the classifier matched **by text**, so its name is non-null by
+  construction. The reference it returns is a `LuaNameReference` whose `element` is that
+  `LuaNameRef` — which is precisely what `preparedUsageRewrite` requires: it tests
+  `reference is LuaNameReference` and then rewrites `hostNode.findChildByType(IDENTIFIER)`
+  ([LuaRenameProcessor.kt:471-485](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt)).
+  A different `PsiReference` type would take the delegating `RenameUtil.rename` branch instead.
+
+**`memberDeclarationsNamed(declarationLeaf, memberName)`** answers §5's question — *does this
+receiver already declare a member with this name?* — and it does **not** re-run `planFor`'s scan
+under the new name:
+
+```kotlin
+    fun memberDeclarationsNamed(
+        declarationLeaf: PsiElement,
+        memberName: String,
+    ): List<PsiElement> {
+        val declaration =
+            PsiTreeUtil.getParentOfType(declarationLeaf, LuaFuncDecl::class.java) ?: return emptyList()
+        val receiverName = funcNameOf(declaration)?.nameRef?.text ?: return emptyList()
+        return PsiTreeUtil
+            .findChildrenOfType(declaration.containingFile, LuaFuncName::class.java)
+            .filter { it.nameRef.text == receiverName }
+            .map { LuaDeclarationSite.functionNameLeafOf(it) }
+            .filter { it.text == memberName }
+    }
+```
+
+Why each decision, since both were open:
+
+- **It enumerates declarations, not occurrences.** Re-running `scanOccurrences` with
+  `memberName = newName` would inherit that function's short-circuit: a `Verdict.Escape` or
+  `DottedMember` under the *new* name would abandon the fold with `memberDeclarations` only
+  partially filled, and a partial list read as a complete one reports "no conflict" for a receiver
+  that has one. The enumeration above has no early exit and no refusal channel.
+- **Matching on the receiver's *text* is sound here, and only here.** `planFor` has already
+  accepted, so R1 has proved the receiver name has exactly one file-local binding in this file and
+  R2 has proved no occurrence precedes it (§3.2). Under those two facts every `function <name>…`
+  in the file names that one binding. This function must therefore never be called on a leaf that
+  has not been through `planFor` — the sole caller is §5's `memberNameTaken`, on
+  `LuaRenameConflictDetector`'s path, which `RenameUtil.findUsages` reaches only after
+  substitution succeeded.
+- **It matches both spellings of a member declaration.** `functionNameLeafOf`
+  ([LuaDeclarationSite.kt:111-117](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSite.kt))
+  returns the `funcNameMethod` leaf when there is one and the last `funcNameProperty` leaf
+  otherwise, so `function t:n()` **and** `function t.n()` both count — both really do declare a
+  member `n` on `t`, and renaming `t:m` to `n` merges with either.
+- **What it does not see, stated rather than left to be found**: a member introduced by assignment
+  (`t.n = f`) or inside the table constructor (`local t = { n = f }`) has no `LuaFuncName` and is
+  not reported. Neither is reachable from an accepted plan in the `t.n = f` form — §3.3 classifies
+  a sole-step assignment target as `Unrelated`, so `t.n = 1` beside `function t:m()` accepts and
+  then reports no conflict for `m` → `n`. That is a **missed** conflict, not a wrong rewrite: the
+  rename still rewrites only its own sites and the file stays consistent, with two members named
+  `n` where the user expected one. Recorded as `risks-and-gaps.md` Gap 2.8; it is a `Should`
+  requirement's residual, not a `Must`'s.
+- **Totality**: a null `funcNameOf` (the SYNTAX-18 hazard, §3.8) or a leaf with no enclosing
+  `LuaFuncDecl` returns an empty list — no conflict rather than an exception, on a path that runs
+  inside `BaseRefactoringProcessor`'s read action.
 
 ## 4. External data & parsing
 
@@ -549,7 +850,7 @@ inputs are PSI and the type engine's in-memory snapshot.
 
 ## 5. `LuaRenameConflictDetector` — the `METHOD_FUNCTION` arm
 
-`collisions` ([LuaRenameConflictDetector.kt:122-133](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt))
+`collisions` ([LuaRenameConflictDetector.kt:120-132](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt))
 becomes:
 
 ```kotlin
@@ -573,17 +874,29 @@ becomes:
         }
 ```
 
-**Why each inherited rule must not run for a colon method** — every premise below is false here, and
-C4's was measured producing a conflict that does not exist:
+**Why each rule of the pre-existing set must not run for a colon method.** `collisions` selects a
+rule set by `LuaDeclarationKind`, so the `METHOD_FUNCTION` arm has to account for every rule the
+function can reach. The list below is read off `LuaRenameConflictDetector.kt` — `captures`
+(`:154`), `shadows` (`:178`), `globalNameTaken` (`:208`), `ambiguousGlobal` (`:227`) — rather than
+recalled as a number, and it must be re-read, not re-trusted, if a rule is added.
 
-- **C1 `captures`** asks whether a *lexically visible* declaration of the new name would capture a
+- **`captures`** asks whether a *lexically visible* declaration of the new name would capture a
   usage. A member name is not a lexical binding; a `local n` in scope has nothing to do with `t:n`.
-- **C3 `globalNameTaken`** does fire on the right key — `searchKeyOf` prefixes the receiver, so it
-  searches `"t:n"` ([:271](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt))
+- **`shadows` never ran for this kind, and the new arm changes nothing about that.** It is reached
+  only through `if (target.kind.isFileLocal)` (`:126`), and the kind is declared
+  `METHOD_FUNCTION("global function", false)` — `isFileLocal = false`
+  ([LuaDeclarationSite.kt:27](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSite.kt)).
+  Executed on the prototype at `128ba091`: `FACT isFileLocal(METHOD_FUNCTION)=false`. It is listed
+  because an enumeration that silently omits an inert rule is indistinguishable from one that
+  overlooked a live one, and because that assumption dies without a symptom if a later change makes
+  a method kind file-local — the same assumption `risks-and-gaps.md` "Test Case Gaps" records for
+  in-place rename.
+- **`globalNameTaken`** does fire on the right key — `searchKeyOf` prefixes the receiver, so it
+  searches `"t:n"` ([:259-262](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt))
   — but against the **project-wide** `LuaGlobalDeclarationIndex`, so a different file's `local t`
   with a `t:n` reports a merge that cannot happen. `memberNameTaken` asks the same question over the
   declaring file's own receiver binding, with no index read.
-- **C4 `ambiguousGlobal`** rests on "`LuaNameReference.resolve()` returns null with two
+- **`ambiguousGlobal`** rests on "`LuaNameReference.resolve()` returns null with two
   declarations, so usages stop being findable". A colon method's usages are **not** collected
   through `resolve` at all — §2.2's `findReferences` branch supplies them — so the premise does not
   hold. Measured (requirements case 22): two files each containing `local t = {}` /
@@ -601,12 +914,16 @@ C4's was measured producing a conflict that does not exist:
 | :-- | :-- | :-- |
 | Caret on the receiver of `function t:m()` | already refused by `receiverSegmentRefusal`, unchanged | `LuaRenameProcessor.kt:399-403` |
 | Caret on `...` | `canProcessElement` is false for an `ELLIPSIS`, unchanged | `REFACT-01` TC-19b |
-| `function t:m()` with no `funcName` node (`function repeat() end`) | `kindOf` is null, so the `METHOD_FUNCTION` branch is never entered | `LuaDeclarationSite.kt:224-229` (SYNTAX-18) |
+| `function t:m()` with no `funcName` node (`function repeat() end`), **caret on it** | `kindOf` is null, so the `METHOD_FUNCTION` branch is never entered | `LuaDeclarationSite.kt:224-229` (SYNTAX-18) |
+| A malformed `function` declaration **elsewhere in the file**, above the matching method | every traversal enumerates `LuaFuncName`, which a malformed declaration does not produce, so it is absent rather than raising | §3.8, requirements case 30 |
 | The new name is not a Lua identifier | `LuaNamesValidator` rejects it in the dialog before this code runs | `plugin.xml` `<lang.namesValidator>` |
 | Rename invoked while indexing | `LuaRenameProcessor` is `DumbAware` and the predicate reads no index, so it behaves identically | §2.2, and `LuaRenameProcessor.kt:53-63` |
 | A `self` written as an explicit parameter, `function T.m(self, x)` | `kindOf` is `PARAMETER`, so §3.7's guard is not reached and the parameter renames normally | `REFACT-01` TC-19c |
 | Two receivers with the same method name in one file | both decided; only the target's sites are rewritten | §3.5, requirements case 5 |
 | Zero call sites (`function t:m() end` alone) | `Plan(emptyList(), null)` — the declaration renames alone, which is correct | §3.5 |
+| `t["m"]` / `t[k]` anywhere in the declaring file | escapes: an index step whose name is not in the PSI is refused rather than compared against `null` | §3.3, requirements case 27 |
+| `t.other` read anywhere in the declaring file | escapes: obtaining a member value is what can rebind `self` | §3.3, §3.4, requirements case 26 |
+| `t.other = 1` / `self.other = 1` | `Unrelated` — a sole-step assignment target obtains nothing | §3.3, requirements case 25 |
 
 ## 7. Integration points
 
@@ -634,7 +951,12 @@ Removed (`src/main/resources/net/internetisalie/lunar/LuaBundle.properties:153`)
 refactoring.rename.colonMethod=…
 ```
 
-Added, in the `refactoring.rename.*` block:
+Added, in the `refactoring.rename.*` block. The keys are split by the phase that introduces them,
+because `implementation-plan.md` Phase 1 adds one group and Phase 5 the other; adding a key early
+is harmless but adding Phase 5's key while missing one of Phase 1's is not, and a single
+undifferentiated block invites exactly that.
+
+**Phase 1 — every key `LuaColonMethodRename` itself renders.** Add all of these, and no others:
 
 ```
 refactoring.rename.colonMethod.receiverNotLocal=The receiver ''{0}'' is not a file-local table, so call sites in other files cannot be found.
@@ -642,18 +964,33 @@ refactoring.rename.colonMethod.receiverEscapes=The receiver''s value escapes at 
 refactoring.rename.colonMethod.dottedAccess=This method is also accessed as ''.{0}'', which this rename does not rewrite.
 refactoring.rename.colonMethod.ambiguousDeclaration=''{0}'' is declared {1} times on this receiver, so renaming one would leave the others behind.
 refactoring.rename.colonMethod.undecided=The call ''{0}'' on line {1} cannot be bound to a declaration, so it may or may not be a usage of this method.
-refactoring.rename.colonMethod.caretNotOnMethod=''{0}'' is not the method name; put the caret on the method name to rename it.
-refactoring.rename.conflict.memberExists=This table already has a member named ''{0}''; renaming would merge the two.
-```
-
-Plus `refactoring.rename.colonMethod.notADeclaration` for §3.2 step 1's unreachable branch:
-
-```
 refactoring.rename.colonMethod.notADeclaration=This is not a method declaration, so there is nothing to rename.
 ```
 
-The `{1}` of `receiverEscapes` is the `Verdict.Escape.why` string, which is developer-facing detail
-inside a user-facing sentence; keep it short and lower-case.
+`notADeclaration` is rendered by every `planFor` step that cannot find the declaration or its
+`funcName` — steps 1 and 2 today. Both are unreachable from the function's stated input: `kindOf`
+is `METHOD_FUNCTION` only when the leaf's grandparent is a `LuaFuncNameMethod`, `funcNameMethod`
+occurs only inside `funcName` and `funcName` only inside `funcDecl` (lua.bnf:164-166, :189), so
+both ancestors exist by construction. The key is in Phase 1's group because Phase 1 is where the
+code that renders it is written.
+
+**Phase 3 — the key `LuaRenameProcessor` renders, not `LuaColonMethodRename`:**
+
+```
+refactoring.rename.colonMethod.caretNotOnMethod=''{0}'' is not the method name; put the caret on the method name to rename it.
+```
+
+**Phase 5 — the conflict arm's key (§5), not a `colonMethod.*` key at all:**
+
+```
+refactoring.rename.conflict.memberExists=This table already has a member named ''{0}''; renaming would merge the two.
+```
+
+**No key is needed for the bracket step or the member read.** Both are `Verdict.Escape` values and
+render through `receiverEscapes`, whose `{1}` carries the reason — measured as
+`escapes at 't' (bracket index step)` and `escapes at 't' (member read '.a')` (§3.3). The `{1}` is
+the `Verdict.Escape.why` string, which is developer-facing detail inside a user-facing sentence;
+keep it short and lower-case.
 
 ## 8. Requirement coverage
 
@@ -661,9 +998,9 @@ inside a user-facing sentence; keep it short and lower-case.
 | :-- | :-- | :-- |
 | `REFACT-09-01` | M | §2.2 (`findReferences` branch), §3.2, §3.3, §3.4, §3.5 |
 | `REFACT-09-02` | M | §2.2 (`colonCallSiteDeclarationLeaf`), §3.8 |
-| `REFACT-09-03` | M | §3.2 R1-R5, §3.3 (E), §7.2 |
+| `REFACT-09-03` | M | §3.2 R1-R5, §3.3 (E) — including the bracket-step and member-read escapes, requirements cases 25 and 27-29 — §7.2 |
 | `REFACT-09-04` | M | §3.7 |
-| `REFACT-09-05` | M | unchanged route — `LuaRenameProcessor`'s existing `LOCAL_VARIABLE` path; §6 row 1 covers the declaration-side caret |
+| `REFACT-09-05` | M | unchanged route — `LuaRenameProcessor`'s existing `LOCAL_VARIABLE` path; §6 row 1 covers the declaration-side caret. **Measured** that no branch of this design is on that route, and which mutation does reach it: requirements case 19 |
 | `REFACT-09-06` | M | unchanged route — `LuaRenameProcessor.renameElement` (REFACT-01 design §3.3); refusal returns before any write (§2.2) |
 | `REFACT-09-07` | S | §5 |
 | `REFACT-09-08` | M | §1 prior-art table (each row states *not touched* or *extended*), §5 (the arm that keeps C4 off this kind) |
@@ -687,8 +1024,8 @@ navigation feature, not to a rename. Recorded in `risks-and-gaps.md` as future w
 
 **C. Decide completeness project-wide** — scan every colon site named `m` in the project via the
 word index and require all of them decidable. Rejected: sound but unpredictable, since acceptance
-would depend on unrelated files using the same method name, over a corpus [[TYPE-13]] requirements
-measures at 809 colon-method declarations across 734 files. §3.1's containment layer gets the same soundness
+would depend on unrelated files using the same method name, over a corpus this feature measures at
+941 colon-method declarations across 734 files (`risks-and-gaps.md` Gap 2.3). §3.1's containment layer gets the same soundness
 from a file-local argument.
 
 **D. Special-case `setmetatable(instance, Class)` so class receivers survive the escape test.**
@@ -698,4 +1035,7 @@ derived from one observed shape leaves the other step kind open. Widening reach 
 
 ## 10. Open Questions
 
-_None — feature has cleared the planning bar._
+_No design decision is left to the implementer._ One **product** decision is open and is tracked,
+not deferred: `risks-and-gaps.md` Gap 2.3 measures the predicate accepting **0** of the corpus's 941
+colon-method declarations, and whether to ship, defer or cancel on that basis is not a design
+question. `status:` stays `todo` until it is answered.

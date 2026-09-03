@@ -42,7 +42,7 @@ usage set for a colon method is empty, and the rename must build its own — or 
 
 [[TYPE-13]] made a structurally-resolved `LuaTypeMember` carry `sourceElement`, and
 `LuaMemberDeclarations.declarationOf(member)` maps that to a declaration
-([LuaMemberDeclarations.kt:46](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaMemberDeclarations.kt)).
+([LuaMemberDeclarations.kt:48](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaMemberDeclarations.kt)).
 `REFACT-09-00-DR-02` re-measured its reach from the *call-site* direction this feature needs — for
 each colon call in a fixture, resolve the receiver, `resolveMember`, `declarationOf`:
 
@@ -94,6 +94,23 @@ Two consequences fix this feature's shape:
   `nameAndArgsList.firstOrNull()` only, and reports the first segment's type for the whole expression).
 - **Dotted access to the same member** (`t.m`, `function t.m()`, `t.m = f`): the same member under
   another spelling, which this rename does not rewrite, so it refuses instead.
+- **Bracket-spelled access to any member** (`t["m"]`, `t[k]`, `t[1] = 0`): an index step written
+  `['…']` does not name its member in the PSI — `LuaIndexExpr.getNameRef()` is `@Nullable` and null
+  there — so the predicate cannot decide whether it names the member being renamed, and refuses.
+  This over-refuses an array-style `t[1] = 0` beside a method table; `risks-and-gaps.md` Gap 2.6
+  measures and accepts that cost.
+- **Reading any member of the receiver as a value** (`local f = t.a`, `local c = t.count`,
+  `t.a(other)`): obtaining a member value is what allows a method of the receiver to be invoked
+  with a different `self`, which would make `design.md` §3.4's `self` rewrites wrong. A *write* to
+  a member — `t.count = 0`, `self.count = 1` — obtains nothing and stays in scope.
+- **`---@field` naming the same member** (`---@field m fun()` on the receiver's `---@class`): the
+  occurrence scan walks `LuaNameRef` only and `LuaCatsFieldTag extends PsiElement`
+  ([LuaCatsFieldTag.java:8](../../../../src/main/gen/net/internetisalie/lunar/luacats/lang/psi/LuaCatsFieldTag.java)),
+  so a field tag is neither an occurrence nor an escape. The rename proceeds and leaves the
+  annotation on the old name. Measured, `---@class T` / `---@field m fun()` / `local t = {}` /
+  `function t:m() end` / `t:m()`: `N5 fieldTags=1  fieldTagIsALuaNameRef=false  verdict=ACCEPTED`.
+  Case 31 pins it as a visible residual; `risks-and-gaps.md` Gap 2.9 records why refusing on it
+  instead would refuse the annotated receiver outright.
 - Making un-annotated receivers resolve further — that is the type engine's, not this feature's.
 - `self` and `...` as rename targets (`REFACT-01-19`, `Won't`), dynamic `_G["x"]` (`REFACT-01-20`, `Won't`).
 
@@ -115,7 +132,14 @@ Two consequences fix this feature's shape:
 - **The refusal is the default, not the fallback.** Every clause of the predicate is written as
   *accept only if*; a receiver occurrence in an unenumerated position is an escape and refuses.
   `design.md` §3.3 states the position whitelist as a closure over the `var` grammar's two step
-  kinds, following the property-not-shape-list rule [[TYPE-13]] design §3.3 established.
+  kinds **and over an index step's two spellings**, following the property-not-shape-list rule
+  [[TYPE-13]] design §3.3 established. A step whose name is not in the PSI is refused, never
+  compared against `null` and dropped.
+- **A `self:` rewrite is only as sound as the receiver's members are unobtainable.** `self` is
+  bound at call time, so rewriting `self:m()` is correct only while no member of the receiver can be
+  obtained as a value anywhere in the file. `design.md` §3.4 states that dependency and §3.3
+  enforces it; cases 25 and 28 are the fixtures on which the earlier, weaker rule accepted and
+  produced a wrong rewrite.
 - **Success is never reported for a partial rename.** This is the measured failure mode
   (`REFACT-01-00-DR-03`), and `REFACT-09-00-DR-02` measured its mechanism: an empty
   `ReferencesSearch` result.
@@ -125,12 +149,21 @@ Two consequences fix this feature's shape:
 
 ## Test Cases
 
-Every row was executed on the gce builder against a throwaway prototype of `design.md` §2–§4
-(`Refact09PrototypeProbe`, reverted; no production or test file carries it). The "Then" column is
-transcribed output, and every mutation in the last column was **applied to the prototype and the
-fixture re-run**, with the differing outcome quoted. Each fixture is alone in its own test method
-with one `configureByText`, except the two rows that name a second file — `LuaTypeManagerImpl`
-searches `GlobalSearchScope.allScope(project)`, so a stray sibling binds a member to the wrong file.
+Every row was executed on the gce builder against a throwaway prototype of `design.md` §2-§4
+(reverted; `git status --porcelain` is empty in the working tree and on the builder, and neither
+carries a probe file). The "Then" column is transcribed output, and every mutation in the last
+column was **applied to the prototype and the fixture re-run**, with the differing outcome quoted.
+Each fixture is alone in its own test method with one `configureByText`, **except every row whose
+"Given" column names a second file** — `LuaTypeManagerImpl` searches
+`GlobalSearchScope.allScope(project)` ([LuaTypeManagerImpl.kt:231](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypeManagerImpl.kt)),
+so a stray sibling binds a member to the wrong file. Read the property off the column rather than
+counting: a row that asserts a **sibling file is untouched** is the one most exposed to that hazard,
+so a row added later without its own test method silently loses the assertion it exists to make.
+
+**A named mutation is not enough; it has to be reachable from the row's own fixture.** Row 19 is the
+row where that bites: its column names the mutation measured turning it red while leaving row 1
+green, and records the mutations that were applied, executed, and left it byte-identical. Rows 20 and 23 remain argued exceptions, each naming the existing test class
+that is the mechanism's gate.
 
 | # | Requirement | Given (fixture, caret marked) | When | Then | Mutation that turns it red (executed) |
 |---|-------------|-------------------------------|------|------|---------------------------|
@@ -152,12 +185,19 @@ searches `GlobalSearchScope.allScope(project)`, so a stray sibling binds a membe
 | 16 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `do local t = {} end` | rename to `n` | refused, byte-identical, `receiver 't' is not a file-local table` | delete design §3.2's `bindings.size != 1` test → a shadowed receiver name is accepted and its occurrences are classified against the wrong binding |
 | 17 | `REFACT-09-04` | `local C = {}` ; `function C:m() end` ; `function C:a() se<caret>lf:m() end` ; `C:m()` | rename to `n` **through `myFixture.renameElementAtCaret`**, which passes the fixture editor | refused, byte-identical, `'self' is not the method name` | delete design §3.7's caret guard → **observed** `RENAMED`, producing `function C:n() self:m() end` — the *enclosing* method `a` renamed, because `LuaScopeProcessor` resolves `self` to `funcName.funcNameMethod.nameRef.identifier` ([LuaScopeProcessor.kt:87-92](../../../../src/main/kotlin/net/internetisalie/lunar/lang/LuaScopeProcessor.kt)) |
 | 18 | `REFACT-09-04` | `local C = {}` ; `function C:<caret>m() end` ; `function C:a() self.m = 1 end` ; `C:m()` | rename to `n` | refused, byte-identical, `also accessed as '.m'` | drop the `self` half of `receiverOccurrences` (design §3.4) → **observed** `RENAMED` with `self.m = 1` left behind. Row 4 and this row are the two halves of that one clause: row 4 is a `self:` call the scan must **find**, this is a `self.` write the scan must **refuse** |
-| 19 | `REFACT-09-05` | `local t = {}` ; `function t:m() end` ; `<caret>t:m()` | rename to `renamedTable` | `local renamedTable = {}` and `renamedTable:m()`; `m` untouched | none is needed for `m`: this row asserts an unchanged route, and its falsifier is row 1, which is the route this feature adds. See `risks-and-gaps.md` Gap 2.1 for the pre-existing receiver-segment defect this row also measures |
+| 19 | `REFACT-09-05` | `local t = {}` ; `function t:m() end` ; `<caret>t:m()` | rename to `renamedTable` | `local renamedTable = {}` and `renamedTable:m()`; `m` untouched | **broaden design §2.2's `findReferences` guard from `kind == METHOD_FUNCTION` to every kind** → the LOCAL_VARIABLE rename is routed through `callSiteReferences`, whose `planFor` refuses on a non-method leaf and returns an empty usage set. Executed: `PROBE[F4-row19-guardMutant] RENAMED / 1| local renamedTable = {} / 3| t:m()` — **the call site is left behind and this row is RED**, while `PROBE[F4-row1-guardMutant]` is byte-identical to the unmutated run, so row 1 stays green. Mutations that do **not** reach this row are recorded so they are not re-proposed: **(a)** dropping design §3.8's `nameRef.parent as? LuaMethodExpr` cast (substituting the enclosing call's `methodExpr` instead) was applied and executed and produced output byte-identical to the unmutated run; **(b)** reordering the `substituteElementToRename` chain. Both are unreachable for the same measured reason — the processor is handed the *resolved* declaration, `SUBST element=LeafPsiElement text='t' identifierLeafOf=t kindOfIdLeaf=LOCAL_VARIABLE colonCallSiteLeaf=null`, so the first chain link answers before any new branch is consulted and `colonCallSiteDeclarationLeaf` returns null on that element under both the correct code and mutation (a). See `risks-and-gaps.md` Gap 2.1 and [[BUG-476]] for the pre-existing receiver-segment defect this row also measures |
 | 20 | `REFACT-09-06` | row 1's fixture | rename to `n`, then `UndoManager.getInstance(project).undo(editor as? TextEditor)` — the idiom `LuaRenameUndoTest.undoAfterRenameRestoresTheDocument` already uses ([LuaRenameUndoTest.kt:43-49](../../../../src/test/kotlin/net/internetisalie/lunar/refactoring/LuaRenameUndoTest.kt)) | the file returns to its original text in one undo | inherited from `LuaRenameProcessor.renameElement`'s single non-cancelable section (REFACT-01 design §3.3); `LuaRenameUndoTest` is the existing gate for the mechanism, and this row extends it to the colon form |
 | 21 | `REFACT-09-07` | `local t = {}` ; `function t:<caret>m() end` ; `function t:n() end` ; `t:m()` ; `t:n()` | rename to `n` | a conflict is reported: `This table already has a member named 'n'` | replace design §5's `METHOD_FUNCTION` arm of `LuaRenameConflictDetector.collisions` with the pre-existing global arm → **observed** `A global named 't:n' already exists in this project`, and row 22 then reports a conflict that does not exist |
 | 22 | `REFACT-09-08` | `p21a.lua` = `local t = {}` ; `function t:<caret>m() end` ; `t:m()`, and `p21b.lua` = the identical text | rename to `n` | `p21a.lua` renames, `p21b.lua` is **untouched**, and no conflict is reported | as row 21 → **observed** `THREW ConflictsInTestsException: 't:m' is declared in 2 places…` — C4's premise (usages stop resolving) is false for a colon method, whose usages are not collected through `resolve` at all |
 | 23 | `REFACT-09-08` | `local M = {}` ; `function M.<caret>run() end` ; `M.run()` | rename to `n` | `function M.n()` and `M.n()` — the dotted form is unchanged by this feature | this row asserts an unchanged route; `LuaRenameTest`'s BUG-465 cases are its gate |
 | 24 | `REFACT-09-03` | `p22mod.lua` = `local M = {}` ; `function M:m() end` ; `return M`, and `p22.lua` = `local M = require('p22mod')` ; `M:<caret>m()` | rename to `n` | refused, both files byte-identical | design §3.6's structural route returns null here ([[TYPE-13]] Gap 2.11), so `colonCallSiteDeclarationLeaf` yields nothing and `resolvedDeclarationLeaf` refuses. Falsified by row 2, which is the same code path on a fixture where it must succeed |
+| 25 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `function t:a() self:m() end` ; `local other = {}` ; `function other:m() end` ; `t.a(other)` | rename to `n` | refused, byte-identical, `The receiver's value escapes at 't' (member read '.a')` | delete design §3.3's member-read escape → **observed** `PROBE[F2-reviewed] RENAMED`, producing `function t:n()` and `self:n()` while `function other:m()` is untouched — and `t.a(other)` binds `self` to `other`, so the rewritten `self:n()` calls a member that does not exist. `self` is bound at *call* time, which is why obtaining `t.a` has to refuse |
+| 26 | `REFACT-09-01` | `local C = {}` ; `function C:<caret>m() self.count = 1 end` ; `C:m()` | rename to `n` | `function C:n() self.count = 1 end` and `C:n()` — the write to another member is untouched and does not refuse | delete design §3.3's `isSoleAssignmentTarget` exception → **observed** `WPROBE[writeSelf-mutant] REFUSED … escapes at 'self' (member read '.count')`, i.e. ordinary field-writing OO stops renaming. The same mutation on `local t = {}` ; `t.count = 0` ; `function t:<caret>m() end` ; `t:m()` gives `WPROBE[writeOther-mutant] REFUSED … escapes at 't' (member read '.count')`, against `WPROBE[writeOther-correct] RENAMED` |
+| 27 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `print(t["m"])` | rename to `n` | refused, byte-identical, `The receiver's value escapes at 't' (bracket index step)` | delete design §3.3's bracket escape, leaving the first index step's `nameRef?.text` compared against the member name → **observed** `PROBE[F1-reviewed] RENAMED` with `print(t["m"])` left on the old name, because `LuaIndexExpr.getNameRef()` is null for a bracket step and `null == "m"` is false. Shape measured on the same fixture: `CLASSIFY[F1] ref='t' var='t["m"]' suffixes=1 callStep=false firstIndexNameRef=null firstIndexExpr="m"` |
+| 28 | `REFACT-09-03` | case 25's fixture with `t.a(other)` replaced by `local f = t.a` ; `f(other)` | rename to `n` | refused, byte-identical, `escapes at 't' (member read '.a')` | same mutation as case 25 → **observed** `PROBE[F2b-reviewed] RENAMED`. This row exists to falsify a *narrower* rule as well as the absent one: an escape keyed on "the `var` is a suffixed call head" leaves this fixture accepting, because `local f = t.a` is not a call head. The escape is on obtaining the value, not on the call shape |
+| 29 | `REFACT-09-03` | `local t = {}` ; `t[1] = 0` ; `function t:<caret>m() end` ; `t:m()` | rename to `n` | refused, byte-identical, `escapes at 't' (bracket index step)` | as case 27. This row is the **cost** of case 27's decision rather than its benefit: an array-style write beside a method table refuses a rename that is in fact safe. Measured: `WPROBE[arrayWrite] REFUSED … escapes at 't' (bracket index step)`. Kept as a test so the over-refusal is a pinned, visible property rather than a surprise — `risks-and-gaps.md` Gap 2.6 |
+| 30 | `REFACT-09-03` | `local C = {}` ; `function C:a() self:<caret>m() end` ; `function repeat() end` ; `function C:m() end` | rename to `n` | refused, byte-identical, and **no internal-error balloon** — design §3.8's traversal finds no matching `LuaFuncName`, the substitution returns null and `resolvedDeclarationLeaf` refuses | revert design §3.8's traversal to `findChildrenOfType(file, LuaFuncDecl::class.java)` reading `candidate.funcName` → **observed** `B1[b1broken] specifiedGetterForm=THREW TestLoggerAssertionError` against `fixedNodeForm=ok(null)` on this fixture, whose shape is `decl1 hasFuncNameNode=false`. The well-formed control agrees under both forms — `B1[b1control] specifiedGetterForm=ok(function C:m() end)` and `fixedNodeForm=ok(function C:m() end)` — so the mutation is reachable from **this** row's fixture and from no other |
+| 31 | `REFACT-09-03` | `---@class T` ; `---@field m fun()` ; `local t = {}` ; `function t:<caret>m() end` ; `t:m()` | rename to `n` | `function t:n()` and `t:n()`, and `---@field m fun()` is **left on the old name** — the residual of Out of Scope's `---@field` bullet, pinned so it is visible rather than discovered | this row asserts a **known gap**, so its falsifier is the opposite direction: make the scan refuse on any `LuaCatsFieldTag` naming the member → this row goes red (REFUSED) while requirements case 1, which has no `---@` tag, stays green. Measured shape: `N5 fieldTags=1 fieldTagIsALuaNameRef=false verdict=ACCEPTED` |
 
 ## Acceptance Criteria
 
@@ -169,10 +209,17 @@ searches `GlobalSearchScope.allScope(project)`, so a stray sibling binds a membe
       **`setmetatable` OO** by a refusal (row 8).
 - [ ] `refactoring.rename.colonMethod` is removed from `LuaBundle.properties` together with its one
       call site, and `design.md` §7.2 records the messages that replace it.
-- [ ] The full unit suite is green. Measured against the prototype at `0bccadae`: **2 979 tests, 2
-      failures, 0 errors**, the two being `LuaRenameTest.testColonMethodDeclarationIsRefused` and
-      `testSelfInsideAMethodIsRefusedAsTheMethod`, which assert the replaced message.
-      `implementation-plan.md` Phase 4 rewrites both.
+- [ ] The full unit suite is green. Measured with a throwaway prototype of `design.md` §2-§4
+      applied to `128ba091` (`test --rerun --no-build-cache`): **2 failures, 0 errors**, and they are
+      exactly `LuaRenameTest.testColonMethodDeclarationIsRefused` and
+      `testSelfInsideAMethodIsRefusedAsTheMethod`. Both assert the replaced message, both still
+      refuse, and both refuse for the same executed reason — their fixture's receiver is a
+      **global**, so `design.md` §3.2 clause R1 declines it:
+      `the refusal must name its own reason, not merely abort: Cannot perform refactoring. The
+      receiver 'Obj' is not a file-local table, so call sites in other files cannot be found.`
+      `implementation-plan.md` Phase 4 rewrites both. No total-test count is recorded here: the
+      number counts the prototype's own throwaway test methods and so cannot be reproduced from a
+      clean tree.
 - [ ] `REFACT-01-08` is updated to `Full` only once this ships.
 
 ## Non-Functional Requirements

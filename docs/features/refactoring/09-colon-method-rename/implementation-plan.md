@@ -19,7 +19,8 @@ over in planning:**
 - **≤3 arguments per function, private helpers included.** `design.md` §2.1 bundles the four-value
   context into `Target` for exactly this reason. Self-audit every helper before opening a PR.
 - **≤30 logic lines per function.** `design.md` §3.2 names the split: `planFor` /
-  `receiverBindingOf` / `scanOccurrences` / `decideRemainingSites`. Do not inline them back.
+  `uniqueFileLocalBinding` / `scanOccurrences` / `decideRemainingSites` — use those names,
+  `design.md` §3.2 is the source of truth for them. Do not inline them back.
 - **No `!!`, no wildcard imports, `val` over `var`, read-only collection types on public API.**
 - `tooling/gce-builder/gce-builder.sh run ktlintFormat` on the VM, then rsync the `.kt` files back,
   then `ktlintCheck` alone. Never `run "ktlintFormat ktlintCheck"` (BUG-445).
@@ -31,10 +32,21 @@ over in planning:**
 - **Goal**: the decision function, with no rename wired to it.
 - **Tasks**:
   - [ ] Create `net.internetisalie.lunar.refactoring.rename.LuaColonMethodRename` — realizes
-        design §2.1, §3.2, §3.3, §3.3.1, §3.4, §3.5, §3.6, §3.8. `internal object`, in
-        `src/main/kotlin/net/internetisalie/lunar/refactoring/rename/`.
-  - [ ] Add the seven `refactoring.rename.colonMethod.*` keys to
-        `src/main/resources/net/internetisalie/lunar/LuaBundle.properties` — realizes design §7.2.
+        design §2.1, §3.2, §3.3, §3.3.1, §3.4, §3.5, §3.6, §3.8, §3.9. `internal object`, in
+        `src/main/kotlin/net/internetisalie/lunar/refactoring/rename/`. All four public functions
+        of §2.1 are written in this phase, `callSiteReferences` and `memberDeclarationsNamed`
+        included (§3.9), even though their callers arrive in Phases 3 and 5.
+  - [ ] **Never call `LuaFuncDecl.getFuncName()`.** It is `findNotNullChildByClass` and raises on a
+        declaration whose name slot holds a keyword (design §3.8, executed). Every site that needs a
+        declaration's `funcName` goes through the private `funcNameOf` of design §3.8 — `planFor`
+        step 2, `selfBindsTo`, `declarationLeafOfCallSite`, `memberDeclarationsNamed` — and every
+        traversal over the file enumerates `LuaFuncName`, never `LuaFuncDecl`.
+  - [ ] Add **design §7.2's "Phase 1" key group, all of it and none of the other groups**, to
+        `src/main/resources/net/internetisalie/lunar/LuaBundle.properties`. §7.2 splits the keys by
+        the phase that renders them precisely so this step cannot pick up Phase 5's
+        `refactoring.rename.conflict.memberExists` or miss
+        `refactoring.rename.colonMethod.notADeclaration`. Neither the bracket step nor the member
+        read needs a key of its own — both render through `receiverEscapes` (design §3.3).
         Do **not** remove `refactoring.rename.colonMethod` yet; Phase 3 removes it with its call site.
 - **Exit criteria**: compiles; `tooling/gce-builder/gce-builder.sh run "build"` green; no behaviour
   change anywhere, because nothing calls the new object yet.
@@ -49,8 +61,9 @@ over in planning:**
         binds a member to the wrong file.
   - [ ] One method per clause, asserting the **refusal message key's rendered text** and, where the
         plan is accepted, the exact `callSites` offsets: R1 (requirements cases 6, 16), R2 (case 15),
-        R3 escape (cases 7, 8, 9, 12), R3 dotted (cases 11, 18), R4 (case 10), R5 (cases 13, 14, 24),
-        accept (cases 1, 4, 5).
+        R3 escape (cases 7, 8, 9, 12, 25, 27, 28, 29), R3 dotted (cases 11, 18), R4 (case 10),
+        R5 (cases 13, 14, 24), accept (cases 1, 4, 5, 26, 31), and the malformed-sibling
+        traversal (case 30).
   - [ ] Assert the *message*, never a bare "refusal happened": several clauses refuse the same
         fixture family and only the message separates which fired.
 - **Exit criteria**: the new class is green; the rest of the suite is unchanged (nothing is wired).
@@ -64,17 +77,19 @@ over in planning:**
         `colonMethodSubstitution` — realizes design §2.2.
   - [ ] Add the private `colonCallSiteDeclarationLeaf`, `colonMethodSubstitution` and `caretRefusal`
         members — realizes design §2.2, §3.7. Import `com.intellij.psi.util.PsiUtilBase`.
+  - [ ] Add design §7.2's **Phase 3** key, `refactoring.rename.colonMethod.caretNotOnMethod`.
   - [ ] Edit `LuaRenameProcessor.findReferences`: add the `METHOD_FUNCTION` early return —
         realizes design §2.2.
   - [ ] Delete `refactoring.rename.colonMethod` from `LuaBundle.properties`; it now has no call site.
   - [ ] Update `LuaRenameProcessor`'s class KDoc: it currently says "**three** refusals are decided
-        in `substituteElementToRename`" (`:47-51`). State the property — *every refusal that can be
+        in `substituteElementToRename`" (`:46-51`). State the property — *every refusal that can be
         decided before the refactoring starts is decided there* — rather than a number, so the next
         edit cannot leave a stale count behind.
 - **Exit criteria**: `LuaColonMethodRenameTest` (Phase 3's own end-to-end class, below) green; the
   full suite green **apart from** `LuaRenameTest.testColonMethodDeclarationIsRefused` and
-  `testSelfInsideAMethodIsRefusedAsTheMethod`, which Phase 4 rewrites. Measured against the
-  prototype at `0bccadae`: 2 979 tests, 2 failures, 0 errors, and those are the two.
+  `testSelfInsideAMethodIsRefusedAsTheMethod`, which Phase 4 rewrites. Measured with the prototype
+  applied to `128ba091`: 2 failures, 0 errors, and they are exactly those two. A third failure is a
+  regression, not a known cost.
 
 ### Phase 4: repair the two REFACT-01 tests the replaced message breaks [Must]
 
@@ -101,11 +116,17 @@ over in planning:**
 
 ### Phase 5: the member-name conflict [Should]
 
-- **Goal**: `REFACT-09-07`, and removal of the two false conflicts the inherited global rules produce.
+- **Goal**: `REFACT-09-07`, and removal of every false conflict the inherited global rules produce
+  for this kind — design §5 names them by rule, not by count.
 - **Tasks**:
   - [ ] Add `LuaColonMethodRename.memberDeclarationsNamed` — realizes design §2.1, §5.
   - [ ] Add the `METHOD_FUNCTION` arm and `memberNameTaken` to `LuaRenameConflictDetector.collisions`
-        — realizes design §5. Add `refactoring.rename.conflict.memberExists` to `LuaBundle.properties`.
+        — realizes design §5. Add design §7.2's **Phase 5** key,
+        `refactoring.rename.conflict.memberExists`, to `LuaBundle.properties`.
+  - [ ] Re-read `collisions` before writing the arm and confirm design §5 still enumerates every
+        rule it holds. §5 covers `shadows` explicitly even though `METHOD_FUNCTION.isFileLocal` is
+        `false` and it therefore never ran for this kind — an omitted inert rule and an overlooked
+        live one look identical in a list.
   - [ ] Update `LuaRenameConflictDetector`'s class KDoc: it says "Four rules"; state instead that the
         rule set is selected by `LuaDeclarationKind` and list the arms, so the sentence cannot go
         stale against a fifth rule.
@@ -145,6 +166,14 @@ the prototype** — see requirements "Test Cases" for the observed output.
 - [ ] `…refusesAnEscapingReceiver` — cases 7, 8, 9, one method each. Mutation: case 12's clause is
       falsified separately; these three are falsified by the bare-occurrence clause.
 - [ ] `…refusesADuplicateDeclaration` — case 10. Mutation: drop `memberDeclarations.size != 1`.
+- [ ] `…refusesADottedInvocationThatCanRebindSelf` — case 25. Mutation: delete the member-read
+      escape; observed to rewrite `self:m()` into a call on a member the actual receiver lacks.
+- [ ] `…renamesAlongsideAWriteToAnotherMember` — case 26. Mutation: delete the
+      `isSoleAssignmentTarget` exception; observed to refuse ordinary field-writing OO.
+- [ ] `…refusesBracketSpelledAccessToTheMember` — case 27, and `…refusesABracketWriteOnTheReceiver`
+      — case 29. Mutation: delete the bracket-step escape.
+- [ ] `…refusesAStoredMemberValue` — case 28. Same mutation as case 25; this fixture additionally
+      falsifies the narrower rule that escapes only on a suffixed call head.
 - [ ] `…refusesDottedAccessToTheSameMember` — cases 11 and 18. Mutation: delete the `DottedMember`
       verdict.
 - [ ] `…refusesACallStepInTheReceiversSuffix` — case 12. Mutation: delete the
@@ -157,7 +186,9 @@ the prototype** — see requirements "Test Cases" for the observed output.
 - [ ] `…caretOnSelfDoesNotRenameTheMethod` — case 17. **Must drive `myFixture.renameElementAtCaret`**,
       which supplies the fixture editor; `assertRefusedWith` passes `null` and the guard cannot fire.
       Mutation: delete `caretRefusal`; observed to rename the *enclosing* method.
-- [ ] `…caretOnTheReceiverRenamesTheReceiver` — case 19.
+- [ ] `…caretOnTheReceiverRenamesTheReceiver` — case 19. Mutation: **broaden the `findReferences`
+      guard to every kind**. Mutations inside `declarationLeafOfCallSite` do not reach this row; they
+      were executed proving it (requirements case 19).
 - [ ] `…undoRestoresTheFileInOneStep` — case 20, via `UndoManager.getInstance(project).undo(...)`,
       copying `LuaRenameUndoTest`'s idiom rather than inventing one.
 - [ ] `LuaColonMethodRenameConflictTest.reportsAMemberNameAlreadyOnTheReceiver` — case 21.
