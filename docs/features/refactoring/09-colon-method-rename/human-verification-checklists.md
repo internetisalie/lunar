@@ -9,138 +9,197 @@ folders:
 
 # Verification Checklists: REFACT-09 — Colon-method rename
 
-Run these in the containerised GoLand (`.agents/skills/verify-in-ide/SKILL.md`). They cover the one
-thing the unit suite cannot: under `BasePlatformTestCase`, `CommonRefactoringUtil.showErrorHint`
-**throws** instead of painting, so no automated test has ever seen a refusal balloon
-(`risks-and-gaps.md`, Test Case Gaps).
+Run these in the containerised GoLand (`.agents/skills/verify-in-ide/SKILL.md`). They cover the two
+surfaces no unit test can see:
+
+- Under `BasePlatformTestCase`, `CommonRefactoringUtil.showErrorHint` **throws** instead of
+  painting, so no automated test has seen a refusal balloon.
+- `RenameProcessor.preprocessUsages` throws `ConflictsInTestsException` instead of showing a dialog
+  (`RenameProcessor.java:179-181`), so no automated test has seen the conflicts dialog — and this
+  feature's whole incompleteness verdict is delivered through it (`risks-and-gaps.md` Risk 1.1).
+
+Use a scratch project with the files named in each scenario. Record the exact balloon or dialog text
+observed, not a paraphrase.
 
 ## 1. Rename
 
 ### Scenario 1.1: The declaration caret renames every call site
-- **Setup**: a new `.lua` file containing
-  ```lua
-  local t = {}
-  function t:m() end
-  t:m()
-  t:m()
-  ```
-- **Steps**: put the caret on the `m` of `function t:m()`, press <kbd>Shift+F6</kbd>, type `n`, press Enter.
-- **Expected**: the rename **dialog** opens (not an in-place template — `METHOD_FUNCTION` is not
-  file-local, so both in-place gates decline). All three sites read `n`.
-- **Result**: ⬜ Pass / ⬜ Fail
+1. `a.lua`:
+   ```lua
+   local t = {}
+   function t:m() end
+   t:m()
+   t:m()
+   ```
+2. Caret on the `m` of `function t:m()`. <kbd>Shift+F6</kbd>, new name `n`, Refactor.
+- [ ] No conflicts dialog appears.
+- [ ] All three occurrences read `n`.
+- [ ] The Find Usages preview (Refactor → Rename → Preview) listed **two** usages before the write.
 
 ### Scenario 1.2: A call-site caret renames the same set
-- **Setup**: Scenario 1.1's file.
-- **Steps**: caret on the `m` of the first `t:m()`; <kbd>Shift+F6</kbd>; `n`; Enter.
-- **Expected**: identical result to 1.1.
-- **Result**: ⬜ Pass / ⬜ Fail
+1. Same file, restored.
+2. Caret on the `m` of the first `t:m()`. <kbd>Shift+F6</kbd> → `n`.
+- [ ] The declaration and both call sites read `n`.
+- [ ] The dialog's title names the method, not the receiver.
 
-### Scenario 1.3: A `self:` call renames with the declaration
-- **Setup**:
-  ```lua
-  local C = {}
-  function C:m() end
-  function C:a() self:m() end
-  C:m()
-  ```
-- **Steps**: caret on the `m` of `function C:m()`; <kbd>Shift+F6</kbd>; `n`; Enter.
-- **Expected**: `function C:n()`, `self:n()` and `C:n()`.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 1.3: An annotated receiver, aliased
+1. `b.lua`:
+   ```lua
+   ---@class Builder
+   local Builder = {}
+   function Builder:setName(x) end
+   local b = Builder
+   b:setName("x")
+   ```
+2. Caret on `setName` in the declaration. <kbd>Shift+F6</kbd> → `withName`.
+- [ ] Both occurrences read `withName`. No conflicts dialog.
 
 ### Scenario 1.4: One undo restores the file
-- **Steps**: after 1.3, press <kbd>Ctrl+Z</kbd> **once**.
-- **Expected**: the file returns to its exact pre-rename text, and the undo entry reads as one
-  rename action rather than three edits.
-- **Result**: ⬜ Pass / ⬜ Fail
+1. After Scenario 1.1, <kbd>Ctrl+Z</kbd> once.
+- [ ] The file is back to its original text in a single undo — not two, not partial.
 
-## 2. Refusals — the balloon text
+## 2. The incompleteness conflicts dialog
 
-Each scenario asserts the balloon a user actually sees. Confirm the message names its own reason,
-that no text changes in the editor, and that the balloon is dismissible.
+**This is the feature's headline surface.** Confirm it is readable and that its entries are
+navigable, not just present.
 
-### Scenario 2.1: Global receiver
-- **Setup**: `a.lua` = `Obj = {}` / `function Obj:m() end` / `Obj:m()`, and `b.lua` = `Obj:m()`.
-- **Steps**: caret on the `m` of the declaration; <kbd>Shift+F6</kbd>.
-- **Expected**: a "Cannot perform refactoring" balloon reading *The receiver 'Obj' is not a
-  file-local table, so call sites in other files cannot be found.* Both files unchanged.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 2.1: A `self:` call in the same file
+1. `c.lua`:
+   ```lua
+   local C = {}
+   function C:m() end
+   function C:a() self:m() end
+   C:m()
+   ```
+2. Caret on `m` in `function C:m()`. <kbd>Shift+F6</kbd> → `n`.
+- [ ] A conflicts dialog appears **before** anything is written.
+- [ ] It names the `self:m()` call on line 3 and says it cannot be bound to a declaration.
+- [ ] **Cancel** leaves the file byte-identical (check the editor's undo stack is empty and the
+      file is not modified).
+- [ ] Re-run and choose **Continue**: the declaration and `C:m()` become `n`, `self:m()` is left —
+      i.e. the dialog told the truth. Undo.
 
-### Scenario 2.2: The receiver's value escapes
-- **Setup**: `local M = {}` / `function M:m() end` / `M:m()` / `return M`.
-- **Steps**: caret on the declaration's `m`; <kbd>Shift+F6</kbd>.
-- **Expected**: *The receiver's value escapes at 'M' (bare, not a call head), so not every call site
-  of this method can be found.* File unchanged.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 2.2: The dotted spelling
+1. `d.lua`: `local t = {}` / `function t:m() end` / `t:m()` / `print(t.m)`
+2. Rename `m` → `n`.
+- [ ] The dialog names the `.m` occurrence on line 4 and says the dotted form is not rewritten.
 
-### Scenario 2.3: Dotted access to the same member
-- **Setup**: `local t = {}` / `function t:m() end` / `t:m()` / `print(t.m)`.
-- **Expected**: *This method is also accessed as '.m', which this rename does not rewrite.*
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 2.3: A cross-file occurrence
+1. `e1.lua`: `Obj = {}` / `function Obj:m() end` / `Obj:m()`; `e2.lua`: `Obj:m()`
+2. Rename from `e1.lua`'s declaration → `n`.
+- [ ] The dialog names `e2.lua` and its line.
+- [ ] "Show conflicts in view" opens a usage view whose entry **navigates to `e2.lua`** when
+      double-clicked. (Each occurrence is its own `LuaRenameCollisionUsageInfo`; a single summary
+      line would fail this step.)
 
-### Scenario 2.4: An undecidable call site
-- **Setup**: `local t = {}` / `function t:m() end` / `t:m()` / `local function f(x) x:m() end`.
-- **Expected**: *The call 'm' on line 4 cannot be bound to a declaration…* — and check the **line
-  number is right**, since it is computed from the document and nothing else asserts it.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 2.4: A string-key spelling
+1. `f.lua`: `local t = {}` / `function t:m() end` / `t:m()` / `print(t["m"])`
+2. Rename `m` → `n`.
+- [ ] The dialog names the `t["m"]` occurrence.
 
-### Scenario 2.5: Caret on `self`
-- **Setup**: Scenario 1.3's file.
-- **Steps**: put the caret in the middle of the word `self`; <kbd>Shift+F6</kbd>.
-- **Expected**: *'self' is not the method name; put the caret on the method name to rename it.*
-  Nothing is renamed — in particular the enclosing `function C:a()` is **not** renamed, which is what
-  happens without the guard.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 2.5: A table-constructor key
+1. `f2.lua`: `local t = { m = 1 }` / `function t:m() end` / `t:m()`
+2. Rename `m` → `n`.
+- [ ] The dialog names the `m = 1` key on line 1 and says a constructor key is not rewritten.
+- [ ] Repeat with `f3.lua`: `local t = {}` / `function t:m() end` / `t:m()` / `local u = { ["m"] = 1 }`
+      — the dialog names `u`'s bracketed key.
 
-### Scenario 2.6: A bracket-spelled access to the member
-- **Setup**: `local t = {}` / `function t:m() end` / `t:m()` / `print(t["m"])`.
-- **Steps**: caret on the declaration's `m`; <kbd>Shift+F6</kbd>.
-- **Expected**: *The receiver's value escapes at 't' (bracket index step), so not every call site of
-  this method can be found.* File unchanged. **This is the balloon a user sees for an array-style
-  `t[1] = 0` as well** (`risks-and-gaps.md` Gap 2.6) — judge whether the wording is understandable
-  for that case, since it is the one deliberate over-refusal a user is likely to meet.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 2.6: A positional value spelled like the member does NOT block
+1. `f4.lua`: `local t = {}` / `function t:m() end` / `t:m()` / `local m = 1` / `local u = { m }`
+2. Rename `m` → `n`.
+- [ ] **No** dialog entry for `{ m }`. (`local m` is renamed or not by the ordinary local rules; the
+      constructor entry must not be reported as a member spelling.)
 
-### Scenario 2.7: A dotted read of another member
-- **Setup**: `local t = {}` / `function t:m() end` / `function t:a() self:m() end` /
-  `local other = {}` / `function other:m() end` / `t.a(other)`.
-- **Steps**: caret on the `m` of `function t:m()`; <kbd>Shift+F6</kbd>.
-- **Expected**: *The receiver's value escapes at 't' (member read '.a'), so not every call site of
-  this method can be found.* File unchanged. Without this refusal the rename **succeeds** and
-  rewrites `self:m()` to `self:n()`, which `t.a(other)` then calls on a table that has no `n`.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 2.7: A dynamic index does NOT block
+1. `g.lua`: `local t = {}` / `function t:m() end` / `t:m()` / `local k = 'm'` / `print(t[k])`
+2. Rename `m` → `n`.
+- [ ] **No** conflicts dialog. The rename applies and `print(t[k])` is untouched.
+- [ ] This is the accepted residual (`risks-and-gaps.md` Gap 2.2) — confirm it behaves as stated
+      rather than surprising a reader of the docs.
 
-## 3. Conflicts
+## 3. Refusals — the balloon text
 
-### Scenario 3.1: The receiver already has the new name
-- **Setup**: `local t = {}` / `function t:m() end` / `function t:n() end` / `t:m()` / `t:n()`.
-- **Steps**: rename `t:m` to `n`.
-- **Expected**: the platform's **conflicts dialog** lists *This table already has a member named 'n';
-  renaming would merge the two*, with Continue and Cancel. Cancel leaves the file unchanged.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 3.1: Caret on `self`
+1. `h.lua`: `local C = {}` / `function C:m() end` / `function C:a() self:m() end` / `C:m()`
+2. Caret **inside the word `self`** on line 3. <kbd>Shift+F6</kbd>.
+- [ ] A balloon says `'self' is not the method name; put the caret on the method name to rename it.`
+- [ ] Nothing is renamed — in particular `function C:a()` is **not** renamed.
 
-### Scenario 3.2: An identical shape in another file is not a conflict
-- **Setup**: two files, each containing `local t = {}` / `function t:m() end` / `t:m()`.
-- **Steps**: rename `t:m` to `n` in the first file.
-- **Expected**: **no** conflicts dialog; the first file renames and the second is untouched.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 3.2: A method declared outside the project
+1. `i.lua`: `local f = io.open("x")` / `f:write("y")`
+2. Caret on `write`. <kbd>Shift+F6</kbd>.
+- [ ] A balloon says the method is declared outside this project and names a path ending in
+      `runtime/standard/lua-5.4/io.lua`.
+- [ ] No rename dialog opens and no file is modified.
 
-## 4. No regression
+### Scenario 3.3: A call on `self` still refuses as unresolved
+1. `h.lua` again, caret on the `m` of `self:m()`.
+- [ ] A balloon says the name cannot be bound to a declaration
+      (`refactoring.rename.unresolved`) — unchanged pre-existing behaviour.
 
-### Scenario 4.1: The dotted form is unchanged
-- **Setup**: `local M = {}` / `function M.run() end` / `M.run()`.
-- **Steps**: rename `run` from the declaration, then repeat from the call site.
-- **Expected**: both rename all sites, exactly as before this feature.
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 3.4: No shipped string claims colon calls are unresolved
+- [ ] Search the plugin's Settings → Editor → Inspections and every balloon seen above: the phrase
+      *"calls written `obj:method()` are not resolved"* appears nowhere. (`REFACT-09-09`.)
 
-### Scenario 4.2: In-place rename still starts for a local
-- **Setup**: `local counter = 0` / `print(counter)`.
-- **Steps**: caret on `counter`; <kbd>Shift+F6</kbd>.
-- **Expected**: the **in-place template** starts (a red box in the editor), not a dialog — the
-  colon-method work must not have put a second handler in the registry's map.
-- **Result**: ⬜ Pass / ⬜ Fail
+## 4. Member collision
 
-### Scenario 4.3: Label rename still works
-- **Setup**: `::retry::` / `goto retry`.
-- **Steps**: rename the label.
-- **Expected**: unchanged behaviour (REFACT-04).
-- **Result**: ⬜ Pass / ⬜ Fail
+### Scenario 4.1: The receiver already has the new name
+1. `j.lua`: `local t = {}` / `function t:m() end` / `function t:n() end` / `t:m()` / `t:n()`
+2. Rename `m` → `n`.
+- [ ] A conflicts dialog says the table already has a member named `n`.
+- [ ] It does **not** say "a global named 't:n' already exists" — that is the rule this feature
+      replaced (`risks-and-gaps.md` DR-02 Finding 6).
+
+### Scenario 4.2: The annotated receiver reports the same collision
+1. `j2.lua`:
+   ```lua
+   ---@class Builder
+   local Builder = {}
+   function Builder:setName(x) end
+   function Builder:withName(x) end
+   Builder:setName("x")
+   ```
+2. Rename `setName` → `withName`.
+- [ ] The same "already has a member" conflict appears. (This is the shape the union-arm loop of
+      `design.md` §3.7 exists for; without it nothing is reported.)
+
+### Scenario 4.3: A declaration with no call site reports nothing — a known miss
+1. `j3.lua`: `local t = {}` / `function t:m() end` / `function t:n() end`
+2. Rename `m` → `n`.
+- [ ] **No** conflicts dialog, and the file becomes two `function t:n()` declarations.
+- [ ] This is the accepted residual (`risks-and-gaps.md` Gap 2.8) — confirm it behaves as stated
+      rather than surprising a reader of the docs.
+
+### Scenario 4.4: An identical shape in another file is not a conflict
+1. `k1.lua` and `k2.lua` each: `local t = {}` / `function t:m() end` / `t:m()`
+2. Rename from `k1.lua` → `n`.
+- [ ] **No** conflicts dialog.
+- [ ] `k1.lua` renames; `k2.lua` is untouched.
+
+### Scenario 4.5: A redefinition on the same receiver is left behind — a known miss
+1. `j4.lua`: `local t = {}` / `function t:m() end` / `function t:m() end` / `t:m()`
+2. Rename the **first** `m` → `n`.
+- [ ] The first declaration and `t:m()` read `n`; the second `function t:m()` is unchanged; no
+      dialog appears. (`risks-and-gaps.md` Gap 2.10 — the one residual that moves which body the
+      call reaches.)
+
+## 5. No regression
+
+### Scenario 5.1: The dotted form is unchanged
+1. `l.lua`: `local M = {}` / `function M.run() end` / `M.run()`
+2. Rename `run` → `go` from the declaration, then undo and repeat from the call site.
+- [ ] Both directions rename both occurrences, exactly as before this feature.
+
+### Scenario 5.2: In-place rename still starts for a local
+1. `m.lua`: `local total = 0` / `print(total)`; caret on `total`. <kbd>Shift+F6</kbd>.
+- [ ] An **inline** template starts in the editor (not a dialog), and committing renames both.
+
+### Scenario 5.3: Label rename still works
+1. `n.lua`: `::retry::` / `goto retry`; caret on the label.
+- [ ] <kbd>Shift+F6</kbd> renames both.
+
+### Scenario 5.4: Rename during indexing
+1. Trigger a re-index (File → Invalidate Caches, or add a large directory), and during indexing
+   attempt Scenario 1.1.
+- [ ] Either the platform reports the action is unavailable while indexing, or the rename completes
+      correctly. **Never** a declaration renamed with its call sites left behind.

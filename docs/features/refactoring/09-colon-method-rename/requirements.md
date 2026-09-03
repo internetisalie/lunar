@@ -2,7 +2,7 @@
 id: "REFACT-09"
 title: "09: Colon-method rename"
 type: "feature"
-status: "todo"
+status: "planned"
 priority: "medium"
 parent_id: "REFACT/INTENT"
 folders:
@@ -13,239 +13,273 @@ folders:
 
 ## Overview
 
-Rename a `function Obj:m()` declaration and every `obj:m()` call site that binds to it, **or refuse
-with a reason**. This is the half of `REFACT-01-08` that did not ship: the dotted form
-(`function M.run()`) renames from both the declaration and a call site since [[BUG-465]], while the
-colon form is refused by name in
-[LuaRenameProcessor.kt:111](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt)
+Rename a `function Obj:m()` declaration and every colon call site bound to it. This is the half of
+`REFACT-01-08` that did not ship: the dotted form (`function M.run()`) renames from both the
+declaration and a call site since [[BUG-465]], while the colon form is refused by name in
+[LuaRenameProcessor.kt:111-112](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt)
 with `refactoring.rename.colonMethod`:
 
 > Renaming a `function Obj:method()` declaration is not supported yet: calls written
 > `obj:method()` are not resolved, so they would be left bound to the old name.
 
-That message is exactly right about the mechanism, and `REFACT-09-00-DR-02` measured it directly:
+**That sentence is now false.** [[NAV-13]] shipped at `1afdfdca`: a colon call site resolves to its
+method declaration's IDENTIFIER leaf, `isReferenceTo` answers true, and `ReferencesSearch` returns
+a usage set. `LuaColonCallFindUsagesTest` pins it, and this feature re-measured the consequence for
+rename directly — `LuaRenameProcessor.findReferences`, **unchanged**, already returns that set:
 
 ```
-SEARCH A t:m       leaf=LeafPsiElement@24[a.lua]  references=0
-SEARCH B Obj:m     leaf=LeafPsiElement@22[b1.lua] references=0
-SEARCH C Class:b   leaf=LeafPsiElement@54[c.lua]  references=0
-SEARCH E t:m       leaf=LeafPsiElement@50[e.lua]  references=0
-SEARCH F M:m       leaf=LeafPsiElement@24[mod.lua] references=0
-SEARCH G Builder:setName leaf=LeafPsiElement@54[g.lua] references=0
+R09PROBE[F01] kind=METHOD_FUNCTION refs=[34, 40]
 ```
 
-**`ReferencesSearch` finds zero call sites for a colon-method declaration in every receiver shape,
-the `---@class`-annotated one included.** So this feature is not "lift the guard": the platform's
-usage set for a colon method is empty, and the rename must build its own — or decline.
+on `local t = {}` / `function t:m() end` / `t:m()` / `t:m()` (`risks-and-gaps.md` DR-02). Removing
+the message's own premise is therefore a requirement of this feature (`REFACT-09-09`), not a side
+effect.
 
-## What [[TYPE-13]] supplies, and what it does not
+### The usage set is real but partial, and that is what this feature is about
 
-[[TYPE-13]] made a structurally-resolved `LuaTypeMember` carry `sourceElement`, and
-`LuaMemberDeclarations.declarationOf(member)` maps that to a declaration
-([LuaMemberDeclarations.kt:48](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaMemberDeclarations.kt)).
-`REFACT-09-00-DR-02` re-measured its reach from the *call-site* direction this feature needs — for
-each colon call in a fixture, resolve the receiver, `resolveMember`, `declarationOf`:
+[[NAV-13]] resolves a plain local table, an in-file global table, `setmetatable` OO through its
+supertype chain, and a `---@class`/`---@type` annotated receiver including its aliased
+`local b = Builder` form. It resolves **nothing** for a `require`d module, a chain's second segment,
+an alias `local u = t`, a parameter receiver, `self:`, a factory-returned table, `a.b:m()` and
+`("s"):m()`.
 
-| fixture | call | `resolveMember` | `declarationOf` |
-| :-- | :-- | :-- | :-- |
-| `local t = {}` ; `function t:m()` ; `t:m()` ×2 ; `local q = {}` ; `function q:m()` ; `q:m()` | `t:m()` | HIT | `LuaFuncDeclImpl@13` |
-| the same fixture | `q:m()` | HIT | `LuaFuncDeclImpl@57` |
-| `Obj = {}` ; `function Obj:m()` ; `Obj:m()` (file `b1.lua`) | `Obj:m()` in `b1.lua` | HIT | `LuaFuncDeclImpl@9` |
-| the same global, called from a **second file** `b2.lua` | `Obj:m()` in `b2.lua` | HIT | **null** |
-| `setmetatable` OO | `o:b()` | HIT | `LuaFuncDeclImpl@39` |
-| `setmetatable` OO | `self:b()` | HIT | **null** |
-| plain local table with a `self:` call | `self:b()` | HIT | **null** |
-| factory-returned table | `o:m()` | HIT | **null** |
-| `local M = require('mod')` ; `M:m()` | `M:m()` | HIT | **null** |
-| `local u = t` ; `u:m()` | `u:m()` | HIT | **null** |
-| `local function use(x) x:m() end` | `x:m()` | HIT | **null** |
-| `---@class Builder` ; `local b = Builder` ; `b:setName()` | `b:setName()` | **MISS** | null |
+So a colon-method rename can rewrite a *subset* of its call sites and report success. Executed at
+`2a15cfcd` with the blanket refusal lifted and nothing else changed (`risks-and-gaps.md` DR-02);
+each of these is a half-applied rename of the [[BUG-457]] class:
 
-Two consequences fix this feature's shape:
+| fixture | outcome with the refusal lifted |
+| :-- | :-- |
+| `local C = {}` / `function C:<caret>m() end` / `function C:a() self:m() end` / `C:m()` | `RENAMED` → `function C:n() end / function C:a() self:m() end / C:n()` — the `self:` call left behind |
+| `local t = {}` / `function t:<caret>m() end` / `t:m()` / `print(t.m)` | `RENAMED` → `print(t.m)` left behind |
+| `Obj = {}` / `function Obj:<caret>m() end` / `Obj:m()`, and `b.lua` = `Obj:m()` | `RENAMED` in the caret's file; `b.lua` still reads `Obj:m()` |
+| `local t = {}` / `function t:<caret>m() end` / `t:m()`, and `b.lua` = `local function f(x) x:m() end` | `RENAMED`; `b.lua` still reads `x:m()` |
 
-1. **A `null` declaration is common in ordinary code**, not a corner: an alias, a parameter
-   receiver, a `self:` call, a required module and a cross-file global all report it. `declarationOf`
-   answers *one* question — where is this member declared — and answers it for a minority of sites.
-2. **Resolving one site says nothing about the others.** `TYPE-13-00-DR-02`'s question was
-   whether a *complete* usage set is computable. It is not computable from `declarationOf` alone,
-   because `declarationOf` is null exactly where completeness is at risk. This feature therefore
-   decides completeness **syntactically, over the receiver's binding**, and uses `declarationOf`
-   only to separate same-named members of different receivers.
+**The feature therefore is: rename where the usage set is provably complete, and report every
+occurrence that makes it incomplete before anything is written.** `design.md` §3 specifies the
+predicate that tells those apart and `risks-and-gaps.md` DR-01 measures what it accepts.
+
+### What is superseded from the previous plan, and by what
+
+The artifacts this replaces were planned to the bar twice on the premise that
+`ReferencesSearch` returns **0** for a colon method in every receiver shape. Every conclusion built
+on that premise is withdrawn; the measurements are kept where they still hold.
+
+| Previously | Now | Because |
+| :-- | :-- | :-- |
+| `ReferencesSearch` returns 0 at every scope, so the feature must build its own usage set | `findReferences` returns it unchanged | [[NAV-13]]; DR-02 finding F01 |
+| Completeness proved **syntactically**, by a file-local containment argument over the receiver's binding (`planFor` R1-R5, the escape set) | Completeness decided by a **homonym scan** over the usage set the platform now supplies | the syntactic predicate accepts **0 of 941** corpus declarations ([[NAV-13]] requirements; the old `risks-and-gaps.md` Gap 2.3). It is not revived |
+| `LuaColonMethodRename.callSiteReferences` supplies `findReferences`' result | no `findReferences` change | F01 |
+| `declarationLeafOfCallSite` / `selfRouteDeclaration` carry the call-site caret | no substitution branch; `resolvedDeclarationLeaf` already reaches the declaration through NAV-13's resolve | DR-02 R02 renames from a call-site caret with no new substitution code |
+| the module `return M` shape escapes and is refused | accepted when no undecided homonym exists | DR-03 control `c12` = `accepted`; containment is no longer the evidence |
+| the `---@field` spelling is out of scope and left on the old name | unchanged, and now also **measured unreachable** by a `PsiComment` scan | `LuaCatsLazyCommentImpl` extends `LazyParseablePsiElement`, not `PsiComment`; DR-03 control `c09` |
+| the caret-on-`self` guard (`caret.text != leaf.text`) | **kept verbatim** | DR-02 R04: without it, `se<caret>lf:m()` renames the *enclosing* method — executed |
+| the `METHOD_FUNCTION` arm of `LuaRenameConflictDetector` | **kept**, with `design.md` §3.7's `receiverAlreadyHasNewName` re-specified over the receiver's type as seen from a bound call site | DR-02 R11/R12: C3 and C4 both fire today, C4 on a fixture whose rename is correct; DR-05 measures the replacement |
 
 ## Scope
 
 ### In Scope
-- Renaming `function R:m()` and every colon call site bound to it, **only** when the receiver `R`
-  is a file-local binding whose value provably does not leave the file, and every colon call named
-  `m` in that file is decided. `REFACT-09-00-DR-02` defines "decided" and `design.md` §3 specifies it.
-- A refusal, naming its reason, for every other shape. The refusal is the `else` branch: a receiver
-  occurrence in a position this feature does not enumerate is an **escape**, and an escape refuses.
-- The caret-on-`self` guard (`REFACT-09-04`).
-- The member-name collision report (`REFACT-09-07`), through the existing
+- Renaming `function R:m()` and every call site [[NAV-13]] binds to it, from the declaration caret
+  and from a resolving call site's caret.
+- A **completeness report** before any write: every occurrence of the method's name, in a member
+  position anywhere in the refactoring scope, that is neither in the usage set nor provably a
+  different member, is raised as a conflict naming its file, line and spelling.
+- A refusal, on the EDT, for the decisions that are O(1): the caret is not on the method name
+  (`REFACT-09-04`), and the declaration is not in this project (`REFACT-09-05`).
+- The member-name collision report (`REFACT-09-08`), through the existing
   `LuaRenameCollisionUsageInfo` carrier.
+- Replacing `refactoring.rename.colonMethod`, whose text [[NAV-13]] falsified.
 
-### Out of Scope — each measured, each refused rather than half-applied
-- **Global receivers** (`Obj = {}`): call sites in other files report no declaration (DR-02 fixture B).
-- **Receivers whose value escapes the file** — a module `return M`, an alias `local u = t`, a
-  `setmetatable({}, Class)` argument, a receiver passed to a function.
-- **`require`d module receivers** ([[TYPE-13]] Gap 2.11 — `getModuleType` reads `getFileReturnType()`,
-  so the module type carries no members).
-- **The second segment of a chain** `t:m():m()` ([[TYPE-13]] Gap 2.12 — `visitFuncCall` models
-  `nameAndArgsList.firstOrNull()` only, and reports the first segment's type for the whole expression).
-- **Dotted access to the same member** (`t.m`, `function t.m()`, `t.m = f`): the same member under
-  another spelling, which this rename does not rewrite, so it refuses instead.
-- **Bracket-spelled access to any member** (`t["m"]`, `t[k]`, `t[1] = 0`): an index step written
-  `['…']` does not name its member in the PSI — `LuaIndexExpr.getNameRef()` is `@Nullable` and null
-  there — so the predicate cannot decide whether it names the member being renamed, and refuses.
-  This over-refuses an array-style `t[1] = 0` beside a method table; `risks-and-gaps.md` Gap 2.6
-  measures and accepts that cost.
-- **Reading any member of the receiver as a value** (`local f = t.a`, `local c = t.count`,
-  `t.a(other)`): obtaining a member value is what allows a method of the receiver to be invoked
-  with a different `self`, which would make `design.md` §3.4's `self` rewrites wrong. A *write* to
-  a member — `t.count = 0`, `self.count = 1` — obtains nothing and stays in scope.
-- **`---@field` naming the same member** (`---@field m fun()` on the receiver's `---@class`): the
-  occurrence scan walks `LuaNameRef` only and `LuaCatsFieldTag extends PsiElement`
-  ([LuaCatsFieldTag.java:8](../../../../src/main/gen/net/internetisalie/lunar/luacats/lang/psi/LuaCatsFieldTag.java)),
-  so a field tag is neither an occurrence nor an escape. The rename proceeds and leaves the
-  annotation on the old name. Measured, `---@class T` / `---@field m fun()` / `local t = {}` /
-  `function t:m() end` / `t:m()`: `N5 fieldTags=1  fieldTagIsALuaNameRef=false  verdict=ACCEPTED`.
-  Case 31 pins it as a visible residual; `risks-and-gaps.md` Gap 2.9 records why refusing on it
-  instead would refuse the annotated receiver outright.
-- Making un-annotated receivers resolve further — that is the type engine's, not this feature's.
-- `self` and `...` as rename targets (`REFACT-01-19`, `Won't`), dynamic `_G["x"]` (`REFACT-01-20`, `Won't`).
+### Out of Scope
+- **A dynamically indexed member** — `t[k]`, `t[a .. b]`, `_G["x"]`. Undecidable, and refusing on it
+  refuses everything: the pinned corpus carries **3 088** such index steps in ZeroBrane alone and
+  **5 424** across the pinned checkouts (`risks-and-gaps.md` DR-01). Same class as `REFACT-01-20`
+  (`Won't`). `risks-and-gaps.md` Gap 2.2 states the residual; DR-03 control `c13` pins that such a
+  step does **not** block a rename.
+- **`---@field m` naming the same member.** The rename proceeds and leaves the annotation on the old
+  name. `risks-and-gaps.md` Gap 2.3 records why the scan cannot see it and what would be needed.
+- **Rewriting the dotted spelling** (`t.m`, `function t.m()`, `t.m = f`) alongside the colon one.
+  These name the same member; this feature *reports* them and does not rewrite them, because they
+  resolve through `getQualifiedName` / `LuaGlobalDeclarationIndex` rather than through the type
+  engine — a different mechanism, not a wider version of this one.
+- **Rewriting a table-constructor key** (`{ m = 1 }`, `{ ["m"] = 1 }`). Same disposition and same
+  reason as the dotted spelling: the key declares the member and this feature reports it. It is a
+  member spelling `design.md` §3.3's grammar closure now enumerates, and rows 23, 24 and 26 pin
+  what is and is not an occurrence.
+- **A redefinition of the same method on the same receiver** — a second `function t:m()`. The scan
+  deliberately excludes `LuaFuncNameMethod` so that a *different* receiver's `function q:m()` and an
+  identical shape in another file are not reported (rows 3 and 12), and the price is that a
+  redefinition is neither rewritten nor reported. Measured: the call site binds to the **first**
+  declaration (`risks-and-gaps.md` DR-06), so renaming it rewrites the call and leaves the second
+  definition on the old name. Rare on real code — 3 same-file, same-receiver-text redefinitions in
+  luacheck and none in luarocks, penlight, zerobrane or the substitute (`risks-and-gaps.md` Gap 2.10).
+  Row 27 pins the behaviour.
+- **Making un-annotated or aliased receivers resolve further** — [[TYPE-13]] Gaps 2.7, 2.11, 2.12
+  and [[NAV-13]]'s Out of Scope. Each such call site is reported, not resolved.
+- **Renaming a method declared outside the project**, e.g. `File:write` in the plugin's own
+  `runtime/standard/lua-5.4/io.lua`. Measured reachable: a colon call resolves there
+  (`risks-and-gaps.md` DR-04).
+- `self` and `...` as rename targets (`REFACT-01-19`, `Won't`), dynamic `_G["x"]`
+  (`REFACT-01-20`, `Won't`).
+- In-place (inline) rename for a colon method. Both gates require
+  `LuaDeclarationSite.kindOf(...)?.isFileLocal == true` and `METHOD_FUNCTION.isFileLocal` is `false`
+  ([LuaDeclarationSite.kt:27](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/LuaDeclarationSite.kt)),
+  so a colon method always takes the dialog path.
 
 ## Functional Requirements
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| `REFACT-09-01` | **Rename from the declaration caret** | M | Not Implemented | Caret on `m` in `function R:m()` renames the declaration and every colon call site bound to it, when the predicate of `design.md` §3.2 accepts. |
-| `REFACT-09-02` | **Rename from a call site** | M | Not Implemented | Caret on `m` in `r:m()` — including `self:m()` — substitutes to the declaration and does the same. |
-| `REFACT-09-03` | **Refuse rather than half-rename** | M | Not Implemented | Where the predicate does not accept, the rename is refused with a message naming which clause declined. No partial write is committed and the file is byte-identical. |
-| `REFACT-09-04` | **Caret on `self` does not rename the method** | M | Not Implemented | With the caret on `self` inside a method body, the method is not renamed. |
-| `REFACT-09-05` | **Caret on the receiver renames the receiver** | M | Not Implemented | Caret on `r` in `r:m()` renames `r`, not `m`. |
-| `REFACT-09-06` | **Atomic** | M | Not Implemented | The rename is one undoable write action; a refusal leaves the file byte-identical. |
-| `REFACT-09-07` | **The new name is reported when the receiver already has it** | S | Not Implemented | Renaming `R:m` to a name `R` already declares reports a conflict through `LuaRenameCollisionUsageInfo` rather than silently merging the two members. |
-| `REFACT-09-08` | **No regression in the shapes that already work** | M | Not Implemented | The dotted form, local/global/label renames and the conflict rules behave exactly as they do at `0bccadae`, except for the refusal-message assertions `implementation-plan.md` Phase 4 updates. |
+| `REFACT-09-01` | **Rename from the declaration caret** | M | Not Implemented | Caret on `m` in `function R:m()` renames the declaration and every call site `ReferencesSearch` returns for it. |
+| `REFACT-09-02` | **Rename from a call site** | M | Not Implemented | Caret on `m` in `r:m()`, where that site resolves, renames the same set. |
+| `REFACT-09-03` | **Report every occurrence that makes the rename incomplete** | M | Not Implemented | Before any write, every member-position occurrence of the method's name in the refactoring scope that is neither in the usage set nor resolves to a different declaration is raised as a conflict naming its spelling and location. `design.md` §3.3 specifies the occurrence set and §3.4 the verdict. |
+| `REFACT-09-04` | **Caret on `self` does not rename the method** | M | Not Implemented | With the caret on `self` inside a method body, the rename is refused and the method is not renamed. |
+| `REFACT-09-05` | **A declaration outside the project is refused** | M | Not Implemented | A colon call that resolves into a library — the plugin's bundled stdlib stubs included — refuses with a message naming the file, instead of attempting to rewrite it. |
+| `REFACT-09-06` | **Caret on the receiver renames the receiver** | M | Not Implemented | Caret on `r` in `r:m()` renames `r`, not `m`. |
+| `REFACT-09-07` | **Atomic** | M | Not Implemented | The rename is one undoable write action; a refusal or a cancelled conflict leaves every file byte-identical. |
+| `REFACT-09-08` | **The new name is reported when the receiver already has it** | S | Not Implemented | Renaming `R:m` to a name `R`'s type already resolves as a member reports a conflict, rather than silently merging the two members. |
+| `REFACT-09-09` | **The replaced refusal's text is removed** | M | Not Implemented | `refactoring.rename.colonMethod` and its one call site are deleted; no shipped string claims colon calls are unresolved. |
+| `REFACT-09-10` | **No regression in the shapes that already work** | M | Not Implemented | The dotted form, local/global/label renames, Safe Delete and the REFACT-01 conflict rules behave exactly as at `2a15cfcd`, except for the assertions `implementation-plan.md` Phase 4 rewrites. |
 
 ## Behavior Rules
 
-- **The refusal is the default, not the fallback.** Every clause of the predicate is written as
-  *accept only if*; a receiver occurrence in an unenumerated position is an escape and refuses.
-  `design.md` §3.3 states the position whitelist as a closure over the `var` grammar's two step
-  kinds **and over an index step's two spellings**, following the property-not-shape-list rule
-  [[TYPE-13]] design §3.3 established. A step whose name is not in the PSI is refused, never
-  compared against `null` and dropped.
-- **A `self:` rewrite is only as sound as the receiver's members are unobtainable.** `self` is
-  bound at call time, so rewriting `self:m()` is correct only while no member of the receiver can be
-  obtained as a value anywhere in the file. `design.md` §3.4 states that dependency and §3.3
-  enforces it; cases 25 and 28 are the fixtures on which the earlier, weaker rule accepted and
-  produced a wrong rewrite.
-- **Success is never reported for a partial rename.** This is the measured failure mode
-  (`REFACT-01-00-DR-03`), and `REFACT-09-00-DR-02` measured its mechanism: an empty
-  `ReferencesSearch` result.
-- **`refactoring.rename.colonMethod` is deliberately replaced.** After this feature the blanket
-  colon refusal is unreachable; the narrower messages of `design.md` §7.2 take its place, each naming
-  the clause that declined. The old key and its `LuaBundle` entry are removed with it.
+- **The usage set comes from the platform, not from this feature.** `findReferences` is unchanged;
+  `findCollisions` consumes the very list `processUsages` just filled
+  (`RenameUtil.java:97-103`), so the completeness scan compares against the same usages that are
+  about to be rewritten and never runs a second `ReferencesSearch`.
+- **Undecided is the default.** The occurrence scan is written *decided only if*: a member-position
+  occurrence is dismissed only when it is in the usage set or resolves to a declaration other than
+  the one being renamed. An occurrence in an un-enumerated position is not silently dropped —
+  `design.md` §3.3 closes the occurrence set over the grammar by classifying **every** `lua.bnf` rule
+  that `grep -n 'nameRef\|IDENTIFIER' lua.bnf` returns, and the one position that is a member
+  spelling and is still not an occurrence — `funcNameMethod` — is named there with its cost and
+  pinned by row 25.
+- **Incompleteness is reported, not refused, and the reason is measured.** Deciding it costs a
+  word-index scan plus a resolve per candidate occurrence: **p50 23 ms, p99 525 ms, max 3 163 ms**
+  on ZeroBrane and **max 9 957 ms** on the annotated substitute (`risks-and-gaps.md` DR-03). That
+  cannot run on the EDT, where `substituteElementToRename` lives, and the platform's only channel
+  for aborting after background analysis is the conflicts dialog
+  (`RenameProcessor.java:166-188` → `BaseRefactoringProcessor.showConflicts`). This is the same
+  disposition, for the same stated reason, that `LuaRenameConflictDetector`'s C4 rule already takes
+  ([:215-226](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt)).
+  `risks-and-gaps.md` Risk 1.1 carries the residual.
+- **Success is never reported silently for a partial rename.** Every occurrence that would be left
+  behind is listed, by file and line, in a dialog the user must answer.
+- **A colon member name is a table key, never a variable**, so the conflict rules that reason about
+  lexical binding are not applicable to this kind. `design.md` §5 states each inherited rule's
+  premise and why it is false here.
 
 ## Test Cases
 
-Every row was executed on the gce builder against a throwaway prototype of `design.md` §2-§4
-(reverted; `git status --porcelain` is empty in the working tree and on the builder, and neither
-carries a probe file). The "Then" column is transcribed output, and every mutation in the last
-column was **applied to the prototype and the fixture re-run**, with the differing outcome quoted.
-Each fixture is alone in its own test method with one `configureByText`, **except every row whose
-"Given" column names a second file** — `LuaTypeManagerImpl` searches
-`GlobalSearchScope.allScope(project)` ([LuaTypeManagerImpl.kt:231](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypeManagerImpl.kt)),
-so a stray sibling binds a member to the wrong file. Read the property off the column rather than
-counting: a row that asserts a **sibling file is untouched** is the one most exposed to that hazard,
-so a row added later without its own test method silently loses the assertion it exists to make.
+Rows marked **(executed)** transcribe output from the de-risking probes recorded in
+`risks-and-gaps.md`, run at `2a15cfcd` on the gce builder and reverted (`git status --porcelain`
+empty in the working tree and on the builder). Rows without that marker specify behaviour the
+implementation phase must execute, and `implementation-plan.md` makes each named mutation a
+verification task.
 
-**A named mutation is not enough; it has to be reachable from the row's own fixture.** Row 19 is the
-row where that bites: its column names the mutation measured turning it red while leaving row 1
-green, and records the mutations that were applied, executed, and left it byte-identical. Rows 20 and 23 remain argued exceptions, each naming the existing test class
-that is the mechanism's gate.
+**One `configureByText` per test method, except rows whose Given names a second file.**
+`LuaTypeManagerImpl` searches `GlobalSearchScope.allScope(project)`
+([LuaTypeManagerImpl.kt:231](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypeManagerImpl.kt)),
+so a stray sibling binds a member to the wrong file.
 
-| # | Requirement | Given (fixture, caret marked) | When | Then | Mutation that turns it red (executed) |
+| # | Requirement | Given (fixture, caret marked) | When | Then | Mutation that turns it red |
 |---|-------------|-------------------------------|------|------|---------------------------|
-| 1 | `REFACT-09-01` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `t:m()` | rename to `n` | all three sites read `n` | delete the `METHOD_FUNCTION` branch of `findReferences` (design §2.2) → **observed** `function t:n() end` with both `t:m()` call sites left behind — `REFACT-01-00-DR-03`'s half-rename verbatim |
-| 2 | `REFACT-09-02` | `local t = {}` ; `function t:m() end` ; `t:<caret>m()` ; `t:m()` | rename to `n` | all three sites read `n` | delete `colonCallSiteDeclarationLeaf` from `substituteElementToRename` (design §2.2) → **observed** `REFUSED … Cannot determine which declaration this name refers to`, while row 1's declaration caret still renames |
-| 3 | `REFACT-09-02` | `local C = {}` ; `function C:m() end` ; `function C:a() self:<caret>m() end` ; `C:m()` | rename to `n` | all three sites read `n` | as row 2 → **observed** the same refusal on this fixture |
-| 4 | `REFACT-09-01` | `local C = {}` ; `function C:<caret>m() end` ; `function C:a() self:m() end` ; `C:m()` | rename to `n` | `function C:n()`, `self:n()`, `C:n()` | drop the `self` half of `receiverOccurrences` (design §3.4) → **observed** `REFUSED … The call 'm' on line 3 cannot be bound to a declaration` |
-| 5 | `REFACT-09-01` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local q = {}` ; `function q:m() end` ; `q:m()` | rename to `n` | `t:n()` renamed, `function q:m()` and `q:m()` **untouched** | drop the `decided === declaration` test in design §3.5 → the unrelated receiver's sites join the rename set. The separating measurement is DR-02's: `t:m()` reports `declarationOf=LuaFuncDeclImpl@13`, `q:m()` reports `LuaFuncDeclImpl@57` |
-| 6 | `REFACT-09-03` | `Obj = {}` ; `function Obj:<caret>m() end` ; `Obj:m()`, plus `p07b.lua` = `Obj:m()` | rename to `n` | refused, both files byte-identical | drop the `isFileLocal` test in design §3.2 clause R1 → **observed** `RENAMED`, `function Obj:n()` / `Obj:n()` in the caret's file with `p07b.lua`'s `Obj:m()` left behind |
-| 7 | `REFACT-09-03` | `local M = {}` ; `function M:<caret>m() end` ; `M:m()` ; `return M` | rename to `n` | refused, file byte-identical, message names the escape: `The receiver's value escapes at 'M' (bare, not a call head)` | drop the bare-occurrence clause of design §3.3 → the escaping module receiver is accepted; the same clause is falsified from its own fixture by row 12 |
-| 8 | `REFACT-09-03` | `local Class = {}` ; `Class.__index = Class` ; `function Class:<caret>m() end` ; `local o = setmetatable({}, Class)` ; `o:m()` | rename to `n` | refused, byte-identical, `escapes at 'Class'` | as row 7 |
-| 9 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `local u = t` ; `u:m()` | rename to `n` | refused, byte-identical, `escapes at 't'` | as row 7 |
-| 10 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `function t:m() end` ; `t:m()` | rename to `n` | refused, byte-identical, `'m' is declared 2 times on this receiver` | delete design §3.5's `memberDeclarations.size != 1` test → **observed** `RENAMED`: the first declaration becomes `t:n()` and the second `function t:m()` is left declaring the old name |
-| 11 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `print(t.m)` | rename to `n` | refused, byte-identical, `also accessed as '.m'` | delete design §3.3's `DottedMember` verdict → **observed** `RENAMED` with `print(t.m)` left behind |
-| 12 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t().x = 1` ; `t:m()` | rename to `n` | refused, byte-identical, `escapes at 't' (call step in a suffix)` | delete design §3.3's `suffixes.any { it.nameAndArgsList.isNotEmpty() }` clause → **observed** `RENAMED`. The suffix `.x` is named differently from the method deliberately: with a `.m` suffix the `DottedMember` verdict would refuse anyway and the clause would be untestable from that fixture |
-| 13 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m():m()` | rename to `n` | refused, byte-identical, `The call 'm' on line 3 cannot be bound to a declaration` | delete design §3.6's `call.nameAndArgsList.firstOrNull() !== nameAndArgs` guard → **observed** `RENAMED`, the chain's second segment rewritten from a receiver type [[TYPE-13]] Gap 2.12 measured to be the *first* segment's |
-| 14 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local function f(x) x:m() end` | rename to `n` | refused, byte-identical, `The call 'm' on line 4 cannot be bound to a declaration` | delete design §3.5's undecided-site loop → the parameter-receiver call, which DR-02 measured as `declarationOf=null`, is silently left behind |
-| 15 | `REFACT-09-03` | `t:m()` ; `local t = {}` ; `function t:<caret>m() end` ; `t:m()` | rename to `n` | refused, byte-identical | delete design §3.2's clause R2 (`textOffset < receiverLeaf.textOffset`) → **observed** `RENAMED`, rewriting the line-1 `t:m()`, which is a call on the *global* `t` and not on the local at all |
-| 16 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `do local t = {} end` | rename to `n` | refused, byte-identical, `receiver 't' is not a file-local table` | delete design §3.2's `bindings.size != 1` test → a shadowed receiver name is accepted and its occurrences are classified against the wrong binding |
-| 17 | `REFACT-09-04` | `local C = {}` ; `function C:m() end` ; `function C:a() se<caret>lf:m() end` ; `C:m()` | rename to `n` **through `myFixture.renameElementAtCaret`**, which passes the fixture editor | refused, byte-identical, `'self' is not the method name` | delete design §3.7's caret guard → **observed** `RENAMED`, producing `function C:n() self:m() end` — the *enclosing* method `a` renamed, because `LuaScopeProcessor` resolves `self` to `funcName.funcNameMethod.nameRef.identifier` ([LuaScopeProcessor.kt:87-92](../../../../src/main/kotlin/net/internetisalie/lunar/lang/LuaScopeProcessor.kt)) |
-| 18 | `REFACT-09-04` | `local C = {}` ; `function C:<caret>m() end` ; `function C:a() self.m = 1 end` ; `C:m()` | rename to `n` | refused, byte-identical, `also accessed as '.m'` | drop the `self` half of `receiverOccurrences` (design §3.4) → **observed** `RENAMED` with `self.m = 1` left behind. Row 4 and this row are the two halves of that one clause: row 4 is a `self:` call the scan must **find**, this is a `self.` write the scan must **refuse** |
-| 19 | `REFACT-09-05` | `local t = {}` ; `function t:m() end` ; `<caret>t:m()` | rename to `renamedTable` | `local renamedTable = {}` and `renamedTable:m()`; `m` untouched | **broaden design §2.2's `findReferences` guard from `kind == METHOD_FUNCTION` to every kind** → the LOCAL_VARIABLE rename is routed through `callSiteReferences`, whose `planFor` refuses on a non-method leaf and returns an empty usage set. Executed: `PROBE[F4-row19-guardMutant] RENAMED / 1| local renamedTable = {} / 3| t:m()` — **the call site is left behind and this row is RED**, while `PROBE[F4-row1-guardMutant]` is byte-identical to the unmutated run, so row 1 stays green. Mutations that do **not** reach this row are recorded so they are not re-proposed: **(a)** dropping design §3.8's `nameRef.parent as? LuaMethodExpr` cast (substituting the enclosing call's `methodExpr` instead) was applied and executed and produced output byte-identical to the unmutated run; **(b)** reordering the `substituteElementToRename` chain. Both are unreachable for the same measured reason — the processor is handed the *resolved* declaration, `SUBST element=LeafPsiElement text='t' identifierLeafOf=t kindOfIdLeaf=LOCAL_VARIABLE colonCallSiteLeaf=null`, so the first chain link answers before any new branch is consulted and `colonCallSiteDeclarationLeaf` returns null on that element under both the correct code and mutation (a). See `risks-and-gaps.md` Gap 2.1 and [[BUG-476]] for the pre-existing receiver-segment defect this row also measures |
-| 20 | `REFACT-09-06` | row 1's fixture | rename to `n`, then `UndoManager.getInstance(project).undo(editor as? TextEditor)` — the idiom `LuaRenameUndoTest.undoAfterRenameRestoresTheDocument` already uses ([LuaRenameUndoTest.kt:43-49](../../../../src/test/kotlin/net/internetisalie/lunar/refactoring/LuaRenameUndoTest.kt)) | the file returns to its original text in one undo | inherited from `LuaRenameProcessor.renameElement`'s single non-cancelable section (REFACT-01 design §3.3); `LuaRenameUndoTest` is the existing gate for the mechanism, and this row extends it to the colon form |
-| 21 | `REFACT-09-07` | `local t = {}` ; `function t:<caret>m() end` ; `function t:n() end` ; `t:m()` ; `t:n()` | rename to `n` | a conflict is reported: `This table already has a member named 'n'` | replace design §5's `METHOD_FUNCTION` arm of `LuaRenameConflictDetector.collisions` with the pre-existing global arm → **observed** `A global named 't:n' already exists in this project`, and row 22 then reports a conflict that does not exist |
-| 22 | `REFACT-09-08` | `p21a.lua` = `local t = {}` ; `function t:<caret>m() end` ; `t:m()`, and `p21b.lua` = the identical text | rename to `n` | `p21a.lua` renames, `p21b.lua` is **untouched**, and no conflict is reported | as row 21 → **observed** `THREW ConflictsInTestsException: 't:m' is declared in 2 places…` — C4's premise (usages stop resolving) is false for a colon method, whose usages are not collected through `resolve` at all |
-| 23 | `REFACT-09-08` | `local M = {}` ; `function M.<caret>run() end` ; `M.run()` | rename to `n` | `function M.n()` and `M.n()` — the dotted form is unchanged by this feature | this row asserts an unchanged route; `LuaRenameTest`'s BUG-465 cases are its gate |
-| 24 | `REFACT-09-03` | `p22mod.lua` = `local M = {}` ; `function M:m() end` ; `return M`, and `p22.lua` = `local M = require('p22mod')` ; `M:<caret>m()` | rename to `n` | refused, both files byte-identical | design §3.6's structural route returns null here ([[TYPE-13]] Gap 2.11), so `colonCallSiteDeclarationLeaf` yields nothing and `resolvedDeclarationLeaf` refuses. Falsified by row 2, which is the same code path on a fixture where it must succeed |
-| 25 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `function t:a() self:m() end` ; `local other = {}` ; `function other:m() end` ; `t.a(other)` | rename to `n` | refused, byte-identical, `The receiver's value escapes at 't' (member read '.a')` | delete design §3.3's member-read escape → **observed** `PROBE[F2-reviewed] RENAMED`, producing `function t:n()` and `self:n()` while `function other:m()` is untouched — and `t.a(other)` binds `self` to `other`, so the rewritten `self:n()` calls a member that does not exist. `self` is bound at *call* time, which is why obtaining `t.a` has to refuse |
-| 26 | `REFACT-09-01` | `local C = {}` ; `function C:<caret>m() self.count = 1 end` ; `C:m()` | rename to `n` | `function C:n() self.count = 1 end` and `C:n()` — the write to another member is untouched and does not refuse | delete design §3.3's `isSoleAssignmentTarget` exception → **observed** `WPROBE[writeSelf-mutant] REFUSED … escapes at 'self' (member read '.count')`, i.e. ordinary field-writing OO stops renaming. The same mutation on `local t = {}` ; `t.count = 0` ; `function t:<caret>m() end` ; `t:m()` gives `WPROBE[writeOther-mutant] REFUSED … escapes at 't' (member read '.count')`, against `WPROBE[writeOther-correct] RENAMED` |
-| 27 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `print(t["m"])` | rename to `n` | refused, byte-identical, `The receiver's value escapes at 't' (bracket index step)` | delete design §3.3's bracket escape, leaving the first index step's `nameRef?.text` compared against the member name → **observed** `PROBE[F1-reviewed] RENAMED` with `print(t["m"])` left on the old name, because `LuaIndexExpr.getNameRef()` is null for a bracket step and `null == "m"` is false. Shape measured on the same fixture: `CLASSIFY[F1] ref='t' var='t["m"]' suffixes=1 callStep=false firstIndexNameRef=null firstIndexExpr="m"` |
-| 28 | `REFACT-09-03` | case 25's fixture with `t.a(other)` replaced by `local f = t.a` ; `f(other)` | rename to `n` | refused, byte-identical, `escapes at 't' (member read '.a')` | same mutation as case 25 → **observed** `PROBE[F2b-reviewed] RENAMED`. This row exists to falsify a *narrower* rule as well as the absent one: an escape keyed on "the `var` is a suffixed call head" leaves this fixture accepting, because `local f = t.a` is not a call head. The escape is on obtaining the value, not on the call shape |
-| 29 | `REFACT-09-03` | `local t = {}` ; `t[1] = 0` ; `function t:<caret>m() end` ; `t:m()` | rename to `n` | refused, byte-identical, `escapes at 't' (bracket index step)` | as case 27. This row is the **cost** of case 27's decision rather than its benefit: an array-style write beside a method table refuses a rename that is in fact safe. Measured: `WPROBE[arrayWrite] REFUSED … escapes at 't' (bracket index step)`. Kept as a test so the over-refusal is a pinned, visible property rather than a surprise — `risks-and-gaps.md` Gap 2.6 |
-| 30 | `REFACT-09-03` | `local C = {}` ; `function C:a() self:<caret>m() end` ; `function repeat() end` ; `function C:m() end` | rename to `n` | refused, byte-identical, and **no internal-error balloon** — design §3.8's traversal finds no matching `LuaFuncName`, the substitution returns null and `resolvedDeclarationLeaf` refuses | revert design §3.8's traversal to `findChildrenOfType(file, LuaFuncDecl::class.java)` reading `candidate.funcName` → **observed** `B1[b1broken] specifiedGetterForm=THREW TestLoggerAssertionError` against `fixedNodeForm=ok(null)` on this fixture, whose shape is `decl1 hasFuncNameNode=false`. The well-formed control agrees under both forms — `B1[b1control] specifiedGetterForm=ok(function C:m() end)` and `fixedNodeForm=ok(function C:m() end)` — so the mutation is reachable from **this** row's fixture and from no other |
-| 31 | `REFACT-09-03` | `---@class T` ; `---@field m fun()` ; `local t = {}` ; `function t:<caret>m() end` ; `t:m()` | rename to `n` | `function t:n()` and `t:n()`, and `---@field m fun()` is **left on the old name** — the residual of Out of Scope's `---@field` bullet, pinned so it is visible rather than discovered | this row asserts a **known gap**, so its falsifier is the opposite direction: make the scan refuse on any `LuaCatsFieldTag` naming the member → this row goes red (REFUSED) while requirements case 1, which has no `---@` tag, stays green. Measured shape: `N5 fieldTags=1 fieldTagIsALuaNameRef=false verdict=ACCEPTED` |
+| 1 | `REFACT-09-01` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `t:m()` | rename to `n` | all three sites read `n` | **(executed)** restore the `METHOD_FUNCTION → refuse` clause of `substituteElementToRename` → the rename is refused and the file is byte-identical. The positive outcome is DR-02 `R09PROBE[R01] RENAMED \| local t = {} / function t:n() end / t:n() / t:n()` |
+| 2 | `REFACT-09-02` | `local t = {}` ; `function t:m() end` ; `t:<caret>m()` ; `t:m()` | rename to `n` | all three sites read `n` | **(executed)** as row 1 → `LuaColonCallRenameRefusalTest.renamingAColonCallSiteIsRefusedInsteadOfRetargetingASameNamedLocal` is the existing gate for the refusal this replaces; the positive outcome is `R09PROBE[R02] RENAMED \| local t = {} / function t:n() end / t:n() / t:n()` |
+| 3 | `REFACT-09-01` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local q = {}` ; `function q:m() end` ; `q:m()` | rename to `n` | `t`'s two sites read `n`; `function q:m()` and `q:m()` are **untouched**, and no conflict is reported | **(executed)** dismiss an occurrence only when it is in the usage set, dropping design §3.4's *resolves-elsewhere* clause → `q:m()` becomes an undecided occurrence and the rename reports a conflict that does not exist. Positive outcome: `R09PROBE[R06] RENAMED \| … function t:n() end / t:n() / local q = {} / function q:m() end / q:m()`; predicate verdict `R09PRED[c04] verdict=accepted` |
+| 4 | `REFACT-09-01` | `---@class Builder` ; `local Builder = {}` ; `function Builder:<caret>setName(x) end` ; `local b = Builder` ; `b:setName("x")` | rename to `withName` | both sites read `withName` | **(executed)** as row 1. Positive outcome `R09PROBE[R07] RENAMED \| … function Builder:withName(x) end / local b = Builder / b:withName("x")`; predicate `R09PRED[c11] verdict=accepted` |
+| 5 | `REFACT-09-01`, `REFACT-09-07` | `local t = {}` ; `function t:<caret>m() end` | rename to `n` | `function t:n() end`; no conflict | **(executed)** predicate `R09PRED[c10] verdict=acceptedNoCallSites`; rename `R09PROBE[R14] RENAMED`. Falsifier: make design §3.4 refuse an empty usage set → this row reports a conflict while row 1 stays green |
+| 6 | `REFACT-09-03` | `local C = {}` ; `function C:<caret>m() end` ; `function C:a() self:m() end` ; `C:m()` | rename to `n` | a conflict is reported for the `self:m()` occurrence on line 3; no file is written unless it is acknowledged | **(executed)** delete design §3.3's `LuaMethodExpr` occurrence row → `R09PROBE[R05] RENAMED \| local C = {} / function C:n() end / function C:a() self:m() end / C:n()`, the half-rename. With the row present, `R09PRED[c02] verdict=undecidedColonCall` |
+| 7 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `print(t.m)` | rename to `n` | a conflict is reported for the `.m` occurrence on line 4 | **(executed)** delete design §3.3's `LuaIndexExpr` row → `R09PROBE[R08] RENAMED \| … function t:n() end / t:n() / print(t.m)`. With the row present, `R09PRED[c03] verdict=dottedSpelling` |
+| 8 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `function t.m() end` ; `t:m()` | rename to `n` | a conflict is reported for the `function t.m()` declaration | **(executed)** delete design §3.3's `LuaFuncNameProperty` row → the dotted declaration is not seen and the rename completes silently. With the row present, `R09PRED[c14] verdict=dottedSpelling`. Row 7 does **not** reach this clause: `t.m` in an expression is a `LuaIndexExpr`, `function t.m()` is a `LuaFuncNameProperty`, and `funcNameProperty`/`indexExpr` are different rules ([lua.bnf:165, :301](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/lua.bnf)) |
+| 9 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `print(t["m"])` | rename to `n` | a conflict is reported for the bracket occurrence | **(executed)** delete design §3.3's bracket row → the rename completes and leaves `t["m"]` on the old name. With the row present, `R09PRED[c08] verdict=bracketSpelling` |
+| 10 | `REFACT-09-03` | `Obj = {}` ; `function Obj:<caret>m() end` ; `Obj:m()`, plus `b.lua` = `Obj:m()` | rename to `n` | a conflict is reported for `b.lua`'s occurrence; declining leaves both files byte-identical | **(executed)** scan only the declaring file instead of the refactoring scope (design §3.3 step 1) → `R09PROBE[R10] RENAMED` in the caret's file with `b.lua` still `Obj:m()`. With the project scan, `R09PRED[c05] verdict=undecidedColonCall` |
+| 11 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()`, plus `b.lua` = `local function f(x) x:m() end` ; `f(nil)` | rename to `n` | a conflict is reported for `b.lua`'s `x:m()` | **(executed)** as row 10 → `R09PROBE[R09] RENAMED`, `b.lua` still `local function f(x) x:m() end`. With the project scan, `R09PRED[c06] verdict=undecidedColonCall` |
+| 12 | `REFACT-09-10` | `a.lua` and `b.lua` each = `local t = {}` ; `function t:m() end` ; `t:m()`, caret in `a.lua` | rename to `n` | `a.lua` renames, `b.lua` is **untouched**, and **no** conflict is reported | **(executed)** keep `ambiguousGlobal` (C4) in the rule set for this kind → `R09PROBE[R11] THREW ConflictsInTestsException: 't:m' is declared in 2 places; while more than one declaration exists its usages do not resolve, so they will not be rewritten` — a conflict whose premise [[NAV-13]] falsified. Predicate: `R09PRED[c07] verdict=accepted` |
+| 13 | `REFACT-09-04` | `local C = {}` ; `function C:m() end` ; `function C:a() se<caret>lf:m() end` ; `C:m()` | rename to `n` **through `myFixture.renameElementAtCaret`**, which passes the fixture editor (`CodeInsightTestFixtureImpl.java:1104`) | refused, file byte-identical, message names `self` | **(executed)** delete design §3.6's caret guard → `R09PROBE[R04] RENAMED \| local C = {} / function C:m() end / function C:n() self:m() end / C:m()` — the **enclosing** method renamed, because `LuaScopeProcessor` resolves `self` to `funcName.funcNameMethod.nameRef.identifier` ([LuaScopeProcessor.kt:87-92](../../../../src/main/kotlin/net/internetisalie/lunar/lang/LuaScopeProcessor.kt)) |
+| 14 | `REFACT-09-05` | `local f = io.open("x")` ; `f:<caret>write("y")` | rename to `emit` | refused, file byte-identical, message names `io.lua` | **(executed)** delete design §3.6's out-of-project refusal → the substitution returns a leaf inside `lunar-<version>.jar!/runtime/standard/lua-5.4/io.lua`, measured `R09PRED[j01] resolved=write … writable=false`, and `myFixture.renameElementAtCaret` fails with `AssertionError: element not found in file` rather than refusing. The discriminator is `GlobalSearchScope.projectScope(project).contains(virtualFile)`, executed: `R09SCOPE projectScopeContainsStub=false projectScopeContainsOwnFile=true` |
+| 15 | `REFACT-09-06` | `local t = {}` ; `function t:m() end` ; `<caret>t:m()` | rename to `renamedTable` | `local renamedTable = {}` and `renamedTable:m()`; `m` untouched | broaden design §3.6's `kind == METHOD_FUNCTION` guard to every kind → the `LOCAL_VARIABLE` rename is routed through the colon path, whose occurrence scan is keyed on the *method* name and reports the receiver's sites as undecided. `LuaColonCallUsageWithdrawalTest` (NAV-13 case 26b) is the existing gate for the receiver half; see `risks-and-gaps.md` Gap 2.1 and [[BUG-476]] for the pre-existing receiver-segment defect this row sits beside |
+| 16 | `REFACT-09-07` | row 1's fixture | rename to `n`, then `UndoManager.getInstance(project).undo(editor as? TextEditor)` — the idiom `LuaRenameUndoTest.undoAfterRenameRestoresTheDocument` already uses ([LuaRenameUndoTest.kt:43-49](../../../../src/test/kotlin/net/internetisalie/lunar/refactoring/LuaRenameUndoTest.kt)) | the file returns to its original text in one undo | inherited from `LuaRenameProcessor.renameElement`'s single non-cancelable section (REFACT-01 design §3.3); `LuaRenameUndoTest` is the existing gate for the mechanism and this row extends it to the colon form |
+| 17 | `REFACT-09-08` | `local t = {}` ; `function t:<caret>m() end` ; `function t:n() end` ; `t:m()` ; `t:n()` | rename to `n` | a conflict is reported: the receiver already has a member named `n` | **(executed)** `R09F[local] MECHANISM receiverAlreadyHasNewName=true` on this fixture, and `R09F[localNegative] … =false` on the same fixture without `function t:n()` (`risks-and-gaps.md` DR-05). Mutation: drop design §3.7's union-arm loop → row 17a stays green and **row 17b reddens**, because an annotated receiver types as `{ … } \| Builder` whose anonymous arm has no `withName` (`R09E[annotated] plain=false unionAware=true`). Second mutation: key §3.7 on `funcName.nameRef` instead of the usage's receiver → **every** row 17x reddens, `R09C[…] M1declSideValueType type='unknown'` |
+| 17a | `REFACT-09-08` | `Obj = {}` ; `function Obj:<caret>m() end` ; `function Obj:n() end` ; `Obj:m()` | rename to `n` | the same conflict is reported for a global receiver | **(executed)** `R09F[global] … =true`; and the rule must **not** be `globalNameTaken`: row 12's fixture is the falsifier for that arm |
+| 17b | `REFACT-09-08` | `---@class Builder` ; `local Builder = {}` ; `function Builder:<caret>setName(x) end` ; `function Builder:withName(x) end` ; `Builder:setName("x")` | rename to `withName` | the conflict is reported for an annotated receiver | **(executed)** `R09F[annotated] … =true`, against `R09F[annotatedNegative] … =false` on the same fixture without `function Builder:withName` |
+| 17c | `REFACT-09-08` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local u = { n = 1 }` | rename to `n` | **no** conflict — another table's member is not this receiver's | **(executed)** `R09F[fieldKeyOther] … =false`, against `R09F[fieldKey] … =true` on `local t = { n = 1 }` ; `function t:m() end` ; `t:m()`. Mutation: ask the *file* for a member named `n` instead of the usage's receiver type → this row reddens while 17 stays green |
+| 17d | `REFACT-09-08` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `do local t = {} ; function t:n() end ; t:n() end` | rename to `n` | **no** conflict — the shadowing `t` is a different receiver | **(executed)** `R09F[shadowed] … =false`. This row is what a receiver-*text* rule (the removed `globalNameTaken`) gets wrong |
+| 18 | `REFACT-09-10` | `local n = 1` ; `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `print(n)` | rename to `n` | the rename applies; **no** capture conflict is reported | let `captures` (C1) run for `METHOD_FUNCTION` → `visibleDeclarationOf("n", <the t:m() site>)` finds the visible `local n` and reports a capture that cannot happen, because a member name is not a lexical binding |
+| 19 | `REFACT-09-10` | `local M = {}` ; `function M.<caret>run() end` ; `M.run()` | rename to `n` | `function M.n()` and `M.n()` — the dotted form is unchanged by this feature | this row asserts an unchanged route; `LuaRenameTest`'s BUG-465 cases are its gate |
+| 20 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local k = 'm'` ; `print(t[k])` | rename to `n` | the rename applies with **no** conflict — a dynamically indexed member is not decided and does not block | **(executed)** `R09PRED[c13] verdict=accepted`. This row is the **cost** of the Out-of-Scope decision rather than its benefit, pinned so the residual is visible rather than discovered; `risks-and-gaps.md` Gap 2.2. Falsifier in the other direction: make design §3.3 treat any bracket step as an occurrence → this row reports a conflict while row 1 stays green |
+| 21 | `REFACT-09-03` | `local M = {}` ; `function M:<caret>m() end` ; `M:m()` ; `return M` | rename to `n` | the rename applies with no conflict — nothing in the project names `m` undecidedly | **(executed)** `R09PRED[c12] verdict=accepted`. The row exists because the superseded plan **refused** this shape as an escaping receiver; it is accepted now, and `risks-and-gaps.md` Gap 2.4 states the residual (a consumer outside the project) |
+| 22 | `REFACT-09-09` | — | `LuaBundle.getMessage("refactoring.rename.colonMethod")` | the key is absent | delete only the call site and keep the key → the key survives with no renderer, and `LuaRenameTest`'s replaced assertions still pass against a string no code produces |
+| 23 | `REFACT-09-03` | `local t = { m = 1 }` ; `function t:<caret>m() end` ; `t:m()` | rename to `n` | a conflict is reported for the constructor key on line 1 | **(executed)** with design §3.3's field row: `R09B[fieldKeyOnSameTable] usages=1 OLD=[] NEW=[FIELD@12(inUsages=false)]`. **Mutation** — delete `fieldOccurrences` from `undecidedIn` → this row reports nothing and the rename completes silently, which is the [[BUG-457]] class arriving on the receiver's own table |
+| 24 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local u = { m = 1 }` | rename to `n` | a conflict is reported for `u`'s key | **(executed)** `R09B[fieldKeyOtherTable] OLD=[] NEW=[FIELD@50…]`. The scan does not ask whose table it is — the same rule that reports `print(u.m)` in row 7's shape (`R09B[dottedUnrelatedReceiver] OLD=[DOTTED@59] NEW=[DOTTED@59]`), applied to the spelling row 21 introduces. **Mutation**: as row 23 |
+| 25 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local u = { ["m"] = 1 }` | rename to `n` | a conflict is reported for the bracketed key | **(executed)** `R09B[bracketKeyInConstructor] OLD=[] NEW=[FIELD@50…]`. **Mutation** — make `fieldKeyName` read only `field.identifier` → this row reports nothing while rows 23 and 24 stay green |
+| 26 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local m = 1` ; `local u = { m }` , and separately `local u = { mm = 1, [k] = 2, 3 }` | rename to `n` | **no** conflict for either — a positional value, a computed key and a different name are not member spellings | **(executed)** `R09B[controlPositionalValue] OLD=[] NEW=[]` and `R09B[controlOtherFieldName] OLD=[] NEW=[]`. **Mutation** — treat every `LuaField` as an occurrence → these rows report a conflict while row 1 stays green. This is the row that stops the field clause from becoming the bracket clause's mistake |
+| 27 | `REFACT-09-03` | `local t = {}` ; `function t:<caret>m() end` ; `function t:m() end` ; `t:m()` | rename to `n` | the first declaration and `t:m()` read `n`; the **second** `function t:m()` is untouched and **no** conflict is reported | **(executed)** `R09H[localRedef] decl#0@24 usages=[LuaNameRefImpl@53]`, `decl#1@43 usages=[]`, `callSite@53 resolvesTo=24` (`risks-and-gaps.md` DR-06). This row is the **cost** of excluding `LuaFuncNameMethod` from the occurrence set — the exclusion rows 3 and 12 require — pinned so the residual is visible rather than discovered. Falsifier in the other direction: add a `LuaFuncNameMethod` branch to design §3.3's `when` → this row reports a conflict, **and rows 3 and 12 redden with it** |
+| 28 | `REFACT-09-03` | `undecidedOccurrences` driven directly with a usage set containing a colon occurrence that `LuaColonCallResolution.declarationLeafOf` does **not** bind — the `self:m()` occurrence of row 6's fixture, passed in by the test | call `undecidedOccurrences(target, usages)` | that occurrence is **not** reported | **mutation** — delete design §3.4's `if (nameRef in usages) return null` → this row reports it. The clause has no *fixture-level* falsifier: over 14 116 corpus and 2 446 substitute colon call sites, no occurrence was ever in the usage set while failing to resolve (`R09R[<tree>] clauseAliveDecls project=0 all=0`), so the falsifier is the synthetic usage set this row constructs |
+| 29 | `REFACT-09-08` | `local t = {}` ; `function t:<caret>m() end` ; `function t:n() end` | rename to `n` | the rename applies with **no** conflict — with no bound call site there is no receiver handle | **(executed)** `R09F[noCallSites] usages=[] MECHANISM receiverAlreadyHasNewName=false`. As row 20, this row is the **cost** of the mechanism rather than its benefit; `risks-and-gaps.md` Gap 2.8 states it and names what would close it. Falsifier in the other direction: fall back to the first `local <receiver>` in the file → row 17d reddens, because the fallback picks the wrong `t` |
 
 ## Acceptance Criteria
 
-- [ ] [[TYPE-13]] is `done` — satisfied at `0bccadae`.
-- [ ] `REFACT-09-00-DR-02` has run and its result is recorded above and in `risks-and-gaps.md`.
-- [ ] Every `M` requirement has an executed test with a named, reachable mutation.
-- [ ] The three shapes `REFACT-01-00-DR-03` measured half-renaming are each covered: the **plain
-      local table** by a correct rename (row 1), the **global table** by a refusal (row 6), and
-      **`setmetatable` OO** by a refusal (row 8).
+- [ ] [[NAV-13]] is `done` — satisfied at `1afdfdca`.
+- [ ] Every `REFACT-09-00-DR-*` action listed under De-risking has run and its result is recorded in
+      `risks-and-gaps.md`.
+- [ ] Every `M` requirement has a test with a named, reachable mutation, and every mutation has been
+      executed against the shipped code.
+- [ ] Every half-rename the Overview transcribes is covered by a conflict-reporting row: the
+      `self:` call by row 6, the dotted spelling by row 7, the cross-file global by row 10 and the
+      parameter receiver in another file by row 11.
+- [ ] Every value of `LuaColonMethodRename.Spelling` has a reporting row (`COLON_CALL` row 6,
+      `DOTTED` rows 7 and 8, `BRACKET` row 9, `FIELD_KEY` rows 23-25) **and** a non-reporting control
+      that the same clause must not fire on (rows 3, 19, 20 and 26).
+- [ ] Every member spelling `design.md` §3.3's `lua.bnf` table marks "yes" is either an occurrence
+      with a row, or is named Out of Scope with a row pinning what it costs.
 - [ ] `refactoring.rename.colonMethod` is removed from `LuaBundle.properties` together with its one
-      call site, and `design.md` §7.2 records the messages that replace it.
-- [ ] The full unit suite is green. Measured with a throwaway prototype of `design.md` §2-§4
-      applied to `128ba091` (`test --rerun --no-build-cache`): **2 failures, 0 errors**, and they are
-      exactly `LuaRenameTest.testColonMethodDeclarationIsRefused` and
-      `testSelfInsideAMethodIsRefusedAsTheMethod`. Both assert the replaced message, both still
-      refuse, and both refuse for the same executed reason — their fixture's receiver is a
-      **global**, so `design.md` §3.2 clause R1 declines it:
-      `the refusal must name its own reason, not merely abort: Cannot perform refactoring. The
-      receiver 'Obj' is not a file-local table, so call sites in other files cannot be found.`
-      `implementation-plan.md` Phase 4 rewrites both. No total-test count is recorded here: the
-      number counts the prototype's own throwaway test methods and so cannot be reproduced from a
-      clean tree.
+      call site, and `design.md` §7.2 records the keys that replace it.
+- [ ] `LuaRenameTest.testColonMethodDeclarationIsRefused` and
+      `testSelfInsideAMethodIsRefusedAsTheMethod` are rewritten by `implementation-plan.md` Phase 4;
+      both assert the fragment `function Obj:method()`, which no longer exists.
+- [ ] The full unit suite is green, run as `test --rerun --no-build-cache`.
+- [ ] The corpus lane is green: `test -PwithCorpus --rerun --no-build-cache` reports no
+      `Corpus regression:` line.
 - [ ] `REFACT-01-08` is updated to `Full` only once this ships.
 
 ## Non-Functional Requirements
 
-- **Threading.** Every clause of the predicate is a PSI read plus one `LuaTypesSnapshot.forFile`
-  per file, and runs where the platform already puts it:
-  `substituteElementToRename` on the EDT before the refactoring starts, `findReferences` and
-  `findCollisions` inside `BaseRefactoringProcessor`'s background read action. The write path is
-  `LuaRenameProcessor.renameElement`, unchanged. No `Project`, `Editor`, `PsiFile` or `VirtualFile`
-  is retained; `Plan` holds PSI for the duration of one call.
-- **Cost.** The predicate is bounded by the declaring **file**: two `PsiTreeUtil.findChildrenOfType`
-  passes over it and at most one `LuaTypesSnapshot.forFile`, which is `CachedValuesManager`-cached
-  ([LuaTypes.kt:280-286](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypes.kt)).
-  No index read and no project-wide scan. It runs once per rename, never on the typing path.
+- **Threading.** `substituteElementToRename` runs on the EDT and performs only O(1) reads there:
+  `PsiUtilBase.getElementAtCaret`, a `LuaDeclarationSite` classification and one
+  `GlobalSearchScope.contains`. The completeness scan runs in `findCollisions`, inside
+  `BaseRefactoringProcessor`'s background read action — never the EDT, which is the constraint
+  `LuaRenameConflictDetector`'s own KDoc states
+  ([:76-77](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameConflictDetector.kt)).
+  The write path (`renameElement`) is unchanged. No `Project`, `Editor`, `PsiFile` or `VirtualFile`
+  is retained.
+- **Cancellation.** The scan is the most expensive rule in `findCollisions` and obeys that object's
+  standing invariant: `ProgressManager.checkCanceled()` is the first statement of every iteration
+  block — per candidate file and per occurrence — because both loops resolve.
+- **Cost.** One `CacheManager.getFilesWithWord` read plus, per candidate occurrence, one
+  `LuaColonCallResolution.declarationLeafOf`, plus — for `REFACT-09-08` — one
+  `LuaTypesSnapshot.forFile` and one member lookup per usage, short-circuited on the first hit. No second `ReferencesSearch`: the usage set arrives as
+  `findCollisions`' `result` argument. Measured per rename (`risks-and-gaps.md` DR-03): p50 23 ms,
+  p90 135 ms, p99 525 ms on ZeroBrane (325 files, 572 declarations); p50 14 ms, p99 1 466 ms,
+  max 9 957 ms on the annotated substitute (195 files). It runs once per rename, never on the
+  typing path.
 
 ## De-risking
 
 | ID | Question | Blocks | Status |
 |----|----------|--------|--------|
-| `REFACT-09-00-DR-02` | What does a **complete** usage set mean operationally for a colon method, and can it be computed without a whole-project scan? | the refusal predicate | **done — see "Overview" and `risks-and-gaps.md` DR-02.** Adopted from `TYPE-13-00-DR-02`, which named [[REFACT-09]] as its owner. |
+| `REFACT-09-00-DR-01` | With [[NAV-13]] shipped, how many colon-method declarations can be renamed **completely**, on the pinned corpus and on the annotated substitute, and what blocks the rest? | the whole feature | **done — `risks-and-gaps.md` DR-01** |
+| `REFACT-09-00-DR-02` | What does the *unchanged* rename machinery do for a colon method once the blanket refusal is lifted — which hooks already work, and which produce a half-rename or a false conflict? | design §2, §5 | **done — `risks-and-gaps.md` DR-02** |
+| `REFACT-09-00-DR-03` | Does the completeness predicate decide the fixtures in both directions, and what does it cost? | the report-don't-refuse decision; design §3, §6 | **done — `risks-and-gaps.md` DR-03** |
+| `REFACT-09-00-DR-04` | Can a colon call resolve to a declaration this project must not rewrite? | `REFACT-09-05`, design §3.6 | **done — `risks-and-gaps.md` DR-04** |
+| `REFACT-09-00-DR-05` | Which handle answers "does this receiver already have a member called *n*", and in which receiver shapes does it answer at all? | `REFACT-09-08`, design §3.7, §9 Alternative F | **done — `risks-and-gaps.md` DR-05** |
+| `REFACT-09-00-DR-06` | What does the machinery do with a second `function t:m()` on the same receiver — which declaration do its call sites bind to? | the `funcNameMethod` exclusion, design §3.3, §6; row 27 | **done — `risks-and-gaps.md` DR-06** |
 
 ## Dependencies
 
-- **[[TYPE-13]]** supplies `LuaMemberDeclarations.declarationOf`, which is `public` for this feature.
-- Extends `LuaRenameProcessor` and `LuaRenameConflictDetector` (REFACT-01). It does **not** extend
-  `LuaTargetElementEvaluator.adjustTargetElement`: test case 2's mutation measured the call-site
-  caret to be carried by `substituteElementToRename`'s new branch and by nothing else — removing
-  that branch refuses the call-site caret while the declaration caret still renames, with
-  `adjustTargetElement` untouched throughout. `design.md` §1 records it.
+- **[[NAV-13]]** supplies the usage set (`LuaColonCallResolution`, `LuaNameReference.multiResolve`'s
+  colon branch) and `LuaColonCallResolution.declarationLeafOf`, which the occurrence scan calls
+  directly.
+- **[[TYPE-13]]** supplies `LuaMemberDeclarations.declarationOf`, used through [[NAV-13]].
+- Extends `LuaRenameProcessor` and `LuaRenameConflictDetector` (REFACT-01). It does **not** touch
+  `LuaTargetElementEvaluator`, `LuaInplaceRenameHandler`, `LuaNameReferenceSearcher` or
+  `LuaRenameProcessor.findReferences`.
