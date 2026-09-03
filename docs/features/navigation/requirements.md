@@ -27,6 +27,7 @@ Lunar provides powerful tools to explore and navigate the Lua codebase.
 | [`NAV-10`](10-access-detector/requirements.md) | **Access Detector** | **S** | Detect and highlight variable access patterns (read vs. write) for semantic analysis. |
 | [`NAV-11`](11-bindings-caching/requirements.md) | ~~**Bindings Caching**~~ (Retired) | **—** | **Retired** — premise removed by MAINT-04 (lazy `PsiScopeProcessor`/`PsiReference` resolution replaced the cached `LuaBindingsVisitor`). See [`11-bindings-caching.md`](11-bindings-caching/requirements.md). |
 | [`NAV-12`](12-member-field-resolution/requirements.md) | **Member Field Resolution** | **M** | Resolve dotted member-field accesses (`receiver.field`) to their declaration and quick documentation via a qualified-name field index. Completes `NAV-01-03`. |
+| [`NAV-13`](13-colon-call-resolution/requirements.md) | **Colon Call Site Resolution** | **M** | Resolve a colon call `obj:m()` to the `function Obj:m()` that declares it, through the receiver's inferred type, so Find Usages returns a usage set. Completes `NAV-12`'s stated Non-Goal for the colon form and unblocks `REFACT-09`. |
 
 ---
 
