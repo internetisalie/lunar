@@ -230,58 +230,46 @@ start of the line, so `2:12` is the `m` of `function t:m()`.
 | Check | Result | Notes |
 | :-- | :-- | :-- |
 | HV-1 Go to Declaration | **PASS** | Caret `3:4` (the `m` of `t:m()`) → <kbd>Ctrl+B</kbd> → **`2:12`** — the method name, not the `function` keyword (col 1) and not the receiver `t` (col 10) |
-| HV-2 Find Usages | **PASS in substance, from the call site** | Invoked at `t:m()`: header **"Global function → m"**, **1 result**, `hv1.lua` line **3**, `t:m()`; the declaration line is not listed. **But invoking it at the declaration leaf itself does nothing** — no tool window, no error hint — where a global function in the same session showed "2 results". See the defect note below |
+| HV-2 Find Usages | **PASS in substance, from the call site** | Invoked at `t:m()`: header **"Global function → m"**, **1 result**, `hv1.lua` line **3**, `t:m()`; the declaration line is not listed. Invoking it at the **declaration** is refused with the standard *"Cannot search for usages from this location"* hint — the pre-existing `PsiNameIdentifierOwner` limitation for Lua declarations, not something this feature changed |
 | HV-3 Two receivers | **PASS** | `t:m()` → `2:12`; `u:m()` → `4:12`. The two same-named methods do not merge |
 | HV-4 Annotated, cross-file | **PASS** | <kbd>Ctrl+B</kbd> on `b:setName("x")` in `hv4use.lua` opened **`hv4cls.lua` at `3:18`** — the start of `setName` in `function Builder:setName(n) end` |
 | HV-5 Refusals | **PASS (chain, suffix); self and cross-file-global rows not run** | Each refusal was driven **with a positive control on the same line of the same file**, so "nothing happened" is a refusal and not a dead keystroke. Chain: `go` at `6:11` → unchanged, **no jump to `function A:go()`**; control `next` at `6:4` → `5:12`. Suffix: `a.b:m()`'s `m` at `5:6` → unchanged, **no jump to `function a:m()`**; control, the receiver `a` → `1:7` |
 | HV-6 Lexical name not offered | **PASS, both halves** | In one file: `t:m()`'s `m` (`4:4`) → **`2:12`** (the method); `print(m)`'s `m` (`5:8`) → **`3:7`** (`local m = 1`). The withdrawal and the intact lexical route, side by side |
 | HV-7 No balloon, no lag | **PASS (exception half); lag half not run** | Zero occurrences of `LuaColonCallResolution`, `notNullChild` or `TestLoggerAssertionError` in `idea.log`, and no `ERROR`/`SEVERE` beyond platform noise (`CefApp`, `go-linter`, the version banner), across every step above. The ten-second typing test in a corpus file was not driven |
-| HV-8 Consumer-visible changes | **PASS on 1, 2, 3, 5, 6; step 4 blocked by a pre-existing defect** | **1-2**: the Problems panel lists `Deprecated API: Use the method instead` at **`:4`** and **`:6`** only — **nothing at line 5**, the `t:m()` call site, where the pre-feature build raised a third. **3**: <kbd>Shift+F6</kbd> at the call site gives *"Cannot perform refactoring. Renaming a 'function Obj:method()' declaration is not supported yet…"* — the `METHOD_FUNCTION` refusal, **not** an inline template. **5**: <kbd>Ctrl+H</kbd> at the call site declines; control on `local m = {}` opens the Hierarchy window on class `m`. **6**: `t:print( alpha: 1, beta: 2)` — both parameter-name inlays render. **4**: see the defect note below |
+| HV-8 Consumer-visible changes | **PASS on 1, 2, 3, 4, 5, 6** | **1-2**: the Problems panel lists `Deprecated API: Use the method instead` at **`:4`** and **`:6`** only — **nothing at line 5**, the `t:m()` call site, where the pre-feature build raised a third. **3**: <kbd>Shift+F6</kbd> at the call site gives *"Cannot perform refactoring. Renaming a 'function Obj:method()' declaration is not supported yet…"* — the `METHOD_FUNCTION` refusal, **not** an inline template. **5**: <kbd>Ctrl+H</kbd> at the call site declines; control on `local m = {}` opens the Hierarchy window on class `m`. **6**: `t:print( alpha: 1, beta: 2)` — both parameter-name inlays render. **4**: <kbd>Ctrl+Q</kbd> at the call site shows a struck-through `function t:m() : any` above a red **⚠ Deprecated: gone** |
 | HV-9 Mirror direction | **PASS on 3, 5, 7; steps 2, 4 blocked, 6 not run** | **3**: rename `local m = 1` → `local count : number = 1` with **`t:m()` untouched** (pre-feature it became `t:count()`). **5**: Lunar reports **"Unused local variable 'm'"** on `local m = 1`, LuaCheck independently agreeing `(W211)`. **7**: `local box = {}` / `function m:m() end` / **`box:m()`** — the receiver rewritten, the method name not (pre-feature: `box:box()`). **2 and 4** drive Find Usages and Safe Delete *at a declaration*, which the defect below blocks |
 
-### Two defects this run found, both cleared of this feature by controls
+### The two "defects" this run reported were both my own caret placement
 
-**1. Find Usages invoked at a declaration leaf produces nothing, silently.** At the colon-method
-declaration `m` of `function t:m()` it opens no tool window and shows no hint; the previously-open
-results stayed on screen unchanged, so nothing was even dispatched. The same action **from the call
-site** returns the correct single usage, and a **global function** in the same session returned
-"2 results", so the tool window and the driving are both sound. A plain `local t` refuses with a
-visible *"Cannot search for usages from this location"* — the shape `.agents/AGENTS.md` records for
-Lua locals lacking `PsiNameIdentifierOwner`. This is the declaration side of Find Usages generally,
-not something this feature changed: `ReferencesSearch` itself is pinned green by
-`LuaColonCallFindUsagesTest` (cases 7 and 8). It does, however, mean `NAV-13-03`'s *user-visible*
-half is reachable from the call site and not from the declaration, and it is what blocks HV-9
-steps 2 and 4.
+Recorded because the shape is worth more than the outcome: **both were withdrawn after being filed
+as bugs**, and what withdrew them was checking the caret's column instead of trusting a control
+somewhere else in the file.
 
-**2. Quick Documentation renders nothing for a LuaCATS-commented function — pre-existing, and not
-this feature's.** <kbd>Ctrl+Q</kbd> at the `t:m()` call site of HV-8 step 4's fixture reads
-**"No documentation found."** — no signature, no deprecated marker.
+**Quick Documentation was never broken.** The first run read "No documentation found." at a
+`---@deprecated` colon method and at three other LuaCATS shapes, while a plain `--` comment rendered
+— which looked like a clean split between the two comment forms. It was not. Re-driven with the
+caret verified **on** the identifier by its column readout, Quick Doc renders exactly what the source
+predicts: a struck-through `function t:m() : any` above a red **⚠ Deprecated: gone**, at the colon
+call site, and the same for `local function f()`. **HV-8 step 4 passes.**
 
-That is not the rendering of a comment with no prose. `LuaCatsDocumentationRenderer` handles
-`@deprecated` explicitly, wrapping the signature in `<s>`
-([:113-130](../../../../src/main/kotlin/net/internetisalie/lunar/luacats/lang/doc/LuaCatsDocumentationRenderer.kt))
-and emitting a section through `buildDeprecatedSection`
-([:593-600](../../../../src/main/kotlin/net/internetisalie/lunar/luacats/lang/doc/LuaCatsDocumentationRenderer.kt)).
-`"No documentation found."` is what `renderFullDocumentation` returns when its buffer comes back
-**empty** ([:55-73](../../../../src/main/kotlin/net/internetisalie/lunar/lang/doc/LuaDocumentationRenderer.kt)).
+The tell was in a unit probe rather than the IDE: `LuaDocumentationTargetProvider.documentationTargets`
+returns **1 target with documentation** at every declaration offset, and **0 targets** when the
+offset is one character past the identifier — and 0 targets is what the platform renders as "No
+documentation found." Every failing IDE case had been driven with `End` and a Left-count that landed
+one past the name; the single case that "worked" was the one where the arithmetic happened to land
+inside it.
 
-**Driven to a conclusion in a second session, with three controls**, because the first write-up
-absolved this feature on a weak observation and had to withdraw it:
+**Find Usages was never silent.** With the caret verified at `3:12`, <kbd>Alt+F7</kbd> at a
+colon-method declaration shows *"Cannot search for usages from this location."* — the same visible
+refusal a plain Lua local gives, which is the `PsiNameIdentifierOwner` shape `.agents/AGENTS.md`
+already records. The reported "no window, no hint, nothing dispatched" was the same caret error.
 
-| Fixture | Caret | Result |
-| :-- | :-- | :-- |
-| `---@deprecated gone` on `function t:m()` | the `t:m()` call site | "No documentation found." |
-| `---`description + `@param` + `@return` on `function u:add(a)` | the `u:add(1)` call site | "No documentation found." |
-| the same | **the declaration's own `add`** | "No documentation found." |
-| `---@deprecated gone` on a plain `local function f()` | **the declaration's own `f`** | "No documentation found." |
-| **`--` plain comment** on a plain `local function plainadd(a)` | the call site | **renders** — `local function plainadd(a)` above "Adds two numbers together." |
+**What survives**, and it is a genuine limitation rather than a defect: Find Usages on a colon method
+is reachable **from the call site** (HV-2, one correct result) and **not from the declaration**,
+because Lua declarations are not `PsiNameIdentifierOwner`. `ReferencesSearch` itself is correct and
+pinned by `LuaColonCallFindUsagesTest`. That is pre-existing, general to Lua locals, and unchanged by
+this feature.
 
-The last row is the control that makes the rest a finding rather than a broken harness: Quick Doc
-works in this build, and `LuaPlainDocumentationRenderer`'s branch renders both a signature and a
-description. What fails is the **LuaCATS branch** — `renderCommentOwnerDocumentation` returns early
-into `LuaCatsDocumentationRenderer.render` when `element.catsComment` is non-null, and nothing comes
-back. It fails at the declaration as readily as at a call site, for a plain `local function` as
-readily as for a colon method, and with a full `@param`/`@return`/description comment as readily as
-with a bare `@deprecated`. **No part of it involves a colon call site, so NAV-13 neither causes nor
-worsens it**; the `n=0 → n=1` target gain `design.md` §7 measured is real and is not what is
-failing. Filed separately.
+**The method lesson**: a control elsewhere in the file proves the *action* works; it does not prove
+the caret is where you think. For a keyboard-driven IDE probe, read the column back before believing
+any negative result — `2:17` and `2:16` are one keystroke apart and mean opposite things.

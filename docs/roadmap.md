@@ -116,8 +116,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
 | BUG-462 | The package detail card strands its loading placeholders, and its description and dependency regions never render | todo | S | — | — | ✓ |
-| BUG-477 | Quick Documentation renders nothing for a LuaCATS-commented function | todo | S | — | — | ✓ |
-| BUG-478 | Find Usages invoked at a declaration leaf does nothing, silently | todo | C | — | — | ✓ |
 
 ---
 
