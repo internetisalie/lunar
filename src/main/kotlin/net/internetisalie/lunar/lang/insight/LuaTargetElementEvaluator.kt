@@ -8,6 +8,7 @@ import com.intellij.util.ThreeState
 import net.internetisalie.lunar.lang.psi.LuaDeclarationKind
 import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsTypeDeclarations
 
 /**
  * What a Lua caret targets, on the three declaration shapes the platform's own rules get wrong.
@@ -45,7 +46,11 @@ class LuaTargetElementEvaluator : TargetElementEvaluatorEx2() {
 
     /**
      * Supplies the numeric-`for` control variable's own IDENTIFIER leaf, which nothing else at that
-     * caret offers (BUG-469).
+     * caret offers (BUG-469), and a LuaCATS `@class`/`@alias` declaration leaf, which has neither a
+     * reference nor a `PsiNamedElement` parent either (`REFACT-08` design.md §2.8). Both registrations
+     * share `language="Lua"`: a LuaCATS element reports `LuaLanguage` too
+     * ([net.internetisalie.lunar.luacats.lang.lexer.LuaCatsElementType]), so the one evaluator
+     * serves both.
      *
      * `numericForStatement ::= FOR IDENTIFIER '=' ...` (`lua.bnf:152`) wraps the control variable in
      * no [net.internetisalie.lunar.lang.psi.LuaNameRef], so it is the one Lua declaration whose leaf
@@ -65,7 +70,10 @@ class LuaTargetElementEvaluator : TargetElementEvaluatorEx2() {
      * what lets `TargetElementUtilBase.getNamedElement` continue to it.
      */
     override fun getNamedElement(element: PsiElement): PsiElement? =
-        element.takeIf { LuaDeclarationSite.kindOf(it) == LuaDeclarationKind.NUMERIC_FOR_VARIABLE }
+        element.takeIf {
+            LuaDeclarationSite.kindOf(it) == LuaDeclarationKind.NUMERIC_FOR_VARIABLE ||
+                LuaCatsTypeDeclarations.isDeclarationLeaf(it)
+        }
 
     /**
      * Maps a resolved [LuaFuncDecl] down to the IDENTIFIER leaf it declares, so a caret on a

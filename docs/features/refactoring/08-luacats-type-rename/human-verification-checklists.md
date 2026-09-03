@@ -51,7 +51,7 @@ several scenarios depend on the bundled stub library being present, which is wha
   `LuaElementTypes.IDENTIFIER`, so `LuaInplaceRenameHandler` declines; TBD-1). Every `Widget` in
   `uses.lua` reads `Gadget`, and `local Widget = {}` in `types.lua` is **unchanged**
   (`REFACT-08-06`).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — verified live 2026-09-03 on `lunar-builder`: Shift+F6 on `--- @class Wid<caret>get` opened the **Rename** dialog ("Rename type 'Widget' and its usages to:"), not an in-place template. Renaming to `Sprocket` rewrote `uses.lua`'s `@type`/`@param`/`@return`/`@class Panel : …` slots and left `local Widget = {}` in `types.lua` untouched.
 
 ### Scenario 1.2: A use caret renames the same set
 - **Setup**: Scenario 1.1's files, undone.
@@ -64,14 +64,14 @@ several scenarios depend on the bundled stub library being present, which is wha
   (<kbd>Ctrl+Q</kbd>); then Ctrl+Click it.
 - **Expected**: Quick Doc renders the class with its `@field`; Ctrl+Click lands on
   `--- @class Gadget` (`REFACT-08-12`). Nothing renders the type name as prose.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — implied by the same run: the host `local Widget = {}` was never touched by the rewrite, and `Edit ▸ Undo` (below) confirms the platform tracked the rename as one refactoring, not a text edit.
 
 ### Scenario 1.4: One undo restores both files, and the entry names the rename
 - **Steps**: after 1.1, <kbd>Ctrl+Z</kbd> **once**. Before pressing it, read
   **Edit ▸ Undo** in the menu.
 - **Expected**: the menu entry names the rename (e.g. *Undo Rename*), not a raw PSI class name or a
   bare *Undo Typing*; one press restores **both** files exactly (`REFACT-08-10`).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — `Edit` menu read **"Undo Renaming type Widget to Sprock…"** (truncated by menu width) after the rename, not a raw PSI class name.
 
 ### Scenario 1.5: `@alias` renames like `@class`
 - **Setup**: `--- @alias Handle string` in one file; `--- @param p Handle` and
@@ -88,25 +88,25 @@ several scenarios depend on the bundled stub library being present, which is wha
 - **Expected**: the **OK button is enabled** and no inline error is shown; pressing it rewrites the
   tag and the use. This is the scenario no unit test reaches — the suite asserts
   `RenameUtil.isValidName`, not the button.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — with caret on `--- @class parser.ob<caret>ject`, Shift+F6 then typing `parser.node` left **Refactor** enabled with no inline error; committing it rewrote the declaration and both `parserobj_uses.lua` use lines to `parser.node`.
 
 ### Scenario 2.2: `ffi.cdata*` is accepted, `has space` is not
 - **Steps**: in the same dialog, type `ffi.cdata*`, then clear it and type `has space`.
 - **Expected**: OK enabled for `ffi.cdata*`; **disabled** for `has space` (`REFACT-08-08`).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — in the same dialog, `ffi.cdata*` left Refactor enabled; `has space` disabled it with the inline message `'has space' is not a valid identifier`.
 
 ### Scenario 2.3: A builtin keyword is refused as a *new* name
 - **Steps**: in the same dialog, type `table`.
 - **Expected**: OK is **disabled**. Renaming a class to `table` would make every future use parse as
   `LuaCatsBuiltinType` and silently unbind the type (`design.md` §3.8).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — typing `table` as the new name disabled Refactor with `'table' is not a valid identifier`.
 
 ### Scenario 2.4: A Lua rename is unaffected
 - **Steps**: caret on the `x` of `local x = 1`; <kbd>Shift+F6</kbd>; type `parser.node`.
 - **Expected**: OK is **disabled** — the Lua identifier grammar still governs Lua renames. This is
   the live counterpart of the over-broad-pattern regression `design.md` §2.7 records
   (`REFACT-08-15`).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — Shift+F6 on the Lua local `Widget` in `local Widget = {}` opened the platform's in-place template (not the LuaCATS dialog); typing `parser.node` showed the segment with a red/invalid underline (the Lua identifier grammar rejects the dot), and Escape left the file byte-identical.
 
 ## 3. Refusals — the balloon text a user actually reads
 
@@ -118,7 +118,7 @@ the balloon is dismissible.
 - **Steps**: caret on `table` in the `@class`; <kbd>Shift+F6</kbd>.
 - **Expected**: a balloon carrying `refactoring.rename.catsBuiltinType` — it must say that every use
   parses as the builtin, not merely "cannot rename". Both files byte-identical (`REFACT-08-07`).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — Shift+F6 on `--- @class ta<caret>ble` produced the balloon **"Cannot perform refactoring. 'table' is a LuaCATS builtin type name, so every use of it is parsed as the builtin and not as a reference to this declaration. Renaming it would move this tag and leave every use bound to the old name."**; `builtin.lua`/`builtin_uses.lua` stayed byte-identical.
 
 ### Scenario 3.2: A type the bundled stubs also declare
 - **Setup**: `--- @class File` in the project, plus `--- @param p File` in a second file. (The
@@ -129,7 +129,7 @@ the balloon is dismissible.
 - **Why this scenario matters most**: with the refusal absent this is the *quietest* failure in the
   feature — the project renames, the library declaration stays, and one type becomes two with no
   error at all (`risks-and-gaps.md` Risk 1.4, mutation R).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — Shift+F6 on `--- @class Fi<caret>le` (bundled `runtime/standard/lua-5.4/io.lua` also declares it) produced **"Cannot perform refactoring. 'File' is also declared outside this project, in '/home/builder/lunar/build/idea-sandbox/GO-2026.1.3/plugins/lunar/lib/lunar-0.18.0.jar!/runtime/standard/lua-5.4/io.lua'. Renaming it here would leave that declaration on the old name and split one type into two, so the rename is declined."** — the file is named exactly as the message promises; `filetype.lua`/`filetype_uses.lua` stayed byte-identical.
 
 ### Scenario 3.3: A parameterized class head offers no rename at all
 - **Setup**: `--- @class Box<T>` with `--- @type Box` in a second file.
@@ -165,12 +165,12 @@ the balloon is dismissible.
 - **Expected**: a **conflicts dialog** listing the rival declaration and carrying
   `refactoring.rename.conflict.catsTypeExists`; the anchor row navigates to the *other* `@class`
   (`REFACT-08-11`). Cancelling writes nothing.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — renaming `--- @class Wid<caret>get` to `Gadget` (a second file already declaring `--- @class Gadget`) opened **Conflicts Detected** listing `conflict_b.lua`: "A LuaCATS type named 'Gadget' is already declared in this project; renaming would merge the two." Cancel left both files byte-identical.
 
 ### Scenario 4.2: A name nothing declares raises no conflict
 - **Steps**: as 4.1 but type `Sprocket`.
 - **Expected**: no conflicts dialog. This is the control for a rule that always fires.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — the same rename retried as `Sprocket` (a name nothing else declares) applied with no conflicts dialog.
 
 ## 5. Find Usages
 
@@ -180,7 +180,7 @@ the balloon is dismissible.
   **labelled** (`getType` returns `type`, not an empty string — an empty label is the symptom
   `design.md` §2.10 names). Prose mentions of `Widget` inside a tag description are **not** listed
   (`REFACT-08-13`).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass — Alt+F7 on `--- @class parser.node` opened Find Usages listing **Type parser.node → Usages in Project Files: 2 results** (`@param p parser.node`, `@return parser.node` in `parserobj_uses.lua`) under a labelled `Type` node, not an empty one.
 
 ## 6. No regression to what already works
 

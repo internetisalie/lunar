@@ -7,6 +7,7 @@ import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.lang.lexer.LuaLexer
 import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.syntax.LuaSyntax
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsTypeDeclarations
 
 /**
  * Find Usages provider for Lua symbols.
@@ -31,10 +32,17 @@ class LuaFindUsagesProvider : FindUsagesProvider {
      * Returns true when [element] is a declaration site — one rule, shared with Safe Delete,
      * reference search and rename, and owned by [LuaDeclarationSite] (REFACT-01 design §2.1).
      * Before that, this method *was* the rule and three other predicates copied it.
+     *
+     * The `REFACT-08` clause admits a LuaCATS `@class`/`@alias` declaration leaf too —
+     * [LuaDeclarationSite] has no LuaCATS member, so without it Find Usages on a type name offered
+     * no action at all.
      */
-    override fun canFindUsagesFor(element: PsiElement): Boolean = LuaDeclarationSite.kindOf(element) != null
+    override fun canFindUsagesFor(element: PsiElement): Boolean =
+        LuaDeclarationSite.kindOf(element) != null || LuaCatsTypeDeclarations.isDeclarationLeaf(element)
 
-    override fun getType(element: PsiElement): String = LuaDeclarationSite.kindOf(element)?.usageViewType ?: ""
+    override fun getType(element: PsiElement): String =
+        LuaDeclarationSite.kindOf(element)?.usageViewType
+            ?: if (LuaCatsTypeDeclarations.isDeclarationLeaf(element)) "type" else ""
 
     override fun getDescriptiveName(element: PsiElement): String = element.text
 

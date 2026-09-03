@@ -357,6 +357,9 @@
     <psi.referenceContributor
             language="Lua"
             implementation="net.internetisalie.lunar.lang.LuaRequireReferenceContributor"/>
+    <psi.referenceContributor
+            language="Lua"
+            implementation="net.internetisalie.lunar.lang.LuaCatsTypeReferenceContributor"/>
 
     <defaultLiveTemplates file="liveTemplates/lua.xml"/>
     <liveTemplateContext implementation="net.internetisalie.lunar.lang.completion.templates.LuaTemplateContextType"/>
@@ -381,6 +384,8 @@
             implementation="net.internetisalie.lunar.lang.insight.LuaReadWriteAccessDetector"/>
     <referencesSearch
             implementation="net.internetisalie.lunar.lang.insight.LuaNameReferenceSearcher"/>
+    <referencesSearch
+            implementation="net.internetisalie.lunar.lang.insight.LuaCatsTypeReferenceSearcher"/>
     <targetElementEvaluator
             language="Lua"
             implementationClass="net.internetisalie.lunar.lang.insight.LuaTargetElementEvaluator"/>
@@ -393,6 +398,8 @@
             implementation="net.internetisalie.lunar.refactoring.rename.LuaRenameProcessor"/>
     <renamePsiElementProcessor
             implementation="net.internetisalie.lunar.refactoring.rename.LuaLabelRenameProcessor"/>
+    <renamePsiElementProcessor
+            implementation="net.internetisalie.lunar.refactoring.rename.LuaCatsTypeRenameProcessor"/>
     <renameHandler
             implementation="net.internetisalie.lunar.refactoring.rename.LuaInplaceRenameHandler"/>
     <nameSuggestionProvider
@@ -403,6 +410,8 @@
     <lang.namesValidator
             language="Lua"
             implementationClass="net.internetisalie.lunar.refactoring.LuaNamesValidator"/>
+    <renameInputValidator
+            implementation="net.internetisalie.lunar.refactoring.rename.LuaCatsTypeNameInputValidator"/>
 
     <lang.psiStructureViewFactory language="Lua"
                                   implementationClass="net.internetisalie.lunar.lang.structure.LuaStructureViewFactory"/>

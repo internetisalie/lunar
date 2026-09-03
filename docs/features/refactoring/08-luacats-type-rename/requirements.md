@@ -2,7 +2,7 @@
 id: "REFACT-08"
 title: "08: Rename a LuaCATS type name"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "medium"
 parent_id: "REFACT/INTENT"
 folders:
@@ -200,23 +200,23 @@ requirement here is unreachable.
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| `REFACT-08-01` | **Rename from the declaration caret** | M | Not Implemented | Caret on the name in `---@class Widget` or `---@alias Handle string` renames it and every use of it in the project. |
-| `REFACT-08-02` | **Rename from a use caret** | M | Not Implemented | Caret on `Widget` in `---@param p Widget` substitutes to the declaration and does the same. |
-| `REFACT-08-03` | **Every declaration slot moves** | M | Not Implemented | A name declared by more than one `@class` tag (LuaCATS allows re-opening) has every one of its declaration slots rewritten, in every file. |
-| `REFACT-08-04` | **Every use spelling moves, cross-file** | M | Not Implemented | `LuaCatsNamedType`, `LuaCatsTypeParam` and `LuaCatsGenericType` are all rewritten, in every file in the project scope. A `LuaCatsGenericType` that is the **head of a parameterized class declaration** (`---@class Box<T>`) is not a use and is not rewritten; one in any other position — `---@type Box<string>`, `---@class Panel : Box<string>` — is. `REFACT-08-17` states the same exclusion for `LuaCatsTypeParam`, which has two declaration positions of its own. |
-| `REFACT-08-05` | **`@alias` names rename like `@class` names** | M | Not Implemented | The declaration slot differs (`LuaCatsArgName` vs `LuaCatsArgType`); everything downstream is identical. |
-| `REFACT-08-06` | **The Lua-side host declaration is untouched** | M | Not Implemented | Renaming the tag above `local Widget = {}` leaves `local Widget` spelled as it was, and the class resolves under the new name. |
-| `REFACT-08-07` | **A builtin-keyword type name is refused** | M | Not Implemented | Renaming a `---@class table` is declined with a message naming the reason; the file is byte-identical. |
-| `REFACT-08-08` | **The new name is validated against the LuaCATS name grammar** | M | Not Implemented | `parser.node` and `ffi.cdata*` are accepted; `has space` and a builtin keyword are rejected. The Lua identifier grammar still governs Lua renames. |
-| `REFACT-08-09` | **A parameterized class head is refused** | M | Not Implemented | A caret on the head of `---@class Box<T>` is offered no rename target at all, and the file is byte-identical. Unlike `-07` this refusal carries no message: the platform finds nothing to rename before any Lunar code is asked. |
-| `REFACT-08-10` | **Atomic** | M | Not Implemented | The rename is one undoable write action; a refusal writes nothing. |
-| `REFACT-08-11` | **Renaming onto an existing type name is reported** | S | Not Implemented | A conflict is raised through the existing `LuaRenameCollisionUsageInfo` carrier rather than silently merging two types. |
-| `REFACT-08-12` | **Go to Declaration from a use site** | S | Not Implemented | Ctrl+Click on `Widget` in `---@param p Widget` navigates to its `---@class Widget`. |
-| `REFACT-08-13` | **Find Usages on a type name** | S | Not Implemented | Find Usages on a `@class` name lists every use site. |
-| `REFACT-08-14` | **LuaCATS PSI consults the reference registry** | M | Not Implemented | `LuaCatsBaseElement` answers `getReferences()`/`getReference()` from `ReferenceProvidersRegistry`, as `LuaBaseElement` already does. Without it every requirement above is unreachable — measured, not argued. |
-| `REFACT-08-15` | **No regression to the routes that work today** | M | Not Implemented | Lua rename, label rename, Find Usages, Go to Class/Symbol, quick doc, type resolution and the type hierarchy behave exactly as they do at `154f26f3`. |
-| `REFACT-08-17` | **A type-parameter declaration is not a use** | M | Not Implemented | Renaming a project type whose name is also spelled as a type parameter leaves both declaration positions of `LuaCatsTypeParam` alone — the `<T>` of `---@class Box<T>` (`parameterizedName`, `luacats.bnf:201`) and the `T` of `---@generic T` (`genericTypeParam`, `:117`) — and leaves the tags those parameters shadow inside the same `LuaCatsComment` alone with them. A `T` in a comment that declares no type parameter is an ordinary use and is still rewritten. |
-| `REFACT-08-16` | **A type any read-only library also declares is refused** | M | Not Implemented | Resolution sees `GlobalSearchScope.allScope`; the rewrite may write only `GlobalSearchScope.projectScope`. When a declaration slot for the name lies outside the project — a bundled runtime stub, a rock, a fetched definitions tree — the rename is declined with a message naming the file, and nothing is written. `design.md` §3.11 states the rule and what it gives up. |
+| `REFACT-08-01` | **Rename from the declaration caret** | M | Full | Caret on the name in `---@class Widget` or `---@alias Handle string` renames it and every use of it in the project. Delivered Phase 4: `LuaCatsTypeRenameProcessor`, verified by `LuaCatsTypeRenameTest` (TC-1, TC-5, TC-25). |
+| `REFACT-08-02` | **Rename from a use caret** | M | Full | Caret on `Widget` in `---@param p Widget` substitutes to the declaration and does the same. Delivered Phase 4, verified by `LuaCatsTypeRenameTest` (TC-4). |
+| `REFACT-08-03` | **Every declaration slot moves** | M | Full | A name declared by more than one `@class` tag (LuaCATS allows re-opening) has every one of its declaration slots rewritten, in every file. Delivered Phase 4, verified by `LuaCatsTypeRenameTest` (TC-6) and mutation-proved (mutation A). |
+| `REFACT-08-04` | **Every use spelling moves, cross-file** | M | Full | `LuaCatsNamedType`, `LuaCatsTypeParam` and `LuaCatsGenericType` are all rewritten, in every file in the project scope. A `LuaCatsGenericType` that is the **head of a parameterized class declaration** (`---@class Box<T>`) is not a use and is not rewritten; one in any other position — `---@type Box<string>`, `---@class Panel : Box<string>` — is. `REFACT-08-17` states the same exclusion for `LuaCatsTypeParam`, which has two declaration positions of its own. Delivered Phase 4, verified by `LuaCatsTypeRenameTest` (TC-1, TC-21, TC-22, TC-23). |
+| `REFACT-08-05` | **`@alias` names rename like `@class` names** | M | Full | The declaration slot differs (`LuaCatsArgName` vs `LuaCatsArgType`); everything downstream is identical. Delivered Phase 4, verified by `LuaCatsTypeRenameTest` (TC-20). |
+| `REFACT-08-06` | **The Lua-side host declaration is untouched** | M | Full | Renaming the tag above `local Widget = {}` leaves `local Widget` spelled as it was, and the class resolves under the new name. Delivered Phase 4, verified by `LuaCatsTypeRenameTest` (TC-7). |
+| `REFACT-08-07` | **A builtin-keyword type name is refused** | M | Full | Renaming a `---@class table` is declined with a message naming the reason; the file is byte-identical. Delivered Phase 4, verified by `LuaCatsTypeRenameTest` (TC-10, TC-11) and mutation-proved (mutation F, isolated with `integer`, a builtin no bundled stub also declares). |
+| `REFACT-08-08` | **The new name is validated against the LuaCATS name grammar** | M | Full | `parser.node` and `ffi.cdata*` are accepted; `has space` and a builtin keyword are rejected. The Lua identifier grammar still governs Lua renames. Delivered Phase 5: `LuaCatsTypeNameInputValidator`, verified by `LuaCatsTypeNameInputValidatorTest` (TC-8, TC-9) and mutation-proved (mutation E, plus the pattern-narrowing regression pinned in `LuaNamesValidatorTest.testRenameUtilReachesValidatorForLabel`). |
+| `REFACT-08-09` | **A parameterized class head is refused** | M | Full | A caret on the head of `---@class Box<T>` is offered no rename target at all, and the file is byte-identical. Unlike `-07` this refusal carries no message: the platform finds nothing to rename before any Lunar code is asked. Delivered Phase 4, verified by `LuaCatsTypeRenameTest` (TC-13). |
+| `REFACT-08-10` | **Atomic** | M | Full | The rename is one undoable write action; a refusal writes nothing. Delivered Phase 4: `renameElement`'s single `ProgressManager.executeNonCancelableSection`, verified by `LuaCatsTypeRenameTest` (TC-15, TC-24). |
+| `REFACT-08-11` | **Renaming onto an existing type name is reported** | S | Full | A conflict is raised through the existing `LuaRenameCollisionUsageInfo` carrier rather than silently merging two types. Delivered Phase 6: `LuaCatsTypeRenameProcessor.findCollisions`, verified by `LuaCatsTypeRenameConflictTest` (TC-14, plus its negative control — renaming to an undeclared name raises no conflict) and mutation-proved (mutation H). |
+| `REFACT-08-12` | **Go to Declaration from a use site** | S | Full | Ctrl+Click on `Widget` in `---@param p Widget` navigates to its `---@class Widget`. Delivered Phase 2: `LuaCatsTypeReference.resolve()`, verified by `LuaCatsTypeReferenceTest.testUseResolvesToTheDeclarationInAnotherFile` (TC-16). |
+| `REFACT-08-13` | **Find Usages on a type name** | S | Full | Find Usages on a `@class` name lists every use site. Delivered Phase 3: `LuaCatsTypeReferenceSearcher` plus the `LuaFindUsagesProvider` clause, verified by `LuaCatsTypeReferenceSearchTest` (TC-2, TC-17). |
+| `REFACT-08-14` | **LuaCATS PSI consults the reference registry** | M | Full | `LuaCatsBaseElement` answers `getReferences()`/`getReference()` from `ReferenceProvidersRegistry`, as `LuaBaseElement` already does. Without it every requirement above is unreachable — measured, not argued. Delivered Phase 1: `LuaCatsBaseElements.kt`, verified by `LuaCatsTypeDeclarationsTest.testGetReferencesReachesTheRegistryAndGetReferenceReadsIt` (TC-3, both halves) plus the full-suite gate. |
+| `REFACT-08-15` | **No regression to the routes that work today** | M | Full | Lua rename, label rename, Find Usages, Go to Class/Symbol, quick doc, type resolution and the type hierarchy behave exactly as they do at `154f26f3`. Closed Phase 7: `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache"` reports **2 993 tests, 0 failures, 0 errors, 1 skipped across 475 files** — `154f26f3`'s baseline (2 989 tests, 0 failures, 0 errors, 1 skipped, 473 files) plus exactly the four new tests across the two new files Phases 5 and 6 added (`LuaCatsTypeNameInputValidatorTest`, `LuaCatsTypeRenameConflictTest`); `LuaRenameTest`, `LuaRenameConflictTest` and `LuaCatsParamRenameTest` are unchanged and green in the same run. |
+| `REFACT-08-17` | **A type-parameter declaration is not a use** | M | Full | Renaming a project type whose name is also spelled as a type parameter leaves both declaration positions of `LuaCatsTypeParam` alone — the `<T>` of `---@class Box<T>` (`parameterizedName`, `luacats.bnf:201`) and the `T` of `---@generic T` (`genericTypeParam`, `:117`) — and leaves the tags those parameters shadow inside the same `LuaCatsComment` alone with them. A `T` in a comment that declares no type parameter is an ordinary use and is still rewritten. Delivered Phase 4, verified by `LuaCatsTypeRenameTest` (TC-26, TC-27, TC-28) and mutation-proved (mutations T, U, V). |
+| `REFACT-08-16` | **A type any read-only library also declares is refused** | M | Full | Resolution sees `GlobalSearchScope.allScope`; the rewrite may write only `GlobalSearchScope.projectScope`. When a declaration slot for the name lies outside the project — a bundled runtime stub, a rock, a fetched definitions tree — the rename is declined with a message naming the file, and nothing is written. `design.md` §3.11 states the rule and what it gives up. Delivered Phase 4, verified by `LuaCatsTypeRenameTest` (TC-24, TC-25) and mutation-proved (mutations R and R2, by hand). |
 
 ## Behaviour Rules
 
@@ -308,19 +308,31 @@ records that as the limit.
 
 ## Acceptance Criteria
 
-- [ ] Every `REFACT-08-00-DR-*` de-risking action listed below has run and its result is recorded in
-      `risks-and-gaps.md`.
-- [ ] Every `M` requirement has an executed test with a named, reachable mutation.
-- [ ] The rename is complete or refused: no fixture in the suite ends with a file holding both the
-      old and the new spelling of a type name.
-- [ ] `LuaCatsTypeNameIndex`, `LuaCatsTypeNavigation`, `LuaClassNameIndex` and `LuaAliasIndex` are
+- [x] Every `REFACT-08-00-DR-*` de-risking action listed below has run and its result is recorded in
+      `risks-and-gaps.md`. All four (DR-01…DR-04) are marked done with results transcribed.
+- [x] Every `M` requirement has an executed test with a named, reachable mutation — `REFACT-08-08`
+      (Phase 5, mutation E) and `REFACT-08-15` (Phase 7, the full-suite count delta) are the two this
+      phase closed; every other `M` row's mutation is recorded against its own requirement row above.
+- [x] The rename is complete or refused: no fixture in the suite ends with a file holding both the
+      old and the new spelling of a type name. Confirmed again live (2026-09-03): every refusal
+      (builtin keyword, library-declared name) left both files byte-identical, and the one completed
+      rename left zero stale spellings.
+- [x] `LuaCatsTypeNameIndex`, `LuaCatsTypeNavigation`, `LuaClassNameIndex` and `LuaAliasIndex` are
       **reused**, not duplicated: this feature adds no second map from a type name to its
-      declaration.
-- [ ] `LuaRenameCollisionUsageInfo` is the only conflict carrier; no new one is defined.
-- [ ] No test in the suite ends with a file outside `GlobalSearchScope.projectScope` modified, and
+      declaration. Phases 5-7 added a validator and a `findCollisions` clause, no new index.
+- [x] `LuaRenameCollisionUsageInfo` is the only conflict carrier; no new one is defined. Phase 6's
+      `findCollisions` constructs the existing carrier; no new type was declared.
+- [x] No test in the suite ends with a file outside `GlobalSearchScope.projectScope` modified, and
       every refusal leaves both the caret's file and every use file byte-identical.
-- [ ] The full unit suite is green, and the delta against `154f26f3` is stated with counts.
-- [ ] `REFACT-01-16` moves from `Partial` to `Full` only once this ships.
+- [x] The full unit suite is green, and the delta against `154f26f3` is stated with counts. Phase 7:
+      **2 993 tests, 0 failures, 0 errors, 1 skipped across 475 files** — baseline (2 989 / 0 / 0 / 1 /
+      473) plus exactly the four tests in the two files Phases 5-6 added. The `-PwithCorpus` gate
+      separately reports **3 003 tests, 0 failures, 0 errors, 1 skipped across 479 files**, with
+      `LuaCorpusSweepTest`, `LuaTortureCorpusTest`, `LuaInspectionParityTest` and
+      `LuaAnnotatedFixtureSweepTest` present with fresh timestamps.
+- [x] `REFACT-01-16` moves from `Partial` to `Full` only once this ships. Done in this phase; its
+      delegation note now points at this feature's shipped state instead of describing work not yet
+      done.
 
 ## Non-Functional Requirements
 

@@ -2,6 +2,25 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Renaming a `---@class`/`---@alias` type name now works, and moves every use of it — or refuses
+  and says why** (REFACT-08). A LuaCATS type name previously had no renameable symbol at all:
+  invoking Rename on `---@class Widget` renamed nothing, and rewriting through the type index (the
+  obvious workaround) moved the declaration while leaving every `---@type`, `---@param`,
+  `---@return`, `---@field`, `---@cast`, union member, array element, `fun(...)` argument/return and
+  generic type argument spelling the old name behind — a type that silently stopped resolving.
+  Renaming now works from either the declaration caret or a use caret, rewrites every one of those
+  spellings across every file in one undo step, and validates the new name against LuaCATS' own
+  dotted/starred name grammar rather than Lua's — `parser.node` and `ffi.cdata*` are accepted.
+  Renaming onto a name another declaration already uses now opens a Conflicts warning instead of
+  silently merging the two types. Three shapes are refused rather than half-applied, each with its
+  own message: a builtin type name (`table`, `string`, …), a parameterized declaration head
+  (`---@class Box<T>`), and a name any attached library also declares — measured against the
+  plugin's own bundled runtime stubs, that last refusal currently costs exactly one name, `_G`, and
+  nothing else. Go to Declaration and Find Usages on a type name come from the same reference. This
+  renames type *names* only: a colon method (`obj:method()`) is not renamed by this — that is
+  tracked separately and is currently blocked on receiver-type inference for an un-annotated
+  receiver — and neither is a table field (`t.field`).
+
 - **A member resolved on a plain table, a global table, or a `setmetatable`-based class now carries
   its declaration — not only when the receiver has an `---@class` tag** (TYPE-13). The engine could
   previously trace a colon call like `obj:method()` back to the `function Obj:method()` that
