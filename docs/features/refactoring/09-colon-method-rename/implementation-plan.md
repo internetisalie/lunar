@@ -43,41 +43,41 @@ of which this feature has tripped over before:**
 Create `src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaColonMethodRename.kt`
 exactly as `design.md` §2.1 declares it, with the bodies of §3.2, §3.3, §3.4 and §3.7.
 
-- [ ] `undecidedOccurrences(target, usages)` — §3.2.
-- [ ] `candidateFiles` — `CacheManager.getFilesWithWord(name, UsageSearchContext.ANY, projectScope, true)`,
+- [x] `undecidedOccurrences(target, usages)` — §3.2.
+- [x] `candidateFiles` — `CacheManager.getFilesWithWord(name, UsageSearchContext.ANY, projectScope, true)`,
       §3.3. Not `IN_CODE`: the bracket spelling puts the name inside a string token.
-- [ ] `undecidedIn` — the `when (nameRef.parent)` of §3.3, with **no** `LuaFuncNameMethod` branch,
+- [x] `undecidedIn` — the `when (nameRef.parent)` of §3.3, with **no** `LuaFuncNameMethod` branch,
       and appending **both** `bracketOccurrences` and `fieldOccurrences`.
-- [ ] `colonCallVerdict` — §3.4, "resolves ⇒ decided".
-- [ ] `bracketOccurrences` + `fieldOccurrences` + `fieldKeyName` + `literalName` — §3.3, the literal
+- [x] `colonCallVerdict` — §3.4, "resolves ⇒ decided".
+- [x] `bracketOccurrences` + `fieldOccurrences` + `fieldKeyName` + `literalName` — §3.3, the literal
       format of §4. One `literalName` serves `t["m"]` and `{ ["m"] = 1 }`; do not write a second copy.
-- [ ] `receiverAlreadyHasNewName` + `receiverTypeOf` + `colonCallReceiver` — §3.7. The receiver comes
+- [x] `receiverAlreadyHasNewName` + `receiverTypeOf` + `colonCallReceiver` — §3.7. The receiver comes
       from a **usage**, never from `funcName.nameRef`: DR-05 measured the declaration-side receiver
       as `unknown` in every shape. Keep the union-arm loop — without it the rule is inert for every
       `---@class` receiver.
-- [ ] Add every Phase-1 key `design.md` §7.2 lists to `LuaBundle.properties`.
-- [ ] `ProgressManager.checkCanceled()` as the first statement of every iteration block.
+- [x] Add every Phase-1 key `design.md` §7.2 lists to `LuaBundle.properties`.
+- [x] `ProgressManager.checkCanceled()` as the first statement of every iteration block.
 
 **Verification (Phase 1):**
-- [ ] `LuaColonMethodRenameTest` (new, `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/`)
+- [x] `LuaColonMethodRenameTest` (new, `src/test/kotlin/net/internetisalie/lunar/refactoring/rename/`)
       drives `undecidedOccurrences` directly with a usage set built from
       `ReferencesSearch.search(declarationLeaf, GlobalSearchScope.projectScope(project))`, and
       reproduces the DR-03 control table (`c01`-`c14`) and the DR-05 field-scan fixtures
       (`fieldKeyOnSameTable`, `fieldKeyOtherTable`, `bracketKeyInConstructor`, and the
       `controlPositionalValue` / `controlOtherFieldName` negatives). One `configureByText` per method
       except each control whose fixture names a second file.
-- [ ] Each of `requirements.md` rows 6, 7, 8, 9, 10, 11, 20, 23, 24, 25, 26, 27 and 28 has a method
+- [x] Each of `requirements.md` rows 6, 7, 8, 9, 10, 11, 20, 23, 24, 25, 26, 27 and 28 has a method
       here, and each named mutation is applied to the shipped code, executed, and observed reddening
       **that** row while row 1's control stays green.
-- [ ] Row 28 builds its usage set by hand (a set containing the non-resolving colon occurrence), which
+- [x] Row 28 builds its usage set by hand (a set containing the non-resolving colon occurrence), which
       is the only reachable falsifier for design §3.4 clause (a): DR-01 Finding 4 measured 0
       occurrences of that shape over both trees.
-- [ ] Rows 24 and 26 are the pair that keeps the field clause honest — one asserts a report on an
+- [x] Rows 24 and 26 are the pair that keeps the field clause honest — one asserts a report on an
       unrelated table's key, the other asserts **no** report for a positional value, a computed key
       and a literal that cannot spell an identifier.
-- [ ] A cancellation test in the shape `LuaRenameConflictTest.testCancellationIsChecked…` uses,
+- [x] A cancellation test in the shape `LuaRenameConflictTest.testCancellationIsChecked…` uses,
       differential over the **occurrence** count so it cannot be satisfied by the entry checks.
-- [ ] `test --rerun --tests '*LuaColonMethodRename*'` green, then the full suite green.
+- [x] `test --rerun --tests '*LuaColonMethodRename*'` green, then the full suite green.
 
 ### Phase 2: turn rename on — remove the refusal, add the EDT guards [Must]
 

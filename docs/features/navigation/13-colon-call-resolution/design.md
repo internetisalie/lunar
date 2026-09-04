@@ -254,7 +254,7 @@ that all of them resolve, so it can neither pass vacuously nor hide a per-resolu
   b:setName("x")`: `receiverType.resolveMember("setName")` is a **MISS**, and the arm loop finds
   `setName@54`. On the corpus and the annotated substitute the arm loop raises the declarations that
   gain a resolving call site from 68 to 84 (of 941) and from 50 to 121 (of 268) respectively. Those
-  are the prototype's totals; against the shipped code the corpus figure is 67 of 941
+  are the prototype's totals; against the shipped code the corpus figure is 51 of 941 (67 before excluding the plugin's own bundled stdlib stub)
   (`risks-and-gaps.md`, "The shipped-code re-measurement"), and the arm loop's *contribution* is
   independently confirmed rather than inferred — `implementation-plan.md` Phase 2 executed the
   drop-the-arm-loop mutation and it reddened `requirements.md` case 4 and **nothing else**.

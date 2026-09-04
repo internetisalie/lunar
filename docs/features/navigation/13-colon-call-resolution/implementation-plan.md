@@ -167,7 +167,7 @@ it does not introduce it.
         84) and the `LuaFuncCall`-parented call-site denominator. Apply DR-01's reproducibility
         protocol: measure the same copied tree twice in one method and require the two passes to
         agree, and check `files` = 734, `declLeaves` = 941 and `underFuncCall` = 14 116 **before**
-        reading the numerator. Executed against the shipped code in Phase 4: **67 of 941** declarations and **315 of 14 116** sites (the prototype measured 84 / 372; the difference is zerobrane alone). A different
+        reading the numerator. Executed against the shipped code in Phase 4: **51 of 941** corpus declarations (67 before excluding the bundled stdlib stub) and **315 of 14 116** sites (the prototype measured 84 / 372; the difference is zerobrane alone). A different
         number with the denominators intact means the shipped code differs from the transcription the
         design was measured on.
   - [x] Record the corpus lane's wall-clock beside the prototype's 20 min 5 s and [[TYPE-13]] Phase
@@ -188,7 +188,7 @@ it does not introduce it.
   overwritten.** All five denominators reproduce exactly (`files` = 734, `declLeaves` = 941, raw
   `LuaMethodExpr` = 14 191, `underFuncCall` = 14 116, bare-name = 11 411), and luacheck, luarocks and
   penlight reproduce their numerators cell for cell. **Zerobrane returns 188 sites / 56 declarations
-  against DR-01's 245 / 73**, taking the totals to **315 of 14 116 sites and 67 of 941 declarations**.
+  against DR-01's 245 / 73**, taking the totals to **315 of 14 116 sites and 51 of 941 corpus declarations** (67 counting the bundled stdlib stub).
   The two passes agreed in every method, zerobrane alone returned the same figure, and 188 / 56 is
   DR-01's own recorded outlier (187 / 55) plus one — so the outlier is what reproduces and 245 / 73
   is what does not. Two hypotheses were executed: the §3.6 guard is **not** the cause (guard-off

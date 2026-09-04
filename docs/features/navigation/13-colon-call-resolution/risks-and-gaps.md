@@ -250,6 +250,18 @@ luacheck** — the `varSuffix`-parented sites of the Method's point 4, reproduce
 **So the shipped code reaches 67 of 941 colon-method declarations — 7.1% — and 315 of 14 116 call
 sites — 2.2%.**
 
+> **The declaration figure is 16 too high, and [[REFACT-09]]'s replan found it.** Sixteen of the 67
+> are **not corpus declarations at all**: they are `File:read`, `write`, `lines`, `flush`, `seek`,
+> `close` and `iseof` inside the plugin's **own bundled stdlib stub**, reached through the jar and
+> printed by path rather than inferred. They exist once per bundled level, `lua-5.1` … `lua-5.4`.
+> **Corpus-only reach is 51 of 941 — 5.4%.** The 315 call-site figure is unaffected: those sites are
+> in the corpus; only the declarations they reach are not.
+>
+> This section's method is what admitted them — it counted *declarations reached*, without asking
+> whether each was inside the tree being measured. The site figure was never exposed to that error.
+> The qualitative claims all survive: non-zero, concentrated in ZeroBrane, module-style projects
+> reaching nothing. **51 / 315 is what ships.**
+
 **The reproducibility protocol passes, and passes three ways.** The two passes over one copied tree
 agreed field for field in every corpus method; zerobrane run **alone** returned the same 188 / 56 as
 zerobrane run in-class behind penlight, which rules out cross-method fixture contamination; and the
@@ -1046,10 +1058,11 @@ the builder's copy; `git status --porcelain` is clean and neither tree contains
 
 ### Risk 1.1 — Reach is small on un-annotated code, and the feature could be judged not worth its surface [Medium]
 
-- **Impact**: 67 of 941 declarations on the pinned corpus (the shipped-code figure; the prototype
-  measured 84), 56 of them in one project. A reader who sizes the feature by that number alone will
-  conclude it is not worth a branch in the single hottest resolution path in the plugin.
-- **Why it is not High**: the number that matters for [[REFACT-09]] is not 67 but *non-zero* — that
+- **Impact**: **51** of 941 declarations on the pinned corpus — the corpus-only figure; 67 counts 16
+  declarations in the plugin's own bundled stdlib stub, and the prototype measured 84. A reader who
+  sizes the feature by that number alone will conclude it is not worth a branch in the single hottest
+  resolution path in the plugin.
+- **Why it is not High**: the number that matters for [[REFACT-09]] is not 51 but *non-zero* — that
   feature is blocked on the existence of a usage set, not on its size, and DR-01 table 3 shows the
   set is now correct where it exists. And the un-annotated corpus is the *worst* case: the annotated
   substitute reaches 45.1%, and the annotated shape is the one the IDE's own users are most likely to
