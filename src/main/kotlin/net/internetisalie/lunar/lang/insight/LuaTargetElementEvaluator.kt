@@ -15,7 +15,9 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsTypeDeclarations
  *
  * [isAcceptableReferencedElement] keeps a caret that sits **on a file-local declaration** targeting
  * that declaration rather than the declaration it shadows (BUG-472 / BUG-470).
- * [getNamedElement] gives the numeric-`for` control variable a target at all (BUG-469).
+ * [getNamedElement] gives the numeric-`for` control variable a target at all (BUG-469), and gives a
+ * `function t:m()` / `function M.run()` declaration caret the same IDENTIFIER leaf its call sites
+ * already target, which is what Find Usages needs there (BUG-478).
  * [adjustTargetElement] turns a dotted function's resolved declaration NODE into the IDENTIFIER
  * leaf that declaration names, which is what a call-site caret needs to be renameable (BUG-465).
  *
@@ -68,11 +70,48 @@ class LuaTargetElementEvaluator : TargetElementEvaluatorEx2() {
      * `IDENTIFIER` whose direct parent is a `LuaNumericForStatement`. Every other declaration keeps
      * the `PsiNamedElement` parent branch that BUG-472 depends on, because a null return here is
      * what lets `TargetElementUtilBase.getNamedElement` continue to it.
+     *
+     * **[LuaDeclarationKind.METHOD_FUNCTION] and [LuaDeclarationKind.DOTTED_FUNCTION] join it for
+     * BUG-478**, for the same "one element from both ends" reason and on a measured difference, not
+     * a suspected one. Instrumented at the three carets of `local t = {}` / `function t:m() end` /
+     * `t:m()` plus a `function gfun() end` control, on the editor's own data context:
+     *
+     * | caret | `findReference().resolve()` | `findTargetElement` | `USAGE_TARGETS_KEY` |
+     * | :-- | :-- | :-- | :-- |
+     * | `function gfun()` decl (control) | the `gfun` leaf — itself | the leaf | 1 |
+     * | `t:m()` call site | the `m` declaration leaf | the leaf | 1 |
+     * | `function t:m()` decl | **null** | **`LuaNameRefImpl`** | **null** |
+     * | `function M.run()` decl | **null** | **`LuaNameRefImpl`** | **null** |
+     *
+     * A declaration name that resolves to nothing skips `doFindTargetElement`'s reference branch,
+     * so the `PsiNamedElement`-parent fallback answers with the enclosing `LuaNameRef` composite —
+     * and [LuaFindUsagesProvider.canFindUsagesFor] is `LuaDeclarationSite.kindOf(...) != null`,
+     * which classifies IDENTIFIER **leaves** only. `DefaultUsageTargetProvider` therefore contributed
+     * no `UsageTarget`, `targetVariants` came back empty and `FindUsagesAction` painted *"Cannot
+     * search for usages from this location"* — over a usage set `ReferencesSearch` computes
+     * correctly from the leaf ([net.internetisalie.lunar.lang.insight.LuaColonCallFindUsagesTest]).
+     * A global function declaration escaped only because its own name resolves to itself.
+     *
+     * Returning the leaf makes these two kinds arrive the way the control already does. Rename is
+     * unaffected in either direction: `LuaRenameProcessor.canProcessElement` admits a `LuaNameRef`
+     * and a classified leaf alike, and `substituteElementToRename` normalises both through
+     * `LuaDeclarationSite.identifierLeafOf` to this same leaf.
      */
-    override fun getNamedElement(element: PsiElement): PsiElement? =
-        element.takeIf {
-            LuaDeclarationSite.kindOf(it) == LuaDeclarationKind.NUMERIC_FOR_VARIABLE ||
-                LuaCatsTypeDeclarations.isDeclarationLeaf(it)
+    override fun getNamedElement(element: PsiElement): PsiElement? = element.takeIf { isOwnNameTarget(it) }
+
+    /**
+     * True when [element] is a declaration leaf that must be its own target rather than defer to the
+     * `PsiNamedElement` parent branch — the three [LuaDeclarationKind]s above, plus a LuaCATS type
+     * declaration leaf, which [LuaDeclarationSite] does not classify at all.
+     */
+    private fun isOwnNameTarget(element: PsiElement): Boolean =
+        when (LuaDeclarationSite.kindOf(element)) {
+            LuaDeclarationKind.NUMERIC_FOR_VARIABLE,
+            LuaDeclarationKind.METHOD_FUNCTION,
+            LuaDeclarationKind.DOTTED_FUNCTION,
+            -> true
+
+            else -> LuaCatsTypeDeclarations.isDeclarationLeaf(element)
         }
 
     /**

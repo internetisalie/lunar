@@ -3,7 +3,7 @@ id: "BUG-478"
 title: "Find Usages is refused at a colon-method declaration although its usage set is computable"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -57,26 +57,57 @@ set being found from the other end.
 
 This is the user-visible half of `NAV-13-03`. Find Usages on a colon method is reachable from the
 call site and **not** from the declaration, which is the more natural gesture — and it is the gesture
-[[NAV-13]]'s own `human-verification-checklists.md` **HV-2** specifies. HV-2 therefore **fails as
-written**, and is recorded there as failing rather than as a pass reached by a different route.
+[[NAV-13]]'s own `human-verification-checklists.md` **HV-2** specifies. HV-2 therefore **failed as
+written** on the 2026-09-03 run, and now passes on the 2026-09-05 re-run recorded there.
 
-It also blocks HV-9 steps 2 and 4 (Find Usages and Safe Delete driven at a declaration).
+It also blocked HV-9 steps 2 and 4 (Find Usages and Safe Delete driven at a declaration); the Find
+Usages half is unblocked by the fix, the Safe Delete half has not been re-driven.
 
 `ReferencesSearch` is correct, so [[REFACT-09]] — which consumes the search API, not the action — is
 unaffected.
 
-## Where the fault is not
+## The cause, as measured
 
-Not in `LuaFindUsagesProvider` (its gate returns true) and not in `LuaNameReferenceSearcher` or
-`LuaNameReference.isReferenceTo` (the search returns the right answer under test). That places it
-between `FindUsagesAction`/`FindUsagesManager` and the provider — most plausibly in what
-`TargetElementUtil` yields for a declaration leaf, since the platform builds its handler from that
-element rather than from the leaf directly.
+The hypothesis below was right about the *layer* and had to be executed to name the element. A probe
+instrumented the editor's own data context at four carets — with the global-function control in every
+run — and read what the platform actually hands the provider:
 
-**That is a hypothesis, not a finding. Execute it — instrument the action and record what it actually
-receives — rather than reading the gate and asking whether it admits the element.** [[NAV-13]]'s
-DR-05 exists because the reading approach is unsound here, and this bug is one layer from where that
-was learned.
+| caret | `findReference().resolve()` | `TargetElementUtil.findTargetElement` | `USAGE_TARGETS_KEY` | action |
+| :-- | :-- | :-- | :-- | :-- |
+| `function gfun()` declaration (control) | the `gfun` leaf — **itself** | the leaf | 1 | works |
+| `t:m()` call site | the `m` declaration leaf | the leaf | 1 | works |
+| `function t:m()` declaration | **null** | **`LuaNameRefImpl`** | **null** | refused |
+| `function M.run()` declaration | **null** | **`LuaNameRefImpl`** | **null** | refused |
+
+**The provider is never asked about the leaf.** `TargetElementUtilBase.doFindTargetElement` tries the
+reference branch first; a colon or dotted declaration name resolves to nothing, so it falls through to
+the `PsiNamedElement`-parent branch, which answers with the enclosing `LuaNameRef` **composite**.
+`LuaFindUsagesProvider.canFindUsagesFor` is `LuaDeclarationSite.kindOf(...) != null`, and `kindOf`
+classifies IDENTIFIER **leaves** only — so it returns false for that composite,
+`DefaultUsageTargetProvider` contributes no `UsageTarget`, `FindUsagesAction`'s `targetVariants` comes
+back empty, and `resolver.kt` paints *"Cannot search for usages from this location."*
+
+A global function declaration escaped only because its own name resolves to **itself**, which keeps it
+on the reference branch and delivers the leaf. The two carets that work and the two that do not differ
+in exactly one measured value.
+
+## The fix
+
+`LuaTargetElementEvaluator.getNamedElement` now returns the declaration's own IDENTIFIER leaf for
+`METHOD_FUNCTION` and `DOTTED_FUNCTION`, joining `NUMERIC_FOR_VARIABLE` (BUG-469) on the same hook and
+for the same reason: the declaration caret and the usage caret then target **one** element — the one
+`ReferencesSearch` already answers correctly. Rename is unaffected in either direction, because
+`LuaRenameProcessor.canProcessElement` admits a `LuaNameRef` and a classified leaf alike and
+`substituteElementToRename` normalises both to this same leaf.
+
+Pinned by `LuaDeclarationFindUsagesActionTest`, which drives `IdeActions.ACTION_FIND_USAGES` through the
+editor's data context rather than calling `ReferencesSearch` — the search API was already correct, so a
+test at that layer would have passed with the defect present. Reverting the fix reddens both declaration
+cases with *"UsageView wasn't shown"* and leaves the global-function control green.
+
+Re-driven live on 2026-09-05 in sandbox GoLand 2026.1.3, caret column verified at `2:12` before
+invoking: <kbd>Alt+F7</kbd> opens the Find window with *Global function → m*, **1 result**, `t:m()` on
+line 3; the `function gfun()` control in the same session gives *Global function → gfun*, **2 results**.
 
 ## A note on method, because this report was wrong once
 

@@ -109,6 +109,16 @@
   call site together, exactly as the declaration caret already did. The caret on the receiver `M`
   is unaffected and still renames `M`, not `run`.
 
+- **Alt+F7 on the `m` of `function t:m()` now finds its call sites** (BUG-478). Find Usages at a
+  colon-method declaration — and at a dotted one, `function M.run()` — was refused outright with
+  *"Cannot search for usages from this location."*, even though the same search from the **call
+  site** returned the declaration's usages and a plain `function gfun()` declaration searched fine
+  in the same file. The usage set was never the problem: a colon or dotted declaration's own name
+  resolves to nothing, so the IDE ended up asking about the wrapper node around the name rather than
+  the name itself, and that wrapper is not something the plugin recognises as a declaration. Both
+  declaration carets now search from the same element their call sites already do. Rename, Go to
+  Declaration and Quick Documentation at those carets are unchanged.
+
 - **Shift+F6 on the `i` in `for i = 1, 10 do` now renames it** (BUG-469). With the caret on a
   numeric-`for` loop's control variable the key did nothing at all — no dialog, no error, no
   balloon, and the Rename menu item greyed out — because that variable is the one Lua declaration

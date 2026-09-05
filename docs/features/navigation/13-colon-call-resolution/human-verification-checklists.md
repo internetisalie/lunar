@@ -230,14 +230,14 @@ start of the line, so `2:12` is the `m` of `function t:m()`.
 | Check | Result | Notes |
 | :-- | :-- | :-- |
 | HV-1 Go to Declaration | **PASS** | Caret `3:4` (the `m` of `t:m()`) → <kbd>Ctrl+B</kbd> → **`2:12`** — the method name, not the `function` keyword (col 1) and not the receiver `t` (col 10) |
-| HV-2 Find Usages | **FAIL as written** | The checklist asks for the caret on the `m` of `function t:m()`. There, <kbd>Alt+F7</kbd> is **refused**: *"Cannot search for usages from this location."* — caret column verified at `3:12`. From the **call site** the same search works and returns exactly what this row expects: "Global function → m", **1 result**, `hv1.lua` line **3**, `t:m()`, declaration line not listed. That is a different gesture from the one specified, so this row is a fail with a working neighbour, not a pass. **[[BUG-478]]** |
+| HV-2 Find Usages | **FAIL as written on 2026-09-03; PASS on the 2026-09-05 re-run** | The checklist asks for the caret on the `m` of `function t:m()`. On 2026-09-03 <kbd>Alt+F7</kbd> there was **refused** — *"Cannot search for usages from this location."*, caret column verified at `3:12` — while the same search from the **call site** returned what this row expects, making it a fail with a working neighbour rather than a pass. Filed and fixed as **[[BUG-478]]**: the declaration caret was targeting the `LuaNameRef` composite, which the Find Usages provider classifies as nothing. Re-driven at the declaration caret (verified `2:12`) after the fix: the Find window opens on "Global function → m", **1 result**, `t:m()` line **3**, declaration line not listed — with a `function gfun()` control in the same session giving **2 results** |
 | HV-3 Two receivers | **PASS** | `t:m()` → `2:12`; `u:m()` → `4:12`. The two same-named methods do not merge |
 | HV-4 Annotated, cross-file | **PASS** | <kbd>Ctrl+B</kbd> on `b:setName("x")` in `hv4use.lua` opened **`hv4cls.lua` at `3:18`** — the start of `setName` in `function Builder:setName(n) end` |
 | HV-5 Refusals | **PASS (chain, suffix); self and cross-file-global rows not run** | Each refusal was driven **with a positive control on the same line of the same file**, so "nothing happened" is a refusal and not a dead keystroke. Chain: `go` at `6:11` → unchanged, **no jump to `function A:go()`**; control `next` at `6:4` → `5:12`. Suffix: `a.b:m()`'s `m` at `5:6` → unchanged, **no jump to `function a:m()`**; control, the receiver `a` → `1:7` |
 | HV-6 Lexical name not offered | **PASS, both halves** | In one file: `t:m()`'s `m` (`4:4`) → **`2:12`** (the method); `print(m)`'s `m` (`5:8`) → **`3:7`** (`local m = 1`). The withdrawal and the intact lexical route, side by side |
 | HV-7 No balloon, no lag | **PASS (exception half); lag half not run** | Zero occurrences of `LuaColonCallResolution`, `notNullChild` or `TestLoggerAssertionError` in `idea.log`, and no `ERROR`/`SEVERE` beyond platform noise (`CefApp`, `go-linter`, the version banner), across every step above. The ten-second typing test in a corpus file was not driven |
 | HV-8 Consumer-visible changes | **PASS on 1, 2, 3, 4, 5, 6** | **1-2**: the Problems panel lists `Deprecated API: Use the method instead` at **`:4`** and **`:6`** only — **nothing at line 5**, the `t:m()` call site, where the pre-feature build raised a third. **3**: <kbd>Shift+F6</kbd> at the call site gives *"Cannot perform refactoring. Renaming a 'function Obj:method()' declaration is not supported yet…"* — the `METHOD_FUNCTION` refusal, **not** an inline template. **5**: <kbd>Ctrl+H</kbd> at the call site declines; control on `local m = {}` opens the Hierarchy window on class `m`. **6**: `t:print( alpha: 1, beta: 2)` — both parameter-name inlays render. **4**: <kbd>Ctrl+Q</kbd> at the call site shows a struck-through `function t:m() : any` above a red **⚠ Deprecated: gone** |
-| HV-9 Mirror direction | **PASS on 3, 5, 7; steps 2, 4 blocked, 6 not run** | **3**: rename `local m = 1` → `local count : number = 1` with **`t:m()` untouched** (pre-feature it became `t:count()`). **5**: Lunar reports **"Unused local variable 'm'"** on `local m = 1`, LuaCheck independently agreeing `(W211)`. **7**: `local box = {}` / `function m:m() end` / **`box:m()`** — the receiver rewritten, the method name not (pre-feature: `box:box()`). **2 and 4** drive Find Usages and Safe Delete *at a declaration*, which the defect below blocks |
+| HV-9 Mirror direction | **PASS on 3, 5, 7; steps 2, 4 blocked, 6 not run** | **3**: rename `local m = 1` → `local count : number = 1` with **`t:m()` untouched** (pre-feature it became `t:count()`). **5**: Lunar reports **"Unused local variable 'm'"** on `local m = 1`, LuaCheck independently agreeing `(W211)`. **7**: `local box = {}` / `function m:m() end` / **`box:m()`** — the receiver rewritten, the method name not (pre-feature: `box:box()`). **2 and 4** drive Find Usages and Safe Delete *at a declaration*, which the defect below blocked; its fix unblocks step 2 (HV-2's re-run drives that gesture), and step 4's Safe Delete has not been re-driven |
 
 ### One reported defect was my caret placement; the other was real and I withdrew it wrongly
 
@@ -269,7 +269,7 @@ The third row is the strongest positive this feature has on that surface, and it
 step 4 asks for: it is `design.md` §7's claim that Quick Documentation **gains the method's own doc
 where the call site had none**, shown with real content rather than only a deprecation marker.
 
-**Find Usages at a colon-method declaration is a real defect, and the first withdrawal of it was
+**Find Usages at a colon-method declaration was a real defect, and the first withdrawal of it was
 wrong.** The original report said the action was *silent*; corrected driving showed a **visible**
 refusal, and that detail being wrong is why it was withdrawn. **The substance was never about
 silence.** The usage set is computable — `canFindUsagesFor` returns true for a `METHOD_FUNCTION`
@@ -277,7 +277,11 @@ leaf, and `ReferencesSearch` on that same leaf returns the call site under a gre
 (`LuaColonCallFindUsagesTest`) — and the action declines anyway, while a **global function**
 declaration searches fine in the same session. That is a defect, not the plain-local
 `PsiNameIdentifierOwner` limitation it was mistaken for: for a plain local the refusal is *correct*,
-because nothing is behind it. Filed as [[BUG-478]], and **HV-2 is recorded above as failing**.
+because nothing is behind it. Filed as [[BUG-478]] and since **fixed** — a colon or dotted
+declaration name resolves to nothing, so the platform fell through to the `LuaNameRef` composite
+that `LuaDeclarationSite.kindOf` does not classify, and the declaration caret now targets its own
+IDENTIFIER leaf like the control always did. **HV-2 is recorded above as failing on the original run
+and passing on the re-run.**
 
 **Two lessons, and the second cost more than the first.**
 
