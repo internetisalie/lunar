@@ -26,6 +26,7 @@ Lunar aims to provide a robust, LuaCATS-first type system to enable advanced IDE
 | [`TYPE-10`](./10-lambda-parameter-inference/requirements.md) | **Expected-Type → Lambda-Parameter Inference** | **C** | Propagate a parameter's declared `fun(...)` type onto a passed lambda's parameters. |
 | [`TYPE-11`](./11-library-snapshot-invalidation/requirements.md) | **Library Snapshot Invalidation** | **M** | A library file's cached type graph is discarded by a keystroke anywhere, because `forFile` depends on project-wide `MODIFICATION_COUNT`. Measured 9 ms vs 334 ms for the same two-line file without/with a 123 KiB library (COMP-09 DR-20). Blocks COMP-09. |
 | `TYPE-08` | **Flow-Sensitive Analysis** | **C** | Narrow types based on control flow. |
+| [`TYPE-14`](./14-generics-baseline/requirements.md) | **Generics — the LuaLS closed baseline** | **M** | Generic names in every type position, recursive substitution, cross-file and method callees, generic classes and parameterized parents (closes BUG-420), nested type arguments in the grammar, constraints usable in the body. TYPE-05 covered only a bare same-file `T`. |
 
 ---
 
@@ -63,6 +64,10 @@ Lunar aims to provide a robust, LuaCATS-first type system to enable advanced IDE
 ### TYPE-05: Generics Support
 - **Status**: **✅ Implemented** (See [`phase-5-implementation-plan.md`](spec/type/design/phase-5-implementation-plan.md))
 - **Strategy**: Let-Polymorphism (Generic instantiation at call sites)
+
+### TYPE-14: Generics — the LuaLS closed baseline
+- **Status**: planned — see [`14-generics-baseline/requirements.md`](./14-generics-baseline/requirements.md)
+- **Strategy**: one path-based substitution mechanism (lazy projection in, lazy rebuild out) applied at same-file callees, declared callees, generic classes and parameterized parents; constraints ride on the placeholder as a bound.
 
 ### TYPE-06: Return Type Checking
 - **Status**: **✅ Implemented** (Phase 2 + Phase 4 enhancement)

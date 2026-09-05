@@ -42,6 +42,8 @@ The return type of a generic function is derived from the actual types of the ar
 | `TYPE-05-03` | **Call-site Instantiation** | **S** | Create fresh type nodes for generic variables at each call site. |
 | `TYPE-05-04` | **Generic Classes** | **C** | Support generic type parameters on `@class` definitions. |
 
+> `TYPE-05-04` was never delivered: a `---@class Box<T>` is keyed on its raw text and `Box<string>` resolves to nothing (measured by [[TYPE-14]]'s DR-01 probe). Generic classes, and every generic shape beyond a bare `T` in a same-file `@param`/`@return`, are [[TYPE-14]]'s scope.
+
 ## 5. Examples
 
 ### 5.1 Generic Identity
