@@ -488,6 +488,16 @@ stop the rename: the platform's text names neither the method nor the file it is
 `refactoring.rename.colonMethod.outOfProject` names `io.lua`. Design §3.6's guard stands; only its
 stated rationale narrows.
 
+**Addendum, [[BUG-480]] — that rationale was wrong, and the guard is justified by a different
+input.** The message it names is not reachable at this fixture: `PsiElementRenameHandler.invoke`
+calls `canRename` (`:114`) before the processor (`:132`), so at a jar-backed declaration the user
+reads the platform's text and Lunar's guard is never entered. The mutation above only ever ran below
+that layer, because `myFixture.renameElementAtCaret` calls `substituteElementToRename` directly.
+Measured across the three out-of-project states, the guard is shadowed at a jar stub and at a
+protected non-project file, and **decisive at a non-project file whose write protection the user has
+lifted** — there `canRename` returns true and the guard is the only refusal. Requirements rows 14a
+and 14b pin the two layers separately; BUG-480's report carries the full table.
+
 ---
 
 ### DR-05 result — which handle can answer "does this receiver already have member *n*"

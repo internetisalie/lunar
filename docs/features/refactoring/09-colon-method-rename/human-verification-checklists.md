@@ -36,7 +36,7 @@ observed, not a paraphrase.
 | 2.5 a table-constructor key | **PASS** | *"This **table-constructor key** declares the same member as 'm'…"* |
 | 2.6 a positional value does NOT block | **PASS** | `local u = { m }` produced **no** entry — verified as an absence in the same run that produced 2.2/2.4/2.5, so the negative and the positives share one measurement |
 | 2.7 a dynamic index does NOT block | **PASS** | neither `local k = 'm'` nor `print(t[k])` produced an entry; exactly 3 conflicts, all from the three blocking spellings |
-| 3.2 a method declared outside the project | **FAIL** | balloon reads the platform's generic *"Cannot perform refactoring. This element cannot be renamed"*, **not** Lunar's message naming `runtime/standard/lua-5.4/io.lua`. Refusal outcome correct; diagnostic lost. **[[BUG-480]]** |
+| 3.2 a method declared outside the project | **PASS (expectation corrected)** | balloon reads the platform's *"Cannot perform refactoring. This element cannot be renamed"*; the rename is refused and nothing is written. **This is now the expected result** — [[BUG-480]] measured `canRename` deciding before the processor is asked, and a jar-backed element can never reach Lunar's message. Lunar's file-naming refusal is reachable at a different input (an unlocked non-project file) and is pinned by requirements row 14b |
 | 1.2 the preview lists the usages | **PASS** | Refactoring Preview: *"References in code to global function (**2 references in 1 file**)"* — the two `t:alpha()` sites |
 | 3.3 a call on `self` refuses as unresolved | **PASS** | caret `3:23`; *"Cannot determine which declaration this name refers to, so its usages cannot be rewritten."* — the pre-existing `refactoring.rename.unresolved`, unchanged |
 | 3.4 no shipped string claims colon calls are unresolved | **PASS** | verified against `LuaBundle.properties` rather than the UI: the falsified phrase appears nowhere, and all six `refactoring.rename.colonMethod.*` keys are present. `REFACT-09-09` |
@@ -56,8 +56,9 @@ the IDE starts, so the file is indexed at startup, the scenario passes.
 different user than the IDE runs as, is not the same input as a file the IDE indexed at startup —
 and neither is what a unit fixture models. Run the control before filing.
 
-**Every scenario is now driven.** Eighteen checks: seventeen pass, one fails ([[BUG-480]], 3.2's
-balloon wording).
+**Every scenario is now driven.** Eighteen checks, all eighteen passing — 3.2 after [[BUG-480]]
+corrected its *expectation* rather than the code: the platform refuses a jar-backed declaration
+before Lunar is asked, so the platform's balloon is the right result there.
 
 **Two of the passes are accepted residuals, and confirming them is the point.** 4.3 (a declaration
 with no call site renames silently, leaving two identical declarations) and 2.7 (a dynamic index is

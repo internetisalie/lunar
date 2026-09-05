@@ -1,20 +1,32 @@
 package net.internetisalie.lunar.refactoring.rename
 
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.command.undo.UndoManager
+import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.fileEditor.impl.NonProjectFileWritingAccessProvider
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.impl.CoreProgressManager
 import com.intellij.openapi.progress.impl.ProgressManagerImpl
+import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.BaseRefactoringProcessor
+import com.intellij.refactoring.RefactoringBundle
+import com.intellij.refactoring.rename.PsiElementRenameHandler
+import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.LuaBundle
 import net.internetisalie.lunar.lang.psi.LuaColonCallResolution
 import net.internetisalie.lunar.lang.psi.LuaDeclarationKind
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
@@ -25,6 +37,7 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -742,26 +755,99 @@ class LuaColonMethodRenameTest : BasePlatformTestCase() {
     }
 
     /**
-     * `requirements.md` row 14 — `REFACT-09-05`, design §3.6's out-of-project refusal.
+     * `requirements.md` row 14a — `REFACT-09-05` at a BUNDLED STUB, and it asserts the PLATFORM's
+     * refusal rather than Lunar's ([[BUG-480]]).
      *
-     * `f:write` resolves into the plugin's OWN bundled stub, measured
-     * `R09PRED[j01] resolved=write file=...lunar-0.18.0.jar!/runtime/standard/lua-5.4/io.lua
-     * writable=false`, and the discriminator is
-     * `GlobalSearchScope.projectScope(project).contains(virtualFile)` —
-     * `R09SCOPE projectScopeContainsStub=false projectScopeContainsOwnFile=true`.
+     * **This is the row-14 fixture, re-aimed at the layer that decides it.** The predecessor drove
+     * `myFixture.renameElementAtCaret`, which calls `substituteElementToRename` directly
+     * (`CodeInsightTestFixtureImpl.renameElement`), and asserted Lunar's message — a message this
+     * caret never produces in the IDE. Measured on the user's path, with the same fixture:
      *
-     * Mutation: delete the `outOfProjectRefusal` call from `colonMethodSubstitution` -> the
-     * substitution hands back a leaf in another file and this reddens with
-     * `AssertionError: element not found in file`, which `risks-and-gaps.md` DR-04 point 2 records
-     * as a fixture artifact rather than a production verdict — and is exactly why an explicit
-     * refusal is specified instead of relying on the platform's read-only check.
+     * ```
+     * R480 file = …/lunar-0.18.0.jar!/runtime/standard/lua-5.4/io.lua  fileSystem = JarFileSystemImpl
+     * R480 isInProject = false  isWritable = false  nonProjectWriteAccessAllowed = true
+     * R480 selectedHandler = com.intellij.refactoring.rename.PsiElementRenameHandler
+     * B: PsiElementRenameHandler.invoke(project, editor, file, context)
+     *    -> RefactoringErrorHintException: Cannot perform refactoring. This element cannot be renamed
+     *       (and `substituteElementToRename` was NOT entered — the probe printed nothing)
+     * C: substituteElementToRename directly -> "This method is declared outside this project, in …"
+     * ```
+     *
+     * `PsiElementRenameHandler.invoke` calls `canRename` BEFORE the processor is asked
+     * (`PsiElementRenameHandler.java:114` vs `:132`), and for a jar-backed element `canRename`
+     * always answers: `isWriteAccessAllowed` short-circuits `true` for a non-`LocalFileSystem` file,
+     * so the `error.out.of.project.element` branch is skipped and `!isWritable` returns
+     * `error.cannot.be.renamed`. The refusal is therefore the platform's, the outcome is right, and
+     * Lunar's guard is shadowed HERE — not everywhere; [aMethodInAnUnlockedNonProjectFileIsRefusedByLunar]
+     * is the input where the guard is the only thing refusing.
+     *
+     * **`renameElementAtCaretUsingHandler` cannot be used instead.** It sets
+     * `PsiElementRenameHandler.DEFAULT_NAME`, and in unit-test mode that data key short-circuits
+     * `invoke` past `canRename` (`PsiElementRenameHandler.java:61-67`) — the same layer skip in
+     * another costume. Driving the four-argument `invoke` with the editor's own data context is the
+     * only headless route through the platform's check.
+     *
+     * Mutation: swap this back to `myFixture.renameElementAtCaret("emit")` -> the refusal becomes
+     * Lunar's and both assertions redden. That is BUG-480 reproduced as a test.
      */
     @Test
-    fun aMethodDeclaredInABundledStubIsRefusedAndNamesTheDeclaringFile() {
+    fun aMethodDeclaredInABundledStubIsRefusedByThePlatformBeforeLunarIsAsked() {
         establishStandardLua54()
         myFixture.configureByText("a.lua", "local f = io.open(\"x\")\nf:<caret>write(\"y\")\n")
+        val before = myFixture.file.text
 
-        assertRenameRefusedNaming("io.lua", "emit")
+        val refusal = refusalFromTheRenameHandler()
+
+        assertTrue(
+            "the platform refuses first, so the balloon is its own generic message: " + refusal,
+            refusal.contains(RefactoringBundle.message("error.cannot.be.renamed")),
+        )
+        assertFalse(
+            "Lunar's out-of-project message is unreachable at a jar-backed declaration: " + refusal,
+            refusal.contains("io.lua"),
+        )
+        assertEquals("a refused rename must leave the file byte-identical", before, myFixture.file.text)
+    }
+
+    /**
+     * `requirements.md` row 14b — `REFACT-09-05` where design §3.6's guard is the ONLY refusal.
+     *
+     * A `.lua` file outside every content root whose non-project write protection the user has
+     * lifted — the *"I want to edit this file anyway"* bar, `NonProjectFileWritingAccessProvider.allowWriting`,
+     * which `isFileRecentlyChanged` also grants to a file just edited. Measured across the two
+     * states of exactly this fixture:
+     *
+     * ```
+     * LOCKED   isInProject=false isWritable=true writeAccessAllowed=false
+     *          platform canRename -> refuses "Selected global function is not located inside the project"
+     * UNLOCKED isInProject=false isWritable=true writeAccessAllowed=true
+     *          platform canRename -> RETURNS NORMALLY; Lunar refuses, naming outside.lua
+     * ```
+     *
+     * So the guard is shadowed at a jar and decisive here, which is why [[BUG-480]] resolved as
+     * "keep it and fix the test" rather than as either option its report offered.
+     *
+     * `checkInProject = false` models the user answering **Yes** to the platform's *"selected
+     * element is used from non-project files"* prompt; headlessly that prompt throws instead of
+     * asking, which would refuse one step before the layer under test.
+     *
+     * Mutation: delete the `outOfProjectRefusal` call from `colonMethodSubstitution` -> nothing
+     * refuses, `invoke` opens the rename and this reddens on its own `AssertionError`.
+     */
+    @Test
+    fun aMethodInAnUnlockedNonProjectFileIsRefusedByLunar() {
+        NonProjectFileWritingAccessProvider.enableChecksInTests(testRootDisposable)
+        val declaration = anUnlockedMethodDeclaredOutsideTheProject()
+
+        assertTrue(
+            "the platform must ALLOW this element, or the guard would be shadowed here too",
+            PsiElementRenameHandler.canRename(project, null, declaration),
+        )
+        val refusal = refusalFromRenaming(declaration)
+        assertTrue(
+            "the refusal must name the declaring file, which is the whole of REFACT-09-05: " + refusal,
+            refusal.contains("outside.lua"),
+        )
     }
 
     /**
@@ -1217,6 +1303,60 @@ class LuaColonMethodRenameTest : BasePlatformTestCase() {
                 "no STANDARD 5.4 version in the registry"
             }
         LuaProjectSettings.getInstance(project).setTargetAndNotify(Target(LuaPlatform.STANDARD, version))
+    }
+
+    /**
+     * The refusal message the RENAME ACTION produces at the configured caret — the platform's
+     * handler invoked with the editor's own data context, which is what `RenameElementAction`
+     * does. Unlike `myFixture.renameElementAtCaret` this passes THROUGH
+     * `PsiElementRenameHandler.canRename`, so a refusal decided there is visible to the caller.
+     */
+    private fun refusalFromTheRenameHandler(): String =
+        refusalFrom {
+            PsiElementRenameHandler().invoke(project, myFixture.editor, myFixture.file, editorDataContext())
+        }
+
+    /** The same, for an element the editor is not showing: the static entry point `invoke` uses. */
+    private fun refusalFromRenaming(declaration: PsiElement): String =
+        refusalFrom {
+            PsiElementRenameHandler.invoke(declaration, project, declaration, null, /* checkInProject = */ false)
+        }
+
+    /**
+     * Headlessly `CommonRefactoringUtil.showErrorHint` throws instead of painting a balloon, so a
+     * refusal arrives as an exception and its absence means the rename was NOT refused.
+     */
+    private fun refusalFrom(rename: () -> Unit): String {
+        try {
+            rename()
+        } catch (refused: CommonRefactoringUtil.RefactoringErrorHintException) {
+            return refused.message.orEmpty()
+        }
+        throw AssertionError("the rename must be refused, not opened — nothing declined it")
+    }
+
+    private fun editorDataContext(): DataContext = EditorUtil.getEditorDataContext(myFixture.editor)
+
+    /**
+     * A `function t:m()` declaration in a `.lua` file under no content root, with the platform's
+     * non-project write protection lifted for it — the state the *"I want to edit this file
+     * anyway"* bar leaves a file in.
+     */
+    private fun anUnlockedMethodDeclaredOutsideTheProject(): PsiElement {
+        val outside = File(FileUtil.createTempDirectory("bug480", null), "outside.lua")
+        outside.writeText("local t = {}\nfunction t:m() end\nt:m()\n")
+        val virtualFile =
+            WriteAction.computeAndWait<VirtualFile?, RuntimeException> {
+                LocalFileSystem.getInstance().refreshAndFindFileByIoFile(outside)
+            }
+        NonProjectFileWritingAccessProvider.allowWriting(listOfNotNull(virtualFile))
+        val declaringFile = requireNotNull(virtualFile?.let { PsiManager.getInstance(project).findFile(it) })
+        return requireNotNull(
+            PsiTreeUtil
+                .collectElements(declaringFile) {
+                    LuaDeclarationSite.kindOf(it) == LuaDeclarationKind.METHOD_FUNCTION
+                }.firstOrNull(),
+        ) { "no METHOD_FUNCTION declaration in " + outside }
     }
 
     /**

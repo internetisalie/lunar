@@ -3,7 +3,7 @@ id: "BUG-480"
 title: "The out-of-project rename refusal never reaches the user — the platform refuses first"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -67,6 +67,87 @@ intent.
 **Do not choose from this report.** Instrument which platform check fires first and confirm the
 ordering before touching either. The one thing that must not stand is the present state: a guard, a
 green test, and a message no user can reach.
+
+## Resolution — NEITHER option: the guard is shadowed here, not unreachable
+
+Both options above rest on *"the guard earns nothing"*, and measurement falsifies it. The ordering
+was instrumented headlessly with a temporary probe (`Bug480OrderingProbeTest`, a `println` in
+`substituteElementToRename`, both since removed) driving three routes over one fixture.
+
+### The ordering, executed
+
+`PsiElementRenameHandler.invoke(project, editor, file, dataContext)` — what `RenameElementAction`
+calls — reaches `canRename` at `PsiElementRenameHandler.java:114` and the processor only at `:132`.
+Driven over `local f = io.open("x")` / `f:<caret>write("y")`:
+
+```
+R480 dataContextElement = LeafPsiElement('write')
+R480 file = …/lunar-0.18.0.jar!/runtime/standard/lua-5.4/io.lua   fileSystem = JarFileSystemImpl
+R480 isInProject = false   isWritable = false   nonProjectWriteAccessAllowed = true
+R480 selectedHandler = com.intellij.refactoring.rename.PsiElementRenameHandler
+B (the user's path)   -> RefactoringErrorHintException: Cannot perform refactoring.
+                         This element cannot be renamed
+                         — and the probe line inside substituteElementToRename NEVER PRINTED
+C (substituteElement…) -> "This method is declared outside this project, in '…/io.lua', …"
+D (renameElementAtCaret) -> the same as C: the fixture API calls C directly
+```
+
+So the platform decides first and Lunar's guard is not entered — the report's premise, confirmed.
+`renameElementAtCaretUsingHandler` is no escape either: it sets `DEFAULT_NAME`, which in unit-test
+mode short-circuits `invoke` past `canRename` (`:61-67`).
+
+**Why the message is the *generic* one and not the platform's own out-of-project message:**
+`NonProjectFileWritingAccessProvider.isWriteAccessAllowed` returns `true` for anything not on a
+`LocalFileSystem` (`:109`), so a jar-backed element skips `error.out.of.project.element` and falls
+to `!isWritable` → `error.cannot.be.renamed`.
+
+### Where the guard IS the deciding layer
+
+The same probe over a `.lua` file under **no content root**, in the two states of the IDE's
+non-project write protection (`enableChecksInTests` so the check is live headlessly):
+
+| state | `isInProject` | `isWritable` | write access | platform `canRename` | Lunar's guard |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| jar stub (`io.lua`) | false | false | true | **refuses** — *This element cannot be renamed* | shadowed |
+| local, protected | false | true | false | **refuses** — *Selected global function is not located inside the project* | shadowed |
+| local, **unlocked** | false | true | true | **returns normally** | **refuses, naming `outside.lua`** |
+
+The third row is reachable in the IDE: it is the state *"I want to edit this file anyway"* leaves a
+file in, and `isFileRecentlyChanged` grants it to any non-project file just edited. There the
+platform allows the rename and `outOfProjectRefusal` is the only thing standing between the user and
+a rewrite of a declaration outside `projectScope` — the half-rename REFACT-01 exists to prevent.
+Deleting the guard (option 2) would give that up.
+
+### What was done
+
+- **Kept `outOfProjectRefusal` unchanged.** No production code changed by this bug.
+- **Re-aimed row 14 at the layer that decides it**, as two tests in `LuaColonMethodRenameTest`:
+  - `aMethodDeclaredInABundledStubIsRefusedByThePlatformBeforeLunarIsAsked` drives the four-argument
+    `PsiElementRenameHandler.invoke` with the editor's own data context, and asserts the balloon is
+    the platform's `error.cannot.be.renamed` and **does not** name `io.lua`. Mutation — swap the
+    drive back to `myFixture.renameElementAtCaret` — reddens it. That mutation *is* this bug.
+  - `aMethodInAnUnlockedNonProjectFileIsRefusedByLunar` asserts the platform allows the element and
+    Lunar refuses naming the declaring file. Mutation — delete the `outOfProjectRefusal` call —
+    reddens it, and leaves the first test green.
+- **Rejected option 1.** The only surface earlier than `canRename` is a `RenameHandler`, whose
+  `isAvailableOnDataContext` runs on the EDT for every rename in every language and whose second
+  entry in the registry's map is what raises the *Renamer* chooser popup that
+  `LuaInplaceRenameHandler`'s KDoc documents at length. That is a large, hazardous surface to reword
+  one balloon, in one of the three out-of-project states, where the outcome is already correct.
+
+### What remains, deliberately
+
+At a bundled stub the user still reads *"This element cannot be renamed"*, and is not told which
+file declares the method. `REFACT-09-05` is satisfied in outcome everywhere and in wording in the
+one state where Lunar is asked. Scenario 3.2 is re-stated to expect the platform's message.
+
+### The lesson, restated more precisely than the report had it
+
+*"A test that enters below the layer that decides can pass while the behaviour it describes is
+unreachable"* — true, and row 14 was that test. But the second half does not follow: **shadowed at
+one input is not dead everywhere.** Deleting a guard because one fixture cannot reach it is how a
+real refusal gets removed. Enumerate the inputs and run each one before concluding a guard earns
+nothing.
 
 ## The general lesson, worth more than the bug
 

@@ -454,13 +454,23 @@ class LuaRenameProcessor :
     /**
      * Design §3.6 — refuse a method declared outside the project.
      *
-     * **Reachable, not defensive**: `local f = io.open("x")` / `f:write("y")` resolves into the
-     * plugin's own bundled stub, measured resolving to
-     * `lunar-<version>.jar!/runtime/standard/lua-5.4/io.lua` with `writable=false`
-     * (`risks-and-gaps.md` DR-04). Without this refusal the substitution hands back an element in a
-     * different file and `myFixture.renameElementAtCaret` fails with `element not found in file` —
-     * a fixture-level symptom rather than a production verdict, which is why an explicit refusal is
-     * specified instead of leaving it to the platform's read-only check.
+     * **Reachable, and NOT at the input its first rationale named** (BUG-480). The platform decides
+     * before this processor is asked — `PsiElementRenameHandler.invoke` calls `canRename` at `:114`
+     * and reaches the processor only at `:132` — so at a jar-backed declaration
+     * (`local f = io.open("x")` / `f:write("y")`, measured resolving to
+     * `lunar-<version>.jar!/runtime/standard/lua-5.4/io.lua`) the user reads the platform's
+     * *"This element cannot be renamed"* and this method never runs. Measured across the three
+     * out-of-project states, it is shadowed at a jar stub and at a write-protected non-project file,
+     * and **decisive at a non-project file whose write protection the user has lifted**: there
+     * `isWritable` and `NonProjectFileWritingAccessProvider.isWriteAccessAllowed` are both true,
+     * `canRename` returns true, and this is the only refusal between the user and a rewrite of a
+     * declaration outside `projectScope`. That state is what the *"I want to edit this file anyway"*
+     * bar leaves behind, and `isFileRecentlyChanged` grants it to any non-project file just edited.
+     *
+     * **A test for this must not enter through `myFixture.renameElementAtCaret`**, which calls
+     * `substituteElementToRename` directly and so passes with the guard unreachable — that was
+     * BUG-480. `LuaColonMethodRenameTest` rows 14a/14b drive `PsiElementRenameHandler.invoke` and
+     * pin the two layers separately.
      *
      * `LuaCatsTypeRenameProcessor.substituteElementToRename` refuses an out-of-project type by the
      * same `projectScope.contains` + `presentableUrl` rule; this is that rule applied to one
