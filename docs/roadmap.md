@@ -75,7 +75,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-421 | Wildcard imports keep `no-wildcard-imports` disabled, against the engineering contract | todo | C | — | — | ✓ |
 | BUG-443 | Quick Doc reported empty for `ngx.say` live, never reproduced | todo | C | — | — | — |
 | BUG-450 | The debugger's `STACK` payload is unbounded at both ends, and DEBUG-07 claimed otherwise | todo | C | — | — | ✓ |
-| REFACT-04 | Label Refactoring — conflict detection, use scope, Structure View target | planned | S | REFACT-01 Phase 3 *(`LuaRenameCollisionUsageInfo`)* | BUG-458 *(safe-delete of a label)* | Serial: rename machinery |
 | DEBUG-06 | Debug Target Configuration — the severity ladder that lets a launch be refused | planned | S | — | BUG-455 *(Phase 2 retires it)*; BUG-461's `testCheckConfigurationThrowsWithoutRuntime` entry; DEBUG-05 *(validation model it extends)* | Serial: debug target |
 | DEBUG-05 | Remote Debugging — attach configuration, host field, bidirectional path mapping | planned | S | DEBUG-06 *(validation model)* | BUG-456 *(`-12`, wildcard bind)*; `-09` is a live defect in **local** debugging today | Serial: debug target |
 | DEBUG-07 | Lazy Remote Stack Evaluation — confirmed real, low value | todo | C | — | **measured 2026-08-22** (BUG-450 §5b): parse beats serialization at every size, but there is a ~30 ms PSI floor a payload bound cannot cross, and it is off-EDT — realistic case ~125 ms end to end | ✓ |
