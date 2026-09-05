@@ -19,6 +19,35 @@
   whose type the engine still cannot infer. This closes the colon-method gap the type-name rename
   (REFACT-08) and the member-resolution work (TYPE-13) each recorded as out of their scope.
 
+- **A colon call now goes to the method it calls, and Find Usages on that method finds it**
+  (NAV-13). `obj:method()` previously resolved to nothing, so <kbd>Ctrl+B</kbd> on the method name
+  did not move and Find Usages on `function Obj:method()` returned no results at all — across every
+  receiver shape, the annotated one included. `obj:m()` is sugar for `obj.m(obj)`, which makes `m` a
+  table key rather than a variable, so resolution now goes through the *receiver's inferred type*: a
+  plain local table, an in-file global, a `setmetatable` chain through its supertypes, and a
+  `---@class`/`---@type` receiver including its aliased form `local b = Builder`, which resolves
+  across files. Quick Documentation, parameter hints and the deprecation inspection all follow the
+  same binding.
+
+  **It also withdraws bindings that were wrong.** Because the member name is a table key, the
+  previous lexical answer for it was unsound by the language definition — measured across four
+  pinned real-world projects, 441 colon call sites resolved to a *local variable, a local function
+  or an unrelated global* that the call does not invoke, one of them to the stdlib `next`. Those now
+  resolve to the method or to nothing. Two consequences are deliberate and visible: <kbd>Shift+F6</kbd>
+  at a colon call site no longer starts an inline rename on a same-named local, and a declaration
+  kept alive only by such a call is now correctly reported unused.
+
+  Reach is honest rather than total: 51 of 941 colon-method declarations in the pinned corpus gain a
+  resolving call site, and 121 of 268 in a heavily annotated project. Un-annotated receivers do not
+  resolve across files, and a chained call, a factory-returned table, a `self` receiver, a
+  `require`d module and an aliased local remain out of scope — each resolves to nothing rather than
+  to a plausible-but-wrong target.
+
+- **Find Usages now works from a method or dotted declaration's own name** (BUG-478). Invoking it on
+  `function Obj:method()` or `function M.run()` declined with *cannot search for usages from this
+  location*, even though the usages existed and Find Usages from a call site listed them. The caret
+  is now resolved to the declaration's own identifier, so the search starts where you asked it to.
+
 - **Renaming a `---@class`/`---@alias` type name now works, and moves every use of it — or refuses
   and says why** (REFACT-08). A LuaCATS type name previously had no renameable symbol at all:
   invoking Rename on `---@class Widget` renamed nothing, and rewriting through the type index (the
