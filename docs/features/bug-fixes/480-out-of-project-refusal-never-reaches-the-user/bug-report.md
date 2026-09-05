@@ -55,6 +55,48 @@ lost is diagnostic quality: a user renaming a stdlib method is told "this elemen
 rather than which file declares it and why. `REFACT-09-05` is satisfied in outcome and not in
 intent.
 
+## Row 3 verified live — the guard fires, and the path is richer than measured
+
+The three-state table that decided this bug was established by a unit probe with
+`enableChecksInTests`. Row 3 — the state that saved the guard from deletion — is now driven in the
+sandbox, on merged `main` at `e3d66469`, through the IDE's own UI.
+
+**Fixture** staged as `builder` before IDE startup at `/home/builder/outside/outside.lua`, outside
+every content root:
+
+```lua
+local w = {}
+function w:sigma() end
+w:sigma()
+w:sigma()
+```
+
+Caret verified `2:13`, <kbd>Shift+F6</kbd>.
+
+**The platform does not hard-refuse first.** It asks:
+
+> Cannot perform refactoring.
+> Selected element is **used from non-project files**. These usages won't be renamed. **Proceed anyway?**  \[Yes\] \[No\]
+
+On **Yes**, Lunar's guard fires:
+
+> Cannot perform refactoring.
+> **This method is declared outside this project, in `'/home/builder/outside/outside.lua'`, so it cannot be renamed here.**
+
+So the guard is reachable through an explicit **consent dialog**, not only through the
+`isFileRecentlyChanged` window the probe inferred. That is a stronger result than the probe gave:
+the user has to *ask* for the state in which Lunar's message is the one that answers. **Deleting the
+guard would have removed the only message that names the declaring file, on a path a user reaches
+deliberately.**
+
+The prompt is a third path neither this report nor the probe described, and it is why row 2 was
+recorded as "platform refuses" — under `enableChecksInTests` the same condition surfaces as a
+refusal rather than a question, because a headless probe cannot answer a dialog.
+
+**Merged-state control, same session**: an in-project colon method renamed both its declaration and
+its call site (`v:tau` → `v:upsilon`), confirming REFACT-09, [[BUG-478]]'s evaluator change and this
+bug's tests coexist.
+
 ## Fix strategy — two options, neither obviously right
 
 1. **Move the refusal earlier**, to whatever extension point runs before the platform's check
