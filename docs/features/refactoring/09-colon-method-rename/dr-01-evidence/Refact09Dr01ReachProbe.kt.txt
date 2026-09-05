@@ -1,0 +1,329 @@
+package net.internetisalie.lunar.refactoring.rename
+
+import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import net.internetisalie.lunar.corpus.CorpusManifest
+import net.internetisalie.lunar.lang.LuaFileType
+import net.internetisalie.lunar.lang.psi.LuaColonCallResolution
+import net.internetisalie.lunar.lang.psi.LuaDeclarationKind
+import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
+import net.internetisalie.lunar.lang.psi.LuaFuncCall
+import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
+import net.internetisalie.lunar.lang.psi.LuaMethodExpr
+import net.internetisalie.lunar.lang.psi.LuaNameAndArgs
+import net.internetisalie.lunar.settings.LuaProjectSettings
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
+import java.io.File
+
+/**
+ * REFACT-09 Phase 5 / DR-01 re-measurement — THROWAWAY. Reverted before the phase commits.
+ *
+ * Runs `risks-and-gaps.md` DR-01's reach instrument against the **shipped**
+ * [LuaColonMethodRename] rather than a transcription of the design, over the pinned checkouts and
+ * the annotated substitute staged per DR-01 Method point 6.
+ *
+ * Two instruments, per DR-01 Method point 5:
+ * - **predicate** — usage set from `ReferencesSearch.search(leaf, projectScope)`, which is the set
+ *   `LuaRenameProcessor.findReferences` actually hands the scan (DR-02 Finding 1).
+ * - **forward map** — usage set from `site -> LuaColonCallResolution.declarationLeafOf(site)`.
+ *
+ * Gap 2.5 is the comparison of the two accepted sets, printed by declaration identity.
+ *
+ * Classification is by **blocker set**, never by first undecided occurrence: the latter depends on
+ * the order `CacheManager` returns candidate files and did not reproduce (DR-01 Finding 2).
+ */
+@RunWith(JUnit4::class)
+class Refact09Dr01ReachProbe : BasePlatformTestCase() {
+    override fun getTestDataPath(): String = System.getProperty("user.dir")
+
+    /** Denominators, verdicts and the sole-blocker decomposition for one tree, in one pass. */
+    private data class Tally(
+        val files: Int = 0,
+        val decls: Int = 0,
+        val rawMethodExprs: Int = 0,
+        val colonCallSites: Int = 0,
+        val bareNameFirst: Int = 0,
+        val accepted: Int = 0,
+        val acceptedNoCallSites: Int = 0,
+        val blocked: Int = 0,
+        val boundBySearch: Int = 0,
+        val boundByForwardMap: Int = 0,
+        val soleColon: Int = 0,
+        val soleDotted: Int = 0,
+        val soleBracket: Int = 0,
+        val soleFieldKey: Int = 0,
+        val forwardAccepted: Int = 0,
+        val forwardAcceptedNoCallSites: Int = 0,
+        val forwardBlocked: Int = 0,
+        val disagreements: List<String> = emptyList(),
+    )
+
+    /** What every per-declaration step needs: the project scope and the forward map. */
+    private data class Pass(
+        val scope: GlobalSearchScope,
+        val forwardMap: Map<PsiElement, Set<PsiElement>>,
+    )
+
+    override fun setUp() {
+        super.setUp()
+        listOf(CorpusManifest.CORPUS_DIR, SUBSTITUTE_DIR).forEach { relative ->
+            VfsRootAccess.allowRootAccess(
+                testRootDisposable,
+                File(System.getProperty("user.dir"), relative).canonicalPath,
+            )
+        }
+    }
+
+    @Test
+    fun testLuacheckReach() = measureCorpus("luacheck")
+
+    @Test
+    fun testLuarocksReach() = measureCorpus("luarocks")
+
+    @Test
+    fun testPenlightReach() = measureCorpus("penlight")
+
+    @Test
+    fun testZerobraneReach() = measureCorpus("zerobrane")
+
+    @Test
+    fun testSubstituteReach() {
+        val copied = myFixture.copyDirectoryToProject(SUBSTITUTE_DIR, "lls")
+        reportTwoPasses("lls", copied)
+    }
+
+    /**
+     * DR-01 Method point 1 — the **whole** `.lua` tree of the checkout, not the sweep's narrower
+     * `roots`, so the denominators stay comparable with NAV-13 DR-01's.
+     */
+    private fun measureCorpus(name: String) {
+        val entry = CorpusManifest.entry(File(testDataPath), name)
+        LuaProjectSettings.getInstance(myFixture.project).state.languageLevel = entry.luaLevel
+        val copied = myFixture.copyDirectoryToProject("${CorpusManifest.CORPUS_DIR}/$name", name)
+        reportTwoPasses(name, copied)
+    }
+
+    /**
+     * DR-01's reproducibility protocol: measure the same copied tree twice and fail rather than
+     * report when the passes disagree.
+     */
+    private fun reportTwoPasses(
+        tree: String,
+        copied: VirtualFile,
+    ) {
+        val luaFiles = collectLuaFiles(copied)
+        println("R09P5[$tree] dotLuaFiles=${luaFiles.size} luaTypedFiles=${countLuaTypedFiles(copied)}")
+        val first = measure(luaFiles)
+        val second = measure(luaFiles)
+        print(tree, first)
+        assertEquals("$tree: the two passes disagree, so the measurement is discarded", first, second)
+    }
+
+    private fun print(
+        tree: String,
+        tally: Tally,
+    ) {
+        println(
+            "R09P5[$tree] files=${tally.files} decls=${tally.decls} " +
+                "rawMethodExprs=${tally.rawMethodExprs} colonCallSites=${tally.colonCallSites} " +
+                "bareNameFirst=${tally.bareNameFirst}",
+        )
+        println(
+            "R09P5[$tree] accepted=${tally.accepted} acceptedNoCallSites=${tally.acceptedNoCallSites} " +
+                "blocked=${tally.blocked} boundBySearch=${tally.boundBySearch} " +
+                "boundByForwardMap=${tally.boundByForwardMap}",
+        )
+        println(
+            "R09P5[$tree] soleColon=${tally.soleColon} soleDotted=${tally.soleDotted} " +
+                "soleBracket=${tally.soleBracket} soleFieldKey=${tally.soleFieldKey}",
+        )
+        println(
+            "R09P5[$tree] fwdAccepted=${tally.forwardAccepted} " +
+                "fwdAcceptedNoCallSites=${tally.forwardAcceptedNoCallSites} " +
+                "fwdBlocked=${tally.forwardBlocked}",
+        )
+        println("R09P5[$tree] gap25Disagreements=${tally.disagreements.size} ${tally.disagreements}")
+    }
+
+    private fun measure(luaFiles: List<PsiFile>): Tally {
+        val methodExprs = luaFiles.flatMap { PsiTreeUtil.findChildrenOfType(it, LuaMethodExpr::class.java) }
+        val callSites = methodExprs.filter { isUnderFuncCall(it) }
+        val pass =
+            Pass(
+                scope = GlobalSearchScope.projectScope(myFixture.project),
+                forwardMap = forwardMap(callSites),
+            )
+        val base =
+            Tally(
+                files = luaFiles.size,
+                decls = 0,
+                rawMethodExprs = methodExprs.size,
+                colonCallSites = callSites.size,
+                bareNameFirst = callSites.count { hasBareNameReceiver(it) },
+            )
+        return declarations(luaFiles).fold(base) { tally, leaf -> accumulate(tally, leaf, pass) }
+    }
+
+    /** DR-01 Method point 3 — an IDENTIFIER leaf under a `LuaFuncNameMethod` classed METHOD_FUNCTION. */
+    private fun declarations(luaFiles: List<PsiFile>): List<PsiElement> =
+        luaFiles
+            .flatMap { PsiTreeUtil.findChildrenOfType(it, LuaFuncNameMethod::class.java) }
+            .map { it.nameRef.identifier }
+            .filter { LuaDeclarationSite.kindOf(it) == LuaDeclarationKind.METHOD_FUNCTION }
+
+    /** DR-01 Method point 4 — a `LuaMethodExpr` under a `LuaNameAndArgs` under a `LuaFuncCall`. */
+    private fun isUnderFuncCall(methodExpr: LuaMethodExpr): Boolean {
+        val nameAndArgs = methodExpr.parent as? LuaNameAndArgs ?: return false
+        return nameAndArgs.parent is LuaFuncCall
+    }
+
+    private fun hasBareNameReceiver(methodExpr: LuaMethodExpr): Boolean {
+        val nameAndArgs = methodExpr.parent as? LuaNameAndArgs ?: return false
+        val call = nameAndArgs.parent as? LuaFuncCall ?: return false
+        if (call.nameAndArgsList.firstOrNull() !== nameAndArgs) return false
+        val receiver = call.varOrExp.`var` ?: return false
+        return receiver.varSuffixList.isEmpty() && receiver.nameRef != null
+    }
+
+    private fun forwardMap(callSites: List<LuaMethodExpr>): Map<PsiElement, Set<PsiElement>> {
+        val map = mutableMapOf<PsiElement, MutableSet<PsiElement>>()
+        callSites.forEach { site ->
+            val nameRef = site.nameRef
+            val leaf = LuaColonCallResolution.declarationLeafOf(nameRef) ?: return@forEach
+            map.getOrPut(leaf) { mutableSetOf() }.add(nameRef)
+        }
+        return map
+    }
+
+    private fun accumulate(
+        tally: Tally,
+        leaf: PsiElement,
+        pass: Pass,
+    ): Tally {
+        val searchUsages = usagesOf(leaf, pass.scope)
+        val forwardUsages = pass.forwardMap[leaf].orEmpty()
+        val target = LuaRenameTarget(leaf, LuaDeclarationKind.METHOD_FUNCTION, PROBE_NEW_NAME)
+        val blockers = LuaColonMethodRename.undecidedOccurrences(target, searchUsages).map { it.spelling }.toSet()
+        val forwardClean = LuaColonMethodRename.undecidedOccurrences(target, forwardUsages).isEmpty()
+        return tally
+            .copy(decls = tally.decls + 1)
+            .let { withPredicateVerdict(it, blockers, searchUsages.isNotEmpty()) }
+            .let { withForwardVerdict(it, forwardClean, forwardUsages.isNotEmpty()) }
+            .let { withGap25(it, leaf, blockers.isEmpty() != forwardClean) }
+    }
+
+    private fun withPredicateVerdict(
+        tally: Tally,
+        blockers: Set<LuaColonMethodRename.Spelling>,
+        bound: Boolean,
+    ): Tally {
+        val bumped = tally.copy(boundBySearch = tally.boundBySearch + if (bound) 1 else 0)
+        if (blockers.isNotEmpty()) return withSoleBlocker(bumped.copy(blocked = bumped.blocked + 1), blockers)
+        if (bound) return bumped.copy(accepted = bumped.accepted + 1)
+        return bumped.copy(acceptedNoCallSites = bumped.acceptedNoCallSites + 1)
+    }
+
+    private fun withSoleBlocker(
+        tally: Tally,
+        blockers: Set<LuaColonMethodRename.Spelling>,
+    ): Tally {
+        val sole = blockers.singleOrNull() ?: return tally
+        return when (sole) {
+            LuaColonMethodRename.Spelling.COLON_CALL -> tally.copy(soleColon = tally.soleColon + 1)
+            LuaColonMethodRename.Spelling.DOTTED -> tally.copy(soleDotted = tally.soleDotted + 1)
+            LuaColonMethodRename.Spelling.BRACKET -> tally.copy(soleBracket = tally.soleBracket + 1)
+            LuaColonMethodRename.Spelling.FIELD_KEY -> tally.copy(soleFieldKey = tally.soleFieldKey + 1)
+        }
+    }
+
+    private fun withForwardVerdict(
+        tally: Tally,
+        clean: Boolean,
+        bound: Boolean,
+    ): Tally {
+        val bumped = tally.copy(boundByForwardMap = tally.boundByForwardMap + if (bound) 1 else 0)
+        if (!clean) return bumped.copy(forwardBlocked = bumped.forwardBlocked + 1)
+        if (bound) return bumped.copy(forwardAccepted = bumped.forwardAccepted + 1)
+        return bumped.copy(forwardAcceptedNoCallSites = bumped.forwardAcceptedNoCallSites + 1)
+    }
+
+    /** Gap 2.5 — name the declaration the two instruments disagree on, which the DR-01 probe did not. */
+    private fun withGap25(
+        tally: Tally,
+        leaf: PsiElement,
+        differs: Boolean,
+    ): Tally {
+        if (!differs) return tally
+        return tally.copy(disagreements = tally.disagreements + identify(leaf))
+    }
+
+    private fun identify(leaf: PsiElement): String {
+        val file = leaf.containingFile
+        val document = PsiDocumentHolder.lineOf(file, leaf.textOffset)
+        return "${file.virtualFile?.path ?: file.name}:$document:${leaf.text}"
+    }
+
+    private fun usagesOf(
+        leaf: PsiElement,
+        scope: GlobalSearchScope,
+    ): Set<PsiElement> =
+        ReferencesSearch
+            .search(leaf, scope)
+            .findAll()
+            .mapNotNull { it.element }
+            .toSet()
+
+    /** Evidence for why the `.lua` tree and the Lua *file type* give different denominators. */
+    private fun countLuaTypedFiles(root: VirtualFile): Int {
+        var typed = 0
+        VfsUtilCore.iterateChildrenRecursively(root, null) { candidate ->
+            if (!candidate.isDirectory && candidate.fileType == LuaFileType) typed++
+            true
+        }
+        return typed
+    }
+
+    private fun collectLuaFiles(root: VirtualFile): List<PsiFile> {
+        val manager = PsiManager.getInstance(myFixture.project)
+        val files = mutableListOf<PsiFile>()
+        VfsUtilCore.iterateChildrenRecursively(root, null) { candidate ->
+            // DR-01 Method point 1 says the checkout's whole `.lua` TREE. The Lua *file type* is
+            // wider — `plugin.xml` maps `lua;rockspec` plus `.luacheckrc`/`.busted` — and filtering
+            // by it read penlight as 141 files against DR-01's 114 (114 .lua + 25 .rockspec + 2
+            // named files). Every other column was identical, so the extra files carry no colon
+            // method and no colon call site; the extension is nonetheless what reproduces 734.
+            if (!candidate.isDirectory && candidate.extension == "lua") {
+                manager.findFile(candidate)?.let { files.add(it) }
+            }
+            true
+        }
+        return files.sortedBy { it.virtualFile.path }
+    }
+
+    private object PsiDocumentHolder {
+        fun lineOf(
+            file: PsiFile,
+            offset: Int,
+        ): Int {
+            val text = file.viewProvider.document?.text ?: return -1
+            return text.substring(0, offset.coerceAtMost(text.length)).count { it == '\n' } + 1
+        }
+    }
+
+    private companion object {
+        const val SUBSTITUTE_DIR = "test/r09-substitute"
+
+        /** Only `receiverAlreadyHasNewName` reads the new name; the scan's verdict is independent of it. */
+        const val PROBE_NEW_NAME = "lunarReachProbeTargetName"
+    }
+}

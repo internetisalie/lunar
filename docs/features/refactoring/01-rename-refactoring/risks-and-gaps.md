@@ -1287,7 +1287,10 @@ them was removed.
 **2887 tests, 2 failed, 1 skipped** against the 2887 / 0 / 0 / 1 corpus baseline. Both failures are
 `LuaRenameTest.assertRefusedWith` (`:1217`) in `testColonMethodDeclarationIsRefused` and
 `testSelfInsideAMethodIsRefusedAsTheMethod` — the two tests that assert the refusal the prototype
-deliberately lifts. Every corpus class ran and was green, XML mtimes from the run:
+deliberately lifts. The first of those has since been rewritten and renamed to
+`testColonMethodDeclarationWithAnAliasedCallSiteReportsAConflict` by [[REFACT-09]] Phase 4, which
+landed the lift the prototype was modelling; the name above is the one the run reported and is
+left as the record of it. Every corpus class ran and was green, XML mtimes from the run:
 `BaselineRatchetTest` 35, `ParseOracleTest` 14, `LexerInvariantsTest` 8, `LuaCorpusSweepTest` 4,
 `LuaInspectionParityTest` 1, `LuaTortureCorpusTest` 1 — `failures="0" errors="0"` on all six. **No
 type or index answer moved.**

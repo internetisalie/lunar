@@ -21,6 +21,61 @@ surfaces no unit test can see:
 Use a scratch project with the files named in each scenario. Record the exact balloon or dialog text
 observed, not a paraphrase.
 
+## Live verification result — 2026-09-05, sandbox GoLand 2026.1.3 at `778ec948`
+
+| Scenario | Verdict | Evidence |
+| :-- | :-- | :-- |
+| 1.1 declaration caret renames every call site | **PASS** | caret `2:12`; all three read `n`; no conflicts dialog |
+| 1.2 the dialog names the method | **PASS** | *"Rename global function 'm' and its usages to:"* — the method, not the receiver |
+| 1.3 annotated receiver, aliased | **PASS** | caret `3:20`; `function Builder:withName(x)` **and** `b:withName("x")`; no dialog |
+| 1.4 one undo restores the file | **PASS** | single <kbd>Ctrl+Z</kbd>; Edit menu read *"Undo Renaming global function m to …"* — [[BUG-475]]'s `ElementDescriptionProvider` working, where it once showed a de-camel-cased PSI class name |
+| 2.1 / 2.3 the incompleteness conflicts dialog | **PASS** | *"This call to 'm' cannot be bound to a declaration, so it may be a call of this method and will not be renamed."* — names the file, highlights the occurrence in a preview pane, offers **Refactor Anyway** (Risk 1.1's residual, visible in the UI) |
+| 3.1 caret on `self` | **PASS** | *"Cannot perform refactoring. 'self' is not the method name; put the caret on the method name to rename it."* |
+| 2.2 the dotted spelling | **PASS** | *"This names the same member as 'm' in the **dotted form**, which this rename does not rewrite."* |
+| 2.4 a string-key spelling | **PASS** | *"This names the same member as 'm' through a **string key**…"*, preview showing `print(t["m"])` |
+| 2.5 a table-constructor key | **PASS** | *"This **table-constructor key** declares the same member as 'm'…"* |
+| 2.6 a positional value does NOT block | **PASS** | `local u = { m }` produced **no** entry — verified as an absence in the same run that produced 2.2/2.4/2.5, so the negative and the positives share one measurement |
+| 2.7 a dynamic index does NOT block | **PASS** | neither `local k = 'm'` nor `print(t[k])` produced an entry; exactly 3 conflicts, all from the three blocking spellings |
+| 3.2 a method declared outside the project | **FAIL** | balloon reads the platform's generic *"Cannot perform refactoring. This element cannot be renamed"*, **not** Lunar's message naming `runtime/standard/lua-5.4/io.lua`. Refusal outcome correct; diagnostic lost. **[[BUG-480]]** |
+| 1.2 the preview lists the usages | **PASS** | Refactoring Preview: *"References in code to global function (**2 references in 1 file**)"* — the two `t:alpha()` sites |
+| 3.3 a call on `self` refuses as unresolved | **PASS** | caret `3:23`; *"Cannot determine which declaration this name refers to, so its usages cannot be rewritten."* — the pre-existing `refactoring.rename.unresolved`, unchanged |
+| 3.4 no shipped string claims colon calls are unresolved | **PASS** | verified against `LuaBundle.properties` rather than the UI: the falsified phrase appears nowhere, and all six `refactoring.rename.colonMethod.*` keys are present. `REFACT-09-09` |
+| 4.1 the receiver already has the new name | **PASS** | *"This table already has a member named 'delta'; renaming would merge the two."* — and **not** *"a global named 't:delta' already exists"*, the rule Phase 3's arm replaced (DR-02 Finding 6) |
+| 4.2 the annotated receiver reports the same collision | **PASS** | *"This table already has a member named 'withName'; renaming would merge the two."* on a `---@class Widget` receiver — **live evidence for §3.7's union-arm loop**, since `{ … } \| Widget` makes `LuaUnionType.resolveMember` return null without it and nothing would be reported |
+| 4.3 a declaration with no call site reports nothing | **PASS** | no dialog; the file becomes two `function q:theta()` declarations, exactly as Gap 2.8 states |
+| 4.4 an identical shape in another file is not a conflict | **PASS** | `k1.lua` renamed to `lambda`, no dialog; `k2.lua` **byte-identical on disk** afterwards despite being the same shape — per-receiver isolation holds across files |
+
+**A false alarm, recorded because the process failure is worth more than the result.** Scenario 1.3
+was first observed **failing** — declaration renamed, `b:setName("x")` untouched, nothing reported —
+and filed as a critical [[BUG-479]]. It does not reproduce. Both failing runs wrote the fixture
+**into an already-running IDE**, in a directory where a sibling had just raised
+`Failed to change read-only status` and been `chmod`-ed mid-session. Staged as `builder` **before**
+the IDE starts, so the file is indexed at startup, the scenario passes.
+
+**Fixture lifecycle is part of the experiment.** A file created into a running IDE, or owned by a
+different user than the IDE runs as, is not the same input as a file the IDE indexed at startup —
+and neither is what a unit fixture models. Run the control before filing.
+
+**Every scenario is now driven.** Eighteen checks: seventeen pass, one fails ([[BUG-480]], 3.2's
+balloon wording).
+
+**Two of the passes are accepted residuals, and confirming them is the point.** 4.3 (a declaration
+with no call site renames silently, leaving two identical declarations) and 2.7 (a dynamic index is
+never reported) are *documented misses*, not successes — driving them proves the shipped behaviour
+matches what `risks-and-gaps.md` Gaps 2.8 and 2.2 tell a reader to expect, rather than surprising
+them. A residual that behaves as documented is a different thing from one nobody checked.
+
+**Giving each scenario its own member name is what unblocked §4.** The earlier round staged every
+fixture as `m`, so one rename reported the other files' spellings and §4 could not be isolated;
+`alpha` / `beta` / `gamma`+`delta` fixed it outright.
+
+**Two mechanical notes for whoever finishes this**, both of which cost real time here. A modal
+**Rename** dialog left open silently swallows every subsequent keystroke, so the Project tree and
+Go-to-File appear broken when they are merely blocked — screenshot the whole screen, not a crop,
+the moment anything stops responding. And a rename in one file reports conflicts from **every** file
+sharing the member name, which is correct behaviour and a poor fixture design: give each scenario
+its own member name, or its own project.
+
 ## 1. Rename
 
 ### Scenario 1.1: The declaration caret renames every call site

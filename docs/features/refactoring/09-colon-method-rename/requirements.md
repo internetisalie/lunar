@@ -2,7 +2,7 @@
 id: "REFACT-09"
 title: "09: Colon-method rename"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "REFACT/INTENT"
 folders:
@@ -129,16 +129,16 @@ on that premise is withdrawn; the measurements are kept where they still hold.
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| `REFACT-09-01` | **Rename from the declaration caret** | M | Not Implemented | Caret on `m` in `function R:m()` renames the declaration and every call site `ReferencesSearch` returns for it. |
-| `REFACT-09-02` | **Rename from a call site** | M | Not Implemented | Caret on `m` in `r:m()`, where that site resolves, renames the same set. |
-| `REFACT-09-03` | **Report every occurrence that makes the rename incomplete** | M | Not Implemented | Before any write, every member-position occurrence of the method's name in the refactoring scope that is neither in the usage set nor resolves to a different declaration is raised as a conflict naming its spelling and location. `design.md` §3.3 specifies the occurrence set and §3.4 the verdict. |
-| `REFACT-09-04` | **Caret on `self` does not rename the method** | M | Not Implemented | With the caret on `self` inside a method body, the rename is refused and the method is not renamed. |
-| `REFACT-09-05` | **A declaration outside the project is refused** | M | Not Implemented | A colon call that resolves into a library — the plugin's bundled stdlib stubs included — refuses with a message naming the file, instead of attempting to rewrite it. |
-| `REFACT-09-06` | **Caret on the receiver renames the receiver** | M | Not Implemented | Caret on `r` in `r:m()` renames `r`, not `m`. |
-| `REFACT-09-07` | **Atomic** | M | Not Implemented | The rename is one undoable write action; a refusal or a cancelled conflict leaves every file byte-identical. |
-| `REFACT-09-08` | **The new name is reported when the receiver already has it** | S | Not Implemented | Renaming `R:m` to a name `R`'s type already resolves as a member reports a conflict, rather than silently merging the two members. |
-| `REFACT-09-09` | **The replaced refusal's text is removed** | M | Not Implemented | `refactoring.rename.colonMethod` and its one call site are deleted; no shipped string claims colon calls are unresolved. |
-| `REFACT-09-10` | **No regression in the shapes that already work** | M | Not Implemented | The dotted form, local/global/label renames, Safe Delete and the REFACT-01 conflict rules behave exactly as at `2a15cfcd`, except for the assertions `implementation-plan.md` Phase 4 rewrites. |
+| `REFACT-09-01` | **Rename from the declaration caret** | M | Full | Caret on `m` in `function R:m()` renames the declaration and every call site `ReferencesSearch` returns for it. |
+| `REFACT-09-02` | **Rename from a call site** | M | Full | Caret on `m` in `r:m()`, where that site resolves, renames the same set. |
+| `REFACT-09-03` | **Report every occurrence that makes the rename incomplete** | M | Full | Before any write, every member-position occurrence of the method's name in the refactoring scope that is neither in the usage set nor resolves to a different declaration is raised as a conflict naming its spelling and location. `design.md` §3.3 specifies the occurrence set and §3.4 the verdict. |
+| `REFACT-09-04` | **Caret on `self` does not rename the method** | M | Full | With the caret on `self` inside a method body, the rename is refused and the method is not renamed. |
+| `REFACT-09-05` | **A declaration outside the project is refused** | M | Full | A colon call that resolves into a library — the plugin's bundled stdlib stubs included — refuses with a message naming the file, instead of attempting to rewrite it. |
+| `REFACT-09-06` | **Caret on the receiver renames the receiver** | M | Full | Caret on `r` in `r:m()` renames `r`, not `m`. |
+| `REFACT-09-07` | **Atomic** | M | Full | The rename is one undoable write action; a refusal or a cancelled conflict leaves every file byte-identical. |
+| `REFACT-09-08` | **The new name is reported when the receiver already has it** | S | Full | Renaming `R:m` to a name `R`'s type already resolves as a member reports a conflict, rather than silently merging the two members. |
+| `REFACT-09-09` | **The replaced refusal's text is removed** | M | Full | `refactoring.rename.colonMethod` and its one call site are deleted; no shipped string claims colon calls are unresolved. |
+| `REFACT-09-10` | **No regression in the shapes that already work** | M | Partial | The dotted form, local/global/label renames, Safe Delete and the REFACT-01 conflict rules behave exactly as at `2a15cfcd`, except for the assertions `implementation-plan.md` Phase 4 rewrites. |
 
 ## Behavior Rules
 
@@ -184,7 +184,7 @@ so a stray sibling binds a member to the wrong file.
 | # | Requirement | Given (fixture, caret marked) | When | Then | Mutation that turns it red |
 |---|-------------|-------------------------------|------|------|---------------------------|
 | 1 | `REFACT-09-01` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `t:m()` | rename to `n` | all three sites read `n` | **(executed)** restore the `METHOD_FUNCTION → refuse` clause of `substituteElementToRename` → the rename is refused and the file is byte-identical. The positive outcome is DR-02 `R09PROBE[R01] RENAMED \| local t = {} / function t:n() end / t:n() / t:n()` |
-| 2 | `REFACT-09-02` | `local t = {}` ; `function t:m() end` ; `t:<caret>m()` ; `t:m()` | rename to `n` | all three sites read `n` | **(executed)** as row 1 → `LuaColonCallRenameRefusalTest.renamingAColonCallSiteIsRefusedInsteadOfRetargetingASameNamedLocal` is the existing gate for the refusal this replaces; the positive outcome is `R09PROBE[R02] RENAMED \| local t = {} / function t:n() end / t:n() / t:n()` |
+| 2 | `REFACT-09-02` | `local t = {}` ; `function t:m() end` ; `t:<caret>m()` ; `t:m()` | rename to `n` | all three sites read `n` | **(executed)** as row 1 → `LuaColonCallRenameRefusalTest.renamingAColonCallSiteIsRefusedInsteadOfRetargetingASameNamedLocal` is the existing gate for the refusal this replaces (rewritten in Phase 4 as `renamingAColonCallSiteTargetsTheMethodInsteadOfASameNamedLocal`, which asserts the substituted leaf's offset instead of a refusal); the positive outcome is `R09PROBE[R02] RENAMED \| local t = {} / function t:n() end / t:n() / t:n()` |
 | 3 | `REFACT-09-01` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local q = {}` ; `function q:m() end` ; `q:m()` | rename to `n` | `t`'s two sites read `n`; `function q:m()` and `q:m()` are **untouched**, and no conflict is reported | **(executed)** dismiss an occurrence only when it is in the usage set, dropping design §3.4's *resolves-elsewhere* clause → `q:m()` becomes an undecided occurrence and the rename reports a conflict that does not exist. Positive outcome: `R09PROBE[R06] RENAMED \| … function t:n() end / t:n() / local q = {} / function q:m() end / q:m()`; predicate verdict `R09PRED[c04] verdict=accepted` |
 | 4 | `REFACT-09-01` | `---@class Builder` ; `local Builder = {}` ; `function Builder:<caret>setName(x) end` ; `local b = Builder` ; `b:setName("x")` | rename to `withName` | both sites read `withName` | **(executed)** as row 1. Positive outcome `R09PROBE[R07] RENAMED \| … function Builder:withName(x) end / local b = Builder / b:withName("x")`; predicate `R09PRED[c11] verdict=accepted` |
 | 5 | `REFACT-09-01`, `REFACT-09-07` | `local t = {}` ; `function t:<caret>m() end` | rename to `n` | `function t:n() end`; no conflict | **(executed)** predicate `R09PRED[c10] verdict=acceptedNoCallSites`; rename `R09PROBE[R14] RENAMED`. Falsifier: make design §3.4 refuse an empty usage set → this row reports a conflict while row 1 stays green |
@@ -199,7 +199,7 @@ so a stray sibling binds a member to the wrong file.
 | 14 | `REFACT-09-05` | `local f = io.open("x")` ; `f:<caret>write("y")` | rename to `emit` | refused, file byte-identical, message names `io.lua` | **(executed)** delete design §3.6's out-of-project refusal → the substitution returns a leaf inside `lunar-<version>.jar!/runtime/standard/lua-5.4/io.lua`, measured `R09PRED[j01] resolved=write … writable=false`, and `myFixture.renameElementAtCaret` fails with `AssertionError: element not found in file` rather than refusing. The discriminator is `GlobalSearchScope.projectScope(project).contains(virtualFile)`, executed: `R09SCOPE projectScopeContainsStub=false projectScopeContainsOwnFile=true` |
 | 15 | `REFACT-09-06` | `local t = {}` ; `function t:m() end` ; `<caret>t:m()` | rename to `renamedTable` | `local renamedTable = {}` and `renamedTable:m()`; `m` untouched | broaden design §3.6's `kind == METHOD_FUNCTION` guard to every kind → the `LOCAL_VARIABLE` rename is routed through the colon path, whose occurrence scan is keyed on the *method* name and reports the receiver's sites as undecided. `LuaColonCallUsageWithdrawalTest` (NAV-13 case 26b) is the existing gate for the receiver half; see `risks-and-gaps.md` Gap 2.1 and [[BUG-476]] for the pre-existing receiver-segment defect this row sits beside |
 | 16 | `REFACT-09-07` | row 1's fixture | rename to `n`, then `UndoManager.getInstance(project).undo(editor as? TextEditor)` — the idiom `LuaRenameUndoTest.undoAfterRenameRestoresTheDocument` already uses ([LuaRenameUndoTest.kt:43-49](../../../../src/test/kotlin/net/internetisalie/lunar/refactoring/LuaRenameUndoTest.kt)) | the file returns to its original text in one undo | inherited from `LuaRenameProcessor.renameElement`'s single non-cancelable section (REFACT-01 design §3.3); `LuaRenameUndoTest` is the existing gate for the mechanism and this row extends it to the colon form |
-| 17 | `REFACT-09-08` | `local t = {}` ; `function t:<caret>m() end` ; `function t:n() end` ; `t:m()` ; `t:n()` | rename to `n` | a conflict is reported: the receiver already has a member named `n` | **(executed)** `R09F[local] MECHANISM receiverAlreadyHasNewName=true` on this fixture, and `R09F[localNegative] … =false` on the same fixture without `function t:n()` (`risks-and-gaps.md` DR-05). Mutation: drop design §3.7's union-arm loop → row 17a stays green and **row 17b reddens**, because an annotated receiver types as `{ … } \| Builder` whose anonymous arm has no `withName` (`R09E[annotated] plain=false unionAware=true`). Second mutation: key §3.7 on `funcName.nameRef` instead of the usage's receiver → **every** row 17x reddens, `R09C[…] M1declSideValueType type='unknown'` |
+| 17 | `REFACT-09-08` | `local t = {}` ; `function t:<caret>m() end` ; `function t:n() end` ; `t:m()` ; `t:n()` | rename to `n` | a conflict is reported: the receiver already has a member named `n` | **(executed)** `R09F[local] MECHANISM receiverAlreadyHasNewName=true` on this fixture, and `R09F[localNegative] … =false` on the same fixture without `function t:n()` (`risks-and-gaps.md` DR-05). Mutation: drop design §3.7's union-arm loop → row 17a stays green and **row 17b reddens**, because an annotated receiver types as `{ … } \| Builder` whose anonymous arm has no `withName` (`R09E[annotated] plain=false unionAware=true`). Second mutation: key §3.7 on `funcName.nameRef` instead of the usage's receiver → **every** row 17x reddens, `R09C[…] M1declSideValueType type='unknown'`. **Blast radius corrected at Phase 3, where the `globalNameTaken` mutation was executed against the shipped arm: it reddens FIVE methods, and this row is not one of the two that redden *behaviourally*.** Rows 17d and 29 redden by raising `ConflictsInTestsException: A global named 't:n' already exists in this project` on renames that must report nothing — they are the falsifiers that hold whatever the assertion style. Rows 17, 17a and 17b redden only because `LuaColonMethodRenameTest.assertConflictsAre` compares the **exact** message set; under a `contains`-style assertion all three would stay green, because `globalNameTaken` answers the same question correctly on a single-file fixture and merely adds a second message. That is the point §5 makes — the index rule is wrong one *scope* away, not on the fixture that motivates it — so the mutation's real gate is row 17d, and row 17's own gate is dropping the `receiverAlreadyHasNewName` call (executed: reddens 17, 17a and 17b, and nothing else) |
 | 17a | `REFACT-09-08` | `Obj = {}` ; `function Obj:<caret>m() end` ; `function Obj:n() end` ; `Obj:m()` | rename to `n` | the same conflict is reported for a global receiver | **(executed)** `R09F[global] … =true`; and the rule must **not** be `globalNameTaken`: row 12's fixture is the falsifier for that arm |
 | 17b | `REFACT-09-08` | `---@class Builder` ; `local Builder = {}` ; `function Builder:<caret>setName(x) end` ; `function Builder:withName(x) end` ; `Builder:setName("x")` | rename to `withName` | the conflict is reported for an annotated receiver | **(executed)** `R09F[annotated] … =true`, against `R09F[annotatedNegative] … =false` on the same fixture without `function Builder:withName` |
 | 17c | `REFACT-09-08` | `local t = {}` ; `function t:<caret>m() end` ; `t:m()` ; `local u = { n = 1 }` | rename to `n` | **no** conflict — another table's member is not this receiver's | **(executed)** `R09F[fieldKeyOther] … =false`, against `R09F[fieldKey] … =true` on `local t = { n = 1 }` ; `function t:m() end` ; `t:m()`. Mutation: ask the *file* for a member named `n` instead of the usage's receiver type → this row reddens while 17 stays green |
@@ -234,13 +234,25 @@ so a stray sibling binds a member to the wrong file.
       with a row, or is named Out of Scope with a row pinning what it costs.
 - [ ] `refactoring.rename.colonMethod` is removed from `LuaBundle.properties` together with its one
       call site, and `design.md` §7.2 records the keys that replace it.
-- [ ] `LuaRenameTest.testColonMethodDeclarationIsRefused` and
+- [x] `LuaRenameTest.testColonMethodDeclarationIsRefused` and
       `testSelfInsideAMethodIsRefusedAsTheMethod` are rewritten by `implementation-plan.md` Phase 4;
       both assert the fragment `function Obj:method()`, which no longer exists.
-- [ ] The full unit suite is green, run as `test --rerun --no-build-cache`.
-- [ ] The corpus lane is green: `test -PwithCorpus --rerun --no-build-cache` reports no
-      `Corpus regression:` line.
-- [ ] `REFACT-01-08` is updated to `Full` only once this ships.
+      **Done in Phase 4, and the set was FOUR methods, not two** — Phase 2 measured two further
+      methods asserting the same removed clause through `expectThrows` and through the registered
+      handler, which the `assertRefusedWith` grep structurally cannot match. All four are rewritten
+      against the new behaviour rather than deleted; the first is now
+      `testColonMethodDeclarationWithAnAliasedCallSiteReportsAConflict`.
+- [x] The full unit suite is green, run as `test --rerun --no-build-cache`. **487 classes, 3103
+      tests, 0 failures, 0 errors, 1 skipped**, every result XML timestamped inside the run window.
+      Re-confirmed at the end of Phase 5 with the instrument reverted: the same 487 / 3103 / 0 / 0 /
+      1, 0 of 487 XMLs outside the window.
+- [x] The corpus lane is green: `test -PwithCorpus --rerun --no-build-cache` reports no
+      `Corpus regression:` line. **491 classes, 3113 tests, 0 failures, 0 errors, 1 skipped**; every
+      one of the 491 result XMLs carries a `timestamp` inside the run window (0 outside), and
+      `LuaCorpusSweepTest` ran all four members. No baseline was re-recorded (`IMPROVED` absent).
+- [x] `REFACT-01-08` is updated to `Full` only once this ships. **Done at Phase 5**, together with
+      the deletion of REFACT-09's `docs/roadmap.md` row and the correction of REFACT-01's
+      "two rows at `Partial`" prose to one.
 
 ## Non-Functional Requirements
 

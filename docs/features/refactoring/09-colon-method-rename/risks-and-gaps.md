@@ -50,7 +50,8 @@ this feature does the same.
    `varSuffix ::= nameAndArgs* indexExpr` puts further colon sites under a `LuaVarSuffix`.
 5. **The usage set**: for the reach instrument, the forward map *site → `LuaColonCallResolution.declarationLeafOf(site)`*;
    for the predicate instrument (DR-03), `ReferencesSearch.search(declarationLeaf, allScope)`. The
-   two are compared below and Gap 2.5 records where they disagree.
+   two are compared below; Gap 2.5 records where they disagreed, and its Phase 5 re-run records
+   that under the current occurrence set they no longer do.
 6. **The annotated substitute**: `lua-language-server` 3.10.6 at `66141703` — `git describe --tags`
    prints `3.10.6-6-g66141703` — staged as the files under `meta/`, `script/` and `tools/` carrying
    a `---@` tag (`grep -rl -- '---@' meta script tools`, 195 files) into the out-of-repo `test/`
@@ -212,9 +213,13 @@ R09R[zerobrane] clauseAliveDecls project=0 all=0
 R09R[lls]       clauseAliveDecls project=0 all=0
 ```
 
-over 14 116 corpus and 2 446 substitute colon call sites. The clause is kept — Gap 2.5 records one
-declaration on which the two instruments disagree, and clause (a) is what keeps that disagreement
-costing a missing conflict rather than a false one — and `requirements.md` row 28 falsifies it with a
+over 14 116 corpus and 2 446 substitute colon call sites. The clause is kept — Gap 2.5 recorded one
+declaration on which the two instruments disagreed, and clause (a) is what keeps such a disagreement
+costing a missing conflict rather than a false one. **Phase 5 measured no disagreement on any tree**
+(Gap 2.5), which removes the clause's one *observed* justification but not its purpose: it is a
+soundness clause against a usage set the platform did not collect, and nothing about the re-run
+bounds that set. It is retained on the same reasoning it was written under. `requirements.md` row 28
+falsifies it with a
 synthetic usage set rather than with a Lua fixture, because no Lua fixture on these trees can.
 
 **Method for the re-measurement.** The instrument is `design.md` §3.3-§3.4 transcribed onto real PSI,
@@ -222,6 +227,75 @@ with the usage set from `ReferencesSearch.search(declarationLeaf, scope)` for `s
 {`projectScope`, `allScope`} and the occurrence scan over `projectScope`, exactly as §3.3 specifies.
 Scope, granularity, denominators and the annotated substitute are staged as points 1-6 above; the
 substitute is the same 195 files, and `git describe --tags` still prints `3.10.6-6-g66141703`.
+
+#### Phase 5 execution — the shipped class re-measured, and every figure above reproduces
+
+Everything above this heading was written **before `LuaColonMethodRename` existed**, from a
+transcription of `design.md` onto real PSI. Phase 5 re-ran the same instrument against the
+**shipped** object — `LuaColonMethodRename.undecidedOccurrences(target, usages)` called directly, so
+§3.3-§3.4 are the shipped clauses and not a second copy of them — over the same pinned checkouts and
+the same annotated substitute, staged again per Method point 6 (195 files, `git describe --tags`
+prints `3.10.6-6-g66141703`, verified before the run). Executed at `56909120` on the gce builder;
+the corpus SHAs on disk match `tooling/corpus/corpus.json` cell for cell, and each corpus ran at its
+pinned `luaLevel` (`LUA51` for all four).
+
+**The three denominators reproduce, read before any numerator, as the protocol requires** — and so
+do the two the Method mentions only in passing:
+
+| tree | files | colon-method decls | raw `LuaMethodExpr` | colon call sites | bare-name first-segment |
+| :-- | --: | --: | --: | --: | --: |
+| luacheck | 135 | 142 | 806 | 805 | 490 |
+| luarocks | 160 | 80 | 1 952 | 1 952 | 1 389 |
+| penlight | 114 | 147 | 984 | 984 | 777 |
+| zerobrane | 325 | 572 | 10 449 | 10 375 | 8 755 |
+| **corpus total** | **734** | **941** | **14 191** | **14 116** | **11 411** |
+| lua-language-server 3.10.6 | 195 | 268 | 2 453 | 2 446 | 1 312 |
+
+**Every verdict column reproduces too, including the sole-blocker decomposition** — this table is
+the shipped class's answer, and it is cell-for-cell identical to Finding 2's:
+
+| tree | decls | `accepted` | `acceptedNoCallSites` | blocked | bound call site | sole: colon | sole: dotted | sole: bracket | sole: constructor key |
+| :-- | --: | --: | --: | --: | --: | --: | --: | --: | --: |
+| luacheck | 142 | 0 | 27 | 115 | 0 | 87 | 16 | 0 | 2 |
+| luarocks | 80 | 0 | 5 | 75 | 0 | 61 | 0 | 0 | 0 |
+| penlight | 147 | 0 | 13 | 134 | 0 | 37 | 1 | 0 | 3 |
+| zerobrane | 572 | 20 | 75 | 477 | 51 | 341 | 16 | 0 | 3 |
+| **corpus total** | **941** | **20** | **120** | **801** | **51** | **526** | **33** | **0** | **8** |
+| lua-language-server | 268 | 50 | 44 | 174 | 121 | 78 | 32 | 0 | 4 |
+
+Classification is by **blocker set**, never by first undecided occurrence: the shipped
+`undecidedOccurrences` documents in its own KDoc that no caller may depend on its order, and
+Finding 2 records what happened to a measurement that did. `Undecided.spelling` is what the
+decomposition reads, so "sole blocker" here means the blocker set is a singleton — an
+order-independent property of the returned list rather than of its first element.
+
+**Reproducibility.** Each method measures the same copied tree twice and asserts the two passes
+equal field for field, and the whole instrument was then run twice end to end (6 m 23 s and
+6 m 14 s). Three independent passes over each tree, identical in every cell.
+
+**One figure did not reproduce on the first run, and it was the instrument, not the code.** The
+first run read the corpus as **851** files — luacheck 192, luarocks 193, penlight 141, zerobrane 325
+— against 734. The cause is the file filter: it selected by Lua **file type**, and `plugin.xml`
+maps that type to `lua;rockspec` plus the file names `.luacheckrc` and `.busted`, while Method
+point 1 says the checkout's whole **`.lua` tree**. Penlight decomposes exactly: 114 `.lua` + 25
+`.rockspec` + 2 named files = 141. **Every other column was byte-identical across the two runs**,
+which is the useful part of the miss: the 117 extra files carry no colon-method declaration and no
+colon call site, so the scope error was inert for the numerator. The filter was corrected to the
+`.lua` extension and 734 reproduced; the instrument prints both counts so the discrepancy is
+evidenced rather than asserted. Note the *project* content was identical either way —
+`copyDirectoryToProject` copies the whole checkout in both runs, so `CacheManager`'s candidate-file
+set never changed — which is why only a reporting denominator moved.
+
+**What this does and does not establish.** It establishes that the shipped object implements the
+predicate the design was measured on: the reach the feature ships with is the reach it was planned
+against, not a figure inherited from a prototype. It does **not** re-establish Finding 1 or Finding
+3 — the out-of-tree stdlib attribution and the dynamic-index counts were not re-run, because no
+clause of the shipped object depends on them.
+
+The archived instrument is
+[`dr-01-evidence/Refact09Dr01ReachProbe.kt.txt`](dr-01-evidence/Refact09Dr01ReachProbe.kt.txt); it
+was reverted before the phase committed, and the three production sources under
+`refactoring/rename/` are md5-identical to `HEAD` in both the working tree and the builder's copy.
 
 ---
 
@@ -376,6 +450,43 @@ on `local f = io.open("x")` / `f:<caret>write("y")`. Two things follow:
    the substitution handed back an element in another file. It is evidence that the substitution
    crosses files, and it is why an explicit refusal is specified instead of relying on the
    platform's read-only check, whose behaviour here was **not** measured.
+
+---
+
+### DR-04 addendum — measured at Phase 2, against the shipped guard
+
+Two things DR-04 predicted came out differently once `outOfProjectRefusal` shipped and was driven by
+`LuaColonMethodRenameTest.aMethodDeclaredInABundledStubIsRefusedAndNamesTheDeclaringFile`.
+
+**1. The fixture is order-dependent, and DR-04 measured it in isolation.** Whether `f:write`
+resolves into `io.lua` at all depends on the project's TARGET:
+`PlatformLibraryProvider.getPlatformLibrary` reads
+`LuaProjectSettings.getInstance(project).state.getTarget()` to choose the attached runtime library,
+and several suites change that target on the shared light project without restoring it —
+`LibraryProviderTest` leaves Lua 5.1 and `StubGlobalSeedTypeTest` leaves Redis 7, neither having a
+`tearDown`. Under a Redis target there is no `io.lua`, so the processor refuses one step earlier
+with `refactoring.rename.unresolved`.
+
+Observed: the case passed filtered to its own class and failed in the full suite with
+`Cannot determine which declaration this name refers to`. **It is a refusal either way — the file
+stays byte-identical — so the defect was in what the case PINS, not in the shipped guard.** The test
+now calls `setTargetAndNotify(STANDARD 5.4)` first, which is the call that publishes the roots
+change that reloads the library (`LibraryLoadingAfterTargetChangeTest` is the gate for that
+mechanism). No `tearDown` is needed: it sets the target every other suite already assumes.
+
+**2. The platform's read-only check DOES refuse — DR-04 recorded it as "not measured".** Deleting
+`outOfProjectRefusal` from the shipped code (the row 14 mutation) does **not** reproduce DR-04's
+`AssertionError: element not found in file`; it produces the platform's own
+
+```
+Cannot perform refactoring.
+This element cannot be renamed
+```
+
+The explicit refusal is therefore justified by the MESSAGE rather than by the platform failing to
+stop the rename: the platform's text names neither the method nor the file it is declared in, while
+`refactoring.rename.colonMethod.outOfProject` names `io.lua`. Design §3.6's guard stands; only its
+stated rationale narrows.
 
 ---
 
@@ -572,7 +683,7 @@ its consumers. `R09PRED[c12] verdict=accepted` is that case.
   941.
 - **Not mitigated in code.** Stated here and in `requirements.md` row 21 so it is a known property.
 
-### Gap 2.5 — `ReferencesSearch` and `declarationLeafOf` disagree for one declaration, and it is not located [open, bounded]
+### Gap 2.5 — the two instruments no longer disagree anywhere [closed at Phase 5]
 
 The reach instrument (forward map) and the predicate instrument (`ReferencesSearch`) agree on the
 accepted set for luacheck, luarocks, penlight and the substitute, and differ by exactly **one**
@@ -597,6 +708,40 @@ ZeroBrane declaration: 99 accepted by the forward-map instrument against 98 by t
   anyway — never a false conflict and never a silent half-rename through this clause.
 - **Action**: `implementation-plan.md` Phase 1 adds a verification task that re-runs both instruments
   against the shipped code and names the differing declaration.
+
+**Closed at Phase 5 — they agree, so there is no declaration to name.** Both instruments were re-run
+against the shipped `LuaColonMethodRename` over all five trees, differing in the usage set alone:
+`ReferencesSearch.search(leaf, projectScope)` for one, `site -> declarationLeafOf(site)` inverted
+into a per-declaration set for the other, with the *same* occurrence scan consuming each. The
+verdict was compared **per declaration**, not by comparing totals:
+
+| tree | decls | agree | disagree | `accepted` search / forward | `acceptedNoCallSites` search / forward | blocked search / forward | bound search / forward |
+| :-- | --: | --: | --: | :-- | :-- | :-- | :-- |
+| luacheck | 142 | 142 | **0** | 0 / 0 | 27 / 27 | 115 / 115 | 0 / 0 |
+| luarocks | 80 | 80 | **0** | 0 / 0 | 5 / 5 | 75 / 75 | 0 / 0 |
+| penlight | 147 | 147 | **0** | 0 / 0 | 13 / 13 | 134 / 134 | 0 / 0 |
+| zerobrane | 572 | 572 | **0** | 20 / 20 | 75 / 75 | 477 / 477 | 51 / 51 |
+| lua-language-server | 268 | 268 | **0** | 50 / 50 | 44 / 44 | 174 / 174 | 121 / 121 |
+
+ZeroBrane — the tree the disagreement was in — agrees on all 572, across three independent passes.
+The instrument was written to print the identity of any declaration whose two verdicts differ
+(`gap25Disagreements=0 []` on every tree); it printed none, so the gap is closed by the absence
+rather than by a name.
+
+**Two things this does not say.** It does not say the old measurement was wrong: that pair (99 / 98)
+was taken on the **old** occurrence set, before §3.3's closure over `field`, and Phase 5 measured the
+**current** set — which is what this gap's own note asks for ("on whichever set is current"). The
+old-set comparison was not re-run, so whether the one-declaration difference was a real
+`ReferencesSearch`/`declarationLeafOf` split that the `field` clause has since absorbed, or an
+artifact of the superseded instrument, is **not** established and is now unreachable without
+reviving that instrument. And it does not say the two usage sets are element-wise equal — what was
+compared is the verdict each produces, which is the property the gap was about and the only one the
+design depends on.
+
+**Why it can be closed rather than carried.** Design §3.4's "resolves ⇒ decided" was written so that
+a disagreement in *either* direction costs a missing conflict rather than a false one. That
+disposition is unchanged and is still the reason clause (a) is kept despite never firing on real
+code (Finding 4). Closing this gap removes an open question, not a safeguard.
 
 ### Gap 2.6 — A user-narrowed refactoring scope makes the scan over-report [accepted]
 

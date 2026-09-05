@@ -63,9 +63,34 @@ internal class LuaRenameCollisionUsageInfo(
  * Reports the renames that would silently **rebind** rather than fail (REFACT-01-14, design §3.4).
  *
  * Lua has no compiler to catch a rename that changes meaning: the file still parses, still runs,
- * and reads a different value. Four rules, all expressed as existing lookups — two
- * [LuaResolveUtil.scopeCrawlUp] crawls and two index reads — so no new scope model is introduced
- * and no rule walks the project's PSI looking for candidates.
+ * and reads a different value. Four rules **for every kind but one**, all expressed as existing
+ * lookups — two [LuaResolveUtil.scopeCrawlUp] crawls and two index reads — so no new scope model is
+ * introduced and no rule walks the project's PSI looking for candidates.
+ *
+ * **`METHOD_FUNCTION` is that one kind and takes a disjoint arm** ([colonMethodCollisions],
+ * REFACT-09 design §5), which *does* walk the project's PSI — the sentence above is a claim about
+ * the other kinds' rules only. Since NAV-13 a colon member name has no lexical binding and its call
+ * sites resolve through the receiver's *type*, per file, which falsifies the premise of three of the
+ * four rules rather than merely making them imprecise:
+ * - **C1 [captures]** asks whether a lexically visible declaration of the new name would capture a
+ *   usage. A member name is not a lexical binding (that withdrawal is `NAV-13-05`), so a visible
+ *   `local n` has nothing to do with `t:n`; left running it reports a capture on every colon call
+ *   site whenever a `local n` is in scope (`requirements.md` row 18).
+ * - **C3 [globalNameTaken]** searches the right key — [searchKeyOf] prefixes the receiver, so `"t:n"`
+ *   — but against the project-wide `LuaGlobalDeclarationIndex`, so a *different* file's `local t`
+ *   with a `t:n` reports a merge that cannot happen (row 17a, and the cost is `risks-and-gaps.md`
+ *   Gap 2.9). [LuaColonMethodRename.receiverAlreadyHasNewName] asks the receiver's own type instead.
+ * - **C4 [ambiguousGlobal]** rests on "with two declarations the usages stop resolving", which is
+ *   exactly what NAV-13 falsified for this kind: two files that each declare `function t:m()` rename
+ *   correctly and independently (row 12).
+ * - **C2 [shadows]** never ran for this kind and still does not — it is reached only through
+ *   `kind.isFileLocal`, and `METHOD_FUNCTION` is declared non-file-local. It is named anyway,
+ *   because an enumeration that silently omits an inert rule is indistinguishable from one that
+ *   overlooked a live one.
+ *
+ * C1, C3 and C4 were each measured *firing* on this kind before they were excluded
+ * (`risks-and-gaps.md` DR-02 Finding 6), and each row above is the mutation that re-admits one.
+ * **This list is read off the source, not recalled**, and must be re-read if a rule is added.
  *
  * That is a statement about *how candidates are found*, not a claim that no PSI is loaded:
  * normalising an index hit to its identifier leaf goes through `getNode()`, which loads and parses
@@ -86,12 +111,13 @@ internal class LuaRenameCollisionUsageInfo(
  * **The property is stated instead of a count because three successive counts were all wrong.**
  * Phase 3 recorded six and read as exhaustive. Phase 4 corrected it to seven and read as
  * exhaustive. A chain-count at the Phase-4 review found nine, and a strict count of every
- * lambda-bodied operator finds **eleven** — the earlier figures collapse `filter { }.map { }`
+ * lambda-bodied operator found **eleven** — the earlier figures collapse `filter { }.map { }`
  * chains in [shadows] and [ambiguousGlobal] into one block each, and drop [collisions]' own
  * closing `.map`. Not one of those revisions changed whether the code was compliant; each only
  * changed a number that has to be re-derived by hand after every edit, and would be wrong again
- * after the next one. The invariant above is stable under editing and a reader can check it
- * without recounting anything.
+ * after the next one. **It was: REFACT-09 added [colonMethodCollisions]' two, and that figure is
+ * left as the historical record it is rather than raised to thirteen for the same fate.** The
+ * invariant above is stable under editing and a reader can check it without recounting anything.
  *
  * **To check it, ask of each lambda body: can this reach PSI, VFS or an index?** Two answers are
  * counter-intuitive and are the two defects the earlier records were written to close:
@@ -122,14 +148,84 @@ internal object LuaRenameConflictDetector {
         usages: List<UsageInfo>,
     ): List<LuaRenameCollisionUsageInfo> {
         val found =
-            captures(target, usages) +
-                if (target.kind.isFileLocal) {
-                    shadows(target)
-                } else {
-                    globalNameTaken(target) + ambiguousGlobal(target)
-                }
+            if (target.kind == LuaDeclarationKind.METHOD_FUNCTION) {
+                colonMethodCollisions(target, usages)
+            } else {
+                captures(target, usages) +
+                    if (target.kind.isFileLocal) {
+                        shadows(target)
+                    } else {
+                        globalNameTaken(target) + ambiguousGlobal(target)
+                    }
+            }
         return distinctByAnchor(found).map { LuaRenameCollisionUsageInfo(it.anchor, target.identifier, it.message) }
     }
+
+    /**
+     * **C5** — the colon-method arm (REFACT-09, design §5): every occurrence this rename would leave
+     * bound to the old name, plus the one case where it would *merge* two members instead of moving
+     * one.
+     *
+     * Disjoint from C1-C4 by construction rather than by addition. Each of the three rules that
+     * would otherwise reach this kind is wrong for it, and each was measured firing before it was
+     * excluded (`risks-and-gaps.md` DR-02 Finding 6) — see this object's KDoc for the three, and
+     * `requirements.md` rows 18, 17 and 12 for the mutation that re-admits each one.
+     *
+     * The two calls below ask **different questions over different scopes**, and an implementation
+     * that answered either with the other's scope fails a pinned row.
+     * [LuaColonMethodRename.undecidedOccurrences] looks for the **old** name in any member position
+     * anywhere in the refactoring scope and never asks whose table it is, so `local u = { m = 1 }`
+     * beside `function t:m()` is reported (row 24). [LuaColonMethodRename.receiverAlreadyHasNewName]
+     * looks for the **new** name on **this receiver's type** only, so `local u = { n = 1 }` beside
+     * `function t:m()` is not a conflict (row 17c).
+     *
+     * Both take the usage element set: the second argument is not optional, because the declaration
+     * side of a colon method types as `unknown` in every receiver shape and a rule keyed on it is
+     * inert everywhere (DR-05 Finding 1).
+     */
+    private fun colonMethodCollisions(
+        target: LuaRenameTarget,
+        usages: List<UsageInfo>,
+    ): List<LuaRenameCollision> {
+        val usageElements = Collections.newSetFromMap(IdentityHashMap<PsiElement, Boolean>())
+        usages.mapNotNullTo(usageElements) {
+            ProgressManager.checkCanceled()
+            it.element
+        }
+        val incomplete =
+            LuaColonMethodRename.undecidedOccurrences(target, usageElements).map { undecided ->
+                LuaRenameCollision(undecided.occurrence, incompleteMessage(target, undecided))
+            }
+        if (!LuaColonMethodRename.receiverAlreadyHasNewName(target, usageElements)) return incomplete
+        val taken =
+            LuaRenameCollision(
+                target.identifier,
+                LuaBundle.message("refactoring.rename.conflict.memberExists", target.newName),
+            )
+        return incomplete + taken
+    }
+
+    /**
+     * How one undecided occurrence is described to the user — one message per member spelling, so
+     * that "a table-constructor key still declares the old member" is not reported in the words of
+     * "a call site could not be bound".
+     *
+     * Exhaustive over [LuaColonMethodRename.Spelling] with no `else`, so a spelling added without
+     * its bundle key does not compile (design §7.2).
+     */
+    private fun incompleteMessage(
+        target: LuaRenameTarget,
+        undecided: LuaColonMethodRename.Undecided,
+    ): String =
+        LuaBundle.message(
+            when (undecided.spelling) {
+                LuaColonMethodRename.Spelling.COLON_CALL -> "refactoring.rename.colonMethod.undecidedCall"
+                LuaColonMethodRename.Spelling.DOTTED -> "refactoring.rename.colonMethod.dottedSpelling"
+                LuaColonMethodRename.Spelling.BRACKET -> "refactoring.rename.colonMethod.bracketSpelling"
+                LuaColonMethodRename.Spelling.FIELD_KEY -> "refactoring.rename.colonMethod.fieldKey"
+            },
+            target.identifier.text,
+        )
 
     /**
      * A conflict before it is wrapped, so that de-duplication compares the anchor elements

@@ -164,7 +164,7 @@ internal object LuaColonMethodRename {
                 ProgressManager.checkCanceled()
                 if (nameRef.identifier.text != name) return@mapNotNull null
                 when (nameRef.parent) {
-                    is LuaMethodExpr -> colonCallVerdict(nameRef, usages)
+                    is LuaMethodExpr -> colonCallVerdict(nameRef, target.identifier, usages)
                     is LuaIndexExpr -> Undecided(nameRef, Spelling.DOTTED)
                     is LuaFuncNameProperty -> Undecided(nameRef, Spelling.DOTTED)
                     else -> null
@@ -176,23 +176,35 @@ internal object LuaColonMethodRename {
     /**
      * Clauses (a) and (b) of design §3.1 — the only clause that resolves.
      *
-     * **A site that resolves at all is decided, whether or not it resolves to this declaration.**
-     * If it binds elsewhere it names a different member; if it binds *here* but is missing from
-     * [usages] it is a usage the platform did not collect, and reporting it would raise a conflict
-     * on a site about to be rewritten anyway. Written as "resolves ⇒ decided" so that the one
-     * measured disagreement between `ReferencesSearch` and `declarationLeafOf` (Gap 2.5) costs a
-     * missing conflict rather than a false one.
+     * **A site is decided by resolving ELSEWHERE, not by resolving at all (BUG-479).** Binding to
+     * some other [declarationLeaf] names a different member and is none of this rename's business;
+     * binding to *this* declaration while absent from [usages] is an occurrence the rename will not
+     * rewrite, because the rewrite is over [usages] — so it is reported rather than dismissed.
      *
-     * Clause (a) never fires on real code — `R09R[<tree>] clauseAliveDecls project=0 all=0` over
-     * 14 116 corpus and 2 446 substitute colon call sites (DR-01 Finding 4) — so its falsifier is
-     * the synthetic usage set `requirements.md` row 28 constructs, not a Lua fixture.
+     * The clause used to read "resolves ⇒ decided", which put that second case in neither net: not
+     * renamed, because the rename rewrites [usages]; not reported, because only *undecided*
+     * occurrences are reported. That is the silent half-rename of the BUG-457 class this feature
+     * exists against, and it was measured live on the `---@class` receiver reached through an alias
+     * — the shape the feature reaches most. The identity comparison is what makes design §3.1's
+     * *decided only if* true of this clause too: an occurrence that is ours and uncollected now
+     * costs a conflict rather than a silent drop.
+     *
+     * **This is a fail-safe, not a completeness claim.** It makes an uncollected occurrence loud;
+     * it does not collect it. Every shape measured under BUG-479 has `ReferencesSearch` returning
+     * the occurrence — identically under `projectScope` and `allScope`, same file and cross-file —
+     * so no fixture in this suite reaches the reporting branch through a real usage set, and the
+     * falsifier is the synthetic set `requirements.md` row 28 constructs.
      */
     private fun colonCallVerdict(
         nameRef: LuaNameRef,
+        declarationLeaf: PsiElement,
         usages: Set<PsiElement>,
     ): Undecided? {
         if (nameRef in usages) return null
-        if (LuaColonCallResolution.declarationLeafOf(nameRef) != null) return null
+        val resolved =
+            LuaColonCallResolution.declarationLeafOf(nameRef)
+                ?: return Undecided(nameRef, Spelling.COLON_CALL)
+        if (resolved !== declarationLeaf) return null
         return Undecided(nameRef, Spelling.COLON_CALL)
     }
 

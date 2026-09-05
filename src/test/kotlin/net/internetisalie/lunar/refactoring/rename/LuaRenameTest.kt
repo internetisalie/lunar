@@ -14,6 +14,7 @@ import com.intellij.psi.ElementDescriptionUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.elementType
+import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.refactoring.rename.PsiElementRenameHandler
 import com.intellij.refactoring.rename.RenameHandler
 import com.intellij.refactoring.rename.RenameHandlerRegistry
@@ -392,11 +393,29 @@ class LuaRenameTest : BasePlatformTestCase() {
     }
 
     /**
-     * TC-19a — REFACT-01-19. Part (a) is the assertion that catches the design's original claim
-     * that `self` resolves to the CLASS leaf: `LuaScopeProcessor` sets the result to
-     * `funcName.funcNameMethod.nameRef.identifier`, i.e. the method name. Part (b) proves the
-     * colon-method refusal is what stops the rename — there is no `self` guard and there must not
-     * be one, because `function T.m(self, x)` is legal Lua whose `self` is an ordinary parameter.
+     * TC-19a — REFACT-01-19, in its REFACT-09 form.
+     *
+     * Part (a) is the assertion that catches the design's original claim that `self` resolves to
+     * the CLASS leaf: `LuaScopeProcessor` sets the result to
+     * `funcName.funcNameMethod.nameRef.identifier`, i.e. the method name. It is untouched by
+     * REFACT-09 and still pins that behaviour.
+     *
+     * **Part (b) now asserts the CARET guard, not the blanket colon-method refusal.** REFACT-09
+     * deleted that refusal — a colon method renames — so what stops this rename is
+     * `design.md` §3.6's guard, which fires because the caret leaf reads `self` while the
+     * declaration leaf reads `m`. Without it the rename is not refused but silently **wrong**: the
+     * enclosing method is renamed from a caret the user put on `self` (`risks-and-gaps.md` DR-02
+     * Finding 4 measured `function C:n()` rewritten this way).
+     *
+     * The earlier claim here that "there is no `self` guard and there must not be one" is
+     * superseded by `design.md` §3.6, which specifies one. It does not break
+     * `function T.m(self, x)`: that `self` classifies as a `PARAMETER`, the guard sits inside the
+     * `METHOD_FUNCTION` arm of `substituteElementToRename`, and TC-19c is the standing gate that
+     * it still renames normally.
+     *
+     * **Driven through `myFixture.renameElementAtCaret`, and it cannot be driven any other way** —
+     * [assertRefusedWith] passes a null editor, so there is no caret to read and the guard returns
+     * null, which would pass against a processor carrying no guard at all.
      */
     @Test
     fun testSelfInsideAMethodIsRefusedAsTheMethod() {
@@ -409,7 +428,16 @@ class LuaRenameTest : BasePlatformTestCase() {
             "and that leaf is the funcNameMethod's, not the funcName's receiver",
             target?.parent?.parent is LuaFuncNameMethod,
         )
-        assertRefusedWith("function Obj:method()", target)
+
+        val before = myFixture.file.text
+        val failure = renameFailure("renamed")
+
+        assertNotNull("the caret guard must refuse, not rename the enclosing method", failure)
+        assertTrue(
+            "the refusal must name the caret token back to the user: " + causeMessages(failure),
+            causeMessages(failure).contains("'self' is not the method name"),
+        )
+        assertEquals("a refused rename must leave the file byte-identical", before, myFixture.file.text)
     }
 
     /**
@@ -574,33 +602,46 @@ class LuaRenameTest : BasePlatformTestCase() {
     }
 
     /**
-     * TC-10 — REFACT-01-08, the colon form, refused by design §3.1 step 4b.
+     * TC-10 — REFACT-01-08 in its REFACT-09 form: this fixture is no longer refused wholesale, it
+     * is reported as **incomplete**.
      *
-     * Two assertions, because either alone is weak. The first names **which** refusal fired: with
-     * the caret on the declaration `m`, `functionNameLeafOf` returns that very leaf, so step 4a is
-     * inert and only the `METHOD_FUNCTION` branch can decline — a test asserting merely "something
-     * was refused" would stay green if step 4a fired instead, which is the failure shape this
-     * feature has produced twelve times.
+     * REFACT-09 turned the colon rename on, so what this fixture now exercises is the boundary of
+     * that rename rather than a blanket decline. `local o = Obj` aliases the receiver, and an
+     * aliased receiver reaches no declaration ([[NAV-13]] Out of Scope), so `o:m()` cannot be bound
+     * and cannot be rewritten — exactly the measurement the previous version of this KDoc recorded:
+     * `findReferences` on this fixture returns **zero** references, because `o:m()` puts the name
+     * under a `LuaMethodExpr` for which `LuaNameReference.getQualifiedName` returns null while the
+     * declaration is stub-keyed `"Obj:m"`. That is `design.md` §3.2's *undecided occurrence*, and
+     * `LuaRenameConflictDetector`'s `METHOD_FUNCTION` arm reports it.
      *
-     * The second drives the registered rename end to end and asserts the file is **byte-for-byte
-     * unchanged**, which is the assertion that makes the refusal worth having: `findReferences` on
-     * this fixture returns **zero** references — measured on the builder, the mechanism being that
-     * `o:m()` puts the name under a `LuaMethodExpr`, for which `LuaNameReference.getQualifiedName`
-     * returns null, while the declaration is stub-keyed `"Obj:m"` — so deleting
-     * the branch does not merely allow the rename, it half-applies one — `function Obj:renamed()`
-     * with `o:m()` left behind. That mutant reddens both assertions.
+     * **`myFixture.checkResult(source)` is kept verbatim, and it is what makes the case worth
+     * having.** The hazard here was never "the rename is allowed"; it was a **half-applied** one —
+     * `function Obj:renamed()` with `o:m()` silently left behind, the [[BUG-457]] shape. Reporting
+     * a conflict is only an improvement if nothing is written while it is reported, so the
+     * byte-identical assertion is the half of this test that survives the feature unchanged.
      *
-     * TC-19a covers the same branch from the caret-on-`self` direction and asserts no file text;
-     * this covers the declaration caret and does.
+     * The conflict is asserted by the reason it names, not merely by its type: a test asserting
+     * that *something* was reported would stay green if an unrelated rule fired, which is the
+     * failure shape this feature has produced twelve times.
      */
     @Test
-    fun testColonMethodDeclarationIsRefused() {
+    fun testColonMethodDeclarationWithAnAliasedCallSiteReportsAConflict() {
         val source = "Obj = {}\nfunction Obj:m() end\nlocal o = Obj\no:m()\n"
         myFixture.configureByText("test.lua", source.replace("Obj:m", "Obj:<caret>m"))
 
-        assertRefusedWith("function Obj:method()", myFixture.elementAtCaret)
+        val conflicts =
+            try {
+                myFixture.renameElementAtCaret("renamed")
+                null
+            } catch (reported: BaseRefactoringProcessor.ConflictsInTestsException) {
+                reported
+            }
 
-        assertNotNull("the end-to-end rename must decline too, not only the substitution", renameFailure("renamed"))
+        assertNotNull("the aliased call site must be reported, not silently left behind", conflicts)
+        assertTrue(
+            "the conflict must name the call it cannot bind: " + conflicts?.message,
+            conflicts?.message.orEmpty().contains("cannot be bound to a declaration"),
+        )
         myFixture.checkResult(source)
     }
 

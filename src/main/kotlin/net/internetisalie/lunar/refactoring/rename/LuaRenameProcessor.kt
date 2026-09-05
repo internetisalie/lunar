@@ -7,10 +7,12 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileSystemItem
 import com.intellij.psi.PsiReference
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.LocalSearchScope
 import com.intellij.psi.search.SearchScope
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.PsiUtilBase
 import com.intellij.refactoring.RefactoringBundle
 import com.intellij.refactoring.listeners.RefactoringElementListener
 import com.intellij.refactoring.rename.RenamePsiElementProcessor
@@ -108,8 +110,7 @@ class LuaRenameProcessor :
                 ?: return null
         receiverSegmentRefusal(leaf)?.let { return refuse(leaf, editor, it) }
         return when (LuaDeclarationSite.kindOf(leaf)) {
-            LuaDeclarationKind.METHOD_FUNCTION ->
-                refuse(leaf, editor, LuaBundle.message("refactoring.rename.colonMethod"))
+            LuaDeclarationKind.METHOD_FUNCTION -> colonMethodSubstitution(leaf, editor)
             // Unreachable — canProcessElement excludes labels — but the invariant stays local.
             LuaDeclarationKind.LABEL -> null
             else -> leaf
@@ -400,6 +401,77 @@ class LuaRenameProcessor :
         val funcName = PsiTreeUtil.getParentOfType(leaf, LuaFuncName::class.java, /* strict = */ false) ?: return null
         if (LuaDeclarationSite.functionNameLeafOf(funcName) === leaf) return null
         return LuaBundle.message("refactoring.rename.functionNameSegment", leaf.text)
+    }
+
+    /**
+     * Design §2.2 — the `METHOD_FUNCTION` arm. Both guards are O(1) and this runs on the EDT, which
+     * is the whole reason the completeness scan is NOT here: deciding whether a colon rename is
+     * complete costs a word-index read plus a resolve per candidate occurrence (`risks-and-gaps.md`
+     * DR-03 measured a p99 of 0.5-1.5 s), so it belongs on the background path through
+     * `LuaRenameConflictDetector` and reaches the user as a conflict rather than as a refusal.
+     * `risks-and-gaps.md` Risk 1.1 records that disposition and what it costs.
+     */
+    private fun colonMethodSubstitution(
+        leaf: PsiElement,
+        editor: Editor?,
+    ): PsiElement? {
+        caretRefusal(leaf, editor)?.let { return refuse(leaf, editor, it) }
+        outOfProjectRefusal(leaf)?.let { return refuse(leaf, editor, it) }
+        return leaf
+    }
+
+    /**
+     * Design §3.6 — refuse when the caret is not on the method name, keyed on the CARET rather than
+     * on the resolved element.
+     *
+     * An element guard cannot work here (`REFACT-01` risks Gap 2.4): `TargetElementUtilBase` tries
+     * `REFERENCED_ELEMENT_ACCEPTED` first, so a caret on the `self` of `function C:a() self:m() end`
+     * arrives as the resolved `m` leaf whose text is already `"m"`. Measured
+     * (`risks-and-gaps.md` DR-02 Finding 4): without this guard that caret renames the ENCLOSING
+     * method `a`, because `LuaScopeProcessor` resolves `self` to
+     * `funcName.funcNameMethod.nameRef.identifier`.
+     *
+     * **The discriminator is `caret.text != leaf.text`, not the literal `"self"`**, and a `"self"`
+     * test would be wrong in both directions: `function T.m(self, x)` is legal Lua whose `self` is
+     * an ordinary `PARAMETER` that must rename normally (`REFACT-01` TC-19c), and a CALL-SITE caret
+     * has `caret.text == leaf.text == "m"` and must proceed (`REFACT-09-02`).
+     *
+     * **A null editor means there is no caret, so there is nothing to guard.** Both production
+     * entry points that pass a possibly-null editor take it from the data context, where null is a
+     * Project-View invocation. A test must therefore drive this through
+     * `myFixture.renameElementAtCaret`, which passes the fixture editor, and not through a direct
+     * call handing this method `null`.
+     */
+    private fun caretRefusal(
+        leaf: PsiElement,
+        editor: Editor?,
+    ): String? {
+        val caret = editor?.let { PsiUtilBase.getElementAtCaret(it) } ?: return null
+        if (caret.text == leaf.text) return null
+        return LuaBundle.message("refactoring.rename.colonMethod.caretNotOnMethod", caret.text)
+    }
+
+    /**
+     * Design §3.6 — refuse a method declared outside the project.
+     *
+     * **Reachable, not defensive**: `local f = io.open("x")` / `f:write("y")` resolves into the
+     * plugin's own bundled stub, measured resolving to
+     * `lunar-<version>.jar!/runtime/standard/lua-5.4/io.lua` with `writable=false`
+     * (`risks-and-gaps.md` DR-04). Without this refusal the substitution hands back an element in a
+     * different file and `myFixture.renameElementAtCaret` fails with `element not found in file` —
+     * a fixture-level symptom rather than a production verdict, which is why an explicit refusal is
+     * specified instead of leaving it to the platform's read-only check.
+     *
+     * `LuaCatsTypeRenameProcessor.substituteElementToRename` refuses an out-of-project type by the
+     * same `projectScope.contains` + `presentableUrl` rule; this is that rule applied to one
+     * element rather than to an index result, so nothing is shared and nothing is duplicated.
+     *
+     * Cost on the EDT: one `GlobalSearchScope.contains`, no index read and no parse.
+     */
+    private fun outOfProjectRefusal(leaf: PsiElement): String? {
+        val file = leaf.containingFile?.virtualFile ?: return null
+        if (GlobalSearchScope.projectScope(leaf.project).contains(file)) return null
+        return LuaBundle.message("refactoring.rename.colonMethod.outOfProject", file.presentableUrl)
     }
 
     /**

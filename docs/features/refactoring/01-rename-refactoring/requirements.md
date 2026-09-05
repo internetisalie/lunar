@@ -90,23 +90,31 @@ Two consequences run through the whole table, both **(inferred)**:
   while `LuaNameReferenceSearcher.isNameDeclarationLeaf` returns early unless
   `elementType == IDENTIFIER`. Zero usages are collected.
 
-## The basis for `status: done` with two rows at `Partial`
+## The basis for `status: done` with one row at `Partial`
 
-**Every `Must` is `Full`** (`-01`, `-02`, `-03`, `-04`, `-06`, `-07`, `-10`). Two `S` rows remain
+**Every `Must` is `Full`** (`-01`, `-02`, `-03`, `-04`, `-06`, `-07`, `-10`). One `S` row remains
 `Partial` and two `C` rows are `Future Work`; none is outstanding work sitting inside this feature,
 and each was settled by a spike rather than by judgement.
 
 The rule, the same one [[REFACT-07]] records: **a `Partial` that no available action can advance is
-a recorded limit; a `Partial` a measurement would close is outstanding work.** Both of these were
-the second kind until their spike ran, which is why this feature did not close earlier.
+a recorded limit; a `Partial` a measurement would close is outstanding work.** Both `-08` and `-16`
+were the second kind until their spike ran, which is why this feature did not close earlier —
+**and `-08` has since gone to `Full`**, delivered by [[REFACT-09]] as a separate feature rather than
+reopened here. That is the rule working as written: the spike's finding was not "this cannot be
+advanced" but "advancing it needs work of its own", and the row moves when that work ships.
 
-- **`REFACT-01-08`** — the dotted form ships. `REFACT-01-00-DR-03` measured the colon form and found
-  the type route reaches only *annotated* receivers, silently half-renaming on three unannotated
-  shapes. Advancing it needs member resolution for un-annotated receivers, which does not exist.
-  Delegated to [[TYPE-13]], with the rename itself as [[REFACT-09]]. DR-03 also named [[BUG-473]]
-  as a second gate — putting `LuaTypesSnapshot.forFile` on `resolve()` would inherit a superlinear
-  cost. BUG-473 is closed; [[TYPE-12]] records the residual growth of ×5.9 per doubling, so the cost
-  gate is reduced, not removed, and `TYPE-13-10` carries it forward.
+- **`REFACT-01-08`** — **closed by [[REFACT-09]]**; both forms ship. It was `Partial` because
+  `REFACT-01-00-DR-03` measured the colon form and found the type route reaches only *annotated*
+  receivers, silently half-renaming on three unannotated shapes — and the delegation was to
+  [[TYPE-13]] for the resolution capability with the rename itself as [[REFACT-09]]. TYPE-13 shipped
+  and widened resolution to plain, global and `setmetatable` receivers; REFACT-09 then shipped the
+  rename **without** waiting for the inference gap to close, by reporting it instead of renaming
+  through it. That is the disposition change worth recording: the blocker was never "the rename is
+  unimplementable", it was "a best-effort rename here is a silent half-rename", and a completeness
+  scan that turns each unaccounted occurrence into a conflict answers that without needing inference
+  the engine does not have. DR-03's second gate, [[BUG-473]], is closed; [[TYPE-12]] records the
+  residual growth of ×5.9 per doubling, and REFACT-09 keeps its scan off the EDT for exactly that
+  reason.
 - **`REFACT-01-16`** — the `@param` half ships. `REFACT-01-00-DR-04` measured the type-name half:
   of 70 elements spelling a type name, **zero** answer `getReference()`. Delegated to [[REFACT-08]],
   which is filed with a roadmap row.
@@ -129,7 +137,7 @@ the second kind until their spike ran, which is why this feature did not close e
 | `REFACT-01-05` | **Rename a `for` control variable** | **S** | **Full** | **Audited before Phase 2:** Both forms, and they differ in PSI: a generic-for variable is a `nameRef` under `LuaNameList`/`LuaGenericForStatement`, while `canFindUsagesFor` special-cases `LuaNumericForStatement` on the leaf's *direct* parent. A processor must handle both shapes. **Phase 2 (2026-08-23):** Both forms rename correctly (TC-05, TC-06), but the numeric-`for` declaration could not be reached by the caret — `TargetElementUtil.findTargetElement` returned null on `for <caret>i`, measured; only rename-from-usage worked. **[[BUG-469]] (2026-08-29):** closed by `LuaTargetElementEvaluator.getNamedElement`, which supplies the control variable's IDENTIFIER leaf. Both forms now rename from **either** caret, verified through the editor's own data context rather than through `renameElementAtCaret`. `risks-and-gaps.md` Gap 2.9 is CLOSED. |
 | `REFACT-01-06` | **Rename `local function f`, including its recursive self-call** | **M** | **Full** | **Audited before Phase 2:** Lua-specific: `local function f` puts `f` in scope inside its own body (`local f = function() … end` does not), so the body's recursive call is a reference that must be rewritten. `LuaScopeProcessor` already models this via the `LuaLocalFuncDecl` and `LuaFuncDecl` branches. **Phase 2 (2026-08-23):** TC-07, including the recursive self-call. |
 | `REFACT-01-07` | **Rename a global — across every file** | **M** | **Full** | **Audited before Phase 2:** A Lua global is `_ENV.x`, so its rename is not file-local. The cross-file search substrate exists and is tested (`LuaFindUsagesCrossFileTest`, `LuaNameReferenceSearcher` narrowing by `CacheManager.getFilesWithWord`); the rename that would consume it does not. **Phase 2 (2026-08-23):** All four global forms across files: `function greet()` (TC-08), `config = {}` (TC-27), Lua 5.5 `global x` (TC-28) and `global function f` (TC-29). |
-| `REFACT-01-08` | **Rename a method or dotted member declaration** | **S** | **Partial** | **The dotted form ships.** `function M.run()` renames from its declaration caret (TC-09) and, since [[BUG-465]], from a call site — `LuaTargetElementEvaluator.adjustTargetElement` maps a caret inside a `funcName` to the IDENTIFIER leaf under it, and a receiver caret is refused rather than misdirected. **The colon form is Future Work**, and `REFACT-01-00-DR-03` measured why it is not one more step: `LuaClassType.resolveMember` does resolve `obj:m()` — but only for an **annotated** receiver (`---@class`, `---@type`, cross-file `require` of an annotated module). A plain table, a global table, `setmetatable` OO and an un-annotated module return all miss, and on three of those the lifted refusal **silently half-renames**. Closing it needs class inference for un-annotated receivers, which does not exist, and is additionally gated on [[BUG-473]] — putting `LuaTypesSnapshot.forFile` on `resolve()` would inherit a superlinear cost. **Delegated to [[TYPE-13]] (the resolution capability) and [[REFACT-09]] (the rename on top of it)**, both filed with roadmap rows. |
+| `REFACT-01-08` | **Rename a method or dotted member declaration** | **S** | **Full** | **Both forms ship.** `function M.run()` renames from its declaration caret (TC-09) and, since [[BUG-465]], from a call site — `LuaTargetElementEvaluator.adjustTargetElement` maps a caret inside a `funcName` to the IDENTIFIER leaf under it, and a receiver caret is refused rather than misdirected. **The colon form ships as of [[REFACT-09]]**, which deleted the blanket refusal this row previously recorded as Future Work. `REFACT-01-00-DR-03`'s finding stands and is what the delivered shape is built around: the type route reaches only *annotated* receivers, so a rename over the resolvable subset alone would silently half-apply. REFACT-09 does not close that inference gap — [[TYPE-13]] widened it to plain, global and `setmetatable` receivers, and the residue is [[TYPE-12]]/[[BUG-476]] — it makes the gap **visible**: `LuaColonMethodRename` scans every member-position occurrence of the name in the refactoring scope and reports each one the usage set does not account for as a conflict, so an incomplete rename is declined by the user rather than half-written. Re-measured against the shipped class at Phase 5 (REFACT-09 `risks-and-gaps.md` DR-01): 140 of 941 pinned-corpus and 94 of 268 annotated-substitute colon-method declarations rename with nothing left behind; the rest report what blocks them. |
 | `REFACT-01-09` | **Rename a table field / constructor key** | **C** | **Future Work** | Deferred with two independent blockers, both structural. `field ::= '[' expr ']' '=' expr | IDENTIFIER '=' expr | expr` (`lua.bnf:319`) makes a constructor key a **bare IDENTIFIER leaf** — no wrapper, no reference, no `PsiNamedElement` — so it cannot be a rename target without a grammar change; and correctness needs type inference to know *which* table, plus moving the `t["field"]` string form. REFACT-01 ships the loud refusal (design §6) and nothing more. Gated on TYPE work landing `LuaClassType.resolveMember` on the resolution path — see `risks-and-gaps.md` TBD-1. |
 | `REFACT-01-10` | **New name is a valid, non-reserved identifier** | **M** | **Full** | Delegated, not duplicated: `LuaNamesValidator` is registered at `plugin.xml:393-395` and specified by [[REFACT-05]]. It is the one piece of REFACT-01's platform contract that is genuinely finished — and it is inert today, because the rename UI that consults it is unreachable for identifiers. |
 | `REFACT-01-11` | **Validity tracks the configured language level** | **C** | **Future Work** | `LuaNamesValidator` ignores its `project` argument and consults a fixed `LuaKeywords.RESERVED`. **The exposure is one name wide and currently unreachable**: `global` is correctly absent (a soft keyword, `lua.bnf:212`), and `goto` is unconditionally present — which over-rejects for Lua 5.1 — but `lua.flex:74` returns `GOTO` at every level, so Lunar cannot parse such a file in the first place. **Fixing the validator alone changes nothing observable**; it is gated on a level-aware lexer. TBD-3 assigned it to [[REFACT-05]], which has since shipped — it is not delegated there, because a closed feature would orphan it. |

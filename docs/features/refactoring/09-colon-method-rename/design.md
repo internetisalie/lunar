@@ -20,8 +20,9 @@ colon **call site** reaches that same branch: `LuaDeclarationSite.identifierLeaf
 call site's leaf, so `resolvedDeclarationLeaf`
 ([:372-382](../../../../src/main/kotlin/net/internetisalie/lunar/refactoring/rename/LuaRenameProcessor.kt))
 resolves it, and `LuaNameReference.multiResolve`'s colon branch now returns the declaration's
-IDENTIFIER leaf. `LuaColonCallRenameRefusalTest.renamingAColonCallSiteIsRefusedInsteadOfRetargetingASameNamedLocal`
-pins that route.
+IDENTIFIER leaf. `LuaColonCallRenameRefusalTest.renamingAColonCallSiteTargetsTheMethodInsteadOfASameNamedLocal`
+pins that route (renamed from `…IsRefusedInsteadOfRetargetingASameNamedLocal` in Phase 4, which is
+where its `expectThrows` on the removed refusal became an assertion on the substituted leaf).
 
 Everything else in the rename machinery already does the right thing for a colon method, measured
 rather than inferred (`risks-and-gaps.md` DR-02):
@@ -423,14 +424,18 @@ cannot name an identifier.
   usage the platform did not collect, and reporting it as undecided would raise a conflict on a site
   that is about to be renamed anyway. That second case is not hypothetical: `risks-and-gaps.md`
   DR-01 measured `ReferencesSearch` and `declarationLeafOf` disagreeing for exactly one ZeroBrane
-  declaration, and Gap 2.5 tracks it. The clause is written as "resolves ⇒ decided" so the
-  disagreement costs a missing conflict rather than a false one.
+  declaration, and Gap 2.5 tracked it. The clause is written as "resolves ⇒ decided" so the
+  disagreement costs a missing conflict rather than a false one. **Phase 5 re-measured both
+  instruments against the shipped object and found no disagreement on any tree** (Gap 2.5, now
+  closed), so this case is no longer *observed* — but the clause's direction is what makes an
+  unobserved one harmless, and it is kept for that.
 - **Clause (a) is measurably never load-bearing on real code, and is still specified.** Over both
   measured trees, **no** colon occurrence was in the usage set while failing to resolve —
   `R09R[<tree>] clauseAliveDecls project=0 all=0` for every tree measured, across 14 116 corpus and
   2 446 substitute colon call sites (`risks-and-gaps.md` DR-01, re-measured). It is kept because
-  Gap 2.5 records one declaration on which the two instruments disagree, and because dropping it
-  would make such a site a *false* conflict on something about to be rewritten. Its falsifier is
+  Gap 2.5 recorded one declaration on which the two instruments disagreed — Phase 5 no longer
+  reproduces that disagreement, which removes the observation but not the hazard — and because
+  dropping it would make such a site a *false* conflict on something about to be rewritten. Its falsifier is
   reachable at the unit level rather than through a Lua fixture: `undecidedOccurrences` takes the
   usage set as a parameter, so `requirements.md` row 28 passes a set containing a non-resolving
   colon occurrence and asserts it is not reported.

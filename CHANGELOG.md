@@ -2,6 +2,23 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A colon method (`function Obj:method()`) can now be renamed — and when the rename cannot be
+  proved complete, every occurrence it would leave behind is listed for you to approve before
+  anything is written** (REFACT-09). Invoking Rename on a colon method previously refused outright
+  with *cannot be renamed*, because the receiver's type could not be resolved for an un-annotated
+  table and a best-effort rename would have silently half-applied — moving the declaration and its
+  resolvable calls while leaving the rest spelling the old name. The refusal is gone. The rename now
+  scans every place the method's name appears in a member position across the project — colon calls,
+  `t.m` and `t["m"]` reads, `function t.m()` declarations, and `{ m = ... }` / `{ ["m"] = ... }`
+  table-constructor keys — and reports each one it cannot account for as a conflict naming the file
+  and the spelling, so a partial rename is a decision you make rather than something you discover
+  later. Renaming onto a name the receiver already has a member for is reported the same way.
+  Measured over four pinned real-world projects (941 colon-method declarations) and one heavily
+  annotated one (268), the rename applies with nothing left behind for 140 of 941 and 94 of 268; the
+  rest report what blocks them, and the dominant blocker is a same-named colon call on a receiver
+  whose type the engine still cannot infer. This closes the colon-method gap the type-name rename
+  (REFACT-08) and the member-resolution work (TYPE-13) each recorded as out of their scope.
+
 - **Renaming a `---@class`/`---@alias` type name now works, and moves every use of it — or refuses
   and says why** (REFACT-08). A LuaCATS type name previously had no renameable symbol at all:
   invoking Rename on `---@class Widget` renamed nothing, and rewriting through the type index (the

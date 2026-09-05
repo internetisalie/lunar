@@ -3,7 +3,6 @@ package net.internetisalie.lunar.refactoring.rename
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.psi.PsiElement
 import com.intellij.refactoring.BaseRefactoringProcessor
-import com.intellij.refactoring.util.CommonRefactoringUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.analysis.inspections.LuaUnusedLocalInspection
 import org.junit.Test
@@ -16,10 +15,10 @@ import org.junit.runners.JUnit4
  *
  * Two ends of one binding, and driving one says nothing about the other, so both are here:
  *
- * - **At the call site** — `substituteElementToRename` reaches the existing
- *   `METHOD_FUNCTION → refuse` clause (`LuaRenameProcessor.kt:111-112`) instead of retargeting the
- *   same-named local. No change to the processor; what changed is what `resolvedDeclarationLeaf`
- *   returns.
+ * - **At the call site** — `substituteElementToRename` reaches the METHOD declaration instead of
+ *   retargeting the same-named local. What NAV-13 changed is what `resolvedDeclarationLeaf`
+ *   returns; REFACT-09 then replaced the `METHOD_FUNCTION → refuse` clause this class originally
+ *   observed with `colonMethodSubstitution`, so the leaf is handed back and the rename proceeds.
  * - **At the same-named declaration** — the full `renameElementAtCaret` stops rewriting `t:m()`,
  *   which today is a half-applied rename of the [[BUG-457]] kind; and the declaration is reported
  *   unused where the colon member name was its only use.
@@ -29,21 +28,40 @@ import org.junit.runners.JUnit4
 @RunWith(JUnit4::class)
 class LuaColonCallRenameRefusalTest : BasePlatformTestCase() {
     /**
-     * Case 23 — rename **from the call site** is refused rather than retargeted.
+     * Case 23 — rename **from the call site** targets the method, not the same-named local.
+     *
+     * **What this case claims is unchanged; only the outcome is.** It has always been about
+     * *which element* a rename at `t:m()` would rewrite. Before NAV-13 that was the local `m` at
+     * offset 38 — a rename invoked on a method call would silently have renamed a variable. NAV-13
+     * made the colon call resolve to the method, and REFACT-09 removed the blanket
+     * `METHOD_FUNCTION → refuse` clause that stood in for the answer in between, so the
+     * substitution now returns the method's own name leaf at offset 24 and the rename proceeds
+     * (`REFACT-09-02`, which *requires* this rename to succeed).
+     *
+     * Asserting the substituted leaf rather than a refusal is what keeps the original hazard in
+     * view: a refusal is indistinguishable from a *correct* refusal and from a *wrong* one, whereas
+     * an offset names the element that would be rewritten. Offset 24 is `m` in `function t:m()`;
+     * offset 38 is `local m`. The end-to-end rewrite is `requirements.md` row 2's, pinned by
+     * `LuaColonMethodRenameTest.aColonMethodRenamesFromOneOfItsCallSites`; this fixture is the one
+     * carrying a same-named local, which that row's does not.
      *
      * **Mutation** (`requirements.md` #1): delete the colon branch from
      * `LuaNameReference.multiResolve` — executed pre-change, `substituteElementToRename` returned
-     * `LeafPsiElement@38 'm'`, the *local*, so a rename invoked at the method call would silently
-     * have renamed a variable.
+     * `LeafPsiElement@38 'm'`, the *local*, which this case now reddens on directly.
      */
     @Test
-    fun renamingAColonCallSiteIsRefusedInsteadOfRetargetingASameNamedLocal() {
+    fun renamingAColonCallSiteTargetsTheMethodInsteadOfASameNamedLocal() {
         myFixture.configureByText("test.lua", LOCAL_VARIABLE_FIXTURE)
         val callSite = leafAt(46)
 
-        expectThrows(CommonRefactoringUtil.RefactoringErrorHintException::class.java) {
-            LuaRenameProcessor().substituteElementToRename(callSite, null)
-        }
+        val substituted = LuaRenameProcessor().substituteElementToRename(callSite, null)
+
+        assertEquals("the call site must substitute to the method's own name leaf", "m", substituted?.text)
+        assertEquals(
+            "and that leaf is the one in 'function t:m()' at 24, not the local 'm' at 38",
+            24,
+            substituted?.textRange?.startOffset,
+        )
     }
 
     /**

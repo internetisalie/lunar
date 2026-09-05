@@ -6,8 +6,9 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.util.Disposer
 import com.intellij.refactoring.rename.RenameHandler
 import com.intellij.refactoring.rename.RenameHandlerRegistry
-import com.intellij.refactoring.util.CommonRefactoringUtil
+import com.intellij.refactoring.rename.RenameRefactoringDialog
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import com.intellij.ui.UiInterceptors
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -22,7 +23,9 @@ import org.junit.runners.JUnit4
  * `LuaDeclarationSite.kindOf(leaf)?.isFileLocal != true` on whatever the platform resolved. Before
  * this feature that was a `LOCAL_FUNCTION` leaf (`isFileLocal=true`) and an inline template started;
  * now it is a `METHOD_FUNCTION` leaf (`isFileLocal=false`) and the handler declines, so
- * `PsiElementRenameHandler` and the colon-method refusal take over.
+ * `PsiElementRenameHandler` and REFACT-09's colon-method rename take over. (Until REFACT-09 that
+ * pairing ended in a blanket refusal; the handler selection this class pins is the same either
+ * way, which is why only the document-layer case below changed.)
  *
  * **The pre-feature template was worse than a mis-targeted rename.** Committing `RENAMED` into it
  * rewrote *every* `m` in the file — the local function's declaration, the method's own declaration,
@@ -76,13 +79,32 @@ class LuaColonCallRenameHandlerTest : BasePlatformTestCase() {
     }
 
     /**
-     * The document layer. Driving the handler the registry actually selects is what shows the user's
-     * outcome: the refactoring refuses and no template exists, so the file cannot be rewritten.
+     * The document layer, and the one that shows the user's outcome: driving the handler the
+     * registry actually selects, with a name chosen explicitly.
      *
-     * **Mutation**: as above — a template starts and committing it rewrites four occurrences.
+     * **This case previously asserted a refusal, and asserts a completed rename now.** REFACT-09
+     * deleted the blanket `METHOD_FUNCTION → refuse` clause the refusal came from; a colon method
+     * renames (`REFACT-09-02`). What this class exists to catch was never the refusal itself but
+     * the **template**: before NAV-13 an in-place template started here and committing `RENAMED`
+     * into it rewrote *every* `m` in the file — the local function's declaration, the method's own
+     * declaration, the call site and the plain call — from a caret the user put on a method call.
+     * That defect is now falsified in its positive form, which is strictly the stronger assertion:
+     * the two `t:m` sites move and the local function `m` and its `m()` call do not.
+     *
+     * **The new name is chosen through [UiInterceptors], not left to the platform.**
+     * `PsiElementRenameHandler.rename` offers the dialog to `UiInterceptors` *before* its unit-test
+     * branch sorts `dialog.getSuggestedNames()` and takes the first
+     * (`PsiElementRenameHandler.java:207-224`). That branch picks the element's **current** name
+     * here, so an un-intercepted drive renames `m` to `m` and stops on a degenerate self-collision
+     * (`This table already has a member named 'm'`) — a fact about the test harness's name
+     * selection, not about Lunar, and worth no assertion. `LuaRenameTest.renameViaSelectedHandler`
+     * uses this same seam for the same reason.
+     *
+     * **Mutation**: as above — a template starts, `getTemplateState` is non-null, and committing it
+     * rewrites four occurrences instead of two.
      */
     @Test
-    fun invokingTheOfferedHandlerRefusesAndStartsNoTemplate() {
+    fun invokingTheOfferedHandlerRenamesOnlyTheMethodAndItsCallSite() {
         configureAtColonCallSite()
         val offered = RenameHandlerRegistry.getInstance().getRenameHandlers(contextAtCaret())
         val handler = requireNotNull(offered.firstOrNull()) { "the registry offered no handler" }
@@ -90,7 +112,7 @@ class LuaColonCallRenameHandlerTest : BasePlatformTestCase() {
         val disposable = Disposer.newDisposable()
         try {
             TemplateManagerImpl.setTemplateTesting(disposable)
-            assertRefused(handler)
+            renameVia(handler, "renamed")
             assertNull(
                 "no in-place template may start at a colon call site",
                 TemplateManagerImpl.getTemplateState(myFixture.editor),
@@ -98,17 +120,27 @@ class LuaColonCallRenameHandlerTest : BasePlatformTestCase() {
         } finally {
             Disposer.dispose(disposable)
         }
-        assertEquals("and the file is byte-identical afterwards", HV8_FIXTURE, myFixture.file.text)
+        assertEquals(
+            "only the two 't:m' sites may move — the local function 'm' and its call must not",
+            HV8_FIXTURE.replace("t:m", "t:renamed"),
+            myFixture.file.text,
+        )
     }
 
-    private fun assertRefused(handler: RenameHandler) {
-        try {
-            handler.invoke(project, myFixture.editor, myFixture.file, contextAtCaret())
-        } catch (refused: CommonRefactoringUtil.RefactoringErrorHintException) {
-            assertNotNull("the refusal must carry a message", refused.message)
-            return
-        }
-        fail("expected the offered handler to refuse the colon call site")
+    /** Invokes [handler] the way <kbd>Shift+F6</kbd> does, with [newName] chosen by the caller. */
+    private fun renameVia(
+        handler: RenameHandler,
+        newName: String,
+    ) {
+        UiInterceptors.register(RenamingInterceptor(newName))
+        handler.invoke(project, myFixture.editor, myFixture.file, contextAtCaret())
+    }
+
+    /** Performs the rename the intercepted dialog would have performed on OK. */
+    private class RenamingInterceptor(
+        private val newName: String,
+    ) : UiInterceptors.UiInterceptor<RenameRefactoringDialog>(RenameRefactoringDialog::class.java) {
+        override fun doIntercept(component: RenameRefactoringDialog) = component.performRename(newName)
     }
 
     /** HV-8 step 1's own fixture, caret on the `m` of `t:m()` — offset 95. */
