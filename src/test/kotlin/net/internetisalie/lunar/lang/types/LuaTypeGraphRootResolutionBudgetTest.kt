@@ -23,9 +23,10 @@ import kotlin.test.assertTrue
  * whole reachable graph.
  *
  * Counting resolutions rather than timing them makes this deterministic given the fixture and
- * independent of the host, which is why it lives in the routine loop while the ratio assertion in
- * `LuaClassTagSnapshotPerformanceTest` stays behind `-PwithPerf`. A wall-clock budget is the
- * instrument that already failed to catch this defect.
+ * independent of the host, which is why it lives in the routine loop and is the only regression
+ * gate for BUG-473 (the ratio assertion in `LuaClassTagSnapshotPerformanceTest` was removed by
+ * BUG-474 because it was not host-portable). A wall-clock budget is the instrument that already
+ * failed to catch this defect.
  *
  * The bounds are the measured counts with headroom — 572 / 647 / 325 on this fixture.
  *
