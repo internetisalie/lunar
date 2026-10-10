@@ -13,7 +13,12 @@ import java.util.UUID
  * TOOLING-02 kind-scoped option; an empty registry yields `null` (no hardcoded default path).
  */
 class LuaCheckCommandLineTest : ToolchainSettingsTestCase() {
-    fun `test TC1 resolves bound tool and merges configured plus default arguments`() {
+    /**
+     * PINS KNOWN-DEFECTIVE BEHAVIOUR (BUG-451): `containsAll` passes because `--std max` is present,
+     * but production appends `--std lua54` after it and that one wins, overriding the project's
+     * `.luacheckrc`. When BUG-451 is fixed this expectation is meant to change.
+     */
+    fun `test TC1 PINS BUG-451 resolves bound tool and merges configured plus default arguments`() {
         val luaCheck = seedToolAt("luacheck", "/tmp/tools/luacheck")
         settings.setBinding("luacheck", luaCheck.id)
         settings.setKindOption(LuaKindOptionKeys.LUACHECK_ARGUMENTS, "--std max")

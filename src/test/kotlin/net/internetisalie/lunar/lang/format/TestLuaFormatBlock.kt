@@ -7,7 +7,7 @@ import com.intellij.psi.codeStyle.CodeStyleSettings
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.LuaLanguage
-import org.junit.Ignore
+import org.junit.jupiter.api.Disabled
 import kotlin.test.Test
 
 class TestLuaFormatBlock : BaseDocumentTest() {
@@ -191,7 +191,10 @@ class TestLuaFormatBlock : BaseDocumentTest() {
         )
     }
 
-    @Ignore
+    // Production yields `print(a,\n      b,\n      c)` (newline after `(` removed, args aligned
+    // under the first), not the continuation-indented shape below. Un-ignore when BUG-482 is fixed.
+    @Test
+    @Disabled("BUG-482: a multi-line argument list is joined onto the call line instead of continuation-indented")
     fun testArgs() {
         myFixture.configureByText(
             LuaFileType,
@@ -220,8 +223,13 @@ class TestLuaFormatBlock : BaseDocumentTest() {
         )
     }
 
+    /**
+     * PINS KNOWN-DEFECTIVE BEHAVIOUR (BUG-484, FORMAT-01-22): `::start::` should sit at the block
+     * indent; `Indent.getAbsoluteLabelIndent()` flushes it to column 0. When BUG-484 is fixed this
+     * expectation is meant to change — the red here is then the fix, not a regression.
+     */
     @Test
-    fun testLabel() {
+    fun `testLabel PINS BUG-484 label flushed to column 0`() {
         myFixture.configureByText(
             LuaFileType,
             """
@@ -312,7 +320,9 @@ class TestLuaFormatBlock : BaseDocumentTest() {
         myFixture.checkResult("local x = t[ 1 ]\n")
     }
 
-    @Ignore
+    // Production leaves `b`, `c` at column 0 and indents the values only 4. Un-ignore when BUG-483 is fixed.
+    @Test
+    @Disabled("BUG-483: a multi-line local declaration gets no continuation indent on its names")
     fun testLocalVarDecl() {
         myFixture.configureByText(
             LuaFileType,

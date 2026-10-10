@@ -3,7 +3,7 @@ id: "BUG-461"
 title: "Tests that cannot fail — four methods no engine collects, and three that pin defects as intended behaviour"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -82,3 +82,35 @@ proved.
 
 The durable output of this report is not the seven fixes. It is §4's build-time guard plus the habit
 of asking, of any new test, what change would make it red.
+
+## 6. Resolution
+
+- **Guard**: `UncollectedTestMethodGuardTest` reflects over the compiled test classes and fails on a
+  zero-argument public `test*` method, in a class that is not a JUnit3 `TestCase`, with no collecting
+  annotation. Proven red with `testArgs` and `testLocalVarDecl` bare (exactly those two reported).
+- **Two of the four were not uncollected.** `CrossFileInlayHintsTest` extends `BasePlatformTestCase`
+  (JUnit3, collected by name) and `LuaFoldingTest.testFolding(text: String)` is a helper that takes an
+  argument, so no engine could ever collect it. The sweep's four were really two.
+- `testArgs` -> [[BUG-482]], `testLocalVarDecl` -> [[BUG-483]], both `@Test` + `@Disabled` so they
+  report as skipped. `testLabel` -> [[BUG-484]]. Real `canPutAt` tests in `TestLuaLineBreakpointType`
+  (the handler test was deleted; `canPutAt` lives on the type) surfaced [[BUG-485]].
+- TC11 / TC1 renamed to say `PINS BUG-452` / `PINS BUG-451`; TC12 annotated with what it does not prove.
+
+### Mutation proofs (GCE builder, `test --rerun`, each restored with `git show HEAD:<path>`)
+
+| Mutation | Test that went red | Message |
+| :-- | :-- | :-- |
+| `LuaLineBreakpointType.canPutAt`: final `return result.get() ?: false` -> `return true` | `testCanPutAtRefusesCommentAndBlankLines` | `AssertionFailedError: header comment` |
+| same -> `return false` | `testCanPutAtStatementLines` | `AssertionFailedError: second statement` |
+| `if (parent is LuaStatement)` -> `if (parent != null)` | `testCanPutAtRefusesCommentAndBlankLines` | `AssertionFailedError: header comment` |
+| that, plus `findFile(file) as? LuaFile` -> `findFile(file)` | `testCanPutAtRefusesNonLuaFile` (and the comment test) | `AssertionFailedError: Expected value to be false.` |
+| guard predicate: drop `method.parameterCount == 0` | `guard accepts annotated methods, JUnit3 classes and helpers that take arguments`, and the full scan | `expected: <[]> but was: <[...PlainHelperWithArgument.testHelper]>`; scan names `LuaFoldingTest.testFolding` |
+
+Not provable: removing the `as? LuaFile` guard **alone** leaves every test green (run recorded: BUILD
+SUCCESSFUL). A plain-text file contains no `LuaStatement`, so the later check refuses it anyway; the
+guard is defensive and `testCanPutAtRefusesNonLuaFile` only goes red when the statement check is also
+weakened (row 4). The test's KDoc says so.
+
+BUG-482 / BUG-483 outputs were re-measured on a clean run and are recorded verbatim in those reports.
+The "8 columns" in section 1 and in `FORMAT-01-17` is wrong for `testArgs`: production joins the
+arguments onto the call line (see BUG-482).

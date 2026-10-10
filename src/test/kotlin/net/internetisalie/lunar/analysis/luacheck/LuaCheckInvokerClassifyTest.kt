@@ -30,14 +30,26 @@ class LuaCheckInvokerClassifyTest {
         assertEquals(FailureKind.LAUNCH_FAILED, failure.kind)
     }
 
+    /**
+     * PINS KNOWN-DEFECTIVE BEHAVIOUR (BUG-452): luacheck exits 2 to say "errors were reported" (a
+     * syntax error, a bad inline directive), not "crashed". Production discards the report and shows
+     * a crash banner; this test asserts that. When BUG-452 is fixed this expectation is meant to
+     * change — the red here is then the fix, not a regression.
+     */
     @Test
-    fun `test TC11 completed exit 2 maps to CRASHED with stderr detail`() {
+    fun `test TC11 PINS BUG-452 completed exit 2 maps to CRASHED with stderr detail`() {
         val outcome = LuaCheckInvoker.classify(result(LuaExecOutcome.COMPLETED, 2, stderr = "bad std"), "f.lua")
         val failure = outcome as LuaCheckOutcome.Failure
         assertEquals(FailureKind.CRASHED, failure.kind)
         assertEquals("bad std", failure.detail)
     }
 
+    /**
+     * Proves only that the parser handles luacheck's PLAIN formatter text and ignores the summary
+     * line. It does NOT prove Lunar's real invocation works: production never requests the plain
+     * formatter's output as a contract (BUG-453 — the documented editor interface is not used), so a
+     * green here says nothing about what luacheck is actually asked for.
+     */
     @Test
     fun `test TC12 completed exit 1 parses problems and ignores the summary line`() {
         val stdout =
