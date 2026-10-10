@@ -43,6 +43,16 @@
   `require`d module and an aliased local remain out of scope — each resolves to nothing rather than
   to a plausible-but-wrong target.
 
+- **Renaming a table now renames the `t` in its `function t:m()` and `function t.m()` declarations,
+  and Find Usages on the table lists them** (BUG-476). The receiver of a function name reads the
+  table's binding, but resolution treated it as the function naming itself, so a rename rewrote
+  `local t` and every call and left `function t:m()` behind — where it silently declared the method
+  on a fresh global `t`. The same mistake had two quieter forms, fixed with it: a function's own
+  parameter could capture its receiver (`function t:m(t)`), and the last segment of a function name
+  could bind to a same-named local, so renaming `local run` rewrote `function M.run()`. A bare
+  `function f()` still names itself, so recursion resolves as before, and a receiver bound to nothing
+  is still refused at its own caret.
+
 - **Find Usages now works from a method or dotted declaration's own name** (BUG-478). Invoking it on
   `function Obj:method()` or `function M.run()` declined with *cannot search for usages from this
   location*, even though the usages existed and Find Usages from a call site listed them. The caret

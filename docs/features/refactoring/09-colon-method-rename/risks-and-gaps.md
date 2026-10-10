@@ -646,6 +646,9 @@ Measured on the unmodified rename path and filed as [[BUG-476]]; `requirements.m
 beside it. This feature neither causes nor fixes it, and must not widen into it: the receiver rename
 is a `LOCAL_VARIABLE` rename and takes no branch this design adds.
 
+**Closed by [[BUG-476]]**, in resolution rather than in this feature: the head of a dotted or colon
+function name now resolves to the binding it reads, so row 15 asserts the receiver segment rewritten.
+
 ### Gap 2.2 — A dynamically indexed member is not decided, and cannot be [accepted, sized]
 
 `t[k]`, `t[a .. b]` and `_G["x"]` name a member the PSI does not spell. Treating any non-literal

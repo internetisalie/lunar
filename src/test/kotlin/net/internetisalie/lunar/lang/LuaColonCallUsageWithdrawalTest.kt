@@ -37,12 +37,13 @@ class LuaColonCallUsageWithdrawalTest : BasePlatformTestCase() {
     }
 
     /**
-     * Case 25 (b) — `LOCAL_FUNCTION`, and the row that shows the withdrawal is *surgical*. Offset 47
-     * is the `function t:m()` declaration's own name, which keeps its lexical resolution because its
-     * parent is a `LuaFuncNameMethod` rather than a `LuaMethodExpr`; 61 is the plain call `m()`.
-     * Only 57 — the colon call site — leaves.
+     * Case 25 (b) — `LOCAL_FUNCTION`, and the row that shows the withdrawal is *surgical*. 61 is the
+     * plain call `m()`, and it stays. Offset 47 is the `function t:m()` declaration's own name: it
+     * was listed here until [[BUG-476]], because a function-name segment after the head resolved
+     * lexically to this `local function m`, which it does not call — so renaming the local rewrote
+     * the method's name. Such a segment takes no lexical binding now.
      *
-     * **Mutation**: as (a) — the search returns `[47, 57, 61]`.
+     * **Mutation**: as (a) — the colon call site `57` returns to the list.
      */
     @Test
     fun aSameNamedLocalFunctionLosesOnlyTheColonCallSite() {
@@ -51,7 +52,7 @@ class LuaColonCallUsageWithdrawalTest : BasePlatformTestCase() {
             "local function m() end\nlocal t = {}\nfunction t:m() end\nt:m()\nm()\n",
         )
 
-        assertEquals("only the colon call site leaves", listOf(47, 61), usageOffsetsAt(15))
+        assertEquals("only the plain call is a usage", listOf(61), usageOffsetsAt(15))
         assertEquals("and the method declaration gains it", listOf(57), usageOffsetsAt(47))
     }
 

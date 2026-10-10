@@ -856,10 +856,8 @@ class LuaColonMethodRenameTest : BasePlatformTestCase() {
      * classifies as a `LOCAL_VARIABLE`, so this is an unchanged route and the row is a regression
      * guard on that boundary.
      *
-     * **The `function t:m()` receiver segment is deliberately asserted as LEFT BEHIND.** That is
-     * `risks-and-gaps.md` Gap 2.1 / [[BUG-476]], a pre-existing receiver-segment defect that this
-     * feature neither causes nor repairs; asserting the true text rather than the desired one is
-     * what keeps this row a boundary check instead of a second report of that bug.
+     * The `function t:m()` receiver segment is a read of `t` and is rewritten with it — until
+     * [[BUG-476]] it was left behind (`risks-and-gaps.md` Gap 2.1), and this row asserted that.
      *
      * Its named mutation — broadening the `METHOD_FUNCTION` arm to every kind — is **inert in
      * Phase 2** and is deferred to Phase 3: with no occurrence scan on the substitution path, a
@@ -875,8 +873,8 @@ class LuaColonMethodRenameTest : BasePlatformTestCase() {
         myFixture.renameElementAtCaret("renamedTable")
 
         assertEquals(
-            "the method name must be untouched and the receiver's own sites rewritten",
-            "local renamedTable = {}\nfunction t:m() end\nrenamedTable:m()\n",
+            "the method name must be untouched and every site of the receiver rewritten",
+            "local renamedTable = {}\nfunction renamedTable:m() end\nrenamedTable:m()\n",
             myFixture.file.text,
         )
     }

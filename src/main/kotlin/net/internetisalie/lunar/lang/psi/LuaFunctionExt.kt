@@ -62,21 +62,20 @@ fun LuaFuncDecl.processDeclarations(
     lastParent: PsiElement?,
     place: PsiElement,
 ): Boolean {
-    // 1. Process parameter list first (parameters are visible in body)
+    // The function's own name sits outside its parameter scope: the `t` of `function t:m(t)` reads
+    // the enclosing `t`, not the parameter (BUG-476). The body is already hidden from it by order.
     val parList = parList
-    if (parList != null) {
-        if (!processor.execute(parList, state)) {
-            return false
-        }
+    if (parList != null && lastParent !is LuaFuncName && !processor.execute(parList, state)) {
+        return false
     }
 
-    // 2. Process function body
+    // Process function body
     val block = block
     if (block != null && !block.processDeclarations(processor, state, lastParent, place)) {
         return false
     }
 
-    // 3. Process function name and implicit self (for recursion)
+    // Process function name and implicit self (for recursion)
     return processor.execute(this, state)
 }
 

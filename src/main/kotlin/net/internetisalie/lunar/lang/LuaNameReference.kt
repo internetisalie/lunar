@@ -16,6 +16,8 @@ import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaElementTypes
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
+import net.internetisalie.lunar.lang.psi.LuaFuncNameProperty
 import net.internetisalie.lunar.lang.psi.LuaIndexExpr
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNameRef
@@ -70,11 +72,9 @@ class LuaNameReference(
         // passes `prev` (the child ascended from) as `lastParent`, excluding the reference's own
         // declaring statement from scope — so the RHS of a self-referential `local x = x` resolves to
         // the outer/undeclared `x`, not the new local (Lua §3.3.3/§3.5). TC-02 locks this.
-        val processor = LuaScopeProcessor(name)
-        LuaResolveUtil.scopeCrawlUp(processor, element)
-
-        if (processor.result != null) {
-            results.add(PsiElementResolveResult(processor.result!!))
+        val lexicalTarget = lexicalTargetOf(element)
+        if (lexicalTarget != null) {
+            results.add(PsiElementResolveResult(lexicalTarget))
             return results.toTypedArray()
         }
 
@@ -183,6 +183,21 @@ class LuaNameReference(
         }
 
         return results.distinctBy { it.element }.toTypedArray()
+    }
+
+    /**
+     * The lexical binding [element] reads, or null. A segment after the head of a function name —
+     * `m` in `function t:m()` or `function t.m()` — is a table key, never a variable, so no local,
+     * parameter or function name can be its target. Without this exclusion it captured any
+     * same-named binding in scope: `local m = {}; function m:m() end` made the method name a usage
+     * of the local, and renaming the local rewrote the method (BUG-476).
+     */
+    private fun lexicalTargetOf(element: PsiElement): PsiElement? {
+        val segment = element.parent
+        if (segment is LuaFuncNameProperty || segment is LuaFuncNameMethod) return null
+        val processor = LuaScopeProcessor(name)
+        LuaResolveUtil.scopeCrawlUp(processor, element)
+        return processor.result
     }
 
     /**

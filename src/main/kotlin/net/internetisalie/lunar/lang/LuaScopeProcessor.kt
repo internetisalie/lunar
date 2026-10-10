@@ -24,8 +24,18 @@ import net.internetisalie.lunar.lang.psi.LuaVar
 class LuaScopeProcessor(
     val name: String,
 ) : PsiScopeProcessor {
-    var result: PsiElement? = null
-        private set
+    private var match: PsiElement? = null
+
+    /**
+     * The receiver head of a dotted or colon function name that spells [name], kept only for when
+     * the walk finds no real binding. Such a head declares nothing — `function t:m()` READS `t` —
+     * so a binding found further out must win (BUG-476); without one, the head still answers for
+     * itself, as it always has.
+     */
+    private var receiverHeadFallback: PsiElement? = null
+
+    val result: PsiElement?
+        get() = match ?: receiverHeadFallback
 
     private var found = false
 
@@ -42,7 +52,7 @@ class LuaScopeProcessor(
                 // Extract identifier from attName
                 element.attNameList.forEach { attName ->
                     if (attName.nameRef.identifier.text == name) {
-                        result = attName.nameRef.identifier
+                        match = attName.nameRef.identifier
                         found = true
                         return@execute false // Stop walk
                     }
@@ -51,7 +61,7 @@ class LuaScopeProcessor(
 
             is LuaLocalFuncDecl -> {
                 if (element.nameRef.identifier.text == name) {
-                    result = element.nameRef.identifier
+                    match = element.nameRef.identifier
                     found = true
                     return false
                 }
@@ -60,7 +70,7 @@ class LuaScopeProcessor(
             is LuaGlobalVarDecl -> {
                 element.attNameList.forEach { attName ->
                     if (attName.nameRef.identifier.text == name) {
-                        result = attName.nameRef.identifier
+                        match = attName.nameRef.identifier
                         found = true
                         return@execute false
                     }
@@ -70,22 +80,17 @@ class LuaScopeProcessor(
             is LuaGlobalFuncDecl -> {
                 val identifier = element.nameRef?.identifier
                 if (identifier != null && identifier.text == name) {
-                    result = identifier
+                    match = identifier
                     found = true
                     return false
                 }
             }
 
             is LuaFuncDecl -> {
-                // Check function name (for recursion)
-                if (element.funcName.nameRef.identifier.text == name) {
-                    result = element.funcName.nameRef.identifier
-                    found = true
-                    return false
-                }
+                if (offerFunctionName(element)) return false
                 // Check implicit self
                 if (name == "self" && element.funcName.funcNameMethod != null) {
-                    result =
+                    match =
                         element.funcName.funcNameMethod!!
                             .nameRef.identifier
                     found = true
@@ -99,7 +104,7 @@ class LuaScopeProcessor(
                 if (nameList != null) {
                     nameList.nameRefList.forEach { nameRef ->
                         if (nameRef.identifier.text == name) {
-                            result = nameRef.identifier
+                            match = nameRef.identifier
                             found = true
                             return@execute false
                         }
@@ -109,7 +114,7 @@ class LuaScopeProcessor(
 
             is LuaNumericForStatement -> {
                 if (element.identifier.text == name) {
-                    result = element.identifier
+                    match = element.identifier
                     found = true
                     return false
                 }
@@ -118,7 +123,7 @@ class LuaScopeProcessor(
             is LuaGenericForStatement -> {
                 element.nameList.nameRefList.forEach { nameRef ->
                     if (nameRef.identifier.text == name) {
-                        result = nameRef.identifier
+                        match = nameRef.identifier
                         found = true
                         return@execute false
                     }
@@ -128,7 +133,7 @@ class LuaScopeProcessor(
             is LuaVar -> {
                 val nameRef = element.nameRef
                 if (nameRef != null && nameRef.identifier.text == name) {
-                    result = nameRef.identifier
+                    match = nameRef.identifier
                     found = true
                     return false
                 }
@@ -136,6 +141,25 @@ class LuaScopeProcessor(
         }
 
         return true // Continue walk
+    }
+
+    /**
+     * Only a BARE `function f()` binds its own name (so `f` resolves inside `f`, for recursion). The
+     * head of `function t:m()` / `function t.m()` is a read of `t`, so it is deferred to
+     * [receiverHeadFallback] and the walk goes on to the binding it reads. True when it matched.
+     */
+    private fun offerFunctionName(decl: LuaFuncDecl): Boolean {
+        val funcName = decl.funcName
+        val head = funcName.nameRef.identifier
+        if (head.text != name) return false
+        val isBare = funcName.funcNamePropertyList.isEmpty() && funcName.funcNameMethod == null
+        if (!isBare) {
+            if (receiverHeadFallback == null) receiverHeadFallback = head
+            return false
+        }
+        match = head
+        found = true
+        return true
     }
 
     override fun <T : Any?> getHint(hintKey: Key<T>): T? = null

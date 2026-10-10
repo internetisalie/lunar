@@ -29,9 +29,10 @@ class LuaColonCallDeprecationTest : BasePlatformTestCase() {
      * not call the deprecated local function `m`, so the warning it used to carry asserted a call
      * that does not exist.
      *
-     * The two surviving warnings are load-bearing as controls: `85..86` is the method declaration's
-     * own name, whose parent is a `LuaFuncNameMethod` and not a `LuaMethodExpr`, so §3.1's gate
-     * never takes it; `99..100` is the plain call `m()`, which never went through this feature.
+     * The surviving warning is load-bearing as a control: `99..100` is the plain call `m()`, which
+     * never went through this feature. The method declaration's own name `85..86` carried one until
+     * [[BUG-476]]: a function-name segment after the head resolved lexically, to the deprecated
+     * `local function m` `@53`, although `function t:m()` does not call it.
      *
      * **Mutation** (`requirements.md` #1): delete the colon branch from
      * `LuaNameReference.multiResolve` — a third warning appears at `95..96`, because `resolve()` on
@@ -52,7 +53,7 @@ class LuaColonCallDeprecationTest : BasePlatformTestCase() {
 
         assertEquals(
             "the t:m() call site at 95 must carry no deprecation warning",
-            listOf(85 to 86, 99 to 100),
+            listOf(99 to 100),
             rangesOf("Deprecated API: Use the method instead"),
         )
     }
@@ -86,10 +87,11 @@ class LuaColonCallDeprecationTest : BasePlatformTestCase() {
     /**
      * Case 22 (b) — the control that proves the **guard**, not the branch, is what silences (a).
      * Spelling both names `m` makes `textEq=true`, and the same fixture shape then warns at the call
-     * site as well as at the declaration.
+     * site. The declaration's own method name `44..45` warned too until [[BUG-476]], because it
+     * resolved to its own receiver `m@42` and so reached the deprecated declaration; a segment after
+     * the head of a function name no longer resolves lexically, so only the call site warns.
      *
-     * **Mutation** (`requirements.md` #1): delete the colon branch — `54..55` disappears while
-     * `44..45` stays, because the declaration's own name never took this feature's route.
+     * **Mutation** (`requirements.md` #1): delete the colon branch — `54..55` disappears.
      */
     @Test
     fun aDeprecatedMethodWarnsAtTheCallSiteWhenReceiverAndMemberShareAName() {
@@ -100,8 +102,8 @@ class LuaColonCallDeprecationTest : BasePlatformTestCase() {
         )
 
         assertEquals(
-            "the call site at 54 joins the declaration at 44 once the receiver's name equals the member's",
-            listOf(44 to 45, 54 to 55),
+            "the call site at 54 warns once the receiver's name equals the member's",
+            listOf(54 to 55),
             rangesOf(DEPRECATED_GONE),
         )
     }

@@ -151,7 +151,9 @@ class LuaColonCallRenameRefusalTest : BasePlatformTestCase() {
     /**
      * Case 26 (b) — the sharper pin. Pre-change, renaming the **receiver** rewrote the *member name*
      * of the call while leaving the declaration `function m:m()` untouched, so the file no longer
-     * agreed with itself — BUG-457's shape in a case BUG-457 did not cover.
+     * agreed with itself — BUG-457's shape in a case BUG-457 did not cover. The declaration's
+     * receiver segment is a read of the local and is rewritten with it ([[BUG-476]]); its member
+     * name is not.
      *
      * **Mutation**: as case 23's — the file becomes `RENAMED:RENAMED()`.
      */
@@ -163,7 +165,7 @@ class LuaColonCallRenameRefusalTest : BasePlatformTestCase() {
         myFixture.renameElementAtCaret("RENAMED")
 
         assertEquals(
-            "local RENAMED = {}\nfunction m:m() end\nRENAMED:m()\n",
+            "local RENAMED = {}\nfunction RENAMED:m() end\nRENAMED:m()\n",
             myFixture.file.text,
         )
     }
