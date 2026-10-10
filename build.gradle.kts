@@ -312,17 +312,19 @@ tasks {
         // which a CI checkout does not have.
         if (!project.hasProperty("withCorpus")) {
             filter {
+                // Matches test METHOD names as well as class names (BUG-497), so only the sweep
+                // classes may contain `Corpus` anywhere; SweepNamingGuardTest enforces it.
                 excludeTestsMatching("*Corpus*")
                 // Opt-in with the sweeps (it indexes the same corpus) but deliberately NOT named
-                // `*Corpus*`: the ratchet's contract is that recording and verification share the
+                // `*Corpus*` (class or method): the ratchet's contract is that recording and verification share the
                 // invocation shape (BUG-418), and anything inside the `--tests '*Corpus*'` filter
                 // shares the sweeps' JVM and shifts their counts. Measured: including it moved
                 // luacheck's LuaTypeAssignability by +12. Run it by name.
                 excludeTestsMatching("*InspectionParityTest")
                 // BUG-473 DR-6: the annotated fixture the pinned corpora cannot supply — 0 of
                 // their 734 files carry a `---@` tag. Same opt-in and the same naming rule as the
-                // line above: it belongs in the corpus lane but must stay outside the
-                // `--tests '*Corpus*'` shape the sweeps' baselines were recorded in.
+                // line above (class and method names alike): it belongs in the corpus lane but
+                // must stay outside the `--tests '*Corpus*'` shape the sweeps' baselines were recorded in.
                 excludeTestsMatching("*AnnotatedFixtureSweepTest")
                 isFailOnNoMatchingTests = false
             }

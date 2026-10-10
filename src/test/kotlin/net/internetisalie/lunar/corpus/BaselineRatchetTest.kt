@@ -17,10 +17,11 @@ import java.io.File
  * Proves the corpus gate can actually fail. A ratchet that cannot go red is worthless, and a green
  * corpus run means nothing without these.
  *
- * Deliberately **not** named `*Corpus*`: nothing here needs a platform fixture or a fetched
- * corpus, so it must run in the routine suite rather than behind `-PwithCorpus`.
- * `excludeTestsMatching("*Corpus*")` is case-sensitive and does not match the lowercase
- * `…lunar.corpus.` package segment.
+ * Deliberately **not** named `*Corpus*` — neither the class nor any test method: nothing here needs
+ * a platform fixture or a fetched corpus, so it must run in the routine suite rather than behind
+ * `-PwithCorpus`. `excludeTestsMatching("*Corpus*")` matches method names as well as class names
+ * (BUG-497; `SweepNamingGuardTest` enforces it). It is case-sensitive and does not match the
+ * lowercase `…lunar.corpus.` package segment.
  */
 @RunWith(JUnit4::class)
 class BaselineRatchetTest {
@@ -380,7 +381,7 @@ class BaselineRatchetTest {
 
     /** TC 9 — the guard refuses an absent corpus instead of measuring nothing. */
     @Test
-    fun absentCorpusFailsWithFetchInstruction() {
+    fun absentManifestEntryFailsWithFetchInstruction() {
         val repoRoot =
             manifestRoot(
                 """{"name":"ghost","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"]}""",
@@ -543,7 +544,7 @@ class BaselineRatchetTest {
      * regression rather than corpus noise.
      */
     @Test
-    fun tortureFalseAcceptsAreGatedUnlikeTheProjectCorpus() {
+    fun tortureFalseAcceptsAreGatedUnlikeTheProjectSweep() {
         val baseline = temp.newFile("torture-accepts.baseline")
         baseline.writeText(TortureBaseline.render(torture().copy(oracleFalseAccepts = 0)))
         val failure =

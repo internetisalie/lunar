@@ -3,7 +3,7 @@ id: "BUG-497"
 title: "Test methods whose names contain `Corpus` leave the routine suite and join the corpus sweep's JVM"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -75,3 +75,19 @@ to **method** names too. Nothing checks either.
 - **Re-run CI's corpus shape and confirm every baseline is byte-identical.** Removing the two
   methods from the sweeps' JVM changes that JVM's contents, which [[BUG-418]] says can move counts.
   If a baseline moves, re-record it in the same change and say so.
+
+## Resolution
+
+- Renamed `BaselineRatchetTest.absentCorpusFailsWithFetchInstruction` to
+  `absentManifestEntryFailsWithFetchInstruction` and
+  `tortureFalseAcceptsAreGatedUnlikeTheProjectCorpus` to
+  `tortureFalseAcceptsAreGatedUnlikeTheProjectSweep`.
+- Added `SweepNamingGuardTest`: scans the compiled test classes and fails the routine suite if any
+  test class or test method outside `LuaCorpusSweepTest` / `LuaTortureCorpusTest` has a name containing
+  `Corpus`. Proved red with `absentCorpusFailsWithFetchInstruction` restored (message named
+  `net.internetisalie.lunar.corpus.BaselineRatchetTest.absentCorpusFailsWithFetchInstruction`), then green.
+- Corrected `BaselineRatchetTest`'s KDoc and the `build.gradle.kts` comments: the rule covers method names.
+- Evidence (GCE builder): routine `test --rerun` BUILD SUCCESSFUL, `BaselineRatchetTest` ran 35 tests
+  including both renamed methods; corpus shape `-PwithCorpus --tests '*Corpus*'` BUILD SUCCESSFUL with
+  results only for `LuaCorpusSweepTest` and `LuaTortureCorpusTest`; a full baseline record in that shape
+  left every file under `src/test/resources/corpus/` byte-identical.
