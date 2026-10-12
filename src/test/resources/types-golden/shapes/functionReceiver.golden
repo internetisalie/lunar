@@ -1,0 +1,21 @@
+# lunar type golden v1
+# source-sha256 06007f8b0f1460e1ca79b4d293f546bf979b17f10feadac45fadf95d2c302ff5
+[errors]
+HYPOTHESIS|fun() is not assignable to { ... }|(26,30)|LuaMethodExprImpl
+HYPOTHESIS|fun() is not assignable to { ... }|(35,39)|LuaMethodExprImpl
+HYPOTHESIS|fun() is not assignable to { ... }|(6,7)|LuaNameRefImpl
+[elements]
+(0,24)|LuaLocalVarDeclImpl|fun()|35e7ff01ca00d7d6
+(10,24)|LuaFuncDefImpl|fun()|35e7ff01ca00d7d6
+(25,26)|LuaNameRefImpl|fun()|35e7ff01ca00d7d6
+(25,26)|LuaVarImpl|fun()|35e7ff01ca00d7d6
+(25,33)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(31,32)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(34,35)|LuaNameRefImpl|fun()|35e7ff01ca00d7d6
+(34,35)|LuaVarImpl|fun()|35e7ff01ca00d7d6
+(34,42)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(40,41)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(6,7)|LuaNameRefImpl|fun()|35e7ff01ca00d7d6
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

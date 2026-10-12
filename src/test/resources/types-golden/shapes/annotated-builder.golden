@@ -1,0 +1,273 @@
+# lunar type golden v1
+# source-sha256 1d46b7ed3893d95c7f130e59440fd16597fe8e28545c3a4e70174a1e47568f6d
+[errors]
+ERROR|Missing required field 'name'|(488,490)|LuaTableConstructorImpl
+ERROR|{ ... } | LunarFixtureBuilder is not assignable to LunarFixtureBuilder|(545,624)|LuaFuncDeclImpl
+HYPOTHESIS|LunarFixtureBuilder | { ... } | LunarFixtureBuilder is not assignable to LunarFixtureBuilder|(545,624)|LuaFuncDeclImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1010,1018)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1037,1045)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1064,1072)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1091,1099)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1118,1126)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1145,1153)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1172,1180)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1199,1207)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1226,1234)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1253,1261)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1280,1288)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1307,1315)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1334,1342)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1361,1369)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1388,1396)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1415,1423)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1442,1450)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1469,1477)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1496,1504)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1523,1531)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1550,1558)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1577,1585)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1604,1612)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1631,1639)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1658,1666)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1685,1693)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(1712,1720)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(573,581)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(669,677)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(695,703)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(721,729)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(747,755)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(773,781)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(799,807)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(825,833)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(851,859)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(877,885)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(903,911)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(929,937)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(956,964)|LuaMethodExprImpl
+HYPOTHESIS|fun(name) | fun(name) is not assignable to fun(name)|(983,991)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to LunarFixtureBuilder|(466,485)|LuaNameRefImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to LunarFixtureBuilder|(574,581)|LuaNameRefImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1010,1018)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1037,1045)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1064,1072)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1091,1099)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1118,1126)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1145,1153)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1172,1180)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1199,1207)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1226,1234)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1253,1261)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1280,1288)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1307,1315)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1334,1342)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1361,1369)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1388,1396)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1415,1423)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1442,1450)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1469,1477)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1496,1504)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1523,1531)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1550,1558)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1577,1585)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1604,1612)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1631,1639)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1658,1666)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1685,1693)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(1712,1720)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(594,599)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(669,677)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(695,703)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(721,729)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(747,755)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(773,781)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(799,807)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(825,833)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(851,859)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(877,885)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(903,911)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(929,937)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(956,964)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBuilder is not assignable to { ... }|(983,991)|LuaMethodExprImpl
+[elements]
+(1003,1010)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1003,1010)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1003,1029)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1019,1028)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1030,1037)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1030,1037)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1030,1056)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1046,1055)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1057,1064)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1057,1064)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1057,1083)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1073,1082)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1084,1091)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1084,1091)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1084,1110)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1100,1109)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1111,1118)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1111,1118)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1111,1137)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1127,1136)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1138,1145)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1138,1145)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1138,1164)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1154,1163)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1165,1172)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1165,1172)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1165,1191)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1181,1190)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1192,1199)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1192,1199)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1192,1218)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1208,1217)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1219,1226)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1219,1226)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1219,1245)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1235,1244)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1246,1253)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1246,1253)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1246,1272)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1262,1271)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1273,1280)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1273,1280)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1273,1299)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1289,1298)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1300,1307)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1300,1307)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1300,1326)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1316,1325)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1327,1334)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1327,1334)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1327,1353)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1343,1352)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1354,1361)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1354,1361)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1354,1380)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1370,1379)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1381,1388)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1381,1388)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1381,1407)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1397,1406)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1408,1415)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1408,1415)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1408,1434)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1424,1433)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1435,1442)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1435,1442)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1435,1461)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1451,1460)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1462,1469)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1462,1469)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1462,1488)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1478,1487)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1489,1496)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1489,1496)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1489,1515)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1505,1514)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1516,1523)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1516,1523)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1516,1542)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1532,1541)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1543,1550)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1543,1550)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1543,1569)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1559,1568)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1570,1577)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1570,1577)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1570,1596)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1586,1595)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1597,1604)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1597,1604)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1597,1623)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1613,1622)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1624,1631)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1624,1631)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1624,1650)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1640,1649)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1651,1658)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1651,1658)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1651,1677)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1667,1676)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1678,1685)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1678,1685)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1678,1704)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1694,1703)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(1705,1712)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1705,1712)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(1705,1731)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(1721,1730)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(460,490)|LuaLocalVarDeclImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(466,485)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(488,490)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(545,624)|LuaFuncDeclImpl|fun(name)|81b5adb357d2d09d
+(582,586)|LuaNameRefImpl|string|e87ba97e700edac9
+(590,594)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(590,599)|LuaVarImpl|string|e87ba97e700edac9
+(594,599)|LuaIndexExprImpl|string|e87ba97e700edac9
+(594,599)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(595,599)|LuaNameRefImpl|string|e87ba97e700edac9
+(602,606)|LuaNameRefImpl|string|e87ba97e700edac9
+(602,606)|LuaVarImpl|string|e87ba97e700edac9
+(609,620)|LuaFinalStatementImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(616,620)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(616,620)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(626,661)|LuaLocalVarDeclImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(632,639)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(642,661)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(642,661)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(662,669)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(662,669)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(662,687)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(678,686)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(688,695)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(688,695)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(688,713)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(704,712)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(714,721)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(714,721)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(714,739)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(730,738)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(740,747)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(740,747)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(740,765)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(756,764)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(766,773)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(766,773)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(766,791)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(782,790)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(792,799)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(792,799)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(792,817)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(808,816)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(818,825)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(818,825)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(818,843)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(834,842)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(844,851)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(844,851)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(844,869)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(860,868)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(870,877)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(870,877)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(870,895)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(886,894)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(896,903)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(896,903)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(896,921)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(912,920)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(922,929)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(922,929)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(922,948)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(938,947)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(949,956)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(949,956)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(949,975)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(965,974)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(976,1002)|LuaFuncCallImpl|LunarFixtureBuilder | LunarFixtureBuilder | { ... }|e38661267b3a3994
+(976,983)|LuaNameRefImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(976,983)|LuaVarImpl|{ ... } | LunarFixtureBuilder|8c87d5199af3a5a8
+(992,1001)|LuaTerminalExprImpl|string|e87ba97e700edac9
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

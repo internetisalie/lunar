@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Many method calls on one annotated receiver no longer make analysis quadratic** (TYPE-12).
+  Every `obj:method()` call on a `---@class` receiver used to add its own copy of the same member
+  demand, and the type checker compared every copy with every other. Measured on a file with 160 such
+  calls, its type analysis took about 3.8 s and now takes about 50 ms, and the work grows linearly
+  with the number of calls instead of with its square. The diagnostics, types and quick fixes the
+  engine reports are unchanged: they were recorded as golden files before the change and are
+  checked against it.
+
 - **A colon method (`function Obj:method()`) can now be renamed — and when the rename cannot be
   proved complete, every occurrence it would leave behind is listed for you to approve before
   anything is written** (REFACT-09). Invoking Rename on a colon method previously refused outright

@@ -1,0 +1,43 @@
+# lunar type golden v1
+# source-sha256 66759647197663dfd98887586df80737e2ccd2201df1038ad001c9762fb6d49c
+[errors]
+HYPOTHESIS|T | number | string is not assignable to T|(66,95)|LuaFuncDeclImpl
+HYPOTHESIS|fun(x) | fun(x) is not assignable to fun(p)|(118,125)|LuaFuncCallImpl
+HYPOTHESIS|fun(x) | fun(x) is not assignable to fun(p)|(119,122)|LuaMethodExprImpl
+HYPOTHESIS|fun(x) | fun(x) is not assignable to fun(p)|(136,145)|LuaFuncCallImpl
+HYPOTHESIS|fun(x) | fun(x) is not assignable to fun(p)|(137,140)|LuaMethodExprImpl
+HYPOTHESIS|number is not assignable to T|(66,95)|LuaFuncDeclImpl
+HYPOTHESIS|number is not assignable to T|(80,81)|LuaNameRefImpl
+HYPOTHESIS|number | string is not assignable to T|(66,95)|LuaFuncDeclImpl
+HYPOTHESIS|string is not assignable to T|(66,95)|LuaFuncDeclImpl
+HYPOTHESIS|string is not assignable to T|(80,81)|LuaNameRefImpl
+HYPOTHESIS|{ ... } | G is not assignable to { ... }|(119,122)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | G is not assignable to { ... }|(137,140)|LuaMethodExprImpl
+[elements]
+(102,103)|LuaNameRefImpl|{ ... } | G|a2c903e0346922d0
+(106,107)|LuaNameRefImpl|{ ... } | G|a2c903e0346922d0
+(106,107)|LuaVarImpl|{ ... } | G|a2c903e0346922d0
+(108,125)|LuaLocalVarDeclImpl|T | number | string|08691a21d14eb324
+(114,115)|LuaNameRefImpl|T | number | string|08691a21d14eb324
+(118,119)|LuaNameRefImpl|{ ... } | G|a2c903e0346922d0
+(118,119)|LuaVarImpl|{ ... } | G|a2c903e0346922d0
+(118,125)|LuaFuncCallImpl|T | number | string|08691a21d14eb324
+(12,24)|LuaLocalVarDeclImpl|{ ... } | G|a2c903e0346922d0
+(123,124)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(126,145)|LuaLocalVarDeclImpl|T | number | string|08691a21d14eb324
+(132,133)|LuaNameRefImpl|T | number | string|08691a21d14eb324
+(136,137)|LuaNameRefImpl|{ ... } | G|a2c903e0346922d0
+(136,137)|LuaVarImpl|{ ... } | G|a2c903e0346922d0
+(136,145)|LuaFuncCallImpl|T | number | string|08691a21d14eb324
+(141,144)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(18,19)|LuaNameRefImpl|{ ... } | G|a2c903e0346922d0
+(22,24)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(66,95)|LuaFuncDeclImpl|fun(x)|8697af43042474b7
+(80,81)|LuaNameRefImpl|T | number | string|08691a21d14eb324
+(83,91)|LuaFinalStatementImpl|T | number | string|08691a21d14eb324
+(90,91)|LuaNameRefImpl|T | number | string|08691a21d14eb324
+(90,91)|LuaVarImpl|T | number | string|08691a21d14eb324
+(96,107)|LuaLocalVarDeclImpl|{ ... } | G|a2c903e0346922d0
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

@@ -1,0 +1,36 @@
+# lunar type golden v1
+# source-sha256 2773a703f709db74f0ae9702341110363b1986698e07e8e1b9319c601c6a2c23
+[errors]
+HYPOTHESIS|{ ... } | K is not assignable to { ... }|(113,117)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | K is not assignable to { ... }|(94,98)|LuaMethodExprImpl
+[elements]
+(102,122)|LuaLocalVarDeclImpl|string|e87ba97e700edac9
+(108,109)|LuaNameRefImpl|string|e87ba97e700edac9
+(112,113)|LuaNameRefImpl|{ ... } | K|5b7ca6d310a50efb
+(112,113)|LuaVarImpl|{ ... } | K|5b7ca6d310a50efb
+(112,122)|LuaFuncCallImpl|string|e87ba97e700edac9
+(118,121)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(123,128)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(123,128)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(123,136)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(129,130)|LuaNameRefImpl|string|e87ba97e700edac9
+(129,130)|LuaVarImpl|string|e87ba97e700edac9
+(129,135)|LuaBinOpExprImpl|string|e87ba97e700edac9
+(134,135)|LuaNameRefImpl|string|e87ba97e700edac9
+(134,135)|LuaVarImpl|string|e87ba97e700edac9
+(58,70)|LuaLocalVarDeclImpl|{ ... } | K|5b7ca6d310a50efb
+(64,65)|LuaNameRefImpl|{ ... } | K|5b7ca6d310a50efb
+(68,70)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(71,82)|LuaLocalVarDeclImpl|{ ... } | K|5b7ca6d310a50efb
+(77,78)|LuaNameRefImpl|{ ... } | K|5b7ca6d310a50efb
+(81,82)|LuaNameRefImpl|{ ... } | K|5b7ca6d310a50efb
+(81,82)|LuaVarImpl|{ ... } | K|5b7ca6d310a50efb
+(83,101)|LuaLocalVarDeclImpl|string|e87ba97e700edac9
+(89,90)|LuaNameRefImpl|string|e87ba97e700edac9
+(93,101)|LuaFuncCallImpl|string|e87ba97e700edac9
+(93,94)|LuaNameRefImpl|{ ... } | K|5b7ca6d310a50efb
+(93,94)|LuaVarImpl|{ ... } | K|5b7ca6d310a50efb
+(99,100)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

@@ -1,0 +1,52 @@
+# lunar type golden v1
+# source-sha256 b4d9cbed70d0ecea04a7d45ba80018b28d591fcbba75591361888beb89dbb616
+[errors]
+ERROR|number | string is not assignable to number|(44,65)|LuaFuncDeclImpl
+ERROR|string is not assignable to number|(44,65)|LuaFuncDeclImpl
+ERROR|string is not assignable to number|(59,60)|LuaNameRefImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun()|(138,148)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun()|(142,146)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(93,106)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(97,101)|LuaMethodExprImpl
+HYPOTHESIS|string is not assignable to number|(102,105)|LuaTerminalExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(130,134)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(142,146)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(172,176)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(85,89)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(97,101)|LuaMethodExprImpl
+WARNING|Too few arguments: expected at least 1, got 0|(138,148)|LuaFuncCallImpl
+WARNING|Too few arguments: expected at least 1, got 0|(142,146)|LuaMethodExprImpl
+WARNING|Too many arguments: expected at most 1, got 2|(168,182)|LuaFuncCallImpl
+WARNING|Too many arguments: expected at most 1, got 2|(172,176)|LuaMethodExprImpl
+[elements]
+(102,105)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(111,152)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(12,24)|LuaLocalVarDeclImpl|{ ... } | C|338a1ff2dd1545e4
+(126,130)|LuaNameRefImpl|{ ... } | C|338a1ff2dd1545e4
+(126,130)|LuaVarImpl|{ ... } | C|338a1ff2dd1545e4
+(126,137)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(135,136)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(138,142)|LuaNameRefImpl|{ ... } | C|338a1ff2dd1545e4
+(138,142)|LuaVarImpl|{ ... } | C|338a1ff2dd1545e4
+(138,148)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(153,186)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(168,172)|LuaNameRefImpl|{ ... } | C|338a1ff2dd1545e4
+(168,172)|LuaVarImpl|{ ... } | C|338a1ff2dd1545e4
+(168,182)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(177,178)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(18,19)|LuaNameRefImpl|{ ... } | C|338a1ff2dd1545e4
+(180,181)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(22,24)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(44,65)|LuaFuncDeclImpl|fun(n)|942a61471aa85994
+(59,60)|LuaNameRefImpl|number | string|16eab6a715a96241
+(66,110)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(81,85)|LuaNameRefImpl|{ ... } | C|338a1ff2dd1545e4
+(81,85)|LuaVarImpl|{ ... } | C|338a1ff2dd1545e4
+(81,92)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(90,91)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(93,106)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(93,97)|LuaNameRefImpl|{ ... } | C|338a1ff2dd1545e4
+(93,97)|LuaVarImpl|{ ... } | C|338a1ff2dd1545e4
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

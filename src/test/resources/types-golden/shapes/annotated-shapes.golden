@@ -1,0 +1,63 @@
+# lunar type golden v1
+# source-sha256 ff7c4b7f84f6b040f35ed088a7e02ea6e3b4290fbf5ef0f9ea827c85c94eaa5f
+[errors]
+ERROR|LunarFixtureShape | LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(856,906)|LuaLocalVarDeclImpl
+ERROR|LunarFixtureShape | LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(862,874)|LuaNameRefImpl
+ERROR|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(856,906)|LuaLocalVarDeclImpl
+ERROR|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(862,874)|LuaNameRefImpl
+ERROR|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(877,906)|LuaFuncCallImpl
+ERROR|Missing required field 'height'|(736,738)|LuaTableConstructorImpl
+ERROR|Missing required field 'width'|(466,468)|LuaTableConstructorImpl
+ERROR|Missing required field 'width'|(736,738)|LuaTableConstructorImpl
+HYPOTHESIS|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(554,640)|LuaFuncDeclImpl
+HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(p, p)|(877,906)|LuaFuncCallImpl
+HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(p, p)|(894,897)|LuaIndexExprImpl
+HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(width, unit)|(580,583)|LuaFuncNamePropertyImpl
+HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(width, unit)|(894,897)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBox is not assignable to { ... }|(803,809)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | LunarFixtureBox is not assignable to { ... }|(816,823)|LuaIndexExprImpl
+[elements]
+(440,468)|LuaLocalVarDeclImpl|{ ... } | LunarFixtureShape|0932455c3dd2e8dc
+(446,463)|LuaNameRefImpl|{ ... } | LunarFixtureShape|0932455c3dd2e8dc
+(466,468)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(554,640)|LuaFuncDeclImpl|fun(width, unit)|09f6fbb007c05927
+(584,589)|LuaNameRefImpl|number|d23f1804b4c91c9f
+(591,595)|LuaNameRefImpl|string|e87ba97e700edac9
+(599,636)|LuaFinalStatementImpl|{ ... }|8b59d02ccce0c395
+(606,636)|LuaTableConstructorImpl|{ ... }|8b59d02ccce0c395
+(616,621)|LuaNameRefImpl|number|d23f1804b4c91c9f
+(616,621)|LuaVarImpl|number|d23f1804b4c91c9f
+(630,634)|LuaNameRefImpl|string|e87ba97e700edac9
+(630,634)|LuaVarImpl|string|e87ba97e700edac9
+(712,738)|LuaLocalVarDeclImpl|{ ... } | LunarFixtureBox|db521920c5f270d6
+(718,733)|LuaNameRefImpl|{ ... } | LunarFixtureBox|db521920c5f270d6
+(736,738)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(758,827)|LuaFuncDeclImpl|fun()|82ba23e31053308b
+(792,823)|LuaFinalStatementImpl|number|d23f1804b4c91c9f
+(799,803)|LuaNameRefImpl|{ ... } | LunarFixtureBox|db521920c5f270d6
+(799,809)|LuaVarImpl|number|d23f1804b4c91c9f
+(799,823)|LuaBinOpExprImpl|number|d23f1804b4c91c9f
+(803,809)|LuaIndexExprImpl|number|d23f1804b4c91c9f
+(803,809)|LuaVarSuffixImpl|number|d23f1804b4c91c9f
+(812,816)|LuaNameRefImpl|{ ... } | LunarFixtureBox|db521920c5f270d6
+(812,823)|LuaVarImpl|number|d23f1804b4c91c9f
+(816,823)|LuaIndexExprImpl|number|d23f1804b4c91c9f
+(816,823)|LuaVarSuffixImpl|number|d23f1804b4c91c9f
+(856,906)|LuaLocalVarDeclImpl|LunarFixtureShape | LunarFixtureShape | { ... } | LunarFixtureShape|b62c9fefabb01d10
+(862,874)|LuaNameRefImpl|LunarFixtureShape | LunarFixtureShape | { ... } | LunarFixtureShape|b62c9fefabb01d10
+(877,894)|LuaNameRefImpl|{ ... } | LunarFixtureShape|0932455c3dd2e8dc
+(877,897)|LuaVarImpl|fun(width, unit) | fun(width, unit)|e698984ed45e317c
+(877,906)|LuaFuncCallImpl|LunarFixtureShape | LunarFixtureShape | { ... }|0c94d02271e741c0
+(894,897)|LuaIndexExprImpl|fun(width, unit) | fun(width, unit)|e698984ed45e317c
+(894,897)|LuaVarSuffixImpl|fun(width, unit) | fun(width, unit)|e698984ed45e317c
+(898,899)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(901,905)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(908,967)|LuaFinalStatementImpl|{ ... }|a30d182bdb72d6ea
+(915,967)|LuaTableConstructorImpl|{ ... }|a30d182bdb72d6ea
+(927,939)|LuaNameRefImpl|LunarFixtureShape | LunarFixtureShape | { ... } | LunarFixtureShape|b62c9fefabb01d10
+(927,939)|LuaVarImpl|LunarFixtureShape | LunarFixtureShape | { ... } | LunarFixtureShape|b62c9fefabb01d10
+(949,964)|LuaNameRefImpl|{ ... } | LunarFixtureBox|db521920c5f270d6
+(949,964)|LuaVarImpl|{ ... } | LunarFixtureBox|db521920c5f270d6
+[globals]
+[fileReturn]
+{ ... }|6f7b60a6a9131755

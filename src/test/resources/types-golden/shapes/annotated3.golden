@@ -1,0 +1,43 @@
+# lunar type golden v1
+# source-sha256 c367d302d8009ae3bba59547dcabe72a60df0541435c0bd06a1c933ac6cdd285
+[errors]
+HYPOTHESIS|Too few arguments: expected at least 1, got 0|(53,61)|LuaFuncNameMethodImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 1|(104,119)|LuaFuncCallImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 1|(105,113)|LuaMethodExprImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 1|(120,135)|LuaFuncCallImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 1|(121,129)|LuaMethodExprImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 1|(88,103)|LuaFuncCallImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 1|(89,97)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(105,113)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(121,129)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(53,61)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(89,97)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(53,61)|LuaFuncNameMethodImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(105,113)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(121,129)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(89,97)|LuaMethodExprImpl
+[elements]
+(104,105)|LuaNameRefImpl|{ ... } | Builder|5b9678029c6e69ee
+(104,105)|LuaVarImpl|{ ... } | Builder|5b9678029c6e69ee
+(104,119)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(114,118)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(120,121)|LuaNameRefImpl|{ ... } | Builder|5b9678029c6e69ee
+(120,121)|LuaVarImpl|{ ... } | Builder|5b9678029c6e69ee
+(120,135)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(130,134)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(18,36)|LuaLocalVarDeclImpl|{ ... } | Builder|5b9678029c6e69ee
+(24,31)|LuaNameRefImpl|{ ... } | Builder|5b9678029c6e69ee
+(34,36)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(37,68)|LuaFuncDeclImpl|fun(n)|7cf30188898e393e
+(62,63)|LuaNameRefImpl|string|e87ba97e700edac9
+(70,87)|LuaLocalVarDeclImpl|{ ... } | Builder|5b9678029c6e69ee
+(76,77)|LuaNameRefImpl|{ ... } | Builder|5b9678029c6e69ee
+(80,87)|LuaNameRefImpl|{ ... } | Builder|5b9678029c6e69ee
+(80,87)|LuaVarImpl|{ ... } | Builder|5b9678029c6e69ee
+(88,103)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(88,89)|LuaNameRefImpl|{ ... } | Builder|5b9678029c6e69ee
+(88,89)|LuaVarImpl|{ ... } | Builder|5b9678029c6e69ee
+(98,102)|LuaTerminalExprImpl|string|e87ba97e700edac9
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

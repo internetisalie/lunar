@@ -2,7 +2,7 @@
 id: "TYPE-12"
 title: "12: A method call site mints its own member demand, and every one is wired into a clique"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "high"
 parent_id: "TYPE"
 folders:
@@ -81,11 +81,11 @@ off it.
 
 | ID | Requirement | Priority | Status | Description |
 | --- | --- | --- | --- | --- |
-| TYPE-12-01 | **Structurally identical member demands on one receiver are wired into the class member through one node** | M | Not Implemented | For each `(receiver node, method name)`, only the first call site's member node is ever wired (bidirectionally) to a class member; later sites hang off it by one forward edge. Per-site member nodes remain, because each carries its own call's shape (DR-02 measured the loss when they are removed). |
-| TYPE-12-02 | **Closure growth is linear on one receiver** | M | Not Implemented | On the one-receiver annotated fixture, closure size grows ≤ ×2.2 per doubling of call sites from n = 40 to n = 160 and is ≤ 5 000 at n = 160. Today's values: DR-01. |
-| TYPE-12-03 | **The anchored diagnostic list is unchanged on the golden set** | M | Not Implemented | For every file in the golden set, the sorted list of `(severity, message, anchor range, anchor PSI class)` from `LuaTypesSnapshot.getErrors()` — HYPOTHESIS entries included — equals the list recorded from today's engine. |
-| TYPE-12-04 | **Inferred types are unchanged on the golden set** | M | Not Implemented | For every file in the golden set: the type of every element the snapshot maps (`getValueType`), of every global it declares (`getGlobalType`), and its file return type (`getFileReturnType`) render identically to the recording from today's engine. |
-| TYPE-12-05 | **Every BUG-473 instrument stays green unmodified** | M | Not Implemented | `LuaAnnotatedClassDiagnosticsTest` (M-C still red), `LuaTypeGraphRootResolutionBudgetTest`, `LuaTypePairWriteDifferentialTest`, `LuaAnnotatedFixtureSweepTest`, and the `-PwithCorpus` sweep with the `.baseline` files byte-identical. |
+| TYPE-12-01 | **Structurally identical member demands on one receiver are wired into the class member through one node** | M | Full | For each `(receiver node, method name)`, only the first call site's member node is ever wired (bidirectionally) to a class member; later sites hang off it by one forward edge. Per-site member nodes remain, because each carries its own call's shape (DR-02 measured the loss when they are removed). |
+| TYPE-12-02 | **Closure growth is linear on one receiver** | M | Full | On the one-receiver annotated fixture, closure size grows ≤ ×2.2 per doubling of call sites from n = 40 to n = 160 and is ≤ 5 000 at n = 160. Today's values: DR-01. |
+| TYPE-12-03 | **The anchored diagnostic list is unchanged on the golden set** | M | Full | For every file in the golden set, the sorted list of `(severity, message, anchor range, anchor PSI class)` from `LuaTypesSnapshot.getErrors()` — HYPOTHESIS entries included — equals the list recorded from today's engine. |
+| TYPE-12-04 | **Inferred types are unchanged on the golden set** | M | Full | For every file in the golden set: the type of every element the snapshot maps (`getValueType`), of every global it declares (`getGlobalType`), and its file return type (`getFileReturnType`) render identically to the recording from today's engine. |
+| TYPE-12-05 | **Every BUG-473 instrument stays green unmodified** | M | Full | `LuaAnnotatedClassDiagnosticsTest` (M-C still red), `LuaTypeGraphRootResolutionBudgetTest`, `LuaTypePairWriteDifferentialTest`, `LuaAnnotatedFixtureSweepTest`, and the `-PwithCorpus` sweep with the `.baseline` files byte-identical. |
 | TYPE-12-06 | **The annotated n = 160 snapshot is materially faster** | S | Not Implemented | Recorded, not asserted (BUG-474). Evidence: DR-01, DR-02. |
 | TYPE-12-07 | **Tighter root-resolution budgets** | C | Not Implemented | Not done: DR-02 measured the budget fixtures' root-resolution counts unchanged by this design, so there is nothing to re-baseline. Kept as a row so nobody re-derives that. |
 
@@ -150,7 +150,7 @@ rendered as `SEVERITY|message|(start,end)` and sorted.
 
 **Evidence status of each mutation.** Every mutation in the table was executed and observed red —
 the single-fixture cases in DR-06, the golden cases in DR-11 step 8, case 11's first mutation in
-DR-11 step 9 — except the one case 11 marks *predicted*, which Phase 0 executes.
+DR-11 step 9, and case 11's second mutation in Phase 0 (both re-observed there).
 
 **Cases 9 and 10 name every golden a mutation turns red, not a sample.** The golden tests' failure
 message has one line per mismatching golden, so the red set is observable from one run, and Phase
@@ -173,7 +173,7 @@ that exact text.
 | 8 | 12-05 | — | run `LuaAnnotatedClassDiagnosticsTest`, `LuaTypeGraphRootResolutionBudgetTest`, `LuaTypePairWriteDifferentialTest` in the ordinary suite, and `LuaAnnotatedFixtureSweepTest` + the corpus sweep under `-PwithCorpus` | all green, unmodified; `sha256sum` of `src/test/resources/corpus/*.baseline` unchanged | M-C still reddens `LuaAnnotatedClassDiagnosticsTest.declaredParamViolationKeepsItsFourErrorTierDiagnostics` (13 → 3, DR-03) |
 | 9 | 12-03, 12-04 | every shapes golden (design Appendix C, plus `corpus/annotated/builder.lua` and `shapes.lua`), recorded from today's engine | `LuaTypeGoldenShapesTest.everyShapeMatchesItsGolden`: render each fixture's snapshot (design §5.5) and compare with its golden file | every file byte-equal to its golden | Each mutation reddens **exactly** the shapes goldens of its risks-and-gaps DR-11 step 8 row, in the sections that row lists, and no other: (a) delete the `replicateHubAnchoredErrors` call — row A6NF; (b) delete design §5.1 step 7 (`addEdge(hub, siteMember)`) — row A6NE; (c) design §5.1 step 5 names `hub ?: siteMember` — row A6TH; (d) M-C — the shapes rows of "A6MC's full set" |
 | 10 | 12-03, 12-04 | every member-files golden, recorded from today's engine | `LuaTypeGoldenMemberFilesTest`: same comparison | every file byte-equal to its golden | Case 9's (c) reddens exactly `luacheck-cache.golden`, whose `[errors]` gains `HYPOTHESIS\|File \| nil is not assignable to { ... }\|(3375,3380)\|LuaMethodExprImpl` (`fh:read("*a")`, `cache.lua:120`; DR-11 step 8 row A6TH); (d) reddens exactly the member-files rows of DR-11 step 8's "A6MC's full set"; (a) and (b) leave every member-files golden green. `File` here is the stubs' class (`io.open`), not a fixture declaration |
-| 11 | 12-03, 12-04 (gate integrity) | the shapes of case 9 and the bundled stubs under `src/main/resources/runtime` | `LuaTypeGoldenShapesTest.noShapeDeclaresAStubTypeName` (design §5.6) | green: no shape declares a `---@class`/`---@alias` name a stub declares, and the stub name set is non-empty | put the excluded `fileUnion` text (`---@class File`) back into `NAMED_SHAPES` without step 2 of design Appendix C's re-enable recipe → red with `shapes/fileUnion.golden: File` (DR-11 step 9). *Predicted, not yet executed* (Phase 0 executes it): point `stubTypeNames()` at a non-existent directory → red on the non-empty assertion |
+| 11 | 12-03, 12-04 (gate integrity) | the shapes of case 9 and the bundled stubs under `src/main/resources/runtime` | `LuaTypeGoldenShapesTest.noShapeDeclaresAStubTypeName` (design §5.6) | green: no shape declares a `---@class`/`---@alias` name a stub declares, and the stub name set is non-empty | put the excluded `fileUnion` text (`---@class File`) back into `NAMED_SHAPES` without step 2 of design Appendix C's re-enable recipe → red with `shapes/fileUnion.golden: File` (DR-11 step 9). Point `stubTypeNames()` at a non-existent directory → red with `no stub type names found under src/main/resources/runtime` (executed in Phase 0) |
 
 ### Appendix A — `annotated(3)` anchored errors
 
@@ -242,7 +242,7 @@ HYPOTHESIS|{ ... } | Bd is not assignable to { ... }|(167,171)
 
 ## Acceptance Criteria
 
-- [ ] Every case in the table above whose Requirement column names TYPE-12-01, -02, -03 or -04 passes
+- [x] Every case in the table above whose Requirement column names TYPE-12-01, -02, -03 or -04 passes
       (`LuaMemberDemandHubTest`, `LuaTypeGoldenShapesTest`, `LuaTypeGoldenMemberFilesTest`), and each
       case's named mutation was executed and observed red.
 - [ ] The golden files were recorded from the implementation base **before** any engine edit, in

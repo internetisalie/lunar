@@ -40,6 +40,43 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         anchor: PsiElement,
     ): VariableNode = globalNodes.getOrPut(name) { graph.variable(anchor) }
 
+    /** TYPE-12: a colon call's member demand, keyed by the receiver's node identity and the method name. */
+    private data class MethodDemandKey(
+        val receiver: TypeNode,
+        val methodName: String,
+    )
+
+    /** TYPE-12: the hub — the first site member — of every `(receiver, method name)` seen so far. */
+    private val methodDemandHubs: MutableMap<MethodDemandKey, VariableNode> = mutableMapOf()
+
+    /**
+     * TYPE-12: mints the member node one colon call site's `CALL` demand hangs from. The first site
+     * of a `(receiver, method name)` becomes that key's hub, exactly as every site was minted before;
+     * a later site hangs off the hub by one forward edge, and [LuaTypeGraph]'s table wiring reaches
+     * the class member through the hub instead of wiring every site into an N-way clique. The use's
+     * `Table` always names the site member, so each site's structural check sees its own call shape.
+     * Statement order is node creation order, which feeds `checkTypes`' iteration order.
+     */
+    private fun methodSiteMember(
+        receiver: TypeNode,
+        methodExpr: LuaMethodExpr,
+        methodName: String,
+    ): VariableNode {
+        val key = MethodDemandKey(receiver, methodName)
+        val hub = methodDemandHubs[key]
+        val siteMember = graph.variable(methodExpr)
+        if (hub == null) {
+            methodDemandHubs[key] = siteMember
+        } else {
+            graph.memberDemandHubs.attachSite(hub, siteMember)
+        }
+        graph.memberDemandHubs.recordSiteAnchor(hub ?: siteMember, methodExpr)
+        val tableConstraint = LuaGraphType.Table(localMembers = mapOf(methodName to siteMember))
+        graph.addEdge(receiver, graph.use(methodExpr, tableConstraint))
+        if (hub != null) graph.addEdge(hub, siteMember)
+        return siteMember
+    }
+
     /**
      * `self` binding for the next [visitFunctionBody] call (COMP-04-09): the receiver's type node
      * plus a distinct PSI anchor for the injected `self` node. Set immediately before the call and
@@ -924,10 +961,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         if (methodExpr != null) {
             val methodName = methodExpr.nameRef?.text
             if (methodName != null) {
-                val memberNode = graph.variable(methodExpr)
-                val tableConstraint = LuaGraphType.Table(localMembers = mapOf(methodName to memberNode))
-                graph.addEdge(calleeNode, graph.use(methodExpr, tableConstraint))
-                calleeNode = memberNode
+                calleeNode = methodSiteMember(calleeNode, methodExpr, methodName)
             }
         }
 

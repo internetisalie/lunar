@@ -1,0 +1,87 @@
+# lunar type golden v1
+# source-sha256 1ff4e6d76bd5448a4e236cacae8df4dfc051c998932cef4e720baf826f07809d
+[errors]
+HYPOTHESIS|Too few arguments: expected at least 1, got 0|(153,158)|LuaFuncCallImpl
+HYPOTHESIS|Too few arguments: expected at least 1, got 0|(154,156)|LuaMethodExprImpl
+HYPOTHESIS|Too few arguments: expected at least 1, got 0|(38,40)|LuaFuncNameMethodImpl
+HYPOTHESIS|Too few arguments: expected at least 1, got 0|(86,88)|LuaFuncNameMethodImpl
+HYPOTHESIS|Too few arguments: expected at least 2, got 0|(153,158)|LuaFuncCallImpl
+HYPOTHESIS|Too few arguments: expected at least 2, got 0|(154,156)|LuaMethodExprImpl
+HYPOTHESIS|Too few arguments: expected at least 2, got 0|(38,40)|LuaFuncNameMethodImpl
+HYPOTHESIS|Too few arguments: expected at least 2, got 0|(86,88)|LuaFuncNameMethodImpl
+HYPOTHESIS|Too few arguments: expected at least 2, got 1|(136,142)|LuaFuncCallImpl
+HYPOTHESIS|Too few arguments: expected at least 2, got 1|(137,139)|LuaMethodExprImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 1|(136,142)|LuaFuncCallImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 1|(137,139)|LuaMethodExprImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 2|(143,152)|LuaFuncCallImpl
+HYPOTHESIS|Too many arguments: expected at most 0, got 2|(144,146)|LuaMethodExprImpl
+HYPOTHESIS|Too many arguments: expected at most 1, got 2|(143,152)|LuaFuncCallImpl
+HYPOTHESIS|Too many arguments: expected at most 1, got 2|(144,146)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(137,139)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(144,146)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(153,158)|LuaFuncCallImpl
+HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(154,156)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(38,40)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun() | fun(a) | fun() | fun(a, b) is not assignable to fun()|(137,139)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(a) | fun() | fun(a, b) is not assignable to fun()|(144,146)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(a) | fun() | fun(a, b) is not assignable to fun()|(154,156)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(a) | fun() | fun(a, b) is not assignable to fun()|(86,88)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun() | fun(a, b) | fun() | fun(a) is not assignable to fun()|(153,158)|LuaFuncCallImpl
+HYPOTHESIS|fun() | fun(a, b) | fun() | fun(a) is not assignable to fun()|(154,156)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(a, b) | fun() | fun(a) is not assignable to fun()|(38,40)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun() | fun(a, b) | fun() | fun(a) is not assignable to fun()|(86,88)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun() | fun(a, b) | fun() | fun(a) is not assignable to fun(p)|(136,142)|LuaFuncCallImpl
+HYPOTHESIS|fun() | fun(a, b) | fun() | fun(a) is not assignable to fun(p)|(137,139)|LuaMethodExprImpl
+HYPOTHESIS|fun(a) | fun() is not assignable to fun()|(153,158)|LuaFuncCallImpl
+HYPOTHESIS|fun(a) | fun() is not assignable to fun()|(154,156)|LuaMethodExprImpl
+HYPOTHESIS|fun(a) | fun() is not assignable to fun()|(38,40)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(a) | fun() | fun() | fun(a, b) is not assignable to fun()|(38,40)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(a) | fun() | fun() | fun(a, b) is not assignable to fun()|(86,88)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(a, b) | fun() | fun() | fun(a) is not assignable to fun()|(153,158)|LuaFuncCallImpl
+HYPOTHESIS|fun(a, b) | fun() | fun() | fun(a) is not assignable to fun()|(154,156)|LuaMethodExprImpl
+HYPOTHESIS|fun(a, b) | fun() | fun() | fun(a) is not assignable to fun()|(38,40)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(a, b) | fun() | fun() | fun(a) is not assignable to fun()|(86,88)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(a, b) | fun() | fun() | fun(a) is not assignable to fun(p)|(136,142)|LuaFuncCallImpl
+HYPOTHESIS|fun(a, b) | fun() | fun() | fun(a) is not assignable to fun(p)|(137,139)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | U1 is not assignable to { ... }|(137,139)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | U1 is not assignable to { ... }|(144,146)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | U1 is not assignable to { ... }|(154,156)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | U2 is not assignable to { ... }|(137,139)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | U2 is not assignable to { ... }|(144,146)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | U2 is not assignable to { ... }|(154,156)|LuaMethodExprImpl
+[elements]
+(105,106)|LuaNameRefImpl|{ ... } | U1 | U2|467d175703f6d8da
+(109,111)|LuaNameRefImpl|{ ... } | U1|d526d1520125786c
+(109,111)|LuaVarImpl|{ ... } | U1|d526d1520125786c
+(115,119)|LuaVarImpl|undefined|31a5442b7fa53ce1
+(125,126)|LuaNameRefImpl|{ ... } | U1 | U2|467d175703f6d8da
+(125,126)|LuaVarImpl|{ ... } | U1 | U2|467d175703f6d8da
+(129,131)|LuaNameRefImpl|{ ... } | U2|f4d39c0c5daf00b8
+(129,131)|LuaVarImpl|{ ... } | U2|f4d39c0c5daf00b8
+(13,26)|LuaLocalVarDeclImpl|{ ... } | U1|d526d1520125786c
+(136,137)|LuaNameRefImpl|{ ... } | U1 | U2|467d175703f6d8da
+(136,137)|LuaVarImpl|{ ... } | U1 | U2|467d175703f6d8da
+(136,142)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(140,141)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(143,144)|LuaNameRefImpl|{ ... } | U1 | U2|467d175703f6d8da
+(143,144)|LuaVarImpl|{ ... } | U1 | U2|467d175703f6d8da
+(143,152)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(147,148)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(150,151)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(153,154)|LuaNameRefImpl|{ ... } | U1 | U2|467d175703f6d8da
+(153,154)|LuaVarImpl|{ ... } | U1 | U2|467d175703f6d8da
+(153,158)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(19,21)|LuaNameRefImpl|{ ... } | U1|d526d1520125786c
+(24,26)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(27,47)|LuaFuncDeclImpl|fun(a)|93329b4a5893d11f
+(41,42)|LuaNameRefImpl|number|d23f1804b4c91c9f
+(61,74)|LuaLocalVarDeclImpl|{ ... } | U2|f4d39c0c5daf00b8
+(67,69)|LuaNameRefImpl|{ ... } | U2|f4d39c0c5daf00b8
+(72,74)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(75,98)|LuaFuncDeclImpl|fun(a, b)|3c9e84bb6188ad78
+(89,90)|LuaNameRefImpl|number|d23f1804b4c91c9f
+(92,93)|LuaNameRefImpl|number|d23f1804b4c91c9f
+(99,111)|LuaLocalVarDeclImpl|{ ... } | U1 | U2|467d175703f6d8da
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

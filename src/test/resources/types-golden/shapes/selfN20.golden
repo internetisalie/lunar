@@ -1,0 +1,132 @@
+# lunar type golden v1
+# source-sha256 35ea1bdebef590f8c452ff6d80aebb8b4771562a74607b500a81258e26b2aab1
+[errors]
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(118,122)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(150,154)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(182,186)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(214,218)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(246,250)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(278,282)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(310,314)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(342,346)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(374,378)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(407,411)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(441,445)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(475,479)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(509,513)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(543,547)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(577,581)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(611,615)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(645,649)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(679,683)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(713,717)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | C is not assignable to { ... }|(86,90)|LuaMethodExprImpl
+[elements]
+(114,118)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(114,118)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(114,125)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(12,24)|LuaLocalVarDeclImpl|{ ... } | C|39313836345f38e0
+(123,124)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(130,161)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(146,150)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(146,150)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(146,157)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(155,156)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(162,193)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(178,182)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(178,182)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(178,189)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(18,19)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(187,188)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(194,225)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(210,214)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(210,214)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(210,221)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(219,220)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(22,24)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(226,257)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(242,246)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(242,246)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(242,253)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(251,252)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(258,289)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(274,278)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(274,278)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(274,285)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(283,284)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(290,321)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(306,310)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(306,310)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(306,317)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(315,316)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(322,353)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(338,342)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(338,342)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(338,349)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(347,348)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(354,385)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(370,374)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(370,374)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(370,381)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(379,380)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(386,419)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(403,407)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(403,407)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(403,415)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(412,414)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(420,453)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(437,441)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(437,441)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(437,449)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(44,65)|LuaFuncDeclImpl|fun(x)|2e1a3880cdd414c5
+(446,448)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(454,487)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(471,475)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(471,475)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(471,483)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(480,482)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(488,521)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(505,509)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(505,509)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(505,517)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(514,516)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(522,555)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(539,543)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(539,543)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(539,551)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(548,550)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(556,589)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(573,577)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(573,577)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(573,585)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(582,584)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(59,60)|LuaNameRefImpl|number|d23f1804b4c91c9f
+(590,623)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(607,611)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(607,611)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(607,619)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(616,618)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(624,657)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(641,645)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(641,645)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(641,653)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(650,652)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(658,691)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(66,97)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(675,679)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(675,679)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(675,687)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(684,686)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(692,725)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+(709,713)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(709,713)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(709,721)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(718,720)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(82,86)|LuaNameRefImpl|{ ... } | C|39313836345f38e0
+(82,86)|LuaVarImpl|{ ... } | C|39313836345f38e0
+(82,93)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(91,92)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(98,129)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

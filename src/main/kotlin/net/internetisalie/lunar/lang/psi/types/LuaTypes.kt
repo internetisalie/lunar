@@ -111,6 +111,15 @@ class LuaTypesSnapshot(
 
     override fun getErrors(): List<ElementError> = graph.errors
 
+    @org.jetbrains.annotations.TestOnly
+    internal fun closureSize(): Int = graph.closureSize()
+
+    @org.jetbrains.annotations.TestOnly
+    internal fun mappedElements(): Set<PsiElement> = elementNodes.keys
+
+    @org.jetbrains.annotations.TestOnly
+    internal fun declaredGlobalNames(): Set<String> = globalNodes.keys
+
     override fun graphTypeToLuaType(type: LuaGraphType): LuaType = graphTypeToLuaType(type, mutableMapOf())
 
     /**

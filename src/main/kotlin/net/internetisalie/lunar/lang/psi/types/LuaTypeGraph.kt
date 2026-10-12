@@ -37,6 +37,9 @@ class LuaTypeGraph {
 
     private val _nodes: MutableList<TypeNode> = mutableListOf()
 
+    /** TYPE-12: which colon-call site members are later sites of a hub, and where each hub's sites sit. */
+    internal val memberDemandHubs = LuaMemberDemandHubs()
+
     private var currentRevision: Long = 0L
 
     private val rootResolutions = LongArray(RootAccessor.entries.size)
@@ -428,15 +431,18 @@ class LuaTypeGraph {
         // did not run — and flagging it produced 959 false positives on one corpus
         // member. With exactly one, the variable can hold nothing else, and a Nil is
         // certain (`local nothing = nil; count(nothing)` stays an error).
-        val certain = currentUpSet.count { it is ValueNode && !it.declaredOrigin } == 1
+        //
         // BUG-441 (RC-2): this loop checks each reaching definition against the demand
         // ON ITS OWN — the variable's merged type is never the thing being checked, which
         // is why every "make the union gradual" design aimed at the type algebra failed.
         // Unknown-ness is therefore a property of the upSet as a whole and can only be
         // computed here: the string write in `local d = wx.thing; if c then d = "s" end`
         // is itself perfectly known, and what makes it unreportable is a SIBLING.
-        val unknownProvenance =
-            currentUpSet.any { it is ValueNode && isUnknown(it.write) }
+        val facts =
+            VisitFacts(
+                certain = currentUpSet.count { it is ValueNode && !it.declaredOrigin } == 1,
+                unknownProvenance = currentUpSet.any { it is ValueNode && isUnknown(it.write) },
+            )
         val writesInVisit = arrayOfNulls<LuaGraphType>(currentUpSet.size)
         for (useNode in currentDownSet) {
             if (useNode !is UseNode) continue
@@ -449,16 +455,60 @@ class LuaTypeGraph {
                 if (LuaTypePairWriteDifferential.enabled) {
                     LuaTypePairWriteDifferential.compare(valueWrite, valueNode.write)
                 }
-                checkCompatibility(
-                    valueWrite,
-                    useNode.read,
-                    valueNode.element,
-                    useNode.element,
-                    certain = certain,
-                    declaredDemand = useNode.declaredDemand,
-                    unknownProvenance = unknownProvenance,
-                )
+                checkAdmittedPair(AdmittedPair(valueNode, useNode, valueWrite), facts)
             }
+        }
+    }
+
+    /** The per-visit flags [checkNodePairs] computes over the visited node's up-set. */
+    private class VisitFacts(
+        val certain: Boolean,
+        val unknownProvenance: Boolean,
+    )
+
+    /** One `(reaching definition, use)` pair [checkNodePairs] admitted, with its hoisted `write`. */
+    private class AdmittedPair(
+        val valueNode: ValueNode,
+        val useNode: UseNode,
+        val valueWrite: LuaGraphType,
+    )
+
+    private fun checkAdmittedPair(
+        pair: AdmittedPair,
+        facts: VisitFacts,
+    ) {
+        val firstNewError = _errors.size
+        checkCompatibility(
+            pair.valueWrite,
+            pair.useNode.read,
+            pair.valueNode.element,
+            pair.useNode.element,
+            certain = facts.certain,
+            declaredDemand = pair.useNode.declaredDemand,
+            unknownProvenance = facts.unknownProvenance,
+        )
+        replicateHubAnchoredErrors(pair, firstNewError)
+    }
+
+    /**
+     * TYPE-12: re-reports at every later site of a hub the errors this pair anchored on the hub's own
+     * element because the hub was the pair's VALUE. In the clique every site member was such a value
+     * against the file-wide synthetic use, and [reportIncompatible] fell back to each site's own
+     * anchor; under the hub only the hub is, so without this the later sites lose those entries.
+     * An error anchored on the use is never replicated — a use belongs to one site. [addError]'s
+     * de-duplication makes this idempotent across fixed-point iterations.
+     */
+    private fun replicateHubAnchoredErrors(
+        pair: AdmittedPair,
+        firstNewError: Int,
+    ) {
+        val replicas = memberDemandHubs.replicaAnchorsFor(pair.valueNode)
+        if (replicas.isEmpty()) return
+        val hubElement = pair.valueNode.element
+        if (pair.useNode.element === hubElement) return
+        val anchoredAtHub = _errors.subList(firstNewError, _errors.size).filter { it.element === hubElement }
+        for (error in anchoredAtHub) {
+            for (site in replicas) addError(error.copy(element = site))
         }
     }
 
@@ -855,8 +905,10 @@ class LuaTypeGraph {
             if (valueNode != null) {
                 // Bi-directional flow for mutable table fields (invariance)
                 // This prevents unsound covariant widening of mutable properties.
-                addEdge(valueNode, useNode)
-                addEdge(useNode, valueNode)
+                // TYPE-12: a later colon-call site is wired through its hub, never directly.
+                val target = memberDemandHubs.wiringTargetFor(useNode)
+                addEdge(valueNode, target)
+                addEdge(target, valueNode)
             } else {
                 val readType = useNode.read
                 val writeType = useNode.write
@@ -938,6 +990,13 @@ class LuaTypeGraph {
     /** @return current per-run memo size; for tests asserting cache behaviour. */
     @org.jetbrains.annotations.TestOnly
     internal fun compatMemoSize(): Int = compatMemo.size
+
+    /**
+     * @return the sum of every variable node's up- and down-set sizes — the transitive closure TYPE-12
+     * keeps linear on one receiver. Deterministic given a fixture, so a growth gate can assert it.
+     */
+    @org.jetbrains.annotations.TestOnly
+    internal fun closureSize(): Int = edgeCount()
 
     /**
      * @return how many times [accessor] was re-derived from scratch at a walk root over this

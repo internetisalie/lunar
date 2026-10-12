@@ -1,0 +1,177 @@
+# lunar type golden v1
+# source-sha256 44d2748c4b6d5e5f36fafc931402cdc9ed255f789dd1d5d5db09f99561c56e34
+[errors]
+ERROR|number is not assignable to string|(100,101)|LuaNameRefImpl
+ERROR|number is not assignable to string|(75,118)|LuaFuncDeclImpl
+ERROR|string | number is not assignable to string|(75,118)|LuaFuncDeclImpl
+ERROR|{ ... } | Builder is not assignable to Builder|(75,118)|LuaFuncDeclImpl
+HYPOTHESIS|Builder | { ... } | Builder is not assignable to Builder|(75,118)|LuaFuncDeclImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(138,146)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(154,162)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(167,175)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(183,191)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(196,204)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(212,220)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(225,233)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(241,249)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(254,262)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(270,278)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(283,291)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(300,308)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(314,322)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(331,339)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(345,353)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(362,370)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(376,384)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(393,401)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(407,415)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(424,432)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(91,99)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(153,165)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(154,162)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(182,194)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(183,191)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(211,223)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(212,220)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(240,252)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(241,249)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(269,281)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(270,278)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(299,312)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(300,308)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(330,343)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(331,339)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(361,374)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(362,370)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(392,405)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(393,401)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(423,436)|LuaFuncCallImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(424,432)|LuaMethodExprImpl
+HYPOTHESIS|number is not assignable to string|(163,164)|LuaTerminalExprImpl
+HYPOTHESIS|number is not assignable to string|(192,193)|LuaTerminalExprImpl
+HYPOTHESIS|number is not assignable to string|(221,222)|LuaTerminalExprImpl
+HYPOTHESIS|number is not assignable to string|(250,251)|LuaTerminalExprImpl
+HYPOTHESIS|number is not assignable to string|(279,280)|LuaTerminalExprImpl
+HYPOTHESIS|number is not assignable to string|(309,311)|LuaTerminalExprImpl
+HYPOTHESIS|number is not assignable to string|(340,342)|LuaTerminalExprImpl
+HYPOTHESIS|number is not assignable to string|(371,373)|LuaTerminalExprImpl
+HYPOTHESIS|number is not assignable to string|(402,404)|LuaTerminalExprImpl
+HYPOTHESIS|number is not assignable to string|(433,435)|LuaTerminalExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to Builder|(24,31)|LuaNameRefImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to Builder|(92,99)|LuaNameRefImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(138,146)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(154,162)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(167,175)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(183,191)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(196,204)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(212,220)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(225,233)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(241,249)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(254,262)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(270,278)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(283,291)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(300,308)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(314,322)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(331,339)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(345,353)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(362,370)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(376,384)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(393,401)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(407,415)|LuaMethodExprImpl
+HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(424,432)|LuaMethodExprImpl
+[elements]
+(100,101)|LuaNameRefImpl|string | number|77b495b7ea04d933
+(103,114)|LuaFinalStatementImpl|{ ... } | Builder|9f0d0c0daf11366e
+(110,114)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(110,114)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(119,136)|LuaLocalVarDeclImpl|{ ... } | Builder|9f0d0c0daf11366e
+(125,126)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(129,136)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(129,136)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(137,138)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(137,138)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(137,152)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(147,151)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(153,154)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(153,154)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(153,165)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(163,164)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(166,167)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(166,167)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(166,181)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(176,180)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(18,36)|LuaLocalVarDeclImpl|{ ... } | Builder|9f0d0c0daf11366e
+(182,183)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(182,183)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(182,194)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(192,193)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(195,196)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(195,196)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(195,210)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(205,209)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(211,212)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(211,212)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(211,223)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(221,222)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(224,225)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(224,225)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(224,239)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(234,238)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(24,31)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(240,241)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(240,241)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(240,252)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(250,251)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(253,254)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(253,254)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(253,268)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(263,267)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(269,270)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(269,270)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(269,281)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(279,280)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(282,283)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(282,283)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(282,298)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(292,297)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(299,300)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(299,300)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(299,312)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(309,311)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(313,314)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(313,314)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(313,329)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(323,328)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(330,331)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(330,331)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(330,343)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(34,36)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(340,342)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(344,345)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(344,345)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(344,360)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(354,359)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(361,362)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(361,362)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(361,374)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(371,373)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(375,376)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(375,376)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(375,391)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(385,390)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(392,393)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(392,393)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(392,405)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(402,404)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(406,407)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(406,407)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(406,422)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(416,421)|LuaTerminalExprImpl|string|e87ba97e700edac9
+(423,424)|LuaNameRefImpl|{ ... } | Builder|9f0d0c0daf11366e
+(423,424)|LuaVarImpl|{ ... } | Builder|9f0d0c0daf11366e
+(423,436)|LuaFuncCallImpl|Builder | Builder | { ... }|feba76931111a845
+(433,435)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(75,118)|LuaFuncDeclImpl|fun(n)|29dd00969915bf95
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

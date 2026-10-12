@@ -1,0 +1,175 @@
+# lunar type golden v1
+# source-sha256 c75bbd6ddc80bbdbe00d5e42f6d15f813a76e5dac8a8e6f0c84e07db5e613dd3
+[errors]
+ERROR|Missing required field 'name'|(44,46)|LuaTableConstructorImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(108,113)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(122,127)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(136,141)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(150,155)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(164,169)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(178,183)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(192,197)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(206,211)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(220,225)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(234,239)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(248,253)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(262,267)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(276,281)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(290,295)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(304,309)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(318,323)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(332,337)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(66,71)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(80,85)|LuaIndexExprImpl
+HYPOTHESIS|{ ... } | D is not assignable to { ... }|(94,99)|LuaIndexExprImpl
+[elements]
+(101,106)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(101,106)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(101,114)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(107,108)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(107,113)|LuaVarImpl|string|e87ba97e700edac9
+(108,113)|LuaIndexExprImpl|string|e87ba97e700edac9
+(108,113)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(115,120)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(115,120)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(115,128)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(121,122)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(121,127)|LuaVarImpl|string|e87ba97e700edac9
+(122,127)|LuaIndexExprImpl|string|e87ba97e700edac9
+(122,127)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(129,134)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(129,134)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(129,142)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(135,136)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(135,141)|LuaVarImpl|string|e87ba97e700edac9
+(136,141)|LuaIndexExprImpl|string|e87ba97e700edac9
+(136,141)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(143,148)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(143,148)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(143,156)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(149,150)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(149,155)|LuaVarImpl|string|e87ba97e700edac9
+(150,155)|LuaIndexExprImpl|string|e87ba97e700edac9
+(150,155)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(157,162)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(157,162)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(157,170)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(163,164)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(163,169)|LuaVarImpl|string|e87ba97e700edac9
+(164,169)|LuaIndexExprImpl|string|e87ba97e700edac9
+(164,169)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(171,176)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(171,176)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(171,184)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(177,178)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(177,183)|LuaVarImpl|string|e87ba97e700edac9
+(178,183)|LuaIndexExprImpl|string|e87ba97e700edac9
+(178,183)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(185,190)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(185,190)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(185,198)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(191,192)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(191,197)|LuaVarImpl|string|e87ba97e700edac9
+(192,197)|LuaIndexExprImpl|string|e87ba97e700edac9
+(192,197)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(199,204)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(199,204)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(199,212)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(205,206)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(205,211)|LuaVarImpl|string|e87ba97e700edac9
+(206,211)|LuaIndexExprImpl|string|e87ba97e700edac9
+(206,211)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(213,218)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(213,218)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(213,226)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(219,220)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(219,225)|LuaVarImpl|string|e87ba97e700edac9
+(220,225)|LuaIndexExprImpl|string|e87ba97e700edac9
+(220,225)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(227,232)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(227,232)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(227,240)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(233,234)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(233,239)|LuaVarImpl|string|e87ba97e700edac9
+(234,239)|LuaIndexExprImpl|string|e87ba97e700edac9
+(234,239)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(241,246)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(241,246)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(241,254)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(247,248)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(247,253)|LuaVarImpl|string|e87ba97e700edac9
+(248,253)|LuaIndexExprImpl|string|e87ba97e700edac9
+(248,253)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(255,260)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(255,260)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(255,268)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(261,262)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(261,267)|LuaVarImpl|string|e87ba97e700edac9
+(262,267)|LuaIndexExprImpl|string|e87ba97e700edac9
+(262,267)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(269,274)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(269,274)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(269,282)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(275,276)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(275,281)|LuaVarImpl|string|e87ba97e700edac9
+(276,281)|LuaIndexExprImpl|string|e87ba97e700edac9
+(276,281)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(283,288)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(283,288)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(283,296)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(289,290)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(289,295)|LuaVarImpl|string|e87ba97e700edac9
+(290,295)|LuaIndexExprImpl|string|e87ba97e700edac9
+(290,295)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(297,302)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(297,302)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(297,310)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(303,304)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(303,309)|LuaVarImpl|string|e87ba97e700edac9
+(304,309)|LuaIndexExprImpl|string|e87ba97e700edac9
+(304,309)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(311,316)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(311,316)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(311,324)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(317,318)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(317,323)|LuaVarImpl|string|e87ba97e700edac9
+(318,323)|LuaIndexExprImpl|string|e87ba97e700edac9
+(318,323)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(325,330)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(325,330)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(325,338)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(331,332)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(331,337)|LuaVarImpl|string|e87ba97e700edac9
+(332,337)|LuaIndexExprImpl|string|e87ba97e700edac9
+(332,337)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(34,46)|LuaLocalVarDeclImpl|{ ... } | D|3b66d5414fee6ea2
+(40,41)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(44,46)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(47,58)|LuaLocalVarDeclImpl|{ ... } | D|3b66d5414fee6ea2
+(53,54)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(57,58)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(57,58)|LuaVarImpl|{ ... } | D|3b66d5414fee6ea2
+(59,64)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(59,64)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(59,72)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(65,66)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(65,71)|LuaVarImpl|string|e87ba97e700edac9
+(66,71)|LuaIndexExprImpl|string|e87ba97e700edac9
+(66,71)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(73,78)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(73,78)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(73,86)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(79,80)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(79,85)|LuaVarImpl|string|e87ba97e700edac9
+(80,85)|LuaIndexExprImpl|string|e87ba97e700edac9
+(80,85)|LuaVarSuffixImpl|string|e87ba97e700edac9
+(87,100)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(87,92)|LuaNameRefImpl|fun(...)|ff650a928f77e18e
+(87,92)|LuaVarImpl|fun(...)|ff650a928f77e18e
+(93,94)|LuaNameRefImpl|{ ... } | D|3b66d5414fee6ea2
+(93,99)|LuaVarImpl|string|e87ba97e700edac9
+(94,99)|LuaIndexExprImpl|string|e87ba97e700edac9
+(94,99)|LuaVarSuffixImpl|string|e87ba97e700edac9
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1

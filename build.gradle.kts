@@ -303,6 +303,9 @@ tasks {
                 // push, so it is excluded here instead and the decision is recorded in the feature's
                 // risks-and-gaps (R9) rather than made silently.
                 excludeTestsMatching("*ParseOracleTest")
+                // TYPE-12: the member-file goldens read real files from the pinned corpus under the
+                // same out-of-repo test/ tree, so they run on the builder and not in CI.
+                excludeTestsMatching("*LuaTypeGoldenMemberFilesTest")
                 isFailOnNoMatchingTests = false
             }
         }
@@ -333,6 +336,11 @@ tasks {
         // moves (corpus re-pinned, or the plugin got better).
         if (project.hasProperty("recordCorpusBaseline")) {
             systemProperty("lunar.corpus.record", "true")
+        }
+        // TYPE-12: record the type goldens from the current engine into build/type-golden/recorded/
+        // instead of gating on them; the recording is copied back into src/test/resources by hand.
+        if (project.hasProperty("recordTypeGolden")) {
+            systemProperty("lunar.typegolden.record", "true")
         }
     }
 

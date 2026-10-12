@@ -36,20 +36,20 @@ every test invocation.
 - **Goal**: the golden set of requirements "The golden set", recorded from the implementation base,
   in a commit that touches no engine code.
 - **Tasks** (in order):
-  - [ ] `LuaTypesSnapshot`: add `mappedElements()` and `declaredGlobalNames()` (design §4.4) — and
+  - [x] `LuaTypesSnapshot`: add `mappedElements()` and `declaredGlobalNames()` (design §4.4) — and
         nothing else in `src/main`.
-  - [ ] Create `TypeGoldenFixtures.kt`, `TypeGolden.kt`, `LuaTypeGoldenShapesTest.kt`,
+  - [x] Create `TypeGoldenFixtures.kt`, `TypeGolden.kt`, `LuaTypeGoldenShapesTest.kt`,
         `LuaTypeGoldenMemberFilesTest.kt` exactly as design §4.6, §5.5 and Appendix C.
-  - [ ] `build.gradle.kts`: the `recordTypeGolden` property and the `excludeExternalFixtureTests`
+  - [x] `build.gradle.kts`: the `recordTypeGolden` property and the `excludeExternalFixtureTests`
         line (design §4.6), with a reason comment on each.
-  - [ ] Record and pull back (design §5.5, "Recording and pulling back"). The recording lands in
+  - [x] Record and pull back (design §5.5, "Recording and pulling back"). The recording lands in
         the builder's `build/type-golden/recorded/`, never under `src/`. Apply design §5.5's
         acceptance checks 1–3 before going on; check 4 is the next task.
-  - [ ] Verify without the switch:
+  - [x] Verify without the switch:
         `tooling/gce-builder/gce-builder.sh run "test --rerun --tests '*LuaTypeGolden*'"` → green:
         `everyShapeMatchesItsGolden`, `noShapeDeclaresAStubTypeName` and
         `everyMemberFileMatchesItsGolden` all pass.
-  - [ ] Mutation-prove case 11 (skill `mutation-proof`, restoring per skill `temporary-edits`), one
+  - [x] Mutation-prove case 11 (skill `mutation-proof`, restoring per skill `temporary-edits`), one
         mutation at a time, running the same command for each:
         (1) add the excluded `fileUnion` entry (design Appendix C) to `NAMED_SHAPES` → observe
             `noShapeDeclaresAStubTypeName` red with `shapes/fileUnion.golden: File`; restore.
@@ -58,10 +58,10 @@ every test invocation.
             `no stub type names found under src/main/resources/runtime`; restore. If it stays green,
             stop: the non-empty assertion is vacuous, and design §5.6 returns to planning.
         Record both failure messages in the Phase 0 commit message.
-  - [ ] Verify inside the full ordinary suite:
+  - [x] Verify inside the full ordinary suite:
         `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache"` → both golden tests
         green (the suite's other results as on the base).
-  - [ ] Commit the test sources above, the build-script change, the snapshot accessors and every
+  - [x] Commit the test sources above, the build-script change, the snapshot accessors and every
         `.golden` file — one commit, before any Phase 1 edit.
 - **Exit criteria**: the commit exists; `git diff <base>..HEAD -- src/main` shows only the snapshot
   accessors of the first task; both verification runs green.
@@ -71,24 +71,24 @@ every test invocation.
 - **Goal**: TYPE-12-01 … TYPE-12-04, with every requirements case naming those requirements green
   and each named mutation observed red. No `.golden` file is modified in this phase.
 - **Tasks** (in order; each leaves the tree compiling):
-  - [ ] Create `net.internetisalie.lunar.lang.psi.types.LuaMemberDemandHubs` exactly as design §4.1
+  - [x] Create `net.internetisalie.lunar.lang.psi.types.LuaMemberDemandHubs` exactly as design §4.1
         (the class body there is complete).
-  - [ ] `LuaTypeGraph`: add `internal val memberDemandHubs = LuaMemberDemandHubs()` and the
+  - [x] `LuaTypeGraph`: add `internal val memberDemandHubs = LuaMemberDemandHubs()` and the
         `@TestOnly internal fun closureSize(): Int = edgeCount()` meter (design §4.3).
-  - [ ] `LuaTypesSnapshot`: add the `@TestOnly internal fun closureSize()` pass-through (design §4.4).
-  - [ ] `LuaTypeGraph.checkTableCompatibility`: route both `addEdge` calls through
+  - [x] `LuaTypesSnapshot`: add the `@TestOnly internal fun closureSize()` pass-through (design §4.4).
+  - [x] `LuaTypeGraph.checkTableCompatibility`: route both `addEdge` calls through
         `memberDemandHubs.wiringTargetFor(useNode)` (design §5.2).
-  - [ ] `LuaTypeGraph.checkNodePairs`: add `VisitFacts` and `AdmittedPair`, replace the
+  - [x] `LuaTypeGraph.checkNodePairs`: add `VisitFacts` and `AdmittedPair`, replace the
         `checkCompatibility(...)` call with `checkAdmittedPair(AdmittedPair(valueNode, useNode,
         valueWrite), facts)`, and add `checkAdmittedPair` + `replicateHubAnchoredErrors`
         (design §4.3, §5.3). Keep the `LuaTypePairWriteDifferential` block where it is, before the
         new call.
-  - [ ] `LuaTypesVisitor`: add `MethodDemandKey`, `methodDemandHubs` and `methodSiteMember`
+  - [x] `LuaTypesVisitor`: add `MethodDemandKey`, `methodDemandHubs` and `methodSiteMember`
         (design §4.2, §5.1 — follow the step order exactly), and replace the method branch at
         `:924-931` with the single `calleeNode = methodSiteMember(...)` line.
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/lang/types/LuaMemberDemandHubTest.kt`
-        (`BaseDocumentTest`, `EdtTestUtil.runInEdtAndWait<RuntimeException>` around each body) with
-        one `@Test` per requirements case that asserts one fixture's errors, types or closure
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/lang/types/LuaMemberDemandHubTest.kt`
+        (`BaseDocumentTest`, Kotlin `com.intellij.testFramework.runInEdtAndWait { }` around each
+        body — not the deprecated `EdtTestUtil` form) with one `@Test` per requirements case that asserts one fixture's errors, types or closure
         (cases 1–7). Each method's name starts with `case` and the two-digit case number
         (`case01ClosureGrowsLinearly`), so a failure names its case.
         Fixture text comes from `TypeGoldenFixtures` (`annotated(n)`, `NAMED_SHAPES`). Cast
@@ -98,7 +98,7 @@ every test invocation.
         `"${it.severity}|${it.message}|(${it.element.textRange.startOffset},${it.element.textRange.endOffset})"`
         and compare **sorted lists**. Method names must not contain `Corpus` (`build.gradle.kts`
         silently skips those without `-PwithCorpus`).
-  - [ ] Mutation-prove (skill `mutation-proof`), one at a time, snapshotting and restoring per skill
+  - [x] Mutation-prove (skill `mutation-proof`), one at a time, snapshotting and restoring per skill
         `temporary-edits`. For each, run
         `tooling/gce-builder/gce-builder.sh run "test --rerun --tests '*LuaMemberDemandHubTest*' --tests '*LuaTypeGolden*' --tests '*LuaAnnotatedClassDiagnosticsTest*'"`
         and record which test methods failed and, for the golden tests, which goldens their failure
@@ -146,17 +146,17 @@ every test invocation.
 
 - **Goal**: TYPE-12-05.
 - **Tasks**:
-  - [ ] Record `sha256sum src/test/resources/corpus/*.baseline` before the run.
-  - [ ] `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"` → 0
+  - [x] Record `sha256sum src/test/resources/corpus/*.baseline` before the run.
+  - [x] `tooling/gce-builder/gce-builder.sh run "test -PwithCorpus --rerun --no-build-cache"` → 0
         failures; confirm `LuaCorpusSweepTest`, `LuaTortureCorpusTest`, `LuaInspectionParityTest` and
         `LuaAnnotatedFixtureSweepTest` result XMLs exist with this run's timestamps; no `IMPROVED` or
         `REGRESSED` line in the log; the baselines' hashes unchanged.
-  - [ ] `tooling/gce-builder/gce-builder.sh run ktlintCheck` alone (never paired with
+  - [x] `tooling/gce-builder/gce-builder.sh run ktlintCheck` alone (never paired with
         `ktlintFormat`, BUG-445). If it fails, format on the VM and pull the result back per
         `.agents/AGENTS.md`, then re-check.
-  - [ ] `CHANGELOG.md`: one user-visible line (skill `changelog`) — analysis of a file with many
+  - [x] `CHANGELOG.md`: one user-visible line (skill `changelog`) — analysis of a file with many
         method calls on one annotated receiver is no longer quadratic.
-  - [ ] Front-matter: `status: done` on `requirements.md`; delete the TYPE-12 row from
+  - [x] Front-matter: `status: done` on `requirements.md`; delete the TYPE-12 row from
         `docs/roadmap.md` when closing.
 - **Exit criteria**: all of the above observed in logs, not inferred.
 
@@ -174,8 +174,8 @@ every test invocation.
 
 ## Verification Tasks
 
-- [ ] `LuaMemberDemandHubTest` — the requirements cases on single fixtures.
-- [ ] `LuaTypeGoldenShapesTest`, `LuaTypeGoldenMemberFilesTest` — the golden cases.
+- [x] `LuaMemberDemandHubTest` — the requirements cases on single fixtures.
+- [x] `LuaTypeGoldenShapesTest`, `LuaTypeGoldenMemberFilesTest` — the golden cases.
 - [ ] Existing BUG-473 gates, unmodified — case 8.
 - [ ] Manual: [human-verification-checklists.md](human-verification-checklists.md).
 
@@ -183,6 +183,6 @@ every test invocation.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: Record today's engine | todo | Must |
-| Phase 1: The hub and the replication rule | todo | Must |
-| Phase 2: The corpus gates | todo | Must |
+| Phase 0: Record today's engine | done | Must |
+| Phase 1: The hub and the replication rule | done | Must |
+| Phase 2: The corpus gates | done | Must |

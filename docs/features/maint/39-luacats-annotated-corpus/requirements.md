@@ -3,7 +3,7 @@ id: "MAINT-39"
 title: "39: A LuaCATS-Annotated Corpus"
 type: "feature"
 parent_id: "MAINT"
-status: "blocked"
+status: "todo"
 priority: "high"
 folders:
   - "[[features/maint/requirements|maint]]"

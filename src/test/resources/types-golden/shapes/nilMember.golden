@@ -1,0 +1,27 @@
+# lunar type golden v1
+# source-sha256 c596e7d3bcd10734dd0eda416afa341384cb89162755bad44a5f205eb322418c
+[errors]
+[elements]
+(0,12)|LuaLocalVarDeclImpl|{ ... }|af43c613bf7c2a86
+(10,12)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
+(13,14)|LuaNameRefImpl|{ ... }|af43c613bf7c2a86
+(13,16)|LuaVarImpl|nil|c29dbb21ea416764
+(14,16)|LuaIndexExprImpl|nil|c29dbb21ea416764
+(14,16)|LuaVarSuffixImpl|nil|c29dbb21ea416764
+(19,22)|LuaTerminalExprImpl|nil|c29dbb21ea416764
+(23,24)|LuaNameRefImpl|{ ... }|af43c613bf7c2a86
+(23,24)|LuaVarImpl|{ ... }|af43c613bf7c2a86
+(23,29)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(27,28)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(30,31)|LuaNameRefImpl|{ ... }|af43c613bf7c2a86
+(30,31)|LuaVarImpl|{ ... }|af43c613bf7c2a86
+(30,36)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(34,35)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(37,38)|LuaNameRefImpl|{ ... }|af43c613bf7c2a86
+(37,38)|LuaVarImpl|{ ... }|af43c613bf7c2a86
+(37,43)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(41,42)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
+(6,7)|LuaNameRefImpl|{ ... }|af43c613bf7c2a86
+[globals]
+[fileReturn]
+any|d6a7cd2a7371b1a1
