@@ -111,10 +111,7 @@ class LuaDebuggerController(
     @Throws(IOException::class)
     suspend fun connect() {
         log.info("Starting Debug Controller")
-        val server =
-            withContext(Dispatchers.IO) {
-                ServerSocket(serverPort).apply { soTimeout = CONNECT_TIMEOUT_MS }
-            }
+        val server = withContext(Dispatchers.IO) { openDebuggerListener(serverPort) }
         serverSocket = server
 
         val clientSocket = withContext(Dispatchers.IO) { server.accept() }
@@ -347,6 +344,17 @@ class LuaDebuggerController(
     companion object {
         const val CONNECT_TIMEOUT_MS: Int = 5_000
 
+        /** One debuggee at a time — [connect] accepts exactly one client. */
+        const val LISTEN_BACKLOG: Int = 1
+
         val log = logger<LuaDebuggerController>()
+
+        /**
+         * Opens the debuggee listener on the loopback interface only (BUG-456): the debuggee is always
+         * launched locally, and the protocol offers `EXEC` to whoever connects.
+         */
+        internal fun openDebuggerListener(port: Int): ServerSocket =
+            ServerSocket(port, LISTEN_BACKLOG, InetAddress.getLoopbackAddress())
+                .apply { soTimeout = CONNECT_TIMEOUT_MS }
     }
 }

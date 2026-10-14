@@ -17,7 +17,7 @@ section it realizes; no task requires a design decision.
 | Precondition | State | Blocks |
 | :-- | :-- | :-- |
 | [[DEBUG-06]] Phases 1–2 merged (`LuaTargetSpec`, `LuaTargetSeverity`, `LuaTargetProblem`, `LuaTargetCheck`, `LuaTargetValidator`, `LuaTargetChecks`, `LuaTargetMessages` — DEBUG-06 design §2.1–§2.5) | `planned`, not implemented | **Phase 3 only.** Phases 1, 2, 4 and 5 compile against nothing DEBUG-06 introduces. |
-| [[BUG-456]] not separately fixed | `todo` | Nothing. **Phase 2** is its fix — `openListener(target)` binds `target.bindAddress` (§3.1) and deletes the wildcard bind at `run/LuaDebuggerController.kt:114-117`. If BUG-456 lands first as its own one-argument change, `openListener` preserves the fix and the plan is unchanged. |
+| [[BUG-456]] landed separately | `done` | Nothing. The listener already binds loopback through the seam `LuaDebuggerController.openDebuggerListener(port)` (companion, `internal`), which uses `LISTEN_BACKLOG = 1` and `CONNECT_TIMEOUT_MS`; `TestLuaDebuggerListener` pins it. **Phase 2** replaces that seam with `openListener(target)` binding `target.bindAddress` (§3.1), reuses the existing `LISTEN_BACKLOG` constant rather than adding it, and moves the loopback assertion to TC-05-12a. The plan is otherwise unchanged. |
 | [[BUG-450]] | `todo` | Nothing, but it edits the same lines as task 1.4 (`run/LuaRemoteStack.kt:41-47`). Whichever lands second keeps the resolution lazy — see risks-and-gaps Risk 1.3. |
 
 ## Phases

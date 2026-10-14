@@ -76,7 +76,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-443 | Quick Doc reported empty for `ngx.say` live, never reproduced | todo | C | — | — | — |
 | BUG-450 | The debugger's `STACK` payload is unbounded at both ends, and DEBUG-07 claimed otherwise | todo | C | — | — | ✓ |
 | DEBUG-06 | Debug Target Configuration — the severity ladder that lets a launch be refused | planned | S | — | BUG-455 *(Phase 2 retires it)*; BUG-461's `testCheckConfigurationThrowsWithoutRuntime` entry; DEBUG-05 *(validation model it extends)* | Serial: debug target |
-| DEBUG-05 | Remote Debugging — attach configuration, host field, bidirectional path mapping | planned | S | DEBUG-06 *(validation model)* | BUG-456 *(`-12`, wildcard bind)*; `-09` is a live defect in **local** debugging today | Serial: debug target |
+| DEBUG-05 | Remote Debugging — attach configuration, host field, bidirectional path mapping | planned | S | DEBUG-06 *(validation model)* | `-09` is a live defect in **local** debugging today | Serial: debug target |
 | DEBUG-07 | Lazy Remote Stack Evaluation — confirmed real, low value | todo | C | — | **measured 2026-08-22** (BUG-450 §5b): parse beats serialization at every size, but there is a ~30 ms PSI floor a payload bound cannot cross, and it is off-EDT — realistic case ~125 ms end to end | ✓ |
 | BUG-451 | luacheck `--std` overrides the project's `.luacheckrc`, false warnings on every rockspec and spec file | todo | S | — | one flag disables two mechanisms; user cannot override it | ✓ |
 | BUG-452 | luacheck exit 2 is a lint result, not a crash — the whole report is discarded | todo | S | — | a test pins the defect as intended | ✓ |
@@ -86,7 +86,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-453 | The human formatter is parsed instead of luacheck's documented editor interface | todo | S | — | escapes in tooltips; a configured formatter yields a silent false-clean | ✓ |
 | BUG-454 | Toggling a breakpoint mid-run deadlocks the debug session | todo | S | — | unanswered SETB held under writeMutex | ✓ |
 | BUG-455 | No run configuration can block a launch — the non-fatal exception tier is thrown | todo | S | — | RuntimeConfigurationError appears zero times in src/ | ✓ |
-| BUG-456 | The debug listener binds all interfaces and offers EXEC | todo | S | — | one-argument fix; exposure rather than exploit chain | ✓ |
 | BUG-482 | A multi-line argument list is joined onto the call line instead of continuation-indented | todo | S | — | `testArgs` revived by BUG-461; also FORMAT-01-17's description is wrong | ✓ |
 | BUG-483 | A multi-line local declaration gets no continuation indent on its names | todo | S | — | `testLocalVarDecl` revived by BUG-461 | ✓ |
 | BUG-484 | A `::label::` in a nested block is flushed to column 0 | todo | S | — | FORMAT-01-22; `testLabel` pins it | ✓ |

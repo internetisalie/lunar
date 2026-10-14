@@ -3,7 +3,7 @@ id: "BUG-456"
 title: "The debug listener binds all interfaces and offers arbitrary Lua execution to whoever connects first"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -52,3 +52,22 @@ silently serving it.
 
 Assert the bound address is loopback. That is a cheap, non-flaky unit assertion on the socket, and
 it pins the property so a later refactor cannot silently widen it again.
+
+## 5. Resolution
+
+`connect()` now opens its listener through
+`LuaDebuggerController.openDebuggerListener(port)`, an `internal` companion function that returns
+`ServerSocket(port, LISTEN_BACKLOG, InetAddress.getLoopbackAddress())` with the existing
+`CONNECT_TIMEOUT_MS` socket timeout. `LISTEN_BACKLOG = 1` because `connect()` accepts exactly one
+debuggee; it is the same value [[DEBUG-05]] design §3.1 fixes. The function exists so a test can
+check the bind without blocking in `accept()`.
+
+`TestLuaDebuggerListener.testDebuggerListenerBindsLoopbackOnly` opens the listener on port 0 and
+asserts the bound address is loopback and not the wildcard. Changing the function back to
+`ServerSocket(port)` makes the test fail.
+
+**Not done here: rejecting or logging a connection from an unexpected origin.** With the listener
+bound to loopback, no other host can reach it, so the only peers left are local processes. The
+origin check (design §3.4, `rejectForeignPeer`) belongs to [[DEBUG-05]] Phase 2, which also
+replaces this function with `openListener(target)`, binds `target.bindAddress`, and reuses
+`LISTEN_BACKLOG`.

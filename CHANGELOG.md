@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The debug listener binds loopback only** (BUG-456): the port a debug session waits on is now
+  bound to `127.0.0.1` instead of every network interface, so another machine can no longer connect
+  to it and run Lua through the debugger's `EXEC` command.
+
 - **Many method calls on one annotated receiver no longer make analysis quadratic** (TYPE-12).
   Every `obj:method()` call on a `---@class` receiver used to add its own copy of the same member
   demand, and the type checker compared every copy with every other. Measured on a file with 160 such
