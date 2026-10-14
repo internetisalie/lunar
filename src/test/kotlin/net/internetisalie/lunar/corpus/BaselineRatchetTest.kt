@@ -593,6 +593,186 @@ class BaselineRatchetTest {
         )
     }
 
+    /** MAINT-37 TC 1 — blanks dropped, duplicates collapsed, absent key reads as no pins. */
+    @Test
+    fun manifestDefinitionLibrariesParseDistinctAndDefaultEmpty() {
+        val repoRoot =
+            manifestRoot(
+                """{"name":"a","url":"https://example.invalid/a.git","commit":"deadbeef","roots":["src"],""" +
+                    """"definitionLibraries":["busted","busted"," "]}""",
+                """{"name":"b","url":"https://example.invalid/b.git","commit":"cafebabe","roots":["src"]}""",
+            )
+        assertEquals(listOf("busted"), CorpusManifest.entry(repoRoot, "a").definitionLibraries)
+        assertEquals(emptyList<String>(), CorpusManifest.entry(repoRoot, "b").definitionLibraries)
+    }
+
+    /** MAINT-37 TC 2 — an id the catalog lacks fails before `withDependencies` can drop it. */
+    @Test
+    fun unknownDefinitionLibraryIdNamesTheCatalog() {
+        val failure = runCatching { CorpusDefinitionLibraries.resolve(pinnedEntry("nosuch")) }.exceptionOrNull()
+        assertTrue("Expected IllegalStateException, got: $failure", failure is IllegalStateException)
+        val message = failure?.message.orEmpty()
+        assertTrue("Expected the unknown id, got: $message", message.contains("nosuch"))
+        assertTrue("Expected the catalog file, got: $message", message.contains("lunar-definitions-catalog.json"))
+    }
+
+    /** MAINT-37 TC 3 — a pin brings its catalog `requires` closure. */
+    @Test
+    fun pinnedLibraryResolvesWithItsDependencies() {
+        assertEquals(
+            listOf("busted", "luassert"),
+            CorpusDefinitionLibraries.resolve(pinnedEntry("busted")).map { it.id },
+        )
+    }
+
+    /** MAINT-37 TC 14 — `library.` lines render sorted, right after `unresolvedRequires=`, and round-trip. */
+    @Test
+    fun libraryPinsRenderSortedAfterUnresolvedRequiresAndRoundTrip() {
+        val original =
+            metrics().copy(
+                libraries = linkedMapOf("luassert" to LUASSERT_VERSION, "busted" to BUSTED_VERSION),
+            )
+        val rendered = CorpusBaseline.render(original)
+        assertEquals(original, CorpusBaseline.parse(rendered))
+        val lines = rendered.lines()
+        val unresolved = lines.indexOfFirst { it.startsWith("unresolvedRequires=") }
+        assertEquals("library.busted=$BUSTED_VERSION", lines[unresolved + 1])
+        assertEquals("library.luassert=$LUASSERT_VERSION", lines[unresolved + 2])
+    }
+
+    /** MAINT-37 TC 15 — every baseline recorded before MAINT-37 stays valid for an unpinned member. */
+    @Test
+    fun baselineWithoutLibraryLinesParsesToNoPins() {
+        val text = CorpusBaseline.render(metrics())
+        assertTrue(
+            "fixture must carry no library line",
+            text.lines().none { it.startsWith(CorpusBaseline.LIBRARY_PREFIX) },
+        )
+        assertEquals(emptyMap<String, String>(), CorpusBaseline.parse(text).libraries)
+    }
+
+    /** MAINT-37 TC 16 — a moved or added pin is an identity failure, not a regression or improvement. */
+    @Test
+    fun changedLibraryPinsFailTheRatchet() {
+        val cases =
+            listOf(
+                mapOf("busted" to "A") to mapOf("busted" to "B"),
+                emptyMap<String, String>() to mapOf("busted" to "A"),
+            )
+        for ((recorded, observed) in cases) {
+            val baseline = temp.newFile()
+            baseline.writeText(CorpusBaseline.render(metrics().copy(libraries = recorded)))
+            val failure =
+                runCatching {
+                    CorpusGuards.assertRatchet(baseline, metrics().copy(libraries = observed))
+                }.exceptionOrNull()
+            assertTrue(
+                "baseline $recorded vs observed $observed: expected the pin message, got: ${failure?.message}",
+                failure?.message.orEmpty().contains("Definition-library pins changed"),
+            )
+        }
+    }
+
+    /** MAINT-37 TC 17 — no pins on either side is the unpinned member's normal, passing case. */
+    @Test
+    fun equalEmptyLibraryPinsPassTheRatchet() {
+        val baseline = temp.newFile("unpinned.baseline")
+        baseline.writeText(CorpusBaseline.render(metrics()))
+        CorpusGuards.assertRatchet(baseline, metrics().copy(libraries = emptyMap()))
+    }
+
+    /** MAINT-37 TC 18 — absent or blank is no attribution; the arm names are exact and case-sensitive. */
+    @Test
+    fun attributionModeParsesFromProperty() {
+        assertNull(CorpusAttributionMode.fromProperty(null))
+        assertNull(CorpusAttributionMode.fromProperty(""))
+        assertEquals(CorpusAttributionMode.BARE, CorpusAttributionMode.fromProperty("bare"))
+        assertEquals(CorpusAttributionMode.PINNED, CorpusAttributionMode.fromProperty("pinned"))
+        val failure = runCatching { CorpusAttributionMode.fromProperty("Pinned") }.exceptionOrNull()
+        assertTrue("Expected IllegalStateException, got: $failure", failure is IllegalStateException)
+    }
+
+    /** MAINT-37 TC 19 — the uncapped symbol map and the refresh lines reach the tally, never the baseline. */
+    @Test
+    fun symbolTallyAndRefreshLinesStayOutOfTheBaseline() {
+        val tallied = metrics().copy(allSymbolHits = mapOf("LuaUndeclaredVariable.describe" to 6))
+        val baseline = CorpusBaseline.render(tallied)
+        for (key in listOf("allsymbol.", "settingsBroadcasts", "rootsTicks", "physicalPsiChanges")) {
+            assertTrue("baseline must not carry $key, got:\n$baseline", !baseline.contains(key))
+        }
+        val tally = CorpusAttribution.renderTally(tallied, RefreshObservation(1, 2L, 3)).lines()
+        val expected =
+            listOf(
+                "settingsBroadcasts=1",
+                "rootsTicks=2",
+                "physicalPsiChanges=3",
+                "allsymbol.LuaUndeclaredVariable.describe=6",
+            )
+        val positions = expected.map { tally.indexOf(it) }
+        assertTrue("expected $expected in this order, got positions $positions in:\n$tally", positions.none { it < 0 })
+        assertEquals("expected $expected in this order in:\n$tally", positions.sorted(), positions)
+    }
+
+    /** MAINT-37 TC 48 — an attribution run never records a baseline; a record run is no attribution. */
+    @Test
+    fun attributionAndBaselineRecordAreMutuallyExclusive() {
+        for ((attribution, record) in listOf("bare" to "true", "pinned" to "true")) {
+            val failure = runCatching { CorpusAttributionMode.forRun(attribution, record) }.exceptionOrNull()
+            assertTrue(
+                "($attribution, $record): expected the mutual-exclusion failure, got: $failure",
+                failure is IllegalStateException && failure.message.orEmpty().contains("mutually exclusive"),
+            )
+        }
+        for (record in listOf(null, "false")) {
+            val mode = runCatching { CorpusAttributionMode.forRun("bare", record) }
+            assertEquals("(bare, $record)", Result.success(CorpusAttributionMode.BARE), mode)
+        }
+        val recordRun = runCatching { CorpusAttributionMode.forRun(null, "true") }
+        assertEquals("(null, true)", Result.success<CorpusAttributionMode?>(null), recordRun)
+    }
+
+    /** MAINT-37 TC 49 — a bare arm with a library, or with no symbol hits, fails before writing a tally. */
+    @Test
+    fun bareArmCheckRejectsLibrariesAndAnEmptySymbolTally() {
+        val hits = mapOf("LuaUndeclaredVariable.describe" to 6)
+        val lib = mapOf("busted" to "v")
+        val bare = CorpusAttributionMode.BARE
+        assertArmPasses(bare, metrics().copy(allSymbolHits = hits))
+        assertArmPasses(CorpusAttributionMode.PINNED, metrics().copy(libraries = lib))
+        assertArmFails(bare, metrics().copy(allSymbolHits = hits, libraries = lib), "the bare arm registered libraries")
+        assertArmFails(bare, metrics(), "no symbol hits")
+    }
+
+    private fun assertArmPasses(
+        mode: CorpusAttributionMode,
+        armMetrics: CorpusMetrics,
+    ) {
+        val failure = runCatching { CorpusAttribution.checkArm(mode, armMetrics) }.exceptionOrNull()
+        assertNull("$mode arm with $armMetrics: expected no failure", failure)
+    }
+
+    private fun assertArmFails(
+        mode: CorpusAttributionMode,
+        armMetrics: CorpusMetrics,
+        expected: String,
+    ) {
+        val failure = runCatching { CorpusAttribution.checkArm(mode, armMetrics) }.exceptionOrNull()
+        assertTrue(
+            "$mode arm with $armMetrics: expected IllegalStateException containing '$expected', got: $failure",
+            failure is IllegalStateException && failure.message.orEmpty().contains(expected),
+        )
+    }
+
+    private fun pinnedEntry(vararg ids: String) =
+        CorpusEntry(
+            name = "pinned",
+            commit = "deadbeef",
+            roots = listOf("src"),
+            luaLevel = LuaLanguageLevel.LUA51,
+            moduleRoot = null,
+            definitionLibraries = ids.toList(),
+        )
+
     /** A synthetic repo root holding only `tooling/corpus/corpus.json` — no checkout, no fixture. */
     private fun manifestRoot(vararg entries: String): File {
         val repoRoot = temp.newFolder()
@@ -600,5 +780,10 @@ class BaselineRatchetTest {
         manifest.parentFile.mkdirs()
         manifest.writeText(entries.joinToString(",\n", prefix = "{\"corpora\":[", postfix = "]}"))
         return repoRoot
+    }
+
+    private companion object {
+        const val BUSTED_VERSION = "5ed85d0e016a5eb5eca097aa52905eedf1b180f1"
+        const val LUASSERT_VERSION = "d3528bb679302cbfdedefabb37064515ab95f7b9"
     }
 }

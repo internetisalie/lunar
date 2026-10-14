@@ -60,6 +60,17 @@ data class CorpusMetrics(
     val unmergedTokens: Int = 0,
     /** MAINT-35-05 — `lex:<Class>` / `parse:<Class>` → count. **Gated per key.** */
     val crashes: Map<String, Int> = emptyMap(),
+    /**
+     * MAINT-37-04 — catalog id → version of every definition library registered for the sweep.
+     * **Identity**, like `commit`: rendered as `library.<id>=<version>` and compared whole by
+     * [CorpusGuards.assertRatchet], never ratcheted.
+     */
+    val libraries: Map<String, String> = emptyMap(),
+    /**
+     * MAINT-37-05 — the uncapped `<toolId>.<symbol>` → count map behind [symbolHits], for an
+     * attribution tally. **Not rendered** into the baseline.
+     */
+    val allSymbolHits: Map<String, Int> = emptyMap(),
 ) {
     companion object {
         /** Reserved key for highlights whose originating inspection cannot be identified. */
@@ -119,6 +130,9 @@ object CorpusBaseline {
     /** Key prefix for crash counts: `crash.lex:<Class>` / `crash.parse:<Class>` (MAINT-35-05). */
     const val CRASH_PREFIX = "crash."
 
+    /** Key prefix for definition-library pins: `library.<id>=<version>` (MAINT-37-04). */
+    const val LIBRARY_PREFIX = "library."
+
     /** Repeated diagnostic key for oracle disagreement sites (MAINT-35-02). */
     const val ORACLE_SITE_KEY = "oracleSite"
 
@@ -134,6 +148,7 @@ object CorpusBaseline {
             appendLine("parseErrors=${metrics.parseErrors}")
             appendLine("requires=${metrics.requires}")
             appendLine("unresolvedRequires=${metrics.unresolvedRequires}")
+            metrics.libraries.toSortedMap().forEach { (id, version) -> appendLine("$LIBRARY_PREFIX$id=$version") }
             // Sorted so a ratchet movement is a one-line diff, not a reordering.
             metrics.inspectionHits.toSortedMap().forEach { (id, count) ->
                 appendLine("$INSPECTION_PREFIX$id=$count")
@@ -160,21 +175,8 @@ object CorpusBaseline {
         }
 
     fun parse(text: String): CorpusMetrics {
-        val rows =
-            text
-                .lineSequence()
-                .filter { it.contains('=') && !it.startsWith("#") }
-                .map { it.substringBefore('=') to it.substringAfter('=') }
-                .toList()
-        val scalars =
-            rows
-                .filterNot { it.first == "parseErrorFile" }
-                .filterNot { it.first == ORACLE_SITE_KEY }
-                .filterNot { it.first.startsWith(CRASH_PREFIX) }
-                .filterNot { it.first.startsWith(INSPECTION_PREFIX) }
-                .filterNot { it.first.startsWith(SYMBOL_PREFIX) }
-                .filterNot { it.first.startsWith(BALLAST_PREFIX) }
-                .toMap()
+        val rows = rowsOf(text)
+        val scalars = scalarsOf(rows)
         return CorpusMetrics(
             commit = scalars.getValue("commit"),
             files = scalars.getValue("files").toInt(),
@@ -182,42 +184,70 @@ object CorpusBaseline {
             requires = scalars.getValue("requires").toInt(),
             unresolvedRequires = scalars.getValue("unresolvedRequires").toInt(),
             parseErrorFiles = rows.filter { it.first == "parseErrorFile" }.map { it.second },
-            inspectionHits =
-                rows
-                    .filter { it.first.startsWith(INSPECTION_PREFIX) }
-                    .associate { it.first.removePrefix(INSPECTION_PREFIX) to it.second.toInt() },
-            symbolHits =
-                rows
-                    .filter { it.first.startsWith(SYMBOL_PREFIX) }
-                    .associate { it.first.removePrefix(SYMBOL_PREFIX) to it.second.toInt() },
-            // Folded, not associated: a mixed group contributes a claimed *and* an unclaimed row
-            // under the same key, and `associate` would keep only the last.
-            ballast =
-                rows
-                    .filter { it.first.startsWith(BALLAST_PREFIX) }
-                    .fold(mutableMapOf<String, BallastGroup>()) { acc, (key, value) ->
-                        val (groupKey, claimed) = parseBallastKey(key)
-                        val running = acc[groupKey] ?: BallastGroup(0, 0)
-                        acc[groupKey] =
-                            if (claimed) {
-                                running.copy(claimed = running.claimed + value.toInt())
-                            } else {
-                                running.copy(unclaimed = running.unclaimed + value.toInt())
-                            }
-                        acc
-                    },
+            inspectionHits = prefixedCounts(rows, INSPECTION_PREFIX),
+            symbolHits = prefixedCounts(rows, SYMBOL_PREFIX),
+            ballast = parseBallast(rows),
             oracleDisagreements = scalars["oracleDisagreements"]?.toInt() ?: 0,
             oracleFalseAccepts = scalars["oracleFalseAccepts"]?.toInt() ?: 0,
             oracleSites = rows.filter { it.first == ORACLE_SITE_KEY }.map { it.second },
             oracleTimeouts = scalars["oracleTimeouts"]?.toInt() ?: 0,
             lexerRoundTripFailures = scalars["lexerRoundTripFailures"]?.toInt() ?: 0,
             unmergedTokens = scalars["unmergedTokens"]?.toInt() ?: 0,
-            crashes =
-                rows
-                    .filter { it.first.startsWith(CRASH_PREFIX) }
-                    .associate { it.first.removePrefix(CRASH_PREFIX) to it.second.toInt() },
+            crashes = prefixedCounts(rows, CRASH_PREFIX),
+            libraries = parseLibraries(rows),
         )
     }
+
+    private fun rowsOf(text: String): List<Pair<String, String>> =
+        text
+            .lineSequence()
+            .filter { it.contains('=') && !it.startsWith("#") }
+            .map { it.substringBefore('=') to it.substringAfter('=') }
+            .toList()
+
+    private fun scalarsOf(rows: List<Pair<String, String>>): Map<String, String> =
+        rows
+            .filterNot { it.first == "parseErrorFile" }
+            .filterNot { it.first == ORACLE_SITE_KEY }
+            .filterNot { it.first.startsWith(CRASH_PREFIX) }
+            .filterNot { it.first.startsWith(INSPECTION_PREFIX) }
+            .filterNot { it.first.startsWith(SYMBOL_PREFIX) }
+            .filterNot { it.first.startsWith(BALLAST_PREFIX) }
+            .filterNot { it.first.startsWith(LIBRARY_PREFIX) }
+            .toMap()
+
+    private fun prefixedCounts(
+        rows: List<Pair<String, String>>,
+        prefix: String,
+    ): Map<String, Int> =
+        rows
+            .filter { it.first.startsWith(prefix) }
+            .associate { it.first.removePrefix(prefix) to it.second.toInt() }
+
+    /**
+     * Folded, not associated: a mixed group contributes a claimed *and* an unclaimed row under the
+     * same key, and `associate` would keep only the last.
+     */
+    private fun parseBallast(rows: List<Pair<String, String>>): Map<String, BallastGroup> =
+        rows
+            .filter { it.first.startsWith(BALLAST_PREFIX) }
+            .fold(mutableMapOf<String, BallastGroup>()) { acc, (key, value) ->
+                val (groupKey, claimed) = parseBallastKey(key)
+                val running = acc[groupKey] ?: BallastGroup(0, 0)
+                acc[groupKey] =
+                    if (claimed) {
+                        running.copy(claimed = running.claimed + value.toInt())
+                    } else {
+                        running.copy(unclaimed = running.unclaimed + value.toInt())
+                    }
+                acc
+            }
+
+    private fun parseLibraries(rows: List<Pair<String, String>>): Map<String, String> =
+        rows
+            .filter { it.first.startsWith(LIBRARY_PREFIX) }
+            .associate { it.first.removePrefix(LIBRARY_PREFIX) to it.second }
+            .toSortedMap()
 
     /**
      * Positional, never `split('.')`: the group key may itself contain or begin with a dot, so

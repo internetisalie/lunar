@@ -98,8 +98,20 @@ object CorpusManifest {
                     ?.asString
                     ?.trim()
                     ?.takeIf { it.isNotEmpty() },
+            definitionLibraries = entry.distinctIds("definitionLibraries"),
         )
     }
+
+    /**
+     * Absent means none; blanks are dropped and duplicates collapse, first occurrence kept. Ids are
+     * not checked against the catalog here: [CorpusDefinitionLibraries.resolve] refuses unknown ones.
+     */
+    private fun JsonObject.distinctIds(key: String): List<String> =
+        getAsJsonArray(key)
+            ?.map { it.asString.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.distinct()
+            ?: emptyList()
 
     private fun JsonObject.required(key: String): String =
         get(key)?.asString?.takeIf { it.isNotBlank() }

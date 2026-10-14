@@ -11,11 +11,13 @@ import net.internetisalie.lunar.analysis.inspections.LuaSuspiciousConcatenationI
 import net.internetisalie.lunar.analysis.inspections.LuaUndeclaredVariableInspection
 import net.internetisalie.lunar.analysis.inspections.LuaUnreachableCodeInspection
 import net.internetisalie.lunar.analysis.inspections.LuaUnusedLocalInspection
+import net.internetisalie.lunar.definitions.LuaDefinitionLibraryFetcher
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import java.io.File
+import java.nio.file.Path
 
 /**
  * Sweeps pinned real-world Lua projects and ratchets the defect counts.
@@ -32,12 +34,14 @@ import java.io.File
  */
 @RunWith(JUnit4::class)
 class LuaCorpusSweepTest : BasePlatformTestCase() {
+    private var provisioned: List<Path> = emptyList()
     private var savedSourcePath: String = ""
 
     override fun getTestDataPath(): String = System.getProperty("user.dir")
 
     override fun setUp() {
         super.setUp()
+        CorpusDefinitionLibraries.requireSettingsSubscriber(project)
         // The corpus lives in the out-of-repo test/ tree, reached through a symlink whose CANONICAL
         // path the sweep uses (applyModuleRoot resolves it for sourcePath). On the builder that
         // canonical path happens to sit under ${'$'}HOME, which VfsRootAccess allows by default; in the
@@ -49,6 +53,13 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
             testRootDisposable,
             File(System.getProperty("user.dir"), CorpusManifest.CORPUS_DIR).canonicalPath,
         )
+        com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess.allowRootAccess(
+            testRootDisposable,
+            LuaDefinitionLibraryFetcher.defaultCacheRoot().toString(),
+        )
+        // The light project is shared across classes, so an earlier class's enable list must not
+        // reach this member's sweep.
+        LuaProjectSettings.getInstance(project).state.enabledDefinitionLibraries = mutableListOf()
         // The ten language-only inspections of design §3.3. Redis/luacheck/JSON-schema tools are
         // excluded: they would measure the environment (absent binary, absent Redis, absent schema
         // mapping) rather than the plugin.
@@ -67,10 +78,16 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
         savedSourcePath = CorpusSourcePath.snapshot(project)
     }
 
-    /** The member's `moduleRoot` must not reach the next member (MAINT-37-09, design §3.10). */
+    /**
+     * The member's `moduleRoot` must not reach the next member, and neither may its libraries
+     * (MAINT-37-09, design §3.10): restore first, so `release`'s broadcast sees the restored path;
+     * refresh the roots directly only when `release` broadcast nothing.
+     */
     override fun tearDown() {
         try {
-            if (CorpusSourcePath.restore(project, savedSourcePath)) CorpusDefinitionLibraries.refreshRoots(project)
+            val moduleRootRestored = CorpusSourcePath.restore(project, savedSourcePath)
+            CorpusDefinitionLibraries.release(project, provisioned)
+            if (moduleRootRestored && provisioned.isEmpty()) CorpusDefinitionLibraries.refreshRoots(project)
         } finally {
             super.tearDown()
         }
@@ -101,10 +118,16 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
         // the LUA54 default would make every inspection count a function of that default.
         LuaProjectSettings.getInstance(myFixture.project).state.languageLevel = entry.luaLevel
 
-        val startedAt = System.nanoTime()
-        val observed = CorpusSweep.run(myFixture, entry, repoRoot)
-        val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
-        report(name, observed, elapsedMs)
+        val attribution = attributionMode()
+        // Deleted up front, so an arm that fails before writing leaves no older run's tally behind.
+        if (attribution != null) CorpusAttribution.tallyFile(repoRoot, attribution, name).delete()
+        val refresh = refreshFor(attribution, entry, repoRoot)
+        val observed = measure(name, entry, repoRoot)
+        if (attribution != null) {
+            CorpusAttribution.checkArm(attribution, observed)
+            CorpusAttribution.write(CorpusAttribution.tallyFile(repoRoot, attribution, name), observed, refresh)
+            return
+        }
 
         val baselineFile = CorpusBaseline.file(repoRoot, name)
         if (System.getProperty("lunar.corpus.record") == "true") {
@@ -113,6 +136,51 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
             CorpusGuards.assertRatchet(baselineFile, observed)
         }
     }
+
+    /**
+     * Provisions the member's pins (or, in the bare arm, gives it the pinned arm's broadcast without
+     * a library) inside the refresh observation window, and returns what the window saw (MAINT-37
+     * design §2.7). Read before the sweep, so the sweep's own PSI events stay outside it.
+     */
+    private fun refreshFor(
+        attribution: CorpusAttributionMode?,
+        entry: CorpusEntry,
+        repoRoot: File,
+    ): RefreshObservation {
+        val bare = attribution == CorpusAttributionMode.BARE
+        val staged = if (bare) emptyList() else CorpusDefinitionLibraries.stage(project, entry, repoRoot)
+        provisioned = staged
+        val observed =
+            CorpusDefinitionLibraries.observeRefresh(project, testRootDisposable) {
+                if (bare) {
+                    CorpusDefinitionLibraries.refreshUnpinned(project)
+                    emptyList()
+                } else {
+                    CorpusDefinitionLibraries.enable(project, entry, repoRoot, staged)
+                }
+            }
+        provisioned = observed.cacheDirs
+        return observed.observation
+    }
+
+    private fun measure(
+        name: String,
+        entry: CorpusEntry,
+        repoRoot: File,
+    ): CorpusMetrics {
+        val startedAt = System.nanoTime()
+        val observed = CorpusSweep.run(myFixture, entry, repoRoot)
+        val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
+        report(name, observed, elapsedMs)
+        return observed
+    }
+
+    /** The mutual-exclusion rule with `-PrecordCorpusBaseline` lives in `forRun` (design §3.8). */
+    private fun attributionMode(): CorpusAttributionMode? =
+        CorpusAttributionMode.forRun(
+            System.getProperty(CorpusAttributionMode.PROPERTY),
+            System.getProperty("lunar.corpus.record"),
+        )
 
     /** Advisory output (MAINT-33-09). `elapsedMs` is printed only — never baselined, never gated. */
     private fun report(

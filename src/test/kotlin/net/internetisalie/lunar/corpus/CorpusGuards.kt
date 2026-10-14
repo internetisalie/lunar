@@ -31,7 +31,7 @@ internal object CorpusGuards {
     }
 
     /**
-     * The ratchet. Identity-checks `commit`, `files` and `requires` (design §3.2 step 1) before
+     * The ratchet. Identity-checks `commit`, `libraries`, `files` and `requires` (design §3.2 step 1) before
      * delegating the gated comparison to [CorpusBaseline.compare].
      */
     internal fun assertRatchet(
@@ -63,6 +63,12 @@ internal object CorpusGuards {
             "Baseline was recorded against a different corpus commit; re-record it.",
             baseline.commit,
             observed.commit,
+        )
+        assertEquals(
+            "Definition-library pins changed (corpus.json definitionLibraries or a catalog version moved); " +
+                "the inspection floors are no longer comparable. Re-record with -PrecordCorpusBaseline.",
+            baseline.libraries,
+            observed.libraries,
         )
         assertEquals(
             "Corpus file count changed without the pin moving — the checkout is dirty.",

@@ -337,6 +337,11 @@ tasks {
         if (project.hasProperty("recordCorpusBaseline")) {
             systemProperty("lunar.corpus.record", "true")
         }
+        // MAINT-37: one arm of a member-alone attribution pair (`bare` or `pinned`). Writes a tally
+        // under build/corpus-attribution/ instead of gating; never combined with recordCorpusBaseline.
+        if (project.hasProperty("corpusAttribution")) {
+            systemProperty("lunar.corpus.attribution", project.property("corpusAttribution").toString())
+        }
         // TYPE-12: record the type goldens from the current engine into build/type-golden/recorded/
         // instead of gating on them; the recording is copied back into src/test/resources by hand.
         if (project.hasProperty("recordTypeGolden")) {

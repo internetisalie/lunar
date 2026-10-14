@@ -86,8 +86,17 @@ object CorpusSweep {
         ParseOracle.assertDiscriminates(repoRoot, entry.luaLevel)
         val swept = entry.roots.flatMap { sweepRoot(fixture, context, it) }.sortedBy { it.path }
         val sink = inspectionHits(fixture, swept)
+        return metricsOf(context, swept, sink).copy(libraries = CorpusDefinitionLibraries.enabledPins(fixture.project))
+    }
+
+    private fun metricsOf(
+        context: SweepContext,
+        swept: List<SweptFile>,
+        sink: HitSink,
+    ): CorpusMetrics {
+        val checkoutDir = CorpusManifest.checkoutDir(context.repoRoot, context.entry.name)
         return CorpusMetrics(
-            commit = entry.commit,
+            commit = context.entry.commit,
             files = swept.size,
             parseErrors = swept.sumOf { it.tally.parseErrors },
             requires = swept.sumOf { it.tally.requires },
@@ -98,7 +107,7 @@ object CorpusSweep {
                     .flatMap { file -> file.tally.errorSites.map { "${file.path}:$it" } },
             inspectionHits = sink.hits,
             symbolHits = topSymbols(sink.symbols),
-            ballast = ballast(checkoutDir, entry),
+            ballast = ballast(checkoutDir, context.entry),
             // MAINT-35-02: only FALSE REJECTS are gated. Lunar parses a superset of any single
             // language level and defers enforcement to LuaLanguageLevelInspection, so "luac rejects,
             // Lunar accepts" has a systematic false positive (DR-01) and is diagnostic only.
@@ -109,6 +118,7 @@ object CorpusSweep {
             lexerRoundTripFailures = swept.count { it.tally.roundTripFailed },
             unmergedTokens = swept.sumOf { it.tally.unmergedTokens },
             crashes = swept.mapNotNull { it.tally.crash }.groupingBy { it }.eachCount(),
+            allSymbolHits = sink.symbols.toSortedMap(),
         )
     }
 

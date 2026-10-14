@@ -232,15 +232,15 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
 ### Phase 1: Manifest field and baseline identity [Must]
 - **Goal**: pins parse, render, and gate as identity.
 - **Tasks**:
-  - [ ] **No-movement check, part A** (below), on this phase's base commit, before any edit.
-  - [ ] `CorpusManifest.parseEntry` reads `definitionLibraries` — design §3.1.
-  - [ ] Add `libraries` and `allSymbolHits` to `CorpusMetrics`; `CorpusBaseline.LIBRARY_PREFIX`,
+  - [x] **No-movement check, part A** (below), on this phase's base commit, before any edit.
+  - [x] `CorpusManifest.parseEntry` reads `definitionLibraries` — design §3.1.
+  - [x] Add `libraries` and `allSymbolHits` to `CorpusMetrics`; `CorpusBaseline.LIBRARY_PREFIX`,
         the render line, and `parse`'s decomposition into `rowsOf`, `scalarsOf`, `prefixedCounts`,
         `parseBallast`, `parseLibraries` — design §2.2, §4.3.
-  - [ ] Add the library identity assertion to `CorpusGuards.assertIdentity` — design §2.3.
-  - [ ] Extract `CorpusSweep.metricsOf(context, swept, sink)` (with `allSymbolHits`) and end `run`
+  - [x] Add the library identity assertion to `CorpusGuards.assertIdentity` — design §2.3.
+  - [x] Extract `CorpusSweep.metricsOf(context, swept, sink)` (with `allSymbolHits`) and end `run`
         with `.copy(libraries = …)` — design §2.5.
-  - [ ] Extend `BaselineRatchetTest` with TC 1, 2, 3, 14, 15, 16, 17 (it already has the
+  - [x] Extend `BaselineRatchetTest` with TC 1, 2, 3, 14, 15, 16, 17 (it already has the
         `manifestRoot` and `metrics()` helpers), each as the `@Test` method design §2.16 names
         (TC 1's is `manifestDefinitionLibrariesParseDistinctAndDefaultEmpty`).
 - **Exit criteria**: TC 1–3, 14–17 green; full routine suite green; Gates "Test names" — the
@@ -283,16 +283,16 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
 ### Phase 2: Attribution mode in the sweep [Must]
 - **Goal**: the sweep can emit bare/pinned tallies without touching baselines.
 - **Tasks**:
-  - [ ] **No-movement check, part A** (Phase 1), on this phase's base commit, before any edit.
-  - [ ] Create `CorpusAttribution.kt` (`CorpusAttributionMode`, `CorpusAttribution`) — design §2.6, §3.8, §4.4.
-  - [ ] Extend `LuaCorpusSweepTest` per design §2.7 **except** the `sourcePath` lines (Phase 3b):
+  - [x] **No-movement check, part A** (Phase 1), on this phase's base commit, before any edit.
+  - [x] Create `CorpusAttribution.kt` (`CorpusAttributionMode`, `CorpusAttribution`) — design §2.6, §3.8, §4.4.
+  - [x] Extend `LuaCorpusSweepTest` per design §2.7 **except** the `sourcePath` lines (Phase 3b):
         the `provisioned` field, the `setUp` additions (`requireSettingsSubscriber`, the cache root,
         the enable list), the `refreshFor` helper (step 2),
         `tearDown` as `try { CorpusDefinitionLibraries.release(project, provisioned) } finally { super.tearDown() }`
         (Phase 3b landed first: complete its `tearDown` to design §2.7's final form instead),
         the `measure` extraction, the `sweepAndRatchet` steps and `attributionMode()`.
-  - [ ] Add the `corpusAttribution` property block to `build.gradle.kts` — design §2.9.
-  - [ ] Add TC 18, TC 19, TC 48 and TC 49 to `BaselineRatchetTest`, as the `@Test` methods design
+  - [x] Add the `corpusAttribution` property block to `build.gradle.kts` — design §2.9.
+  - [x] Add TC 18, TC 19, TC 48 and TC 49 to `BaselineRatchetTest`, as the `@Test` methods design
         §2.16 names (`attributionModeParsesFromProperty`,
         `symbolTallyAndRefreshLinesStayOutOfTheBaseline`,
         `attributionAndBaselineRecordAreMutuallyExclusive`,
@@ -661,8 +661,8 @@ no other edit in between.
 
 - [x] `DefinitionPinProvisioningTest` — TC 8–13, 36, 37.
 - [x] `ModuleRootIsolationTest` — TC 33–35.
-- [ ] `BaselineRatchetTest` extensions — TC 1–3, 14–19, 48, 49.
-- [ ] Phase 2's wiring grep — `LuaCorpusSweepTest` calls `forRun` and `checkArm` (TC 48, TC 49 in the sweep), and `build.gradle.kts` passes the mode.
+- [x] `BaselineRatchetTest` extensions — TC 1–3, 14–19, 48, 49.
+- [x] Phase 2's wiring grep — `LuaCorpusSweepTest` calls `forRun` and `checkArm` (TC 48, TC 49 in the sweep), and `build.gradle.kts` passes the mode.
 - [x] `test_definition_pins.py` — TC 4–7, 27, 47; `test_attribute_delta.py` — TC 20–26, 32;
       `test_reconcile_baseline.py` — TC 39–46.
 - [x] DR-11: Phase 0's mutation proofs of the observation window (`observeRefresh`'s settle) and of
@@ -682,8 +682,8 @@ no other edit in between.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 0: Provisioning slice and de-risking | done | Must |
-| Phase 1: Manifest field and baseline identity | todo | Must |
-| Phase 2: Attribution mode in the sweep | todo | Must |
+| Phase 1: Manifest field and baseline identity | done | Must |
+| Phase 2: Attribution mode in the sweep | done | Must |
 | Phase 3: Fetch and classifier tooling | done | Must |
 | Phase 3b: BUG-496 — restore the module root per member | done | Must |
 | Phase 4: busted pins and re-baseline | todo | Must |
