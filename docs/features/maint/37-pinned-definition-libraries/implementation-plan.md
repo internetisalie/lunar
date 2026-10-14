@@ -330,18 +330,18 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
 ### Phase 3: Fetch and classifier tooling [Must]
 - **Goal**: archives arrive verified; deltas classify mechanically.
 - **Tasks**:
-  - [ ] Create `tooling/corpus/definition_pins.py` — design §2.10, §3.2, §3.6, §3.7, §3.14.
-  - [ ] Extend `tooling/corpus/fetch-corpus.py` — design §2.11 — and add a `definitionLibraries`
+  - [x] Create `tooling/corpus/definition_pins.py` — design §2.10, §3.2, §3.6, §3.7, §3.14.
+  - [x] Extend `tooling/corpus/fetch-corpus.py` — design §2.11 — and add a `definitionLibraries`
         line to `corpus.json`'s `$comment` field list (MAINT-37-08, TC 31's second half).
-  - [ ] Create `tooling/corpus/attribute_delta.py` — design §2.12, §3.5, §4.4, §4.5.
-  - [ ] Create `tooling/corpus/reconcile_baseline.py` — design §2.15, §3.11, §4.7.
-  - [ ] Create `tooling/corpus/test_definition_pins.py` (TC 4, 5, 6, 7, 27, 47),
+  - [x] Create `tooling/corpus/attribute_delta.py` — design §2.12, §3.5, §4.4, §4.5.
+  - [x] Create `tooling/corpus/reconcile_baseline.py` — design §2.15, §3.11, §4.7.
+  - [x] Create `tooling/corpus/test_definition_pins.py` (TC 4, 5, 6, 7, 27, 47),
         `tooling/corpus/test_attribute_delta.py` (TC 20–26 on the shared **B**/**P** tallies, and
         TC 32 on `main`) and `tooling/corpus/test_reconcile_baseline.py` (TC 39–46).
-  - [ ] Run `python3 tooling/corpus/fetch-corpus.py`; with no pins yet it fetches no archive and
+  - [x] Run `python3 tooling/corpus/fetch-corpus.py`; with no pins yet it fetches no archive and
         exits 0. Then `python3 tooling/corpus/definition_pins.py --verify test/corpus/.definitions`
         prints `definitions ok (0 archives verified in test/corpus/.definitions)` and exits 0.
-  - [ ] **CI `corpus` job**: make design §7 "CI" edits 1 and 2 to `.gitea/workflows/build-plugin.yml`
+  - [x] **CI `corpus` job**: make design §7 "CI" edits 1 and 2 to `.gitea/workflows/build-plugin.yml`
         in this phase's commit. Phase 3's own PR runs the job because it edits the workflow file, so
         edit 1's new alternative is checked locally instead, by two commands that must both succeed:
         ```bash
@@ -663,7 +663,7 @@ no other edit in between.
 - [x] `ModuleRootIsolationTest` — TC 33–35.
 - [ ] `BaselineRatchetTest` extensions — TC 1–3, 14–19, 48, 49.
 - [ ] Phase 2's wiring grep — `LuaCorpusSweepTest` calls `forRun` and `checkArm` (TC 48, TC 49 in the sweep), and `build.gradle.kts` passes the mode.
-- [ ] `test_definition_pins.py` — TC 4–7, 27, 47; `test_attribute_delta.py` — TC 20–26, 32;
+- [x] `test_definition_pins.py` — TC 4–7, 27, 47; `test_attribute_delta.py` — TC 20–26, 32;
       `test_reconcile_baseline.py` — TC 39–46.
 - [x] DR-11: Phase 0's mutation proofs of the observation window (`observeRefresh`'s settle) and of
       the bare arm's drop (direct publish) — TC 36, TC 37.
@@ -671,7 +671,7 @@ no other edit in between.
 - [ ] Corpus gate + mutation proof — TC 28; tally greps — TC 29, TC 30.
 - [ ] Test names (Gates): `SweepNamingGuardTest` green in the full routine suite, and the routine
       run's XML lists every method design §2.16 names — Phases 0, 1, 2, 3b.
-- [ ] The `changes`-filter checks — Phase 3.
+- [x] The `changes`-filter checks — Phase 3.
 - [ ] No-movement check, parts A and B, each read after a completed record and copy-back — Phases 1 and 2.
 - [ ] The PR's CI `corpus` job green — Phases 0–5 (Gates; S12 in every record sequence).
 - [ ] README/`$comment` greps — TC 31.
@@ -684,7 +684,7 @@ no other edit in between.
 | Phase 0: Provisioning slice and de-risking | done | Must |
 | Phase 1: Manifest field and baseline identity | todo | Must |
 | Phase 2: Attribution mode in the sweep | todo | Must |
-| Phase 3: Fetch and classifier tooling | todo | Must |
+| Phase 3: Fetch and classifier tooling | done | Must |
 | Phase 3b: BUG-496 — restore the module root per member | done | Must |
 | Phase 4: busted pins and re-baseline | todo | Must |
 | Phase 5: wxlua pin for zerobrane | blocked (TARGET-10 Phase 4) | Must |

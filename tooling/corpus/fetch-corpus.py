@@ -18,10 +18,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+from definition_pins import CATALOG, PinError, fetch_library, load_catalog, resolve_libraries
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 MANIFEST = SCRIPT_DIR / "corpus.json"
 CORPUS_ROOT = Path(os.environ.get("LUNAR_CORPUS_ROOT", REPO_ROOT / "test" / "corpus"))
+DEFINITIONS_ROOT = CORPUS_ROOT / ".definitions"
 
 
 def log(msg: str) -> None:
@@ -73,6 +76,16 @@ def fetch_one(entry: dict) -> None:
     log(f"{name} → {lua_files} .lua files, {size}")
 
 
+def fetch_definition_archives(manifest: dict) -> None:
+    try:
+        libraries = resolve_libraries(manifest, load_catalog(CATALOG))
+        DEFINITIONS_ROOT.mkdir(parents=True, exist_ok=True)
+        for lib in libraries:
+            fetch_library(lib, DEFINITIONS_ROOT)
+    except PinError as failure:
+        die(str(failure))
+
+
 def main() -> None:
     if not MANIFEST.is_file():
         die(f"Manifest not found: {MANIFEST}")
@@ -88,6 +101,7 @@ def main() -> None:
             if not (CORPUS_ROOT / entry["name"] / root).is_dir():
                 die(f"{entry['name']}: declared root '{root}' missing from the checkout")
 
+    fetch_definition_archives(manifest)
     log(f"Corpus ready at {CORPUS_ROOT}")
 
 

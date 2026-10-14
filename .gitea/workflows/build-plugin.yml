@@ -99,7 +99,7 @@ jobs:
           # corpus = a PR touches the gate's own machinery, so the lane is exercised
           # PRE-merge on exactly the changes most likely to break it (BUG-415).
           CORPUS=false
-          if echo "$CHANGED" | grep -qE '^tooling/corpus/|^tooling/ci-image/|^src/test/resources/corpus/|^src/test/kotlin/net/internetisalie/lunar/corpus/|^\.gitea/workflows/build-plugin\.yml$'; then
+          if echo "$CHANGED" | grep -qE '^tooling/corpus/|^tooling/ci-image/|^src/test/resources/corpus/|^src/test/kotlin/net/internetisalie/lunar/corpus/|^src/main/resources/definitions/|^\.gitea/workflows/build-plugin\.yml$'; then
             CORPUS=true
           fi
           # code = any changed file that is neither under docs/ nor a *.md.
@@ -357,7 +357,7 @@ jobs:
           fi
           fc-match sans >/dev/null && cc -dumpversion >/dev/null && python3 --version && echo "toolchain ok (image >= 0.2.0)"
 
-      - name: Provision pinned fixtures (corpus checkouts, luac oracles, torture archive)
+      - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles, torture archive)
         # `test` is a tracked symlink to ../test; re-point it at the persistent /cache
         # mount. All three fetchers verify pins (commit SHA / sha256) and refuse on
         # mismatch — an unverified oracle is worse than no oracle (MAINT-35-00).
@@ -374,7 +374,7 @@ jobs:
           python3 tooling/corpus/fetch-luac.py
           python3 tooling/corpus/fetch-torture.py
           echo "fixtures: $(du -sh /cache/lunar/test 2>/dev/null | cut -f1)"
-          test -f test/corpus/zerobrane/.corpus-sha && test -x test/luac/5.1.5/luac && test -f test/corpus-torture/fuzzing-lua/.corpus-sha && echo "fixtures ok"
+          test -f test/corpus/zerobrane/.corpus-sha && test -x test/luac/5.1.5/luac && test -f test/corpus-torture/fuzzing-lua/.corpus-sha && python3 tooling/corpus/definition_pins.py --verify test/corpus/.definitions && echo "fixtures ok"
 
       - name: Corpus ratchet (full '*Corpus*' filter — see invocation-shape note above)
         # --rerun for the same reason `build` uses it: with a persistent GRADLE_USER_HOME

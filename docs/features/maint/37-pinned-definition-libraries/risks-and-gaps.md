@@ -178,6 +178,13 @@ it is not empty. Each done row states its own provenance.
   `definition_pins.py --verify` (design §7 "CI") before the Gradle corpus gate, but neither job runs
   the `unittest` suite. The suite runs as each Python phase's exit command; wiring it into a workflow
   is out of scope.
+- **The Undeclared "symbol tally does not cover the delta" path has no case.** In
+  `classify_undeclared` (`tooling/corpus/attribute_delta.py`), a movement whose symbols all fall
+  within the library but whose per-symbol tally sums to less than the inspection delta must be
+  UNEXPLAINED (design §4.4). No TC in the requirements table exercises it, and dropping the `covered`
+  term leaves the Phase 3 suite green; the Phase 3 review found this as a surviving mutant. The
+  delta is real, and the per-symbol tally is capped at the top ten per symbol. Add the case before
+  Phase 4 relies on the classifier to block the re-baseline.
 
 ## Evidence
 

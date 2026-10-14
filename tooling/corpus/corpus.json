@@ -31,7 +31,10 @@
     "  moduleRoot optional; the subdirectory module names resolve against, put on package.path for",
     "             the sweep. Omit when requires are relative to the checkout root, as all four below",
     "             are. It exists for projects that name modules relative to a subtree — KOReader's",
-    "             require(\"ui/uimanager\") means frontend/ui/uimanager.lua."
+    "             require(\"ui/uimanager\") means frontend/ui/uimanager.lua.",
+    "  definitionLibraries optional; catalog ids (src/main/resources/definitions/lunar-definitions-catalog.json)",
+    "             whose pinned archives the sweep enables for this member, with their `requires`",
+    "             closure. definition_pins.py fetches and verifies them into test/corpus/.definitions/."
   ],
   "corpora": [
     {
