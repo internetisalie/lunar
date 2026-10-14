@@ -116,7 +116,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | **TYPE-14** *(Phase 5 closes it — do not fix twice)* | — | ✓ |
 | BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |
 | MAINT-39 | A LuaCATS-annotated corpus — the sweep cannot see the annotated path at all | todo | M | TYPE-12 *(done)* | 0 of 734 corpus files carry any `---@` tag; corpus is pre-LuaCATS-era Lua, so the whole luacats subsystem and the annotated type engine are unswept — BUG-473 lived there undetected. Staged: DR-6 fixture, then S6, then real projects | ✓ |
-| MAINT-37 | Corpus sweeps run with pinned definition libraries | planned | S | **BUG-417** *(inspection independence — **done**; had to land first or the re-baseline would be unattributable)*; TARGET-08 *(done)* | — | ✓ |
+| MAINT-37 | Corpus sweeps run with pinned definition libraries | **in_progress** | S | **BUG-417** *(inspection independence — **done**; had to land first or the re-baseline would be unattributable)*; TARGET-08 *(done)* | — | ✓ |
 | MAINT-40 | Corpus sweep results stored per commit — SARIF findings under an environment-derived suite name, so a "before" is a fetch, not a re-record | todo | M | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |

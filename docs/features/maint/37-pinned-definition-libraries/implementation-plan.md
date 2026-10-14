@@ -202,19 +202,19 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
   (`LuaDefinitionLibraryEnabler`), suppresses undeclared-variable reports in a light fixture, and
   both refresh paths produce the measured observation — before anything is built on it.
 - **Tasks**:
-  - [ ] Add `definitionLibraries: List<String> = emptyList()` to `CorpusEntry` — design §2.1 (the
+  - [x] Add `definitionLibraries: List<String> = emptyList()` to `CorpusEntry` — design §2.1 (the
         parse arrives in Phase 1; the field is needed by the fixtures here).
-  - [ ] Create `CorpusDefinitionLibraries.kt` with `ObservedRefresh`, `requireSettingsSubscriber`,
+  - [x] Create `CorpusDefinitionLibraries.kt` with `ObservedRefresh`, `requireSettingsSubscriber`,
         `resolve`, `archiveFile`, `stage`, `enable`, `observeRefresh`, `provision`, `release`,
         `enabledPins`, `refreshRoots`, `refreshUnpinned` and the private helpers listed in design §2.4
         — design §2.4, §3.2, §3.3, §3.4, §3.9, §3.12, §3.13.
-  - [ ] Create `CorpusRefreshProbe.kt` (`RefreshObservation`, `CorpusRefreshProbe`) — design §2.6a.
-  - [ ] Create `DefinitionPinProvisioningTest.kt` — design §2.8 — with TC 8–13, TC 36 and TC 37,
+  - [x] Create `CorpusRefreshProbe.kt` (`RefreshObservation`, `CorpusRefreshProbe`) — design §2.6a.
+  - [x] Create `DefinitionPinProvisioningTest.kt` — design §2.8 — with TC 8–13, TC 36 and TC 37,
         each as the method design §2.16 names (TC 11's is
         `testMissingArchiveNamesTheFetchScript`, not a name built from `fetch-corpus.py`).
         TC 8 reaching highlighting re-confirms DR-01 and DR-02 on the real code; if it does not,
         follow DR-02's fallback.
-  - [ ] **DR-11** — mutation-prove the window exactly as risks-and-gaps' MAINT-37-00-DR-11 row
+  - [x] **DR-11** — mutation-prove the window exactly as risks-and-gaps' MAINT-37-00-DR-11 row
         specifies (its mutants, command, copy-back and the XML messages it reads). Restore with the
         `temporary-edits` skill after each run, and confirm `diff` of each mutated file against its
         pre-mutation snapshot prints nothing. The row's **Refutes** branch stops the phase.
@@ -655,13 +655,13 @@ no other edit in between.
 
 ## Verification Tasks
 
-- [ ] `DefinitionPinProvisioningTest` — TC 8–13, 36, 37.
+- [x] `DefinitionPinProvisioningTest` — TC 8–13, 36, 37.
 - [ ] `ModuleRootIsolationTest` — TC 33–35.
 - [ ] `BaselineRatchetTest` extensions — TC 1–3, 14–19, 48, 49.
 - [ ] Phase 2's wiring grep — `LuaCorpusSweepTest` calls `forRun` and `checkArm` (TC 48, TC 49 in the sweep), and `build.gradle.kts` passes the mode.
 - [ ] `test_definition_pins.py` — TC 4–7, 27, 47; `test_attribute_delta.py` — TC 20–26, 32;
       `test_reconcile_baseline.py` — TC 39–46.
-- [ ] DR-11: Phase 0's mutation proofs of the observation window (`observeRefresh`'s settle) and of
+- [x] DR-11: Phase 0's mutation proofs of the observation window (`observeRefresh`'s settle) and of
       the bare arm's drop (direct publish) — TC 36, TC 37.
 - [ ] DR-04 tallies + mutation proof of each TC 38 mutant — TC 38; DR-08 and per-member offsets and reconciliation in every record sequence.
 - [ ] Corpus gate + mutation proof — TC 28; tally greps — TC 29, TC 30.
@@ -677,7 +677,7 @@ no other edit in between.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 0: Provisioning slice and de-risking | todo | Must |
+| Phase 0: Provisioning slice and de-risking | done | Must |
 | Phase 1: Manifest field and baseline identity | todo | Must |
 | Phase 2: Attribution mode in the sweep | todo | Must |
 | Phase 3: Fetch and classifier tooling | todo | Must |

@@ -23,6 +23,8 @@ data class CorpusEntry(
      * checkout root", which is what every currently-pinned project does.
      */
     val moduleRoot: String?,
+    /** Catalog ids from `lunar-definitions-catalog.json` the sweep enables for this member (MAINT-37). */
+    val definitionLibraries: List<String> = emptyList(),
 )
 
 /**
