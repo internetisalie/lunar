@@ -11,8 +11,8 @@ folders:
 
 > **Precondition**: [design.md](design.md) has cleared the bar. Done de-risking (each row in
 > [risks-and-gaps.md](risks-and-gaps.md) carries its record): DR-01, DR-02, DR-03, DR-07, DR-07b,
-> DR-09, DR-09b, DR-10, DR-12. **Remaining**, each with every outcome specified in its row:
-> DR-11 in Phase 0, on the implemented code; DR-06 in Phase 3b; DR-08 at Phase 4's record-sequence
+> DR-09, DR-09b, DR-10, DR-11, DR-06, DR-12. **Remaining**, each with every outcome specified in its row:
+> DR-08 at Phase 4's record-sequence
 > step S2b and DR-04 after its step S4, because both need Phases 1–3b; DR-05 in Phase 5.
 >
 > **Startable now: Phases 0, 1, 2, 3, 3b, 4 and 6.** **Phase 5 is blocked on TARGET-10 Phase 4**
@@ -288,7 +288,8 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
   - [ ] Extend `LuaCorpusSweepTest` per design §2.7 **except** the `sourcePath` lines (Phase 3b):
         the `provisioned` field, the `setUp` additions (`requireSettingsSubscriber`, the cache root,
         the enable list), the `refreshFor` helper (step 2),
-        `tearDown` as `try { CorpusDefinitionLibraries.release(project, provisioned) } finally { super.tearDown() }`,
+        `tearDown` as `try { CorpusDefinitionLibraries.release(project, provisioned) } finally { super.tearDown() }`
+        (Phase 3b landed first: complete its `tearDown` to design §2.7's final form instead),
         the `measure` extraction, the `sweepAndRatchet` steps and `attributionMode()`.
   - [ ] Add the `corpusAttribution` property block to `build.gradle.kts` — design §2.9.
   - [ ] Add TC 18, TC 19, TC 48 and TC 49 to `BaselineRatchetTest`, as the `@Test` methods design
@@ -364,29 +365,32 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
 - **Goal**: no member's `sourcePath` reaches a later member, before any pin can add roots changes
   that would turn the leak into an indexed library (MAINT-37-09).
 - **Tasks** (in order):
-  - [ ] **Pre-gate** — on the Phase 3 commit, before any edit, run Phase 4's record-sequence step
+  - [x] **Pre-gate** — on the Phase 3 commit, before any edit, run Phase 4's record-sequence step
         **S1** verbatim. Output stops this phase. Empty output is what makes the "must be
         unchanged" check below meaningful: any later movement is this phase's.
-  - [ ] Create `CorpusSourcePath.kt` — design §2.13.
-  - [ ] Create `ModuleRootIsolationTest.kt` — design §2.14 — with TC 33, 34, 35 as the methods
+  - [x] Create `CorpusSourcePath.kt` — design §2.13.
+  - [x] Create `ModuleRootIsolationTest.kt` — design §2.14 — with TC 33, 34, 35 as the methods
         design §2.16 names; run **DR-06**
         and act on its outcome as risks-and-gaps specifies.
-  - [ ] Complete `LuaCorpusSweepTest` per design §2.7: the `savedSourcePath` field, its `setUp`
-        snapshot, and the final `tearDown` (§3.10 order).
-  - [ ] Record the full shape: the record command (Gates);
+  - [x] Complete `LuaCorpusSweepTest` per design §2.7: the `savedSourcePath` field, its `setUp`
+        snapshot, and the final `tearDown` (§3.10 order). Delivered before Phase 2 (one PR per
+        slice), so there is no `provisioned` field yet: `tearDown` is §3.10 with `provisioned`
+        empty — `restore`, then `refreshRoots` when it returned `true` — and Phase 2 inserts the
+        `release(project, provisioned)` step and the `provisioned.isEmpty()` condition between them.
+  - [x] Record the full shape: the record command (Gates);
         `rsync -az -e "$RSH" "$BLD"/src/test/resources/corpus/ src/test/resources/corpus/`.
         A failed run or copy-back stops (Gates), and the read below is not made.
-  - [ ] Read `git status --porcelain -- src/test/resources/corpus/`. It may list only
+  - [x] Read `git status --porcelain -- src/test/resources/corpus/`. It may list only
         `zerobrane.baseline`, on any key (Risk 1.6's unconfirmed lead). Every other path must be
         unchanged: the restore runs after the sweeps of the members before penlight and of penlight
         itself, and the torture member reads no project setting. Any other path listed: stop. The
         stop rule restores every listed path, leaves `corpus.json` untouched in this phase, and sets
         this phase's Kotlin aside (its step 4). Only the BUG report is committed.
-  - [ ] Add a **Resolution** section to BUG-496's `bug-report.md` holding the commit measured,
+  - [x] Add a **Resolution** section to BUG-496's `bug-report.md` holding the commit measured,
         DR-06's verdict, and zerobrane's per-key baseline diff verbatim (or "no change"); set its
         `status: done`; delete the BUG-496 row from `docs/roadmap.md`.
-  - [ ] Verify: the corpus gate (no record flag) is green.
-  - [ ] Commit the Kotlin, the re-recorded `zerobrane.baseline` (if changed) and the BUG-496 report
+  - [x] Verify: the corpus gate (no record flag) is green.
+  - [x] Commit the Kotlin, the re-recorded `zerobrane.baseline` (if changed) and the BUG-496 report
         together — no `corpus.json` pin in this commit.
 - **Exit criteria**: TC 33–35 green (or TC 35 deleted under DR-06's first refuting branch); full
   routine suite green; Gates "Test names" — the routine run's
@@ -656,7 +660,7 @@ no other edit in between.
 ## Verification Tasks
 
 - [x] `DefinitionPinProvisioningTest` — TC 8–13, 36, 37.
-- [ ] `ModuleRootIsolationTest` — TC 33–35.
+- [x] `ModuleRootIsolationTest` — TC 33–35.
 - [ ] `BaselineRatchetTest` extensions — TC 1–3, 14–19, 48, 49.
 - [ ] Phase 2's wiring grep — `LuaCorpusSweepTest` calls `forRun` and `checkArm` (TC 48, TC 49 in the sweep), and `build.gradle.kts` passes the mode.
 - [ ] `test_definition_pins.py` — TC 4–7, 27, 47; `test_attribute_delta.py` — TC 20–26, 32;
@@ -681,7 +685,7 @@ no other edit in between.
 | Phase 1: Manifest field and baseline identity | todo | Must |
 | Phase 2: Attribution mode in the sweep | todo | Must |
 | Phase 3: Fetch and classifier tooling | todo | Must |
-| Phase 3b: BUG-496 — restore the module root per member | todo | Must |
+| Phase 3b: BUG-496 — restore the module root per member | done | Must |
 | Phase 4: busted pins and re-baseline | todo | Must |
 | Phase 5: wxlua pin for zerobrane | blocked (TARGET-10 Phase 4) | Must |
 | Phase 6: Documentation and status | todo | Should |

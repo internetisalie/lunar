@@ -3,7 +3,7 @@ id: "BUG-496"
 title: "The corpus sweep leaks penlight's module root into every member swept after it"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -85,3 +85,30 @@ Planned in [MAINT-37](../../maint/37-pinned-definition-libraries/requirements.md
 definition libraries and refreshes roots when it changed (MAINT-37 design §2.13, §3.10;
 TC 33–35). The Resolution section is added by MAINT-37 Phase 3b, with zerobrane's measured baseline
 diff.
+
+## Resolution
+
+Fixed by MAINT-37 Phase 3b (MAINT-37-09): `CorpusSourcePath.snapshot`/`restore`;
+`LuaCorpusSweepTest.setUp` snapshots `sourcePath` and `tearDown` restores it and refreshes roots
+when it changed; `ModuleRootIsolationTest` holds TC 33–35.
+
+- **Commit measured**: `c0818df8` with this fix's Kotlin as the tree — the same Kotlin this
+  commit lands. The pre-gate (a full-shape record of `c0818df8` before any edit, copied back)
+  reproduced every committed baseline byte for byte.
+- **DR-06: confirmed.** In a light fixture an absolute out-of-project `sourcePath` does become an
+  indexed "Search Trees" library on a roots change (TC 35's control query non-empty), and restoring
+  it plus a roots change removes it (the after query empty). Each of TC 33–35's mutants turned its
+  test red.
+- **zerobrane's per-key baseline diff** (full `*Corpus*` record shape; no other path moved):
+  ```diff
+  -unresolvedRequires=3
+  +unresolvedRequires=19
+  -inspection.LuaUndeclaredVariable=1952
+  +inspection.LuaUndeclaredVariable=1954
+  ```
+  This resolves MAINT-37 Risk 1.6's unconfirmed lead: the 19 that a zerobrane-alone run reported
+  is also what zerobrane measures in the full shape once penlight's `sourcePath` is restored. With
+  the leak, 16 more of its 19 `require` sites counted as resolved; the mechanism by which the leaked
+  value made them resolve was not measured. Without it, every zerobrane `require` is unresolved
+  (`requires=19`, `unresolvedRequires=19`); why the default `package.path` resolves none of them
+  is not established either.

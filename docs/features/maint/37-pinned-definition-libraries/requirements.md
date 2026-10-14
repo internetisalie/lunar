@@ -301,7 +301,7 @@ mapping of `NotComparable` to exit `2` belongs to `main` and is TC 32.
 - [ ] MAINT-37-06 — **Full**: luacheck, luarocks and penlight all keep the pin, TC 28–29 hold for each, every offset and reconciliation invocation exits 0, and `rebaseline-attribution.md` records every classifier, offset and reconciliation output verbatim. **Partial**: TC 28–29 hold for every kept member, each withheld member has a filed BUG named in the MAINT epic row, and Phase 4 stays open.
 - [ ] MAINT-37-07 — TC 30 holds; every offset and reconciliation invocation exits 0; the zerobrane classifier output and every offset and reconciliation output are appended to `rebaseline-attribution.md`.
 - [ ] MAINT-37-08 — TC 31.
-- [ ] MAINT-37-09 — TC 33–35 pass in the routine suite; the Phase 3b re-baseline (or "no change") is recorded in BUG-496's report.
+- [x] MAINT-37-09 — TC 33–35 pass in the routine suite; the Phase 3b re-baseline (or "no change") is recorded in BUG-496's report.
 - [ ] No file under `src/main/` is modified.
 
 ## Non-Functional Requirements

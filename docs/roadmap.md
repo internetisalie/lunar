@@ -94,7 +94,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-464 | Ragged requirement tables render the wrong status — 36 rows, 11 files | todo | C | — | REFACT-01's own table rendered **Full** beside "grep is empty"; the durable half is a `lint_docs.py` table-shape check | ✓ |
 | BUG-458 | Safe Delete of a label leaves `::::`, unparseable on every Lua version | todo | C | — | — | ✓ |
 | BUG-460 | Naming two indent options hides tabs/tab-width and suppresses 4 `.editorconfig` properties | todo | C | — | — | ✓ |
-| BUG-496 | The corpus sweep leaks penlight's module root into every member swept after it | todo | C | — | — | ✓ |
 
 ## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
 

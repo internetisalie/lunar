@@ -32,6 +32,8 @@ import java.io.File
  */
 @RunWith(JUnit4::class)
 class LuaCorpusSweepTest : BasePlatformTestCase() {
+    private var savedSourcePath: String = ""
+
     override fun getTestDataPath(): String = System.getProperty("user.dir")
 
     override fun setUp() {
@@ -62,6 +64,16 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
             LuaTypeAssignabilityInspection(),
             LuaReturnTypeMismatchInspection(),
         )
+        savedSourcePath = CorpusSourcePath.snapshot(project)
+    }
+
+    /** The member's `moduleRoot` must not reach the next member (MAINT-37-09, design §3.10). */
+    override fun tearDown() {
+        try {
+            if (CorpusSourcePath.restore(project, savedSourcePath)) CorpusDefinitionLibraries.refreshRoots(project)
+        } finally {
+            super.tearDown()
+        }
     }
 
     @Test
