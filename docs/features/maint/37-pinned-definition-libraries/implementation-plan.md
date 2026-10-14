@@ -11,9 +11,8 @@ folders:
 
 > **Precondition**: [design.md](design.md) has cleared the bar. Done de-risking (each row in
 > [risks-and-gaps.md](risks-and-gaps.md) carries its record): DR-01, DR-02, DR-03, DR-07, DR-07b,
-> DR-09, DR-09b, DR-10, DR-11, DR-06, DR-12. **Remaining**, each with every outcome specified in its row:
-> DR-08 at Phase 4's record-sequence
-> step S2b and DR-04 after its step S4, because both need Phases 1–3b; DR-05 in Phase 5.
+> DR-09, DR-09b, DR-10, DR-11, DR-06, DR-12, and, in Phase 4, DR-08 (step S2b) and DR-04 (after
+> step S4). **Remaining**, with every outcome specified in its row: DR-05 in Phase 5.
 >
 > **Startable now: Phases 0, 1, 2, 3, 3b, 4 and 6.** **Phase 5 is blocked on TARGET-10 Phase 4**
 > (the `wxlua` catalog entry on `main`, loadable — Phase 5's precondition says how this feature
@@ -404,7 +403,7 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
 - **Tasks**: run the **record sequence** below with `PAIRED` = `luacheck`, `luarocks`, `penlight`
   and `LIBS` = `busted`, including the Phase-4-only steps marked ⁴ after S4. Its S2b is DR-08's
   first execution. Then:
-  - [ ] Mutation-prove TC 28 using the `temporary-edits` skill: drop the `.copy(libraries = …)` call at
+  - [x] Mutation-prove TC 28 using the `temporary-edits` skill: drop the `.copy(libraries = …)` call at
         the end of `CorpusSweep.run` (return `metricsOf(...)` alone) and run the corpus gate. Copy the
         test results back as Gates' "The failed-run record" does (its one transport retry applies),
         then run `/usr/bin/grep -l 'Definition-library pins changed' $HOME/.cache/claude-scratch/lunar/maint-37/failed-results/*.xml`
@@ -416,7 +415,7 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
           review.
         - **Anything else** — `BUILD FAILED` with the grep printing nothing (a different failure), no
           `BUILD` line, or a transport or copy-back failure on its retry: Gates "Measured nothing".
-  - [ ] Confirm TC 29 by grepping each kept member's pinned tally for `allsymbol.LuaUndeclaredVariable.`
+  - [x] Confirm TC 29 by grepping each kept member's pinned tally for `allsymbol.LuaUndeclaredVariable.`
         keys whose symbol is in the busted ∪ luassert set (requirements → MAINT-37-06).
 
 #### Record sequence (S1–S12)
@@ -435,7 +434,7 @@ Every read follows a completed run and copy-back (Gates); a failed run or copy-b
 sequence. "Stop" always means the **stop rule** (Gates). Run the steps in order, on one branch, with
 no other edit in between.
 
-  - [ ] **S1 — Pre-gate**, on the commit the sequence starts from, before any edit: the record
+  - [x] **S1 — Pre-gate**, on the commit the sequence starts from, before any edit: the record
         command (Gates);
         `rsync -az -e "$RSH" "$BLD"/src/test/resources/corpus/ src/test/resources/corpus/`;
         `git status --porcelain -- src/test/resources/corpus/`, read only once the record run ended
@@ -462,30 +461,30 @@ no other edit in between.
 
         The sequence restarts from the commit that resolves the BUG (a branch 0 BUG with no
         resolving commit: from S1 on the same commit, stop rule step 6).
-  - [ ] **S2 — Save `old`**: `mkdir -p $SCR/old`; for each `<m>` in `MEMBERS`:
+  - [x] **S2 — Save `old`**: `mkdir -p $SCR/old`; for each `<m>` in `MEMBERS`:
         `git show HEAD:src/test/resources/corpus/<m>.baseline > $SCR/old/<m>.baseline`.
         After S1 these equal a fresh record of this commit.
-  - [ ] **S2a — `before` arms**, still on the S1 tree: `python3 tooling/corpus/fetch-corpus.py` (it
+  - [x] **S2a — `before` arms**, still on the S1 tree: `python3 tooling/corpus/fetch-corpus.py` (it
         fetches every archive the **starting** catalog pins, which a re-pin's `before` needs); then,
         for each `<m>` in `MEMBERS`, its member-alone arm with `<mode>` = `pinned`; then
         `rsync -az --delete -e "$RSH" "$BLD"/build/corpus-attribution/pinned/ $SCR/before/`.
         Each `$SCR/before/<m>.tally` is the member-alone record of the configuration `old` records
         (design §3.11 "Terms").
-  - [ ] **S2b — Offsets, old side** (first execution: **DR-08**): for each `<m>` in `MEMBERS`,
+  - [x] **S2b — Offsets, old side** (first execution: **DR-08**): for each `<m>` in `MEMBERS`,
         `python3 tooling/corpus/reconcile_baseline.py --corpus <m> --offset --old $SCR/before/<m>.tally --new $SCR/old/<m>.baseline`.
         Every invocation exits `0`: continue. Any exits `1`: stop (design §3.11 "The bound"
         says what clears it). Exit `2` is a command error: fix the arguments and re-run.
-  - [ ] **S3 — Pin edit**: add (or, for a re-pin, keep) `"definitionLibraries": [<LIBS>]` on each
+  - [x] **S3 — Pin edit**: add (or, for a re-pin, keep) `"definitionLibraries": [<LIBS>]` on each
         `PAIRED` entry of `tooling/corpus/corpus.json` (for a catalog re-pin this step is the catalog
         version change); run `python3 tooling/corpus/fetch-corpus.py`; confirm
         `test/corpus/.definitions/<id>-<version>.tar.gz` exists for every id in the closure.
-  - [ ] **S4 — Pairs**: for each `<m>` in `PAIRED`, its member-alone arm with `<mode>` = `bare`, then
+  - [x] **S4 — Pairs**: for each `<m>` in `PAIRED`, its member-alone arm with `<mode>` = `bare`, then
         with `<mode>` = `pinned`; then
         `rsync -az --delete -e "$RSH" "$BLD"/build/corpus-attribution/ $SCR/attribution/`
         and, for each `<m>` in `PAIRED`,
         `python3 tooling/corpus/attribute_delta.py --corpus <m> --bare $SCR/attribution/bare --pinned $SCR/attribution/pinned`.
-  - [ ] ⁴ **DR-04** — both arms, twice each, as risks-and-gaps specifies. On either non-empty diff, stop as specified there.
-  - [ ] ⁴ **TC 38** on DR-04's tallies (runs 1–4):
+  - [x] ⁴ **DR-04** — both arms, twice each, as risks-and-gaps specifies. On either non-empty diff, stop as specified there.
+  - [x] ⁴ **TC 38** on DR-04's tallies (runs 1–4):
         `grep -E '^(settingsBroadcasts|rootsTicks|physicalPsiChanges)=' $SCR/run{1,2}/bare/luacheck.tally $SCR/run{3,4}/pinned/luacheck.tally`
         shows `settingsBroadcasts=1` and `rootsTicks=1` in every run, and one `physicalPsiChanges`
         value across runs 1–4;
@@ -507,7 +506,7 @@ no other edit in between.
         5. **Exit `2` with that mutant's stderr prefix**: the mutant is killed. **Anything else**: stop,
            and design §2.6a returns to Step 9 review.
         6. Restore with the skill, and confirm `git status --porcelain -- src/test/kotlin` prints nothing.
-  - [ ] **S5 — Act on each pair's exit code**:
+  - [x] **S5 — Act on each pair's exit code**:
         - **0**: keep the pin.
         - **1**, in a **manifest pin** (S3 edits only `corpus.json`, leaving the catalog as at S1 —
           Phase 4, a withheld member's later pin, Phase 5): withhold the pin. Set that member's
@@ -539,15 +538,15 @@ no other edit in between.
         | row g, `highlight failures make inspection counts non-reproducible (BUG-390)` | BUG-390 on this member | as exit 1 does: in a manifest pin withhold the pin, in a catalog re-pin stop; either way the BUG references BUG-390 |
         | G-building, `not in the catalog` or `the catalog has` | the pinned arm saw a different catalog from the local tree | re-run the pinned arm (`gce-builder.sh run` re-syncs the tree) |
         | G-building, `archive … is missing` | the local `test/corpus/.definitions/` lacks it | `python3 tooling/corpus/fetch-corpus.py`, then re-run the classifier only |
-  - [ ] **S6 — Record**: the record command (Gates);
+  - [x] **S6 — Record**: the record command (Gates);
         `rsync -az -e "$RSH" "$BLD"/src/test/resources/corpus/ src/test/resources/corpus/`;
         review `git status --porcelain -- src/test/resources/corpus/` and `git diff -- src/test/resources/corpus/`.
         Every member's baseline is rewritten, not only the `PAIRED` ones, which is why S8 reconciles
         every member. A listed path that is neither a member baseline nor a torture file: stop.
-  - [ ] **S7 — Torture check**: `git diff --exit-code -- src/test/resources/corpus/torture-fuzzing-lua.baseline src/test/resources/corpus/torture-fuzzing-lua.expected-accepts`.
+  - [x] **S7 — Torture check**: `git diff --exit-code -- src/test/resources/corpus/torture-fuzzing-lua.baseline src/test/resources/corpus/torture-fuzzing-lua.expected-accepts`.
         Non-zero: stop — a definition library cannot move lexing or parsing, so the record shape is
         not reproducible.
-  - [ ] **S8 — Reconcile every member** (design §3.11), for each `<m>` in `MEMBERS`:
+  - [x] **S8 — Reconcile every member** (design §3.11), for each `<m>` in `MEMBERS`:
         - `<m>` still in `PAIRED`:
           `python3 tooling/corpus/reconcile_baseline.py --corpus <m> --old $SCR/old/<m>.baseline --new src/test/resources/corpus/<m>.baseline --before $SCR/before --bare $SCR/attribution/bare --pinned $SCR/attribution/pinned`,
           then the offset, new side:
@@ -560,8 +559,8 @@ no other edit in between.
 
         Any exit `1`: stop (design §3.11 "The bound" says what clears a stop on the bound). Exit `2`
         is a command error: fix the arguments and re-run.
-  - [ ] **S9 — Verify**: the corpus gate (no record flag) is green — TC 28.
-  - [ ] **S10 — Attribution record**: create (first time, Phase 4) or append to
+  - [x] **S9 — Verify**: the corpus gate (no record flag) is green — TC 28.
+  - [x] **S10 — Attribution record**: create (first time, Phase 4) or append to
         `docs/features/maint/37-pinned-definition-libraries/rebaseline-attribution.md`
         (front-matter `id: "MAINT-37-RESULTS"`, `type: "results"`, `parent_id: "MAINT-37"`, the same
         `folders` as this file). It holds:
@@ -572,11 +571,11 @@ no other edit in between.
           effect) under a heading per member (Risk 1.6);
         - each withheld member with its BUG ID;
         - the BUG ID for each `TRIAGE-CONTRACT` inspection id with a positive delta.
-  - [ ] **S11 — Commit**: file the BUGs (IDs claimed at commit time) with roadmap rows. Then commit
+  - [x] **S11 — Commit**: file the BUGs (IDs claimed at commit time) with roadmap rows. Then commit
         these together: `corpus.json`; for a re-pin, the catalog; every path
         `git status --porcelain -- src/test/resources/corpus/` lists; `rebaseline-attribution.md`; and
         the BUG reports.
-  - [ ] **S12 — CI**: push the branch and open its PR. The PR touches `tooling/corpus/corpus.json`
+  - [x] **S12 — CI**: push the branch and open its PR. The PR touches `tooling/corpus/corpus.json`
         or the catalog, and `src/test/resources/corpus/`, so its CI `corpus` job runs the gate on
         CI's machine with the definition archives fetched there (Gates). Green: the sequence is
         complete. Red: the PR does not merge, and Gates' branch for a phase that commits baselines
@@ -667,7 +666,7 @@ no other edit in between.
       `test_reconcile_baseline.py` — TC 39–46.
 - [x] DR-11: Phase 0's mutation proofs of the observation window (`observeRefresh`'s settle) and of
       the bare arm's drop (direct publish) — TC 36, TC 37.
-- [ ] DR-04 tallies + mutation proof of each TC 38 mutant — TC 38; DR-08 and per-member offsets and reconciliation in every record sequence.
+- [x] DR-04 tallies + mutation proof of each TC 38 mutant — TC 38; DR-08 and per-member offsets and reconciliation in every record sequence.
 - [ ] Corpus gate + mutation proof — TC 28; tally greps — TC 29, TC 30.
 - [ ] Test names (Gates): `SweepNamingGuardTest` green in the full routine suite, and the routine
       run's XML lists every method design §2.16 names — Phases 0, 1, 2, 3b.
@@ -686,6 +685,6 @@ no other edit in between.
 | Phase 2: Attribution mode in the sweep | done | Must |
 | Phase 3: Fetch and classifier tooling | done | Must |
 | Phase 3b: BUG-496 — restore the module root per member | done | Must |
-| Phase 4: busted pins and re-baseline | todo | Must |
+| Phase 4: busted pins and re-baseline | done | Must |
 | Phase 5: wxlua pin for zerobrane | blocked (TARGET-10 Phase 4) | Must |
 | Phase 6: Documentation and status | todo | Should |

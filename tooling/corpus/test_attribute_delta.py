@@ -51,6 +51,15 @@ class AttributeTest(unittest.TestCase):
         self.assertEqual(("UNEXPLAINED", "lfs:-1"), classes(rows)["inspection.LuaUndeclaredVariable"])
         self.assertEqual(1, exit_code(rows))
 
+    def test_undeclared_drop_beyond_the_symbol_tally_is_unexplained(self):
+        pinned = {**PINNED, "inspection.LuaUndeclaredVariable": "3"}
+        rows = attribute(BARE, pinned, GLOBALS)
+        self.assertEqual(
+            ("UNEXPLAINED", "; symbol tally sums to -6, inspection delta -7"),
+            classes(rows)["inspection.LuaUndeclaredVariable"],
+        )
+        self.assertEqual(1, exit_code(rows))
+
     def test_TC_22_a_moved_structural_key_is_unexplained(self):
         rows = attribute({**BARE, "requires": "5"}, {**PINNED, "requires": "6"}, GLOBALS)
         row = next(r for r in rows if r.key == "requires")

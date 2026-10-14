@@ -294,11 +294,11 @@ mapping of `NotComparable` to exit `2` belongs to `main` and is TC 32.
 ## Acceptance Criteria
 
 - [x] MAINT-37-01 — TC 1–3 pass.
-- [ ] MAINT-37-02 — TC 4–7 and TC 47 pass; CI's `corpus` job carries the `--verify` check and the catalog trigger path (design §7 "CI"); `fetch-corpus.py` places `busted-5ed85d0e….tar.gz` and `luassert-d3528bb6….tar.gz` under `test/corpus/.definitions/`.
-- [ ] MAINT-37-03 — TC 8–12 and TC 36 pass, in the routine suite (DR-01 and DR-10, executed, are their premises).
+- [x] MAINT-37-02 — TC 4–7 and TC 47 pass; CI's `corpus` job carries the `--verify` check and the catalog trigger path (design §7 "CI"); `fetch-corpus.py` places `busted-5ed85d0e….tar.gz` and `luassert-d3528bb6….tar.gz` under `test/corpus/.definitions/`.
+- [x] MAINT-37-03 — TC 8–12 and TC 36 pass, in the routine suite (DR-01 and DR-10, executed, are their premises).
 - [x] MAINT-37-04 — TC 13–17 pass.
-- [ ] MAINT-37-05 — TC 18–27, TC 32, TC 37, TC 39–46, TC 48 and TC 49 pass; DR-04 reads an empty diff for both the bare and the pinned arm; DR-08 confirms; TC 38 holds and each of its listed mutations is proven red.
-- [ ] MAINT-37-06 — **Full**: luacheck, luarocks and penlight all keep the pin, TC 28–29 hold for each, every offset and reconciliation invocation exits 0, and `rebaseline-attribution.md` records every classifier, offset and reconciliation output verbatim. **Partial**: TC 28–29 hold for every kept member, each withheld member has a filed BUG named in the MAINT epic row, and Phase 4 stays open.
+- [x] MAINT-37-05 — TC 18–27, TC 32, TC 37, TC 39–46, TC 48 and TC 49 pass; DR-04 reads an empty diff for both the bare and the pinned arm; DR-08 confirms; TC 38 holds and each of its listed mutations is proven red.
+- [x] MAINT-37-06 — **Full**: luacheck, luarocks and penlight all keep the pin, TC 28–29 hold for each, every offset and reconciliation invocation exits 0, and `rebaseline-attribution.md` records every classifier, offset and reconciliation output verbatim. **Partial**: TC 28–29 hold for every kept member, each withheld member has a filed BUG named in the MAINT epic row, and Phase 4 stays open.
 - [ ] MAINT-37-07 — TC 30 holds; every offset and reconciliation invocation exits 0; the zerobrane classifier output and every offset and reconciliation output are appended to `rebaseline-attribution.md`.
 - [ ] MAINT-37-08 — TC 31.
 - [x] MAINT-37-09 — TC 33–35 pass in the routine suite; the Phase 3b re-baseline (or "no change") is recorded in BUG-496's report.
@@ -346,3 +346,4 @@ there.
 - Design: [design.md](design.md)
 - Plan: [implementation-plan.md](implementation-plan.md)
 - Risks: [risks-and-gaps.md](risks-and-gaps.md)
+- Re-baseline attribution: [rebaseline-attribution.md](rebaseline-attribution.md)

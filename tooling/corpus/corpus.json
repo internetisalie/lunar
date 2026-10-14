@@ -42,7 +42,8 @@
       "url": "https://github.com/lunarmodules/luacheck.git",
       "commit": "cc089e3f65acdd1ef8716cc73a3eca24a6b845e4",
       "roots": ["src", "spec"],
-      "luaLevel": "LUA51"
+      "luaLevel": "LUA51",
+      "definitionLibraries": ["busted"]
     },
     {
       "name": "luarocks",
@@ -50,7 +51,8 @@
       "commit": "990ec6ca3b097c7160fe925cfca4b8e57cfe5685",
       "roots": ["src", "spec"],
       "prune": ["win32"],
-      "luaLevel": "LUA51"
+      "luaLevel": "LUA51",
+      "definitionLibraries": ["busted"]
     },
     {
       "name": "zerobrane",
@@ -66,7 +68,8 @@
       "commit": "e0bc8f7fce3b6a4fdef3660066f5006bf8456b32",
       "roots": ["lua", "spec"],
       "luaLevel": "LUA51",
-      "moduleRoot": "lua"
+      "moduleRoot": "lua",
+      "definitionLibraries": ["busted"]
     }
   ]
 }
