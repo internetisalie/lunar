@@ -2,7 +2,7 @@
 id: "MAINT-37"
 title: "37: Corpus Sweeps Run With Pinned Definition Libraries"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "MAINT"
 folders:
@@ -40,7 +40,8 @@ land first. Parent epic: [MAINT](../requirements.md).
 
 ### In Scope
 
-Everything in the Functional Requirements table below, including the fix for
+Everything in the Functional Requirements table below except MAINT-37-07 (moved to TARGET-10-12),
+including the fix for
 [BUG-496](../../bug-fixes/496-corpus-sweep-leaks-module-root-into-later-members/bug-report.md)
 (MAINT-37-09) and the existing CI `corpus` job's trigger and fixture check (MAINT-37-02).
 
@@ -48,8 +49,9 @@ Everything in the Functional Requirements table below, including the fix for
 
 - **New catalog entries.** `lfs` (luarocks, zerobrane), `bit`/`jit`/`winapi` (zerobrane) have no
   catalog entry and stay undeclared. Adding a library to the catalog is TARGET's business.
-- **Authoring the `wxlua` library.** That is [TARGET-10](../../target/10-wxlua-definition-libraries/requirements.md);
-  this feature only pins it once it is catalogued.
+- **Authoring the `wxlua` library, and pinning it for zerobrane.** Both are
+  [TARGET-10](../../target/10-wxlua-definition-libraries/requirements.md)'s; the pin is
+  TARGET-10-12 (MAINT-37-07, moved 2026-10-14), run through this feature's record sequence.
 - **Fixing what the re-baseline reveals.** Every attributed rise is filed as a BUG, per MAINT-33's
   rule that the ratchet and the fixes stay reviewable apart.
 - **Changing `net.internetisalie.lunar.definitions` production code.** The sweep consumes it as is.
@@ -57,17 +59,17 @@ Everything in the Functional Requirements table below, including the fix for
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Description |
-|----|-------------|----------|-------------|
-| MAINT-37-01 | **Manifest pin** | M | A corpus entry names the catalog libraries it uses; an id the bundled catalog does not carry fails loudly. |
-| MAINT-37-02 | **Verified offline provisioning** | M | `fetch-corpus.py` downloads every pinned archive (transitive `requires` included) into `test/corpus/.definitions/`, refusing any byte mismatch against the catalog pin; CI's `corpus` job asserts the archives are present and verified before it sweeps. The sweep never touches the network. |
-| MAINT-37-03 | **User-path enablement** | M | The sweep fetches and enables pinned libraries through `LuaDefinitionLibraryEnabler` — the class behind the settings page — so the settings-changed broadcast (library index reload, daemon restart) and the resolve-cache drop run as they do for a user; it replaces any stale cached tree, and leaves no library behind for the next member. The publish, the reload and the drop are each observed by their effect (TC 36, TC 37). |
-| MAINT-37-04 | **Pins are baseline identity** | M | The baseline records each registered library's version; a pin change fails the ratchet with a re-record instruction rather than as a regression or an improvement. |
-| MAINT-37-05 | **Attributed re-baseline** | M | Twin runs on one commit, given the same settings refresh (checked by its observed effects), produce uncapped tallies; a classifier attributes every delta to the library or blocks the re-baseline; a member-alone `before` run of the starting configuration lets a reconciliation compare each member's committed full-shape delta with its attributed delta, measure the refresh or previous-pin effect separately, check each shape offset against the bound, and block on a structural or crash residual or an out-of-bound offset. |
-| MAINT-37-06 | **busted pins** | M | luacheck, luarocks and penlight pin `busted`; their baselines are re-recorded with an attribution record. |
-| MAINT-37-07 | **wxlua pin** | M | zerobrane pins `wxlua`; its baseline is re-recorded with an attribution record. Blocked on TARGET-10 Phase 4. |
-| MAINT-37-08 | **Documented workflow** | S | `tooling/corpus/README.md` and `corpus.json`'s `$comment` describe the field, the fetch, the identity line and the attribution procedure. |
-| MAINT-37-09 | **Per-member module root (BUG-496)** | M | After each member, the sweep restores the project's `sourcePath` to the value it had before that member and, when it changed, refreshes roots — so no member's `moduleRoot` reaches a later member, as a search path or as an indexed library. Lands in its own commit and re-baseline, before any pin. |
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| MAINT-37-01 | **Manifest pin** | M | Full | A corpus entry names the catalog libraries it uses; an id the bundled catalog does not carry fails loudly. |
+| MAINT-37-02 | **Verified offline provisioning** | M | Full | `fetch-corpus.py` downloads every pinned archive (transitive `requires` included) into `test/corpus/.definitions/`, refusing any byte mismatch against the catalog pin; CI's `corpus` job asserts the archives are present and verified before it sweeps. The sweep never touches the network. |
+| MAINT-37-03 | **User-path enablement** | M | Full | The sweep fetches and enables pinned libraries through `LuaDefinitionLibraryEnabler` — the class behind the settings page — so the settings-changed broadcast (library index reload, daemon restart) and the resolve-cache drop run as they do for a user; it replaces any stale cached tree, and leaves no library behind for the next member. The publish, the reload and the drop are each observed by their effect (TC 36, TC 37). |
+| MAINT-37-04 | **Pins are baseline identity** | M | Full | The baseline records each registered library's version; a pin change fails the ratchet with a re-record instruction rather than as a regression or an improvement. |
+| MAINT-37-05 | **Attributed re-baseline** | M | Full | Twin runs on one commit, given the same settings refresh (checked by its observed effects), produce uncapped tallies; a classifier attributes every delta to the library or blocks the re-baseline; a member-alone `before` run of the starting configuration lets a reconciliation compare each member's committed full-shape delta with its attributed delta, measure the refresh or previous-pin effect separately, check each shape offset against the bound, and block on a structural or crash residual or an out-of-bound offset. |
+| MAINT-37-06 | **busted pins** | M | Full | luacheck, luarocks and penlight pin `busted`; their baselines are re-recorded with an attribution record. |
+| MAINT-37-07 | **wxlua pin** | M | Future Work | zerobrane pins `wxlua`; its baseline is re-recorded with an attribution record. Moved to [TARGET-10-12](../../target/10-wxlua-definition-libraries/requirements.md) on 2026-10-14 by the maintainer's decision. |
+| MAINT-37-08 | **Documented workflow** | S | Full | `tooling/corpus/README.md` and `corpus.json`'s `$comment` describe the field, the fetch, the identity line and the attribution procedure. |
+| MAINT-37-09 | **Per-member module root (BUG-496)** | M | Full | After each member, the sweep restores the project's `sourcePath` to the value it had before that member and, when it changed, refreshes roots — so no member's `moduleRoot` reaches a later member, as a search path or as an indexed library. Lands in its own commit and re-baseline, before any pin. |
 
 ## Detailed Specifications
 
@@ -201,7 +203,7 @@ by TC 35's control half.
   `parseErrors`, oracle or lexer counters, or crashes: those deltas are `UNEXPLAINED` by rule.
 - **An `UNEXPLAINED` row blocks that corpus's pin.** When the pin is a manifest edit, the pin is
   left out of the commit and the row is filed as a BUG; other corpora proceed. The requirement that
-  pin belongs to is Partial until the BUG closes and the pin lands (MAINT-37-06 above; MAINT-37-07
+  pin belongs to is Partial until the BUG closes and the pin lands (MAINT-37-06 above; TARGET-10-12
   likewise). When the change is a catalog re-pin, the whole re-pin stops and none of it lands: the
   old version leaves the catalog with the change, so one member cannot be held back on it.
 - **A member's project state does not outlive it.** Libraries and `sourcePath` are both restored
@@ -270,7 +272,7 @@ mapping of `NotComparable` to exit `2` belongs to `main` and is TC 32.
 | 27 | MAINT-37-05 | synthetic archive: `p/library/a.lua` = `function describe(n) end`, `context = describe`, `local x = 1`, `  function nested() end`, `function M.f() end`, `x == y`; `p/spec/b.lua` = `function outside() end`; `p/config.json` | `library_globals(archive, "p/library")` | `{"describe", "context"}` | unanchored regex (→ `nested`); ignore the prefix (→ `outside`) |
 | 28 | MAINT-37-06 | the re-recorded baselines | `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache --tests '*Corpus*' -PwithCorpus"` | green; every member whose `busted` pin was kept carries `library.busted=5ed85d0e016a5eb5eca097aa52905eedf1b180f1` and `library.luassert=d3528bb679302cbfdedefabb37064515ab95f7b9`; zerobrane's baseline, and any withheld member's, carries no `library.` line | remove the `libraries` copy in `CorpusSweep.run` → red with `Definition-library pins changed` |
 | 29 | MAINT-37-06 | each kept member's `pinned` tally | grep `allsymbol.LuaUndeclaredVariable.`; `attribute_delta.py` | no key whose symbol is in the busted ∪ luassert global set above; `attribute_delta.py` exits 0 for each kept member | pin nothing (→ every `describe`/`it` key present) |
-| 30 | MAINT-37-07 | zerobrane's `bare` and `pinned` tallies | grep, `attribute_delta.py` | pinned has no `allsymbol.LuaUndeclaredVariable.wx`, `.wxstc` or `.wxaui` key; exit 0; baseline carries `library.wxlua=<catalog version>` | drop zerobrane's `definitionLibraries` (→ the `wx` keys stay, and `stage` returns empty so `enable` fires no broadcast, so the pinned tally reads `settingsBroadcasts=0` against the bare arm's `1` and the classifier exits 2 at design §3.5 row d, before row f's "no library" check is reached) |
+| 30 | MAINT-37-07 (now TARGET-10-12) | zerobrane's `bare` and `pinned` tallies | grep, `attribute_delta.py` | pinned has no `allsymbol.LuaUndeclaredVariable.wx`, `.wxstc` or `.wxaui` key; exit 0; baseline carries `library.wxlua=<catalog version>` | drop zerobrane's `definitionLibraries` (→ the `wx` keys stay, and `stage` returns empty so `enable` fires no broadcast, so the pinned tally reads `settingsBroadcasts=0` against the bare arm's `1` and the classifier exits 2 at design §3.5 row d, before row f's "no library" check is reached) |
 | 31 | MAINT-37-08 | `tooling/corpus/README.md`, `corpus.json` | `grep -c definitionLibraries`, `grep -c corpusAttribution` | each ≥ 1 in the README; `definitionLibraries` ≥ 1 in `$comment` | (documentation check) |
 | 32 | MAINT-37-05 | a temp dir holding `bare/a.tally` = **B** and `pinned/a.tally` = **P**, one `key=value` per line; `catalog.json` = `{"catalogVersion":1,"libraries":[{"id":"busted","version":"w"}]}`; an empty `defs/` | `main(["--corpus","a","--bare",<bare>,"--pinned",<pinned>,"--definitions",<defs>,"--catalog",<catalog.json>])` | returns `2`; stderr contains `attribute_delta: not comparable: library busted: the pinned tally carries v, the catalog has w` | let `NotComparable` propagate out of `main` (the test errors instead of reading `2`); or skip the version check (G-building then opens `defs/busted-v.tar.gz` and the message is the missing-archive one) |
 | 33 | MAINT-37-09 | `saved = CorpusSourcePath.snapshot(project)`; then `state.sourcePath = "/nonexistent/?.lua"` | `CorpusSourcePath.restore(project, saved)` | returns `true`; `state.sourcePath == saved` | `restore` returns without writing |
@@ -299,10 +301,10 @@ mapping of `NotComparable` to exit `2` belongs to `main` and is TC 32.
 - [x] MAINT-37-04 — TC 13–17 pass.
 - [x] MAINT-37-05 — TC 18–27, TC 32, TC 37, TC 39–46, TC 48 and TC 49 pass; DR-04 reads an empty diff for both the bare and the pinned arm; DR-08 confirms; TC 38 holds and each of its listed mutations is proven red.
 - [x] MAINT-37-06 — **Full**: luacheck, luarocks and penlight all keep the pin, TC 28–29 hold for each, every offset and reconciliation invocation exits 0, and `rebaseline-attribution.md` records every classifier, offset and reconciliation output verbatim. **Partial**: TC 28–29 hold for every kept member, each withheld member has a filed BUG named in the MAINT epic row, and Phase 4 stays open.
-- [ ] MAINT-37-07 — TC 30 holds; every offset and reconciliation invocation exits 0; the zerobrane classifier output and every offset and reconciliation output are appended to `rebaseline-attribution.md`.
-- [ ] MAINT-37-08 — TC 31.
+- [ ] MAINT-37-07 — moved to [TARGET-10-12](../../target/10-wxlua-definition-libraries/requirements.md), whose acceptance line carries this one's (TC 30). Not a criterion of this feature.
+- [x] MAINT-37-08 — TC 31: `grep -c definitionLibraries` and `grep -c corpusAttribution` on `tooling/corpus/README.md` each print `3`; `corpus.json`'s `$comment` has one `definitionLibraries` line.
 - [x] MAINT-37-09 — TC 33–35 pass in the routine suite; the Phase 3b re-baseline (or "no change") is recorded in BUG-496's report.
-- [ ] No file under `src/main/` is modified.
+- [x] No file under `src/main/` is modified (implementation-plan → Verification Tasks).
 
 ## Non-Functional Requirements
 
@@ -312,8 +314,8 @@ mapping of `NotComparable` to exit `2` belongs to `main` and is TC 32.
   The enabler marshals its refresh with `invokeLater`; the sweep drains it with
   `PlatformTestUtil.dispatchAllEventsInIdeEventQueue()` before measuring. The one direct roots change
   (`refreshRoots`) runs inside `runWriteAction`, as `PlatformLibraryIndex.reload` does.
-- **Sweep cost.** `elapsedMs` stays advisory (MAINT-33-09); `wxlua`'s cost is measured at Phase 5
-  (DR-05), never gated. A pinned member pays a user's cost: a stub-index rebuild in `enable` and in
+- **Sweep cost.** `elapsedMs` stays advisory (MAINT-33-09); `wxlua`'s cost is measured by DR-05 in
+  TARGET-10 Phase 5b, never gated. A pinned member pays a user's cost: a stub-index rebuild in `enable` and in
   `release`. A record sequence adds one member-alone `before` run per member (S2a).
 - **Licensing.** Archives are fetched into the out-of-repo `test/` tree and never committed, so no
   third-party file enters this repository; each archive's licence is its catalog entry's `license`
@@ -327,11 +329,8 @@ mapping of `NotComparable` to exit `2` belongs to `main` and is TC 32.
 - **TARGET-08** (`done`) — catalog, fetcher, extractor, provider.
 - **BUG-417** (`done`) — inspection independence; without it a delta is not attributable to the
   library.
-- **TARGET-10** (`in_progress`) — **only MAINT-37-07 / Phase 5 depends on it**, and only on
-  TARGET-10 **Phase 4 (Publish and catalogue)**, checked by this feature itself
-  (implementation-plan → Phase 5 precondition). The roadmap row's `Depends on` cell deliberately
-  omits TARGET-10, because a listed edge would make the whole row not-ready and hide the startable
-  phases; TARGET-10's `Unblocks` cell and this section carry the edge.
+- **TARGET-10** — none. The one requirement that depended on it, MAINT-37-07, moved to it as
+  TARGET-10-12 on 2026-10-14.
 - **BUG-496** — delivered here as MAINT-37-09 (Phase 3b), in its own commit before any pin.
 
 ## Human Verification

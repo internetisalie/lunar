@@ -20,7 +20,7 @@ folders:
 > removed from this roadmap and live in git history. **Remaining work is all post-MVP:** the
 > **Wave 20 follow-ons** (corpus-sweep fixes + the consolidated loose backlog, incl. MAINT-21 —
 > deferred, externally blocked on the unreleased 2026.2 platform), the **Wave 21 definition-library
-> stream** (TARGET-07/09/10, MAINT-37 and their bug follow-ons), and the **AI epic (Wave 22)**.
+> stream** (TARGET-07/09/10 and their bug follow-ons), and the **AI epic (Wave 22)**.
 >
 > **Waves map to releases: wave N ships as `v0.N.x`.** Wave 20 → v0.20.0/v0.20.1,
 > Wave 21 → v0.21.0.
@@ -110,12 +110,11 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | TARGET-07 | Lua 5.5 standard-library stubs | planned | C | SYNTAX-09 *(Lua 5.5, done)* | — | ✓ |
 | ANALYSIS-07 | Value constraints over the CFG — the type engine and the control-flow graph are two flow analyses that never speak | planned | **L** | ANALYSIS-06 *(CFG, done)*, TYPE-08 *(flow-sensitive, done)* | — | — |
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
-| TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog | **in_progress** | C | — | MAINT-37 *(zerobrane member scope)* | ✓ |
+| TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog; includes the ZeroBrane corpus `wxlua` pin (TARGET-10-12, ex-MAINT-37 Phase 5) | **in_progress** | C | — | — | ✓ |
 | TYPE-14 | Generics — the LuaLS closed baseline (nested positions, cross-file callees, methods, generic classes, grammar) plus a constraint's bound in the body | **planned** | **M** | TYPE-05 *(done)*, TYPE-10 *(done)*, TYPE-13 *(done)*, MAINT-34 *(done)* | closes BUG-420 | needs a parser regen (local-only) |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | **TYPE-14** *(Phase 5 closes it — do not fix twice)* | — | ✓ |
 | BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |
 | MAINT-39 | A LuaCATS-annotated corpus — the sweep cannot see the annotated path at all | todo | M | TYPE-12 *(done)* | 0 of 734 corpus files carry any `---@` tag; corpus is pre-LuaCATS-era Lua, so the whole luacats subsystem and the annotated type engine are unswept — BUG-473 lived there undetected. Staged: DR-6 fixture, then S6, then real projects | ✓ |
-| MAINT-37 | Corpus sweeps run with pinned definition libraries | **in_progress** | S | **BUG-417** *(inspection independence — **done**; had to land first or the re-baseline would be unattributable)*; TARGET-08 *(done)* | — | ✓ |
 | MAINT-40 | Corpus sweep results stored per commit — SARIF findings under an environment-derived suite name, so a "before" is a fetch, not a re-record | todo | M | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |

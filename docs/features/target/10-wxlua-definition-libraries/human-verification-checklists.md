@@ -135,7 +135,8 @@ title: "Verification Checklists"
      `wxlua` disabled.
 - **Expected**: a substantial drop, concentrated on `wx.*`, `wxstc.*` and `wxaui.*` identifiers.
   Remaining warnings are ZeroBrane's own globals (`ide`, `ide.config`, `mobdebug`), which this
-  feature does not address. Note the before/after numbers — MAINT-37 needs them.
+  feature does not address. Note the before/after numbers beside Phase 5b's ZeroBrane re-baseline
+  (TARGET-10-12).
 - **Before / after**: ______ / ______
 - **Result**: ⬜ Pass / ⬜ Fail
 

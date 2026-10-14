@@ -1091,7 +1091,7 @@ as S3.
 
 ## 6. Edge Cases
 
-- **Entry with no pins** (zerobrane until Phase 5): `stage` and `enable` return empty, no broadcast
+- **Entry with no pins** (zerobrane until TARGET-10 Phase 5b): `stage` and `enable` return empty, no broadcast
   fires, `libraries = {}`, baseline has no `library.` line — identical to today.
 - **Stale tree in the shared cache root**: deleted before extraction (§3.3 "Stage", `fetchLocally` step 2; TC 10).
 - **Archive absent on the builder** (fetch not run, or rsync skipped `test/`): `stage` fails with
@@ -1154,7 +1154,7 @@ as S3.
 | MAINT-37-04 | M | §2.2, §2.3, §2.5, §3.9, §4.3, §2.16 (test names) |
 | MAINT-37-05 | M | §2.6, §2.6a, §2.7, §2.9, §2.12, §2.15, §3.5, §3.6, §3.8, §3.11, §3.12, §3.13, §4.4, §4.5, §4.7, §2.16 (test names) |
 | MAINT-37-06 | M | §4.1 data change; procedure in implementation-plan Phase 4 |
-| MAINT-37-07 | M | §4.1 data change; procedure in implementation-plan Phase 5 |
+| MAINT-37-07 | M | moved to TARGET-10-12: §4.1 data change, procedure in TARGET-10 implementation-plan Phase 5b |
 | MAINT-37-08 | S | implementation-plan Phase 6 |
 | MAINT-37-09 | M | §2.7, §2.13, §2.14, §3.4 (`refreshRoots`), §3.10, §2.16 (test names) |
 

@@ -12,11 +12,9 @@ folders:
 > **Precondition**: [design.md](design.md) has cleared the bar. Done de-risking (each row in
 > [risks-and-gaps.md](risks-and-gaps.md) carries its record): DR-01, DR-02, DR-03, DR-07, DR-07b,
 > DR-09, DR-09b, DR-10, DR-11, DR-06, DR-12, and, in Phase 4, DR-08 (step S2b) and DR-04 (after
-> step S4). **Remaining**, with every outcome specified in its row: DR-05 in Phase 5.
+> step S4). DR-05 runs with the `wxlua` pin, in TARGET-10 Phase 5b (see Phase 5 below).
 >
-> **Startable now: Phases 0, 1, 2, 3, 3b, 4 and 6.** **Phase 5 is blocked on TARGET-10 Phase 4**
-> (the `wxlua` catalog entry on `main`, loadable — Phase 5's precondition says how this feature
-> checks it). Nothing else here depends on TARGET-10.
+> Nothing in this plan depends on TARGET-10.
 >
 > **Scope guard for every phase**: no file under `src/main/` is modified. All Kotlin is test code in
 > `src/test/kotlin/net/internetisalie/lunar/corpus/`. The one CI file changed is
@@ -168,7 +166,7 @@ runs the corpus gate on a `lunar-ci` VM, not the builder that recorded the basel
 every push to `main`, on `v*` tags, and on a PR whose diff matches the `changes` job's filter
 (`:102`): `tooling/corpus/`, `tooling/ci-image/`, `src/test/resources/corpus/`,
 `src/test/kotlin/net/internetisalie/lunar/corpus/`, the workflow file, and — after Phase 3's edit —
-`src/main/resources/definitions/`. Each of Phases 0–5 touches one of those paths, and exits only when
+`src/main/resources/definitions/`. Each of Phases 0–4 (and TARGET-10 Phase 5b) touches one of those paths, and exits only when
 its PR run's `corpus` job is green, read from the job
 (`GET /api/v1/repos/lunar/lunar/actions/runs/{id}/jobs`, response `{"jobs":[…],"total_count":…}`,
 format: Evidence E-3), not from the run, whose status can stay "in progress" (repo guide, CI
@@ -187,7 +185,7 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
   diagnostics" lines; for "Provision pinned fixtures" on a phase after Phase 3 (an archive failing
   `--verify`, such as a GitHub repack, Risk 1.2) it includes the `definition_pins.py --verify`
   message naming the archive. It is the gate failing on CI's machine for this phase's tree (Risk 1.9).
-  For a phase that commits baselines (3b, 4, 5), close the PR unmerged; the phase restarts from the
+  For a phase that commits baselines (3b, 4, TARGET-10 Phase 5b), close the PR unmerged; the phase restarts from the
   commit that resolves the BUG. For Phases 0–3, the PR stays open and unmerged until that BUG is
   resolved, and the phase exits on a green re-run of the job.
 
@@ -421,7 +419,8 @@ log (`…/actions/jobs/{jobId}/logs`) for the step that failed.
 #### Record sequence (S1–S12)
 
 This is the **one** procedure for every re-record that adds or changes a pin: Phase 4's busted pins,
-a withheld member's later pin (below), Phase 5's `wxlua` pin, and a catalog re-pin (whose S3 is the
+a withheld member's later pin (below), the `wxlua` pin
+([TARGET-10 Phase 5b](../../target/10-wxlua-definition-libraries/implementation-plan.md)), and a catalog re-pin (whose S3 is the
 catalog change, and whose `PAIRED` is every member whose `definitionLibraries` closure contains the
 re-pinned id). Its inputs are `PAIRED` — the members whose pin is added or changed — and `LIBS`, the
 catalog ids being pinned. `SCR` is `$HOME/.cache/claude-scratch/lunar/maint-37`. `MEMBERS` is the
@@ -509,7 +508,7 @@ no other edit in between.
   - [x] **S5 — Act on each pair's exit code**:
         - **0**: keep the pin.
         - **1**, in a **manifest pin** (S3 edits only `corpus.json`, leaving the catalog as at S1 —
-          Phase 4, a withheld member's later pin, Phase 5): withhold the pin. Set that member's
+          Phase 4, a withheld member's later pin, TARGET-10 Phase 5b): withhold the pin. Set that member's
           `definitionLibraries` in `corpus.json` back to its value at S1 (as
           `git show HEAD:tooling/corpus/corpus.json` shows it; for every member these phases pin, that
           means removing the field) and remove the member from `PAIRED`. Its configuration is then
@@ -582,7 +581,7 @@ no other edit in between.
         applies — close the PR unmerged; the BUG carries the job's diagnostics; the sequence
         restarts from the commit that resolves it.
 
-- **Exit criteria** — two completion states, mirroring Phase 5:
+- **Exit criteria** — two completion states:
   - **Done** — every member Phase 4 started with in `PAIRED` kept its pin (classifier exit 0 each);
     every S2b and S8 invocation exited 0; DR-08 confirmed; TC 28, TC 29 and TC 38 hold; the torture
     files are unchanged; `rebaseline-attribution.md` exists and lints; the PR's CI `corpus` job is
@@ -598,48 +597,26 @@ no other edit in between.
     `busted`; when it commits and no member remains withheld, the phase is Done and MAINT-37-06 is
     Full.
 
-### Phase 5: wxlua pin for zerobrane [Must] — blocked on TARGET-10 Phase 4
-- **Precondition** — TARGET-10 Phase 4's exit criterion (`LuaDefinitionCatalogLoader.load()`
-  succeeds with the new entry), checked by this feature itself, on `main`:
-  1. `git grep -n '"id": "wxlua"' main -- src/main/resources/definitions/lunar-definitions-catalog.json`
-     prints a line.
-  2. The fields this feature consumes are well formed:
-     `git show main:src/main/resources/definitions/lunar-definitions-catalog.json | python3 -c 'import json,sys; e=[l for l in json.load(sys.stdin)["libraries"] if l["id"]=="wxlua"][0]; assert e["rootPrefix"].endswith("/library") and e.get("requires", [])==[] and e["sha256"] and e["size"]>0 and all(e["version"] in u for u in e["urls"]), e; print("ok", e["version"])'`
-     prints `ok <version>`.
-  3. The loader accepts the catalog: `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache --tests '*LuaDefinitionCatalogLoaderTest*'"`
-     on `main` is green — its existing `bundledCatalogLoads` and `everyBundledEntryIsPinnedAndAttributed`
-     (`LuaDefinitionCatalogLoaderTest.kt:46`, `:58`) load the bundled resource and walk every entry.
-  TARGET-10's own `wxlua`-specific loader assertion arrives in its Phase 5 and is not required.
-  If any check fails, this phase stays blocked.
-- **Goal**: zerobrane sweeps with `wxlua`, attributed.
-- **Tasks**: run Phase 4's **record sequence** (S1–S12) with `PAIRED` = `zerobrane` and `LIBS` =
-  `wxlua`, without the ⁴ steps, adding only:
-  - [ ] At S4, **DR-05**: keep both `elapsedMs` lines and both `unresolvedRequires` values.
-  - [ ] At S5, an exit of 1 also gets the BUG linked from TARGET-10's `risks-and-gaps.md`.
-  - [ ] After S7, `git diff --exit-code -- src/test/resources/corpus/luacheck.baseline src/test/resources/corpus/luarocks.baseline src/test/resources/corpus/penlight.baseline`
-        — the busted-pinned members precede zerobrane and gain nothing; non-zero: stop. Then
-        confirm TC 30.
-  - [ ] At S10, also append DR-05's figures (both `elapsedMs` and both `unresolvedRequires` values).
-- **Exit criteria**: TC 30 holds; every S2b and S8 invocation exited 0; corpus gate green;
-  torture files unchanged; the PR's CI `corpus` job green (S12). With the pin
-  withheld (exit 1), the phase stays open and MAINT-37-07 reads **Partial** with the BUG ID, as in
-  Phase 4.
+### Phase 5: wxlua pin for zerobrane — moved to TARGET-10
+Moved to [TARGET-10 Phase 5b](../../target/10-wxlua-definition-libraries/implementation-plan.md)
+on 2026-10-14 by the maintainer's decision, as requirement TARGET-10-12. Its text now lives there;
+it runs this plan's Phase 4 record sequence (S1–S12) with `PAIRED` = `zerobrane`, `LIBS` = `wxlua`.
 
 ### Phase 6: Documentation and status [Should]
 - **Goal**: the workflow is discoverable and the tracker matches reality.
 - **Tasks**:
-  - [ ] `tooling/corpus/README.md`: replace the stale `fetch-corpus.sh`/`corpus.tsv` references with
+  - [x] `tooling/corpus/README.md`: replace the stale `fetch-corpus.sh`/`corpus.tsv` references with
         `fetch-corpus.py`/`corpus.json`; document `definitionLibraries`, `test/corpus/.definitions/`,
         the `library.<id>` identity row in the "What is measured" table, and the attribution
         tools (`-PcorpusAttribution=bare|pinned`, the refresh lines, `attribute_delta.py`
         and `reconcile_baseline.py` — pair, no-pair and `--offset` modes — with their exit codes), and a link to this plan's Phase 4
         **record sequence** (S1–S12) as the procedure for any later pin or re-pin — linked, not
         copied, so the procedure keeps one home — TC 31.
-  - [ ] When Phases 4 and 5 are both **Done** (not "committed but open"): set this feature's
-        `status: done`, set the MAINT epic table row to **Full**, and delete the MAINT-37 row from
-        `docs/roadmap.md`. Otherwise the feature stays `in_progress` and the epic row reads
+  - [x] When Phase 4 is **Done** (not "committed but open"; Phase 5 moved to TARGET-10): set this
+        feature's `status: done`, set the MAINT epic table row to **Full**, and delete the MAINT-37
+        row from `docs/roadmap.md`. Otherwise the feature stays `in_progress` and the epic row reads
         **Partial**.
-  - [ ] `python3 scripts/lint_docs.py docs` and `python3 scripts/lint_planning.py` clean.
+  - [x] `python3 scripts/lint_docs.py docs` and `python3 scripts/lint_planning.py` clean.
 - **Exit criteria**: TC 31; linters clean.
 
 ## Requirement → Phase Coverage
@@ -650,9 +627,9 @@ no other edit in between.
 | MAINT-37-02 | M | Phase 3 (including the CI `corpus` job's trigger and archive check) |
 | MAINT-37-03 | M | Phase 0, Phase 2 (sweep wiring) |
 | MAINT-37-04 | M | Phase 1 |
-| MAINT-37-05 | M | Phase 0 (`refreshUnpinned`, `observeRefresh`, `requireSettingsSubscriber`, `CorpusRefreshProbe`, TC 37), Phase 2, Phase 3, Phase 4 (record sequence, DR-08, DR-04, TC 38), Phase 5 (record sequence) |
+| MAINT-37-05 | M | Phase 0 (`refreshUnpinned`, `observeRefresh`, `requireSettingsSubscriber`, `CorpusRefreshProbe`, TC 37), Phase 2, Phase 3, Phase 4 (record sequence, DR-08, DR-04, TC 38); the `wxlua` run of the record sequence moved to TARGET-10-12 |
 | MAINT-37-06 | M | Phase 4 |
-| MAINT-37-07 | M | Phase 5 |
+| MAINT-37-07 | M | moved to TARGET-10-12 (TARGET-10 Phase 5b) |
 | MAINT-37-08 | S | Phase 3 (`$comment`), Phase 6 (README) |
 | MAINT-37-09 | M | Phase 3b |
 
@@ -667,14 +644,17 @@ no other edit in between.
 - [x] DR-11: Phase 0's mutation proofs of the observation window (`observeRefresh`'s settle) and of
       the bare arm's drop (direct publish) — TC 36, TC 37.
 - [x] DR-04 tallies + mutation proof of each TC 38 mutant — TC 38; DR-08 and per-member offsets and reconciliation in every record sequence.
-- [ ] Corpus gate + mutation proof — TC 28; tally greps — TC 29, TC 30.
-- [ ] Test names (Gates): `SweepNamingGuardTest` green in the full routine suite, and the routine
+- [x] Corpus gate + mutation proof — TC 28; tally greps — TC 29. (TC 30 moved to TARGET-10 Phase 5b.)
+- [x] Test names (Gates): `SweepNamingGuardTest` green in the full routine suite, and the routine
       run's XML lists every method design §2.16 names — Phases 0, 1, 2, 3b.
 - [x] The `changes`-filter checks — Phase 3.
-- [ ] No-movement check, parts A and B, each read after a completed record and copy-back — Phases 1 and 2.
-- [ ] The PR's CI `corpus` job green — Phases 0–5 (Gates; S12 in every record sequence).
-- [ ] README/`$comment` greps — TC 31.
-- [ ] `git diff --stat <phase-0-base>..HEAD -- src/main` is empty across the feature.
+- [x] No-movement check, parts A and B, each read after a completed record and copy-back — Phases 1 and 2.
+- [x] The PR's CI `corpus` job green — Phases 0–4 (Gates; S12 in every record sequence): `corpus`
+      `completed` `success` on the last PR run of each phase (runs 24971, 24986, 24999, 25010,
+      25043) and on `main` at `ef0f0227` (run 25047).
+- [x] README/`$comment` greps — TC 31.
+- [x] No MAINT-37 commit touches `src/main`: `git log 5038edc7..ef0f0227 -- src/main` (Phase 0's
+      base to Phase 4's merge) lists only `03d1eb8a`, BUG-456's debugger fix.
 
 ## Task Summary
 
@@ -686,5 +666,5 @@ no other edit in between.
 | Phase 3: Fetch and classifier tooling | done | Must |
 | Phase 3b: BUG-496 — restore the module root per member | done | Must |
 | Phase 4: busted pins and re-baseline | done | Must |
-| Phase 5: wxlua pin for zerobrane | blocked (TARGET-10 Phase 4) | Must |
-| Phase 6: Documentation and status | todo | Should |
+| Phase 5: wxlua pin for zerobrane | moved to TARGET-10 | Must |
+| Phase 6: Documentation and status | done | Should |

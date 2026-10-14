@@ -73,8 +73,8 @@ actually fixed?
   today's engine this feature's ~10,000 contracts put **zero** through the declared-demand path.
   **Sequencing decision, 2026-08-07: BUG-423, BUG-424 and BUG-425 all land BEFORE this feature.**
   That dissolves the problem rather than mitigating it. Had TARGET-10 shipped first, its contracts
-  would have been inert — and inert is a fuse, not safety: the corpus sweep carries no definition
-  libraries (MAINT-37, `todo`), so BUG-425's own verification would have been blind to the
+  would have been inert — and inert is a fuse, not safety: the corpus sweep then carried no definition
+  libraries (MAINT-37 was `todo`), so BUG-425's own verification would have been blind to the
   population it activated, and ~10,000 unvalidated contracts would have arrived in users' editors at
   once, attributable to neither feature. With 425 landing first the mechanism is live **before** the
   data exists, so every contract this feature adds is live on arrival, measured by this feature's own
@@ -203,6 +203,13 @@ actually fixed?
   unknown". TARGET-10 removes **1,877 of those 1,945** (`zerobrane.baseline`), taking the unknown
   share to roughly 3 %. The landed rule stands on its own measurement, but the ZeroBrane framing
   that motivates the *remaining* defects 1–2 stops being true once this lands.
+
+### Risk 1.7: The ZeroBrane re-baseline (Phase 5b)
+
+- **Its risks are MAINT-37's**, because Phase 5b runs MAINT-37's record sequence unchanged:
+  [MAINT-37 risks-and-gaps.md](../../maint/37-pinned-definition-libraries/risks-and-gaps.md)
+  Risk 1.1, Risk 1.4 and Risk 1.6, each with its mitigation there. A BUG filed at Phase 5b's S5 is
+  linked here.
 
 ### Risk 1.2: The emitted shape resolves in tests but not in a real IDE
 

@@ -218,6 +218,45 @@ title: "Implementation Plan"
 - **Exit criteria**: every TC 1–16 has a passing automated check; the **full** suite is green
   (`--rerun --no-build-cache`, per the gce-builder cache lesson), not just `--tests *WxLua*`.
 
+### Phase 5b: ZeroBrane pinned with `wxlua` [Must]
+
+The procedure, its gates and its stop rule are MAINT-37's, and stay there:
+[MAINT-37 implementation-plan.md](../../maint/37-pinned-definition-libraries/implementation-plan.md),
+**Phase 4 record sequence S1–S12** (with the "Gates" section it cites). This phase supplies its inputs
+and the additions below; it copies none of it. DR-05 is defined in
+[MAINT-37 risks-and-gaps.md](../../maint/37-pinned-definition-libraries/risks-and-gaps.md)
+(`MAINT-37-00-DR-05`), TC 30 in
+[MAINT-37 requirements.md](../../maint/37-pinned-definition-libraries/requirements.md#test-cases).
+
+- **Precondition** — Phase 4 merged on `main`, checked on `main` itself:
+  1. `git grep -n '"id": "wxlua"' main -- src/main/resources/definitions/lunar-definitions-catalog.json`
+     prints a line.
+  2. The fields the sweep consumes are well formed:
+     `git show main:src/main/resources/definitions/lunar-definitions-catalog.json | python3 -c 'import json,sys; e=[l for l in json.load(sys.stdin)["libraries"] if l["id"]=="wxlua"][0]; assert e["rootPrefix"].endswith("/library") and e.get("requires", [])==[] and e["sha256"] and e["size"]>0 and all(e["version"] in u for u in e["urls"]), e; print("ok", e["version"])'`
+     prints `ok <version>`.
+  3. The loader accepts the catalog: `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache --tests '*LuaDefinitionCatalogLoaderTest*'"`
+     on `main` is green — its `bundledCatalogLoads` and `everyBundledEntryIsPinnedAndAttributed`
+     load the bundled resource and walk every entry.
+  This feature's Phase 5 (with its `wxlua`-specific loader assertion) need not be done first. If
+  any check fails, this phase waits.
+- **Goal**: zerobrane sweeps with `wxlua`, attributed (TARGET-10-12).
+- **Tasks**: run the record sequence with `PAIRED` = `zerobrane` and `LIBS` = `wxlua`, without the
+  steps marked ⁴ (Phase-4-only), adding only:
+  - [ ] At S4, **DR-05**: keep both `elapsedMs` lines and both `unresolvedRequires` values.
+  - [ ] At S5, an exit of 1 also gets the BUG linked from this feature's
+        [risks-and-gaps.md](risks-and-gaps.md).
+  - [ ] After S7, `git diff --exit-code -- src/test/resources/corpus/luacheck.baseline src/test/resources/corpus/luarocks.baseline src/test/resources/corpus/penlight.baseline`
+        — the busted-pinned members precede zerobrane and gain nothing; non-zero: stop. Then
+        confirm TC 30.
+  - [ ] At S10, append to MAINT-37's
+        [rebaseline-attribution.md](../../maint/37-pinned-definition-libraries/rebaseline-attribution.md)
+        as the sequence specifies, and also DR-05's figures (both `elapsedMs` and both
+        `unresolvedRequires` values); record DR-05's outcome in its row.
+- **Exit criteria**: TC 30 holds; every S2b and S8 invocation exited 0; corpus gate green;
+  torture files unchanged; the PR's CI `corpus` job green (S12). TARGET-10-12 is then **Full**.
+  With the pin withheld (S5 exit 1), the phase stays open and TARGET-10-12 reads **Partial** with
+  the BUG ID, as MAINT-37's Phase 4 exit criteria describe for a withheld member.
+
 ### Phase 6: Documentation and status [Should]
 
 - **Goal**: the feature is discoverable and the tracker reflects reality.
@@ -230,7 +269,7 @@ title: "Implementation Plan"
         (if DR-02 landed on Branch B) that `wx.wxFileName.GetCwd()` does not complete.
   - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) against a real IDE.
   - [ ] Set this feature's front-matter `status: done`; delete the TARGET-10 row from
-        `docs/roadmap.md`; note in MAINT-37 that its blocker is cleared.
+        `docs/roadmap.md`.
   - [ ] `python3 scripts/lint_docs.py docs` and `python3 scripts/lint_planning.py` clean.
 - **Exit criteria**: checklists recorded Pass; linters clean; roadmap row removed.
 
@@ -249,6 +288,7 @@ title: "Implementation Plan"
 | TARGET-10-09 | S | Phase 3 |
 | TARGET-10-10 | S | Phase 4 |
 | TARGET-10-11 | C | Phase 4 |
+| TARGET-10-12 | M | Phase 5b |
 
 ## Verification Tasks
 
@@ -271,4 +311,5 @@ title: "Implementation Plan"
 | Phase 3b: Type-error delta | todo | Must |
 | Phase 4: Publish and catalogue | todo | Must |
 | Phase 5: Acceptance tests | todo | Must |
+| Phase 5b: ZeroBrane pinned with `wxlua` | todo | Must |
 | Phase 6: Documentation and status | todo | Should |

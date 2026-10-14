@@ -951,9 +951,9 @@ persists the id and dispatches the existing background fetch → `LuaArtifactDow
 consume `---@meta` → typing `wx.wxFra` offers `wxFrame`; `local f = wx.wxFrame(nil, wx.wxID_ANY, "t")`
 infers `wxFrame`; `f:` offers `Show`, `Close`, and everything inherited from `wxTopLevelWindow`.
 
-### Example 3: MAINT-37 re-baselines ZeroBrane
+### Example 3: The ZeroBrane sweep re-baselines with `wxlua`
 
-MAINT-37 pins `wxlua` for the ZeroBrane sweep → `require("wx")` resolves via `library/wx.lua`
+Phase 5b (TARGET-10-12) pins `wxlua` for the ZeroBrane sweep through MAINT-37's record sequence → `require("wx")` resolves via `library/wx.lua`
 (§3.5.1), removing it from the 19 `unresolvedRequires` recorded in
 [MAINT-33's checklist](../../maint/33-corpus-sweep/human-verification-checklists.md) → the
 `LuaUndeclaredVariable` floor drops by the ~300 covered `wx`/`wxstc`/`wxaui` members, making the
@@ -1066,6 +1066,7 @@ existing `LibraryRootTestCase` (`:33`). No new test infrastructure.
 | TARGET-10-09 | S | §2.4, §3.8, §4.3 |
 | TARGET-10-10 | S | §7 (attribution) |
 | TARGET-10-11 | C | §4.2 (unknown fields ignored), §7 (catalog JSON) |
+| TARGET-10-12 | M | §5 Example 3; the mechanism is MAINT-37's design §4.1 (data change), procedure in implementation-plan Phase 5b |
 
 ## 9. Alternatives Considered
 

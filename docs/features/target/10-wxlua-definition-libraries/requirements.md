@@ -21,8 +21,10 @@ for wxLua exists**, so this feature generates one from wxLua's own `.i` binding-
 publishes it as a standalone LuaCATS-shaped repository, and adds a single pinned entry to the
 [TARGET-08](../08-on-demand-definition-libraries/requirements.md) catalog.
 
-Parent epic: [TARGET](../requirements.md). Unblocks **MAINT-37** (corpus sweeps run with pinned
-definition libraries), whose ZeroBrane baseline is currently dominated by unresolved `wx` globals.
+Parent epic: [TARGET](../requirements.md). It also pins `wxlua` into the ZeroBrane corpus sweep
+itself (TARGET-10-12), whose baseline is currently dominated by unresolved `wx` globals, using the
+pinning mechanism and record sequence of
+[MAINT-37](../../maint/37-pinned-definition-libraries/requirements.md).
 
 ## Scope
 
@@ -39,6 +41,9 @@ definition libraries), whose ZeroBrane baseline is currently dominated by unreso
 - A `THIRD-PARTY.md` registry entry for the derived work.
 - Automated acceptance tests that exercise the emitted shape through
   `LibraryRootTestCase.registerLibraryRoot` — no network, no real tarball.
+- **Re-baselining the ZeroBrane corpus** with `wxlua` pinned (TARGET-10-12), through MAINT-37's
+  record sequence. MAINT-37 delivered the mechanism (manifest pin, provisioning, attribution tools);
+  this feature runs it for `wxlua` once the entry is catalogued.
 
 ### Out of Scope
 
@@ -47,7 +52,6 @@ definition libraries), whose ZeroBrane baseline is currently dominated by unreso
   in this plan, not a task in it.
 - **Auto-detection.** `detectionPatterns` is written into the catalog entry forward-compatibly
   (TARGET-10-11) but the detection mechanism itself is [TARGET-09](../09-addon-auto-detection/requirements.md).
-- **Re-baselining the ZeroBrane corpus.** That is MAINT-37's job; TARGET-10 only makes it possible.
 - **Tracking upstream wxLua.** The tree is pinned to one commit. Refreshing it is a future
   maintenance item, not a scheduled job (see [risks-and-gaps.md](risks-and-gaps.md) → Technical Debt).
 - **Documentation prose.** wxLua's `///` comments are sparse; the generator carries them through
@@ -56,19 +60,20 @@ definition libraries), whose ZeroBrane baseline is currently dominated by unreso
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Description |
-|----|-------------|----------|-------------|
-| TARGET-10-01 | **Binding generator** | M | An offline Python tool reads a pinned wxLua checkout's `bindings/wxwidgets/` and emits a LuaCATS tree. |
-| TARGET-10-02 | **Namespace fidelity** | M | Each `.i` file's target Lua table is taken from its `<cppns>_rules.lua` `hook_lua_namespace`, never hard-coded. |
-| TARGET-10-03 | **Resolvable emission shape** | M | Emitted classes, methods, constructors, statics and constants use only LuaCATS constructs Lunar's type engine consumes. |
-| TARGET-10-04 | **Deterministic output** | M | Re-running the generator on the same pin produces byte-identical files. |
-| TARGET-10-05 | **Curated supplement** | M | Lua-visible names absent from every `.i` file are supplied from a separate, human-maintained file. |
-| TARGET-10-06 | **Published tree layout** | M | The artefact is LuaCATS-shaped: `library/` holds the definitions; `config.json`, `LICENCE` and provenance sit beside it. |
-| TARGET-10-07 | **Catalog entry** | M | One `wxlua` entry, pinned and verifiable, satisfying every `LuaDefinitionCatalogLoader` invariant. |
-| TARGET-10-08 | **`require("wx")` resolves** | M | `require("wx")` from project code resolves into the library root. |
-| TARGET-10-09 | **Coverage ratchet** | S | The generator reports, and a test enforces, coverage of the wx surface the ZeroBrane corpus actually uses. |
-| TARGET-10-10 | **Licence attribution** | S | `THIRD-PARTY.md` records the derived work, its upstream, and the wxWindows Library Licence. |
-| TARGET-10-11 | **Forward-compatible detection patterns** | C | The catalog entry carries `detectionPatterns` for TARGET-09 to pick up without a data change. |
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| TARGET-10-01 | **Binding generator** | M | Not Implemented | An offline Python tool reads a pinned wxLua checkout's `bindings/wxwidgets/` and emits a LuaCATS tree. |
+| TARGET-10-02 | **Namespace fidelity** | M | Not Implemented | Each `.i` file's target Lua table is taken from its `<cppns>_rules.lua` `hook_lua_namespace`, never hard-coded. |
+| TARGET-10-03 | **Resolvable emission shape** | M | Not Implemented | Emitted classes, methods, constructors, statics and constants use only LuaCATS constructs Lunar's type engine consumes. |
+| TARGET-10-04 | **Deterministic output** | M | Not Implemented | Re-running the generator on the same pin produces byte-identical files. |
+| TARGET-10-05 | **Curated supplement** | M | Not Implemented | Lua-visible names absent from every `.i` file are supplied from a separate, human-maintained file. |
+| TARGET-10-06 | **Published tree layout** | M | Not Implemented | The artefact is LuaCATS-shaped: `library/` holds the definitions; `config.json`, `LICENCE` and provenance sit beside it. |
+| TARGET-10-07 | **Catalog entry** | M | Not Implemented | One `wxlua` entry, pinned and verifiable, satisfying every `LuaDefinitionCatalogLoader` invariant. |
+| TARGET-10-08 | **`require("wx")` resolves** | M | Not Implemented | `require("wx")` from project code resolves into the library root. |
+| TARGET-10-09 | **Coverage ratchet** | S | Not Implemented | The generator reports, and a test enforces, coverage of the wx surface the ZeroBrane corpus actually uses. |
+| TARGET-10-10 | **Licence attribution** | S | Not Implemented | `THIRD-PARTY.md` records the derived work, its upstream, and the wxWindows Library Licence. |
+| TARGET-10-11 | **Forward-compatible detection patterns** | C | Not Implemented | The catalog entry carries `detectionPatterns` for TARGET-09 to pick up without a data change. |
+| TARGET-10-12 | **ZeroBrane corpus sweeps with `wxlua`** | M | Not Implemented | The `zerobrane` corpus entry pins `wxlua`; its baseline is re-recorded with an attribution record, through [MAINT-37](../../maint/37-pinned-definition-libraries/requirements.md)'s record sequence. |
 
 ## Detailed Specifications
 
@@ -190,6 +195,7 @@ an in-memory library root. Generator cases run against a checked-in `.i` fixture
 - [ ] TARGET-10-09 — the coverage floor holds (TC 15).
 - [ ] TARGET-10-10 — `THIRD-PARTY.md` names the derived work and its licence.
 - [ ] TARGET-10-11 — the catalog still loads with `detectionPatterns` present (TC 16).
+- [ ] TARGET-10-12 — MAINT-37's [TC 30](../../maint/37-pinned-definition-libraries/requirements.md#test-cases) holds; every offset and reconciliation invocation exits 0; the zerobrane classifier output and every offset and reconciliation output are appended to MAINT-37's [rebaseline-attribution.md](../../maint/37-pinned-definition-libraries/rebaseline-attribution.md); the PR's CI `corpus` job is green ([implementation-plan.md](implementation-plan.md) → Phase 5b).
 - [ ] DR-02, DR-04 and DR-06 are closed, and their answers are folded back into `design.md`.
 - [ ] [human-verification-checklists.md](human-verification-checklists.md) run against a real IDE.
 - [ ] No file under `src/main/kotlin/net/internetisalie/lunar/definitions/` is modified.
@@ -237,9 +243,10 @@ an in-memory library root. Generator cases run against a checked-in `.i` fixture
   this feature's contracts reachable at all; 423 and 424 clear the two largest false-positive classes
   from the ERROR tier this feature is about to load. Together they make DR-08 a real measurement
   rather than a vacuous zero, and keep any regression attributable to TARGET-10 alone.
-- **MAINT-37** — dependant, and *ongoing* regression protection once this ships: a pinned `wxlua` in
-  the sweep is what catches a future re-pin or type-engine change degrading the map. Not load-bearing
-  for the initial ship, given the ordering above.
+- **MAINT-37** (`done`) — the corpus pin mechanism, attribution tools and record sequence that
+  TARGET-10-12 runs. The pinned `wxlua` in the sweep is *ongoing* regression protection once this
+  ships: it catches a future re-pin or type-engine change degrading the map. Not load-bearing for
+  publication (Phase 4), given the ordering above.
 - **wxLua upstream** — `pkulchenko/wxlua` @ `4d83c8d44eeccf88683ca0146a13b16d0b0d4264`.
 
 ## See Also
