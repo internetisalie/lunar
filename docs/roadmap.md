@@ -114,6 +114,9 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | ANALYSIS-07 | Value constraints over the CFG — the type engine and the control-flow graph are two flow analyses that never speak | planned | **L** | ANALYSIS-06 *(CFG, done)*, TYPE-08 *(flow-sensitive, done)* | — | — |
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
 | TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog; includes the ZeroBrane corpus `wxlua` pin (TARGET-10-12, ex-MAINT-37 Phase 5) | **in_progress** | C | — | — | ✓ |
+| BUG-513 | The Lua 5.1 stdlib stubs disagree with Lua 5.1's API: documented members missing, nonexistent ones declared, and a `local` parameter hiding most of `debug` | todo | S | — | TARGET-12 | ✓ |
+| BUG-514 | Lunar's LuaCATS parser rejects a string-literal union in `@return` and a vararg parameter inside a `fun()` type | todo | S | — | — | ✓ |
+| TARGET-12 | LuaJIT runtime stubs — the `luajit-2.0`/`luajit-2.1` roots: Lua 5.1 stdlib plus `jit`, `bit`, `ffi` and LuaJIT's extension modules | planned | M | TARGET-04 *(done)*, BUG-513 | MAINT-39 *(LuaJIT-targeted member)* | ✓ |
 | TYPE-14 | Generics — the LuaLS closed baseline (nested positions, cross-file callees, methods, generic classes, grammar) plus a constraint's bound in the body | **planned** | **M** | TYPE-05 *(done)*, TYPE-10 *(done)*, TYPE-13 *(done)*, MAINT-34 *(done)* | closes BUG-420 | needs a parser regen (local-only) |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | **TYPE-14** *(Phase 5 closes it — do not fix twice)* | — | ✓ |
 | BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |

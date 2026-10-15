@@ -24,6 +24,7 @@ The Target Configuration feature manages the runtime environment for Lua code, a
 | [`TARGET-07`](07-lua-5.5-stdlib-stubs/requirements.md) | **Lua 5.5 Standard-Library Stubs** | **C** | **Not Implemented** | Bundle `runtime/standard/lua-5.5/` API stubs (mirror of 5.4 plus `table.create`, `_VERSION` bump) so the 5.5 target gets stdlib completion/type-inference. Depends on SYNTAX-09. |
 | [`TARGET-08`](08-on-demand-definition-libraries/requirements.md) | **On-demand Definition Libraries** | **C** | **Full** | Consume community LuaLS/LuaCATS definition libraries (love2d, busted, luassert, …) for third-party libs, fetched & enabled on demand and registered via an `AdditionalLibraryRootsProvider`. Done 2026-08-04; TC 6 verified live. |
 | [`TARGET-09`](09-addon-auto-detection/requirements.md) | **Definition-library Auto-detection** | **S** | **Not Implemented** | Suggest an applicable definition library from the upstream LuaLS addon's own `words` patterns, via a Lua-file editor banner. Never fetches without a click. Depends on TARGET-08. |
+| [`TARGET-12`](12-luajit-runtime-stubs/requirements.md) | **LuaJIT Runtime Stubs** | **S** | **Not Implemented** | Bundle `runtime/luajit/luajit-2.{0,1}/`: the Lua 5.1 stdlib plus `jit`, `bit`, `ffi` and LuaJIT's extension modules, as part of the LuaJIT platform. |
 
 ---
 
