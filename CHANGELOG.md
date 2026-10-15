@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Indexing a heavily documented library file no longer fails** (BUG-503): a file in which many
+  documented declarations share a description word, such as Neovim's `vim/_meta/vimfn.gen.lua`, made
+  the description index throw `UTFDataFormatException` and reported an IDE error for that file. The
+  index now stores values of any size; it is rebuilt once on upgrade.
+
 - **A name you declare `local` is no longer treated as a global in other files** (BUG-509). A later
   `function` statement on it — `local f` … `function f()`, or `local M = {}` … `function M.x()` /
   `function M.a.b()` — made the name resolve project-wide, so an undeclared `f` or `M` read in

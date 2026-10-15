@@ -9,6 +9,7 @@ import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.ID
 import com.intellij.util.io.DataExternalizer
 import com.intellij.util.io.EnumeratorStringDescriptor
+import com.intellij.util.io.IOUtil
 import com.intellij.util.io.KeyDescriptor
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.psi.LuaCommentOwner
@@ -42,7 +43,9 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
     // 3 -> 4 (BUG-436): the filter widened, so the index CONTENT changed. Without the bump a
     // persisted index keeps its `.lua`-only entries and the fix is invisible on any machine
     // that has indexed before it.
-    override fun getVersion(): Int = 4
+    // 4 -> 5 (BUG-503): values are written with `IOUtil.writeUTF`, whose encoding differs from
+    // `DataOutput.writeUTF`, so a persisted index would fail to read (`EOFException`).
+    override fun getVersion(): Int = 5
 
     override fun dependsOnFileContent(): Boolean = true
 
@@ -61,15 +64,20 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
      */
     override fun getInputFilter(): FileBasedIndex.InputFilter = DefaultFileTypeSpecificInputFilter(LuaFileType)
 
+    /**
+     * BUG-503: one value holds every record for one token in one file, so its size grows with the
+     * number of documented declarations sharing a word. `DataOutput.writeUTF` caps an encoded string
+     * at 65535 bytes and threw on Neovim's `vimfn.gen.lua`; `IOUtil.writeUTF` has no cap.
+     */
     private class StringDataExternalizer : DataExternalizer<String> {
         override fun save(
             output: DataOutput,
             value: String,
         ) {
-            output.writeUTF(value)
+            IOUtil.writeUTF(output, value)
         }
 
-        override fun read(input: DataInput): String = input.readUTF()
+        override fun read(input: DataInput): String = IOUtil.readUTF(input)
     }
 
     private class Indexer : DataIndexer<String, String, FileContent> {
