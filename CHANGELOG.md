@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Annotated code gets the same type diagnostics in every IDE session** (BUG-501): a `---@class`
+  on `local M = {}` could lose a method when another module also named its table `M` and declared a
+  function or field of the same name, depending on an index order that changed with every IDE
+  start, so diagnostics on calls to that method came and went between sessions. The class now takes
+  its methods from its own file only, and keeps them every time.
+
 - **The debug listener binds loopback only** (BUG-456): the port a debug session waits on is now
   bound to `127.0.0.1` instead of every network interface, so another machine can no longer connect
   to it and run Lua through the debugger's `EXEC` command.

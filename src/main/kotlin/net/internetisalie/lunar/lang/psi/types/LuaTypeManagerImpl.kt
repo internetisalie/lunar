@@ -542,7 +542,8 @@ class LuaTypeManagerImpl(
      * The index is a candidate source, not the answer: the member is only admitted once
      * [declaredMethod] finds a real `LuaFuncDecl` stub behind it, so a member the index knows from
      * an `---@field` or an `R.f = function() end` assignment (both `Kind.FUNCTION`, design §4.3)
-     * still contributes nothing here — exactly as the key scan's `LuaFuncDecl` filter did.
+     * still contributes nothing here — exactly as the key scan's `LuaFuncDecl` filter did. For the
+     * same reason the entry's `kind` is not read: a `FIELD` entry is simply a name with no stub.
      */
     private fun addMethodsOf(
         scan: MethodScan,
@@ -551,9 +552,8 @@ class LuaTypeManagerImpl(
         // allScope, for the same reason doResolveType uses it: `function Class.method` declarations
         // in a library file are a class's members just as much as a project file's are (BUG-399).
         val scope = GlobalSearchScope.allScope(project)
-        for (member in LuaReceiverMemberIndex.membersIn(scan.receiver, project, scope)) {
+        for (member in LuaReceiverMemberIndex.membersIn(scan.receiver, project, candidateScope(scan, scope))) {
             ProgressManager.checkCanceled()
-            if (member.kind != LuaReceiverMember.Kind.FUNCTION) continue
             if (membersMap.containsKey(member.name)) continue
             val decl = declaredMethod(scan, member, scope) ?: continue
             LuaTypeSourceRecorder.reportFile(decl.containingFile) // §3.5
@@ -561,6 +561,19 @@ class LuaTypeManagerImpl(
             membersMap[member.name] = LuaTypeMember(member.name, fnType, sourceElement = decl)
         }
     }
+
+    /**
+     * BUG-501: a scan confined to a declaring local's file takes its candidates from that file
+     * alone. `membersIn` keeps one entry per name across files, and which file's entry survives
+     * follows the index's per-JVM hash order, so in a union another module's `M.name` (or
+     * `M.name = 1`) could stand in for this file's `M:name` and [declaredMethod] would look up the
+     * wrong key. From one file, the surviving entry is that file's first declaration of the name,
+     * which is COMP-09-07's declared dot/colon rule (first declaration in file order).
+     */
+    private fun candidateScope(
+        scan: MethodScan,
+        scope: GlobalSearchScope,
+    ): GlobalSearchScope = scan.onlyIn?.let { GlobalSearchScope.fileScope(it) } ?: scope
 
     /**
      * The `LuaFuncDecl` stub behind one indexed member, or null when there is none in [scope].
