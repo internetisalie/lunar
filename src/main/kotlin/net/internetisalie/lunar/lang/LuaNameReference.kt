@@ -131,28 +131,11 @@ class LuaNameReference(
             return results.distinctBy { it.element }.toTypedArray()
         }
 
-        StubIndex
-            .getElements(
-                LuaClassNameIndex.KEY,
-                referenceName,
-                project,
-                scope,
-                LuaLocalVarDecl::class.java,
-            ).forEach { decl ->
-                results.add(PsiElementResolveResult(decl))
-            }
-
-        StubIndex
-            .getElements(
-                LuaAliasIndex.KEY,
-                referenceName,
-                project,
-                scope,
-                LuaLocalVarDecl::class.java,
-            ).forEach { decl ->
-                results.add(PsiElementResolveResult(decl))
-            }
-
+        // BUG-510: LuaClassNameIndex and LuaAliasIndex are NOT consulted here. Every entry in them is
+        // a `local` that hosts a `---@class`/`---@alias` tag, and a local is never a variable in
+        // another file — the tag makes its name a project-wide TYPE, which the type engine resolves
+        // through those indexes itself. Reading them here made `local K = {}` under `---@class K`
+        // resolve as a global in every file, so a bare `K` elsewhere was never reported undeclared.
         StubIndex
             .getElements(
                 LuaGlobalDeclarationIndex.KEY,

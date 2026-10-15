@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A `local` class table is no longer a global in other files** (BUG-510): a `---@class K` or
+  `---@alias K` tag on `local K = {}` made the variable `K` resolve in every file of the project and
+  its libraries, so a bare `K` elsewhere was never reported undeclared. `K` stays a type name usable
+  in any `---@type`/`---@param`; only the variable is file-local now. Expect new, correct
+  *Undeclared variable* warnings where code read another file's local without `require`-ing it —
+  for example openresty's `cjson` or Neovim's `uv` used as a bare name.
+
 - **Annotated code gets the same type diagnostics in every IDE session** (BUG-501): a `---@class`
   on `local M = {}` could lose a method when another module also named its table `M` and declared a
   function or field of the same name, depending on an index order that changed with every IDE
