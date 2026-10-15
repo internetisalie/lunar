@@ -17,7 +17,8 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 class LuaFileElementType : IStubFileElementType<LuaFileStub>("Lua", LuaLanguage) {
     // BUG-401 changed how an optional `---@field name?` is keyed in LuaLocalVarStub, so previously
     // written stubs encode member names this build no longer expects. Bumped to force a rebuild.
-    override fun getStubVersion(): Int = 4
+    // BUG-509 added LuaFuncStub.rootIsLocal to the serialized func stub. Bumped to force a rebuild.
+    override fun getStubVersion(): Int = 5
 
     override fun getBuilder(): StubBuilder {
         return object : com.intellij.psi.stubs.DefaultStubBuilder() {

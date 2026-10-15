@@ -28,7 +28,7 @@ class LuaFuncStubElementType(
         val returnType = catsComment?.let { LuaCatsDeclarations.returnTypeName(it) }
         val paramTypes = catsComment?.let { LuaCatsDeclarations.paramTypes(it) } ?: emptyMap()
 
-        return LuaFuncStubImpl(parentStub, name, returnType, paramTypes)
+        return LuaFuncStubImpl(parentStub, name, returnType, paramTypes, LuaFuncNameBinding.rootIsLocal(psi))
     }
 
     override fun getExternalId(): String = "lunar.func.decl"
@@ -44,6 +44,7 @@ class LuaFuncStubElementType(
             dataStream.writeName(name)
             dataStream.writeName(type)
         }
+        dataStream.writeBoolean(stub.rootIsLocal)
     }
 
     override fun deserialize(
@@ -59,7 +60,7 @@ class LuaFuncStubElementType(
             val pType = dataStream.readName()?.string ?: ""
             paramTypes[pName] = pType
         }
-        return LuaFuncStubImpl(parentStub, name, returnType, paramTypes)
+        return LuaFuncStubImpl(parentStub, name, returnType, paramTypes, dataStream.readBoolean())
     }
 
     override fun indexStub(
@@ -67,10 +68,14 @@ class LuaFuncStubElementType(
         sink: IndexSink,
     ) {
         stub.name?.let {
-            sink.occurrence(LuaGlobalDeclarationIndex.KEY, it)
+            // BUG-509: a name bound by a `local` is never a project-wide global. For a bare
+            // `function f()` the full name is that name; for `function R.a()` / `R:m()` the full
+            // name stays (class members resolve through it) and only the root is withheld.
+            val isBare = it.none { char -> char == '.' || char == ':' }
+            if (!(isBare && stub.rootIsLocal)) sink.occurrence(LuaGlobalDeclarationIndex.KEY, it)
             // If it's a dotted name like 'cjson.decode', also index the base 'cjson'
             // to allow basic resolution of the module/table global.
-            if (it.contains('.')) {
+            if (it.contains('.') && !stub.rootIsLocal) {
                 sink.occurrence(LuaGlobalDeclarationIndex.KEY, it.substringBefore('.'))
             }
         }

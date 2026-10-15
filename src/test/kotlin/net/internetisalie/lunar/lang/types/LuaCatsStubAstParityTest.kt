@@ -361,7 +361,7 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
      */
     @Test
     fun testStubVersionIsCurrent() {
-        assertEquals("stub version", 4, LuaParserDefinition.FILE.stubVersion)
+        assertEquals("stub version", 5, LuaParserDefinition.FILE.stubVersion)
     }
 
     /**

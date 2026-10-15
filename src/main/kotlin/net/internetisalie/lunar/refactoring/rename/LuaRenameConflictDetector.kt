@@ -335,8 +335,9 @@ internal object LuaRenameConflictDetector {
      * **Without this, C3 and C4 are inert for every dotted function**, which is the shape of defect
      * this whole feature exists against. Measured on the builder, two files each declaring
      * `function M.run() end`: `LuaFuncStubElementType.indexStub` sinks that decl under the
-     * FUNC_NAME node's text `"M.run"` and — via `substringBefore('.')` — under the receiver `"M"`,
-     * but **never** under `"run"`; `LuaDeclarationSite.identifierLeafOf` hands rename the LAST
+     * FUNC_NAME node's text `"M.run"` and — via `substringBefore('.')`, unless the receiver `M` is
+     * bound by a `local` in that file (BUG-509) — under the receiver `"M"`, but **never**
+     * under `"run"`; `LuaDeclarationSite.identifierLeafOf` hands rename the LAST
      * segment, so the bare `target.identifier.text` these two rules used to search is a key nothing
      * writes. Both stub reads returned 0, both rules stayed silent, and the rename rewrote the
      * declaration while `ReferencesSearch` found **0** of its call sites — BUG-457's shape inside

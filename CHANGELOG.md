@@ -2,6 +2,15 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A name you declare `local` is no longer treated as a global in other files** (BUG-509). A later
+  `function` statement on it — `local f` … `function f()`, or `local M = {}` … `function M.x()` /
+  `function M.a.b()` — made the name resolve project-wide, so an undeclared `f` or `M` read in
+  another file went unreported. This also hid undeclared names behind enabled definition libraries
+  such as openresty, luassert and busted, whose own `local` tables leaked as globals. You may see
+  new *Undeclared variable* warnings in your code where a name was only ever declared `local`
+  elsewhere: those are real, and the fix is to declare or `require` the name. A `function` before
+  the `local`, and a table that is genuinely global, still count as declared.
+
 - **A `local` class table is no longer a global in other files** (BUG-510): a `---@class K` or
   `---@alias K` tag on `local K = {}` made the variable `K` resolve in every file of the project and
   its libraries, so a bare `K` elsewhere was never reported undeclared. `K` stays a type name usable

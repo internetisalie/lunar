@@ -11,5 +11,6 @@ class LuaFuncStubImpl(
     override val name: String?,
     override val luacatsReturnType: String?,
     override val luacatsParamTypes: Map<String, String>,
+    override val rootIsLocal: Boolean,
 ) : StubBase<LuaFuncDecl>(parent, LuaStubElementTypes.FUNC_DECL),
     LuaFuncStub
