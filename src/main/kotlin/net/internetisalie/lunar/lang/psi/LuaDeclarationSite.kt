@@ -98,9 +98,10 @@ object LuaDeclarationSite {
     /**
      * The IDENTIFIER leaf that names the function whose name chain is [funcName] — its LAST
      * segment: the `funcNameMethod` if present, else the last `funcNameProperty`, else the bare
-     * `nameRef`. One rule, three callers: [identifierLeafOf], the rename processor's
-     * receiver-segment guard, and
-     * [net.internetisalie.lunar.lang.LuaNameReference]'s declaration normalisation.
+     * `nameRef`. One rule, four callers: [identifierLeafOf], the rename processor's
+     * receiver-segment guard,
+     * [net.internetisalie.lunar.lang.LuaNameReference]'s declaration normalisation, and
+     * `LuaDeprecatedApiInspection`'s declared-member guard (BUG-504).
      *
      * Non-null by contract — design §3.1 step 4a's round trip depends on it — and safe once a real
      * `FUNC_NAME` node is in hand. `funcName ::= nameRef funcNameProperty* funcNameMethod?`

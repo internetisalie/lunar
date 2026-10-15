@@ -1252,16 +1252,9 @@ a real seeding.
   If REFACT-09 slips behind a shipped NAV-13, the wording is a one-line fix and belongs to whoever
   ships that gap.
 
-- **TBD (not this feature's): `LuaDeprecatedApiInspection`'s `LuaFuncDecl` guard is wrong for a colon
-  declaration.** [:81-86](../../../../src/main/kotlin/net/internetisalie/lunar/analysis/inspections/LuaDeprecatedApiInspection.kt)
-  compares the resolved leaf against `commentOwner.funcName.nameRef.identifier`, which for
-  `function t:m()` is the **receiver** `t`, not the method `m`. So a `---@deprecated` colon method
-  warns at its call sites only when the receiver happens to be named the same as the method —
-  executed, `textEq=false` for `function t:m()` and `textEq=true` for `function m:m()` (DR-05).
-  NAV-13 does not change the guard: doing so would raise warnings across a surface this feature has
-  not scoped, and the guard is equally wrong today for the declaration position. `requirements.md`
-  case 22 pins the current behaviour on **both** sides so that fixing the guard is a visible,
-  deliberate diff rather than a silent widening.
+- **Closed by [[BUG-504]]: `LuaDeprecatedApiInspection`'s `LuaFuncDecl` guard was wrong for a colon
+  declaration.** The guard compares against the declared member, so a deprecated colon method warns
+  at its call sites whatever the receiver is named. Case 22 records the changed expectation.
 
 - **TBD (test infrastructure, not this feature): an annotated corpus lane.** The pinned corpus carries
   0 `---@` tags across its 734 files, so the ratchet is structurally blind to every

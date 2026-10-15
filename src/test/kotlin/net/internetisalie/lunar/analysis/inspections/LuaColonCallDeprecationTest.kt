@@ -59,18 +59,16 @@ class LuaColonCallDeprecationTest : BasePlatformTestCase() {
     }
 
     /**
-     * Case 22 (a) — **direction 2 does NOT fire when the receiver's name differs from the member's**,
-     * and that is the inspection's guard rather than this feature's branch.
+     * Case 22 (a) — a call of a deprecated method warns at the call site whatever the receiver is
+     * named. `getDeprecatedTag` compares the resolved leaf `m@44` against the declared member
+     * ([[BUG-504]]).
      *
-     * `getDeprecatedTag`'s `LuaFuncDecl` guard compares the resolved leaf against
-     * `commentOwner.funcName.nameRef.identifier`, and for `function t:m()` that accessor yields the
-     * **receiver** `t`@42, not the method `m`. Executed: `textEq=false`, so the tag is dropped.
-     *
-     * **Mutation** — *not* this feature's: delete the `LuaFuncDecl` name-equality guard at
-     * `LuaDeprecatedApiInspection.kt:81-86`. This method then gains a call-site warning at `54..55`.
+     * **Mutations**: delete the colon branch from `LuaNameReference.multiResolve` (`requirements.md`
+     * #1) → `54..55` disappears; compare against `commentOwner.funcName.nameRef.identifier` (the
+     * receiver `t`) again → `54..55` disappears while (b) stays green.
      */
     @Test
-    fun aDeprecatedMethodRaisesNoWarningWhenTheReceiverNameDiffers() {
+    fun aDeprecatedMethodWarnsAtTheCallSiteWhenTheReceiverNameDiffers() {
         myFixture.enableInspections(LuaDeprecatedApiInspection())
         myFixture.configureByText(
             "test.lua",
@@ -78,18 +76,17 @@ class LuaColonCallDeprecationTest : BasePlatformTestCase() {
         )
 
         assertEquals(
-            "the receiver 't' does not equal the member 'm', so the inspection's own guard drops the tag",
-            emptyList<Pair<Int, Int>>(),
+            "the call site at 54 warns: the guard compares against the declared member 'm', not the receiver 't'",
+            listOf(54 to 55),
             rangesOf(DEPRECATED_GONE),
         )
     }
 
     /**
-     * Case 22 (b) — the control that proves the **guard**, not the branch, is what silences (a).
-     * Spelling both names `m` makes `textEq=true`, and the same fixture shape then warns at the call
-     * site. The declaration's own method name `44..45` warned too until [[BUG-476]], because it
-     * resolved to its own receiver `m@42` and so reached the deprecated declaration; a segment after
-     * the head of a function name no longer resolves lexically, so only the call site warns.
+     * Case 22 (b) — the control for (a)'s second mutation. Receiver and member are both `m`, so
+     * comparing against the receiver or the member gives the same answer and (b) warns at `54..55`
+     * either way; only (a) can tell the two comparisons apart. The declaration's own method name
+     * `44..45` warned too until [[BUG-476]].
      *
      * **Mutation** (`requirements.md` #1): delete the colon branch — `54..55` disappears.
      */

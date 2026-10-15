@@ -280,11 +280,14 @@ it does not introduce it.
         retarget from a same-named global's doc to the method's is visible; asserting the target
         class cannot see it.
   - [x] Execute the mutations cases 21, 23 and 24 name — deleting the colon branch — and confirm each
-        test reddens on its **own** fixture. For case 22 the mutation is
-        `LuaDeprecatedApiInspection`'s `LuaFuncDecl` name-equality guard
-        ([:81-86](../../../../src/main/kotlin/net/internetisalie/lunar/analysis/inspections/LuaDeprecatedApiInspection.kt)),
-        which is production code this feature does **not** otherwise touch: delete it, observe the
-        different-names method redden, and revert it with `git show HEAD:<path> > <path>`.
+        test reddens on its **own** fixture. For case 22, as delivered, the mutation was
+        `LuaDeprecatedApiInspection`'s `LuaFuncDecl` name-equality guard: deleting it made the
+        different-names method (a) **gain** a warning, and the guard was reverted with
+        `git show HEAD:<path> > <path>`. [[BUG-504]] inverted that. (a) now expects the call-site
+        warning, and deleting the guard no longer turns (a) red: BUG-504's run `88-mut5-c` reddens only
+        BUG-504's own cases. Case 22's current mutations are the colon-branch deletion for (a) and
+        (b), and comparing against the receiver again for (a); both were executed in BUG-504 and are
+        recorded in `requirements.md` row 22.
 - **Exit criteria**: the re-enumeration names no route `design.md` §7 omits; the mirror sweep produces
   no off/on difference §7 omits; the surface set re-derived by **both** halves of §7's rule, and its
   recomputed residue, add no consumer §7 does not account for; every class this phase creates is green; every named mutation observed red on its own test and reverted; `git status

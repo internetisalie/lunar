@@ -843,12 +843,12 @@ survives because the declaration's `m` has a `LuaFuncNameMethod` parent, not a `
 §3.1's gate never sees it and its lexical resolution is untouched.
 
 **Direction 2 — added, and much narrower than the shape suggests.** Where the call now resolves to a
-`---@deprecated` **method**, `getDeprecatedTag`'s `LuaFuncDecl` guard
-([:81-86](../../../../src/main/kotlin/net/internetisalie/lunar/analysis/inspections/LuaDeprecatedApiInspection.kt))
-compares the resolved leaf against `commentOwner.funcName.nameRef.identifier` — and for
-`function t:m()` that accessor yields the **receiver** `t`, not the method `m`. So the tag is
-returned only where the receiver's name text equals the member's. Executed, with the guard's own
-state recorded:
+`---@deprecated` **method**, `getDeprecatedTag`'s `LuaFuncDecl` guard as it stood when NAV-13
+shipped (in [LuaDeprecatedApiInspection.kt](../../../../src/main/kotlin/net/internetisalie/lunar/analysis/inspections/LuaDeprecatedApiInspection.kt),
+now `isNotTheDeclaredFunction` since [[BUG-504]]) compared the resolved leaf against
+`commentOwner.funcName.nameRef.identifier` — and for `function t:m()` that accessor yields the
+**receiver** `t`, not the method `m`. So the tag was returned only where the receiver's name text
+equals the member's. Executed at the time, with the guard's own state recorded:
 
 | fixture | pre-feature | under the branch | recorded guard state |
 | :-- | :-- | :-- | :-- |
@@ -862,7 +862,8 @@ method really carries `---@deprecated` and the call site really calls it — so 
 NAV-13 would mean hiding a true warning to keep a diff small. What is wrong is that it fires only on
 a name coincidence, and that is a defect in `getDeprecatedTag`'s guard (it compares against
 `funcName.nameRef`, which is the receiver for a colon declaration), not in this feature.
-`risks-and-gaps.md` "Technical Debt" carries it as the inspection's to fix.
+[[BUG-504]] fixed the guard: it compares against the declared member, so direction 2 now fires at
+the call site whatever the receiver is named, and `requirements.md` case 22 (a) expects `54..55`.
 
 **The corpus cannot see either direction**: it carries 0 `---@` tags across its 734 files, so
 `NAV-13-07`'s ratchet is structurally blind here in exactly the way DR-03 found for TYPE-10.

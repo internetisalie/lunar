@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **One deprecated function no longer flags every use of its table** (BUG-504). A
+  `---@deprecated function vim.tbl_islist()` in a library made every `vim` in your code a
+  *Deprecated API* warning, and also every `function M.log()` or `function Spec:log()` whose name
+  matched a table holding a deprecated function. Only a reference to the deprecated member itself —
+  `vim.tbl_islist` — is flagged now. In the other direction, calling a deprecated method
+  (`---@deprecated function t:m()`, then `t:m()`) now warns at the call site; before, it warned only
+  when the table and the method happened to share a name.
+
 - **Indexing a heavily documented library file no longer fails** (BUG-503): a file in which many
   documented declarations share a description word, such as Neovim's `vim/_meta/vimfn.gen.lua`, made
   the description index throw `UTFDataFormatException` and reported an IDE error for that file. The
