@@ -67,6 +67,8 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | MAINT-21 | IJPGP 2.17 + Gradle 9 bump (deferred from MAINT-03-04) | deferred | L | *(the 2026.2 platform has shipped: GoLand 2026.2.3 is build 262.10968.67. The GoLand upgrade is being prototyped separately, without this Gradle/IJPGP bump)* | — | — |
+| MAINT-36 | Pre-contract residue — correctness, dead code and contract compliance (July review §4, findings #76–#92) | todo | M | — | — | ✓ |
+| MAINT-41 | Enforce the July review's systemic patterns mechanically (Logger.error on expected failures, PSI outside read actions, PSI in data classes, wildcard imports) | todo | M | — | — | ✓ |
 | REDIS-07 | Reuse an IntelliJ Database Redis data source | planned | C | REDIS-01 *(connections, done)* | — | ✓ |
 | BUG-388 | Dimmed-text binding-state renderer | backlog | C | BUG-387 *(done)* | — | ✓ |
 | BUG-358 | Reformatting a read-only file throws a write-unsafe exception | todo | C | — | — | ✓ |
