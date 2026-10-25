@@ -537,3 +537,78 @@ was not hollow.
 But **"every finding remediated" is not supportable as written** — one row was closed with the
 defect still live, and 39 % of the findings cannot be confirmed from code alone. Treat §1–§3 as
 "substantially remediated, one known hole, remainder unverified" rather than closed.
+
+---
+
+## 6. Third pass — the never-reviewed early-code files (2026-10-25)
+
+Continues §4; findings number on from #92. Read at `28a8bace`. Read-only: each file was read in full,
+and its registrations and callers were found with `git grep`. Nothing was built or executed.
+**(verified)** means confirmed against callers and tests by grep, not that a test was run.
+
+**Method.** Same blame cut as §4.1 (2026-05-25). The files are those with ≥50 surviving pre-contract lines
+that §1–§4 never named: nine files, 751 lines.
+
+**Headline.** No P1s. Four P2s, each a feature that silently does nothing: the require-based completion phase
+(#100), the Label and Long-string colour options (#98), both settings-page checkboxes (#106), and variables on
+the debugger's initial top frame (#109). The defect class is *registered, tested nearby, inert*, which file-driven
+and test-driven review both miss.
+
+> **Corrections to earlier sections.** #98 contradicts §4.2's claim that `LuaColorSettingsPage` is clean: it
+> advertises five inert colour options. #100 means §1 #24's closure (MAINT-28 TC-24) rested on two tests that
+> cannot fail on the defect: both declare global functions, which a different completion phase offers anyway.
+
+| File | Verdict | P1 | P2 | P3 | Findings |
+|------|---------|---:|---:|---:|----------|
+| `lang/syntax/LuaComment.kt` | patch | 0 | 0 | 5 | #93–#97 |
+| `lang/syntax/LuaSyntaxHighlighter.kt` | patch | 0 | 1 | 1 | #98, #99 |
+| `lang/completion/LuaCrossFileCompletionScopeProcessor.kt` | delete | 0 | 1 | 1 | #100, #101 |
+| `lang/insight/LuaGenerateDocIntention.kt` | patch (inside MAINT-36) | 0 | 0 | 2 | #102, #103 |
+| `lang/psi/stubs/impl/LuaLocalVarStubElementType.kt` | keep | 0 | 0 | 0 | sweep only |
+| `lang/lexer/ExtendedSyntaxStrCommentHandler.kt` | keep (minor patch) | 0 | 0 | 2 | #104, #105 |
+| `settings/LuaApplicationSettingsPanel.kt` | delete (decision: remove the settings) | 0 | 1 | 1 | #106, #107 |
+| `lang/psi/types/LuaScope.kt` | keep | 0 | 0 | 1 | #108 |
+| `run/LuaSuspendContext.kt` | rewrite (with DEBUG-05 Ph1 / BUG-463) | 0 | 1 | 1 | #109, #110 |
+| **Total** | | **0** | **4** | **14 + #111** | #93–#111 |
+
+### 6.1 P2 — features that silently do nothing
+
+| # | Location | Issue | Fix |
+|---|----------|-------|-----|
+| 98 | `LuaSyntaxHighlighter.kt:42,60`; `LuaSyntax.kt:79` | **(verified)** `ATTRIB_NAME`, `LABEL_REF` and `LABEL_NAME` are composite parser node types, but `getTokenHighlights` only receives lexer tokens, so those keys can never be returned. `LuaHighlight.LABEL` is applied nowhere (no label annotator). The page's "Long string" option is never applied either, because the merging lexer turns every long string into `STRING`. `VAR_SHADOWED`, `REF_UNDEFINED` and `DOC_VALUE` are offered and applied by nothing. No highlighting test references any of these keys. | Apply the keys or remove them from the page |
+| 100 | `LuaCrossFileCompletionScopeProcessor.kt:27-43`; `LuaCrossFileCompletionProvider.kt:189-196` | **(verified by grep and code read; not executed)** The processor accepts only `LuaFuncDecl` and never receives one. **(a)** The provider calls `processDeclarations(…, lastParent = file, place = file)`; a file's `textOffset` is 0, so `LuaFile.processDeclarations` breaks on the first child (`LuaFile.kt:45-47`) and `LuaBlock.visibleBefore` hides every statement (`LuaBlockExt.kt:27-31`). **(b)** `LuaBlock.processDeclarations` never offers `LuaFuncDecl` (`LuaBlockExt.kt:68-87`). The whole require phase is dead, `importedSymbolNames` is always empty, and (a) also empties `getLocalSymbolNames`, so the deduplication in `GlobalSymbolRankingService.kt:156,231` filters nothing. `LuaCrossFileCompletionOriginalFileTest` and `LuaCrossFileCompletionHeavyTest` both pass through the allScope phase 2. Unconfirmed lead: a self-`require` from a current-file global. | Delete phase 1; rebuild `getLocalSymbolNames` without `processDeclarations(file, file)` |
+| 106 | `LuaApplicationSettingsPanel.kt:37-47,57-75`; `LuaApplicationSettings.kt:35-36` | **(verified)** `enableTypeInference` and `includeAllFieldsInCompletions` appear only in the settings state, this panel and round-trip tests. Nothing reads either. MAINT-12, TOOLING-06 and TOOLING-08 tested serialization only. | Decision: remove both |
+| 109 | `LuaSuspendContext.kt:62-65` | **(verified against callers and platform source; not executed)** `initExecutionStack` builds the top frame with the 4-arg `LuaStackFrame` constructor, so `entry = null` and `computeChildren` returns at once (`LuaStackFrame.kt:52`). The platform adopts that frame as current (`XDebugSessionImpl.kt:1202-1205`); Variables appear only because `XFramesView` later selects index 0, a different object (no `getEqualityObject`, DEBUG-02-09). Every pause computes Variables twice, the first empty. The top frame and frames[0] take positions from different sources, which is where BUG-463 lives. | Build the frames once in `LuaExecutionStack`; return frames[0] as the top frame |
+
+### 6.2 P3 and contract sweep
+
+| # | Location | Issue |
+|---|----------|-------|
+| 93 | `LuaComment.kt:10-16` | **(verified)** `LuaDocDescription` and `LuaDocSummary` are empty objects with zero references. |
+| 94 | `LuaComment.kt:83-90` | `summarize` compares the trimmed first line with the untrimmed input, so `--[[ note ]]` folds to `--[[note...]]`. Not executed. |
+| 95 | `LuaComment.kt:56-81` | Delimiter helpers assume a terminated long comment; an unterminated `--[[ abc` drops two characters. The long-bracket level is computed in three places (here, `LuaLiterals` / #74, `ExtendedSyntaxStrCommentHandler.getLevel` / #104). |
+| 96 | `LuaComment.kt:92-147` | **(verified)** `collectDescriptionText` omits `ldocParamTagList` and `typeOptionList`. `LuaDocGenerator.isDocCommentEmpty` (`:12-39`) is a second hand-maintained list that checks `typeOptionList` but not `ldocParamTagList`, so a comment holding only `--- @param x the x` counts as empty. |
+| 97 | `LuaComment.kt:19-53` | `LuaCatsSummary.getText` tests `next.text == "\n"`, but `luacats.flex` emits whitespace and newline as separate tokens, so a blank doc line with trailing spaces truncates the summary. Not executed. |
+| 99 | `LuaSyntaxHighlighter.kt:34-61` | A per-instance `MutableMap` is rebuilt on every construction, including per documentation render. |
+| 101 | `LuaCrossFileCompletionScopeProcessor.kt:24,49-63` | `isTopLevel` is always true; the prefix pre-filter is case-sensitive; two branches are dead. Moot while #100 stands. |
+| 102 | `LuaGenerateDocIntention.kt:28-38` | **(verified)** `isClassTable` and the type gate are copies of `LuaDocGenerator`'s. Both omit `LuaGlobalFuncDecl` and `LuaGlobalVarDecl` (5.5 `global function`), which are `LuaCommentOwner`s (`lua.bnf:218,224`). |
+| 103 | `LuaGenerateDocIntention.kt:22-23,45-70` | Offered on every line of an undocumented function's body; `getLineIndent` is dead together with #83; the template is inserted at the owner's line start, so `x = 1; function f() end` attaches to the wrong statement. |
+| 104 | `ExtendedSyntaxStrCommentHandler.kt:50-56` | `getLevel` guards `cs.length > comment + level` but reads `cs[comment + 1 + level]`; safe only because of the callers' regexes. |
+| 105 | `ExtendedSyntaxStrCommentHandler.kt:32` | `longQLevel` lives outside the JFlex state and `reset()` never clears it; correct only while the merging adapters present one token (the "merge IS the contract" lesson). Not executed. |
+| 107 | `LuaApplicationSettingsPanel.kt:62-70` | `getData` has a side effect: `dropResolveCaches()` on every Apply while the box is ticked. |
+| 108 | `LuaScope.kt:20-30` | **(verified)** `declare`'s return value is discarded at every production site, and `isShadowing` is called only by a test. |
+| 110 | `LuaSuspendContext.kt:24-58` | **(verified)** Write-only `breakpoint` field; two 4-parameter constructors; hard `Project` held for the pause lifetime, unlike `redis/debug/LuaLdbSuspendContext.kt`. |
+| 111 | all nine files | Contract sweep: wildcard imports (`LuaCrossFileCompletionScopeProcessor.kt:7`, `LuaGenerateDocIntention.kt:9`, `LuaLocalVarStubElementType.kt:3`; BUG-421); fully-qualified inline names (`LuaCrossFileCompletionScopeProcessor.kt:20`, `LuaGenerateDocIntention.kt:61`, `LuaLocalVarStubElementType.kt:20`, `LuaApplicationSettingsPanel.kt:42`); public mutable state (`longQLevel`, `results`, the highlighter map); non-localized UI strings (`LuaGenerateDocIntention.kt:12,14`, `LuaApplicationSettingsPanel.kt:43`); `LuaComment.kt` in `lang/syntax/` holds LuaCATS text helpers. Threading and the 30-line cap are clean. |
+
+### 6.3 Tracked work
+
+| Finding | Where it is tracked |
+|---------|---------------------|
+| #98 | BUG-521 |
+| #100 | BUG-520 |
+| #106, #107 | BUG-522 (remove both settings; #107 disappears with the panel content) |
+| #109, #110 | BUG-523 (fix together with BUG-463 and DEBUG-05 Phase 1) |
+| #102, #103, #96 (`isDocCommentEmpty` half) | MAINT-36 (MAINT-36-10, MAINT-36-11) |
+| #93–#95, #97, #96 (`collectDescriptionText` half), #99, #101, #104, #105, #108, #111 (except wildcard imports) | MAINT-42 |
+| #111 wildcard imports | BUG-421 |
+| The three new rule candidates | MAINT-41 |

@@ -28,7 +28,9 @@ reproduce it.
 Twelve files: `lang/psi/types/{TypeParser,LuaStructuredTypes,LuaTypeGraphBridge}.kt`,
 `lang/psi/{LuaFunctionExt,LuaFileElementType}.kt`, `lang/insight/LuaDocGenerator.kt`,
 `lang/doc/LuaDocumentationTargetProvider.kt`, `lang/syntax/LuaLiterals.kt`,
-`run/{LuaValue,LuaStackFrame,LuaDebugRunner,LuaDebugVariable}.kt`.
+`run/{LuaValue,LuaStackFrame,LuaDebugRunner,LuaDebugVariable}.kt`, plus
+`lang/insight/LuaGenerateDocIntention.kt` (#102, #103) and `lang/syntax/LuaComment.kt` (the
+`isDocCommentEmpty` half of #96), both from the third pass (review §6).
 
 Explicitly **out of scope** — re-checked and clean, do not touch: `lang/syntax/LuaSyntax.kt`,
 `lang/syntax/LuaHighlight.kt` (its `TextAttributesKey`s are already `val`),
@@ -48,11 +50,13 @@ the mandatory `CustomCodeStyleSettings` idiom).
 | MAINT-36-07 | Performance pass | C | Not Implemented | #84 `LuaValue.compareTo` uses `entries.indexOf` where `ordinal` is free, inside `LuaTable.pairs()`'s comparator; #85 `TypeParser.parse` builds a throwaway `LuaFile` per call with no cache, per non-simple annotation per graph build; #86 `LuaFileElementType.extractExportedType` walks the whole file, calls `.text` per candidate, and walks `prevSibling` to the start of the file per root return without stopping at the first match — paid on every index pass; #87 `LuaStackFrame:59-85` takes a read action around a block that touches no PSI *(coordinate with BUG-414, which is the same subsystem's inverse defect)* |
 | MAINT-36-08 | Contract compliance | C | Not Implemented | #92 — wildcard imports in `TypeParser:9`, `LuaDocGenerator:10`, `LuaFileElementType:12` (which also wildcard-imports its own package), `LuaDocumentationTargetProvider:27`, `LuaDebugVariable:27`; parameter cap exceeded in `LuaTypeGraphBridge.injectTypeAnnotation` (5), `injectParamAnnotations` (5), `injectReturnAnnotations` (4) and `LuaStackFrame`'s constructor (6); 30-logic-line cap exceeded by `resolveDocumentationTarget` (~50) and `extractExportedType` (~40), both of which also mix raw PSI traversal with orchestration |
 | MAINT-36-09 | Deduplicate `processDeclarations` | C | Not Implemented | #88 — three near-identical implementations in `LuaFunctionExt.kt:18,59,95` differing only in receiver type and whether the declaration itself is executed last |
+| MAINT-36-10 | Collapse `LuaGenerateDocIntention` onto `LuaDocGenerator` | S | Not Implemented | #102 — `LuaGenerateDocIntention.isClassTable` is a verbatim copy of `LuaDocGenerator.isClassTable` (`:66-72`), and its type gate (`:28`) restates `createTemplate`'s `when` (`:51-61`). Both omit `LuaGlobalFuncDecl` and `LuaGlobalVarDecl` (Lua 5.5 `global function f()`), which are `LuaCommentOwner`s (`lua.bnf:218,224`), so neither the intention nor `---`+Enter (`LuaEnterHandlerDelegate.kt:82-84`) documents a 5.5 global. Give `LuaDocGenerator` one `supports(owner)` predicate and have `isAvailable` call it. #103 — the intention is offered on every line of an undocumented function's body (`getParentOfType` ascends non-strictly), so narrow availability to the declaration header; `getLineIndent` is dead together with #83's `indent`; and the template is inserted at the owner's line start, so `x = 1; function f() end` attaches the block to the wrong statement |
+| MAINT-36-11 | One empty-comment check | S | Not Implemented | #96, `isDocCommentEmpty` half — `LuaDocGenerator.isDocCommentEmpty` (`:12-39`) is a second hand-maintained list of the tag getters that `LuaComment.collectDescriptionText` also lists, and it checks `typeOptionList` but not `ldocParamTagList`. A comment whose only content is `--- @param x the x` counts as empty, and Generate-doc is offered over it. Iterate the comment's children by a common tag supertype instead of keeping 24-getter lists. The `collectDescriptionText` half is MAINT-42 |
 
 ## Verification
 
 Behaviour-preserving except where a requirement names a behaviour change (36-01, 36-02, 36-03,
-36-05). Full suite green with no baseline regression; the corpus gate (MAINT-33/35) is the
+36-05, 36-10, 36-11). Full suite green with no baseline regression; the corpus gate (MAINT-33/35) is the
 backstop for 36-03 and 36-07, since both touch resolution paths the corpus exercises broadly.
 
 **Each requirement needs a test that can fail.** 36-02 in particular is currently unreachable

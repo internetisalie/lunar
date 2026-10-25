@@ -54,6 +54,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | [`MAINT-40`](40-corpus-results-per-commit/requirements.md) | **Corpus Sweep Results Stored Per Commit** | **S** | **Not Implemented** | The sweep's reference results are committed per-symbol counts under a ratchet that passes improvements silently, so a trustworthy "before" costs a full re-record. Emits SARIF findings with stable fingerprints, stored against each commit under a suite name derived from the run's environment (shape, corpus pin, definition-library pins), so a "before" becomes a fetch and comparison stays in Lunar's own tooling. |
 | [`MAINT-36`](36-pre-contract-residue/requirements.md) | **Pre-Contract Residue** | **M** | **Not Implemented** | July review §4 findings #76–#92 in the twelve residue files. |
 | [`MAINT-41`](41-enforce-systemic-patterns/requirements.md) | **Enforce Systemic Patterns** | **M** | **Not Implemented** | Lint rules for the review's systemic patterns instead of re-review. |
+| [`MAINT-42`](42-third-pass-residue/requirements.md) | **Third-Pass Residue** | **C** | **Not Implemented** | Review §6: the P3 cleanups from the nine early-code files the July review never covered (`LuaComment`, highlighter map, lexer handler, `LuaScope`, contract sweep). |
 
 ---
 

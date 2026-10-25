@@ -69,6 +69,11 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-21 | IJPGP 2.17 + Gradle 9 bump (deferred from MAINT-03-04) | deferred | L | *(the 2026.2 platform has shipped: GoLand 2026.2.3 is build 262.10968.67. The GoLand upgrade is being prototyped separately, without this Gradle/IJPGP bump)* | — | — |
 | MAINT-36 | Pre-contract residue — correctness, dead code and contract compliance (July review §4, findings #76–#92) | todo | M | — | — | ✓ |
 | MAINT-41 | Enforce the July review's systemic patterns mechanically (Logger.error on expected failures, PSI outside read actions, PSI in data classes, wildcard imports) | todo | M | — | — | ✓ |
+| BUG-520 | The require-based cross-file completion phase never returns anything, and its two tests cannot fail (reopens July review #24 / MAINT-28 TC-24) | todo | S | — | found in the third-pass review (#100); read and grepped, not run; self-`require` lead unconfirmed | ✓ |
+| BUG-521 | The Color Scheme page offers five colour keys that nothing applies; the highlighter maps node types the lexer never emits | todo | S | — | found in the third-pass review (#98); verified by grep, not run | ✓ |
+| BUG-522 | "Enable type inference" and "Add additional completions" do nothing — decision: remove both settings | todo | S | — | found in the third-pass review (#106); verified by grep, not run | ✓ |
+| BUG-523 | The debugger's initial top frame is built without its stack entry, so it has no variables | todo | S | BUG-463, DEBUG-05 Phase 1 *(same lines — fix together)* | found in the third-pass review (#109); read against platform source, not run | — |
+| MAINT-42 | Third-pass residue — P3 cleanups in the files the July review never covered (review §6) | todo | C | — | — | ✓ |
 | REDIS-07 | Reuse an IntelliJ Database Redis data source | planned | C | REDIS-01 *(connections, done)* | — | ✓ |
 | BUG-388 | Dimmed-text binding-state renderer | backlog | C | BUG-387 *(done)* | — | ✓ |
 | BUG-358 | Reformatting a read-only file throws a write-unsafe exception | todo | C | — | — | ✓ |
