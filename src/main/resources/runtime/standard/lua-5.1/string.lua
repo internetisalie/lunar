@@ -58,6 +58,13 @@ function string.dump(v) end
 ---@return integer|nil, ...
 function string.find(s, patt, init, plain) end
 
+---Returns an iterator that, each time it is called, returns the next captures of pattern over s
+---If pattern specifies no captures, the whole match is produced in each call
+---@param s string
+---@param patt string
+---@return fun(): string|nil
+function string.gmatch(s, patt) end
+
 ---Replaces occurrences of pattern with replacement
 ---repl: string (with \\0-\\9 for captures), table, or function
 ---Returns modified string and number of replacements
@@ -106,6 +113,14 @@ function string.upper(s) end
 ---@param s string
 ---@return string
 function string.lower(s) end
+
+---Looks for the first match of pattern in s, starting at init
+---Returns the captures from the pattern, or the whole match if it has none; nil if not found
+---@param s string
+---@param patt string
+---@param init? integer
+---@return string|nil, ...
+function string.match(s, patt, init) end
 
 ---Returns formatted string (printf-style)
 ---@param fmt string

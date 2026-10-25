@@ -63,3 +63,23 @@ function table.sort(list, comp) end
 ---@param t table
 ---@return integer
 function table.maxn(t) end
+
+---Calls f with each key and value of t; stops and returns the first non-nil result of f
+---@deprecated
+---@param t table
+---@param f fun(key: any, value: any): any
+---@return any
+function table.foreach(t, f) end
+
+---Calls f with each index and value of the array part of t, in order; stops and returns the first non-nil result of f
+---@deprecated
+---@param t table
+---@param f fun(index: integer, value: any): any
+---@return any
+function table.foreachi(t, f) end
+
+---Returns the size of the array t (deprecated - use # operator)
+---@deprecated
+---@param t table
+---@return integer
+function table.getn(t) end

@@ -60,9 +60,13 @@ function File:seek(whence, offset) end
 ---@return boolean|nil, string|nil
 function File:close() end
 
----Checks if file is at end of file
----@return boolean|nil
-function File:iseof() end
+---Sets buffering mode for output file
+---mode: "full" (buffered), "line" (line-buffered), "no" (unbuffered); size is the buffer size in bytes
+---Returns true on success, nil + error on failure
+---@param mode string
+---@param size? integer
+---@return boolean|nil, string|nil
+function File:setvbuf(mode, size) end
 
 
 ---@class io
@@ -99,7 +103,7 @@ function io.close(file) end
 
 ---Reads from current input file according to formats
 ---@vararg string|integer
----@return ...
+---@return any ...
 function io.read(...) end
 
 ---Writes arguments to current output file
@@ -108,13 +112,6 @@ function io.write(...) end
 
 ---Flushes current output file
 function io.flush() end
-
----Sets buffering mode for output file
----mode: "full" (buffered), "line" (line-buffered), "no" (unbuffered)
----@param file File
----@param mode '"full"'|'"line"'|'"no"'
----@param size? integer
-function io.setvbuf(file, mode, size) end
 
 ---Opens a file and returns an iterator that reads lines from it
 ---Iterator automatically closes file at end

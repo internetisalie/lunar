@@ -2,6 +2,19 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The Lua 5.1 standard library now matches Lua 5.1** (BUG-513). With a Standard Lua 5.1 target,
+  `string.match`, `string.gmatch`, `os.clock`, `os.difftime`, `os.setlocale`, `os.tmpname`,
+  `math.deg`, `math.rad`, `package.loaders`, `package.preload` and `debug.getupvalue`,
+  `setupvalue`, `getmetatable`, `setmetatable`, `getregistry` and `debug` are now declared and
+  resolve. The file method `setvbuf` is declared too. `debug.setlocal`, `sethook`, `gethook`,
+  `setfenv`, `getfenv` and `traceback` resolve again: a broken parameter name in the bundled `debug`
+  definitions hid them. `package.config` is declared, and so are the compatibility functions
+  `gcinfo`, `newproxy`, `table.foreach`, `table.foreachi` and `table.getn`, which are marked
+  deprecated. `collectgarbage`'s signatures now match Lua 5.1: the option is optional, and
+  `"count"` returns a single number. Names that Lua 5.1 does not have are no longer declared for
+  it, so they stop resolving: `rawlen`, `dostring`, `os.getwd`, `os.tmpfile`, `io.setvbuf`,
+  `debug.getfunc`, `package.searchers`, `package.preloaded` and the file method `iseof`.
+
 - **One deprecated function no longer flags every use of its table** (BUG-504). A
   `---@deprecated function vim.tbl_islist()` in a library made every `vim` in your code a
   *Deprecated API* warning, and also every `function M.log()` or `function Spec:log()` whose name

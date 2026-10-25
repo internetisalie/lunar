@@ -129,17 +129,23 @@ function xpcall(f, err, ...) end
 ---@param level? integer
 function error(message, level) end
 
----Controls garbage collection behavior
----@overload fun(opt: '"stop"'): nil
----@overload fun(opt: '"restart"'): nil
----@overload fun(opt: '"collect"'): nil
----@overload fun(opt: '"count"'): integer, integer
----@overload fun(opt: '"step"', arg: integer): boolean
----@overload fun(opt: '"setpause"', arg: integer): integer
----@overload fun(opt: '"setstepmul"', arg: integer): integer
----@param opt string "stop"|"restart"|"collect"|"count"|"step"|"setpause"|"setstepmul"
+---Controls garbage collection behavior; opt defaults to "collect"
+---"stop", "restart" and "collect" return 0; "count" returns the memory in use in Kbytes;
+---"step" returns true if the step finished a cycle; "setpause" and "setstepmul" return the previous value
+---@overload fun(): integer
+---@overload fun(opt: "stop"): integer
+---@overload fun(opt: "restart"): integer
+---@overload fun(opt: "collect"): integer
+---@overload fun(opt: "count"): number
+---@overload fun(opt: "step"): boolean
+---@overload fun(opt: "step", arg: integer): boolean
+---@overload fun(opt: "setpause"): integer
+---@overload fun(opt: "setpause", arg: integer): integer
+---@overload fun(opt: "setstepmul"): integer
+---@overload fun(opt: "setstepmul", arg: integer): integer
+---@param opt? string "stop"|"restart"|"collect"|"count"|"step"|"setpause"|"setstepmul"
 ---@param arg? integer
----@return any
+---@return number|boolean
 function collectgarbage(opt, arg) end
 
 ---Returns next key-value pair from table
@@ -158,11 +164,6 @@ function pairs(t) end
 ---@param t table
 ---@return function
 function ipairs(t) end
-
----Gets the length of a table without invoking __len metamethod
----@param t table
----@return integer
-function rawlen(t) end
 
 ---Gets a value from table by key without invoking metamethods
 ---@param t table
@@ -196,15 +197,10 @@ function loadfile(filename) end
 ---@return function|nil, string|nil
 function loadstring(chunk, chunkname) end
 
----Executes string chunk (deprecated)
----@deprecated
----@param chunk string
-function dostring(chunk) end
-
 ---Selects arguments after index
 ---@param index integer|'"#"'
 ---@vararg any
----@return ...
+---@return any ...
 function select(index, ...) end
 
 ---Calls error if value is false; otherwise returns all arguments
@@ -263,5 +259,17 @@ function setmetatable(table, metatable) end
 ---@param list table
 ---@param i? integer
 ---@param j? integer
----@return ...
+---@return any ...
 function unpack(list, i, j) end
+
+---Returns the amount of memory in use, in Kbytes (deprecated - use collectgarbage("count"))
+---@deprecated
+---@return integer
+function gcinfo() end
+
+---Creates a zero-size userdata; with true, it gets a new empty metatable, and with another
+---proxy, it shares that proxy's metatable
+---@deprecated
+---@param proto? boolean|userdata
+---@return userdata
+function newproxy(proto) end

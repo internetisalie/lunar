@@ -57,5 +57,5 @@ function coroutine.wrap(co) end
 ---Cannot be called from C function, metamethod, or iterator
 ---Returns values passed to resume that woke it
 ---@vararg any
----@return ...
+---@return any ...
 function coroutine.yield(...) end

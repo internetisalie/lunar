@@ -66,6 +66,11 @@ function math.cos(x) end
 ---@return number
 function math.cosh(x) end
 
+---Converts angle x from radians to degrees
+---@param x number
+---@return number
+function math.deg(x) end
+
 ---e raised to power x
 ---@param x number
 ---@return number
@@ -123,6 +128,11 @@ function math.modf(x) end
 ---@param y number
 ---@return number
 function math.pow(x, y) end
+
+---Converts angle x from degrees to radians
+---@param x number
+---@return number
+function math.rad(x) end
 
 ---Returns uniformly distributed random number
 ---No args: [0,1); with m: [1,m]; with m,n: [m,n]

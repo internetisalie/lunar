@@ -3,7 +3,7 @@ id: "BUG-513"
 title: "The Lua 5.1 stdlib stubs disagree with Lua 5.1's API: documented members are missing, nonexistent members are declared, and a `local` parameter hides most of the debug library"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -84,11 +84,11 @@ The same names were then checked against the executed dumps of LuaJIT 2.0 (`acf8
    - in `os.lua`: `os.clock`, `os.difftime`, `os.setlocale`, `os.tmpname`;
    - in `package.lua`: `package.loaders`, `package.preload`;
    - in `string.lua`: `string.gmatch`, `string.match`.
-3. **Add the compatibility functions common to 5.1.5, LuaJIT 2.0 and LuaJIT 2.1**, each with
-   `---@deprecated`:
-   - in `builtin.lua`: `gcinfo`, `newproxy`;
-   - in `package.lua`: `package.config`;
-   - in `table.lua`: `table.foreach`, `table.foreachi`, `table.getn`.
+3. **Add the compatibility names common to 5.1.5, LuaJIT 2.0 and LuaJIT 2.1**:
+   - with `---@deprecated`, because later Lua versions removed them: in `builtin.lua`, `gcinfo` and
+     `newproxy`; in `table.lua`, `table.foreach`, `table.foreachi` and `table.getn`;
+   - without `---@deprecated`: `package.config` in `package.lua`. No Lua version deprecates it. Lua
+     5.2 documented it, and code reads it for the directory separator (`package.config:sub(1, 1)`).
 
    Leave out `string.gfind`, `math.mod` and `table.setn`:
    - **5.1 side.** None of the three is in the 5.1 manual, which is this report's ground truth.
@@ -161,3 +161,90 @@ and are filed as BUG-514.
   above and do not throw.
 - Consumer: [[TARGET-12]]. Its copies are byte-exact rebuilds of the fixed `lua-5.1/`, and its TC 11
   fails if the two diverge.
+
+## Resolution
+
+Fixed in the nine `src/main/resources/runtime/standard/lua-5.1/*.lua` files, following §4 steps 1–6.
+The tests are in `src/test/kotlin/net/internetisalie/lunar/platform/target/Lua51StdlibStubsTest.kt`.
+Measured on the libvirt builder, on parent `74792f6a` plus this diff.
+
+**Departures from §4 as first written.**
+- **Step 3, `package.config`.** Corrected in review. No Lua version deprecates it, so it is
+  declared without `---@deprecated`. §4 step 3 above now says so.
+- **Step 5, `collectgarbage`.** Lunar reports one error per LuaCATS comment, so rewriting only the
+  `"stop"` overload at `builtin.lua:133` moved the error to the `"restart"` overload on the next line.
+  All of that block's overloads are rewritten to the `fun(opt: "<x>")` form. Review also asked for
+  their content to match 5.1, which the old stub got wrong. The changes were checked against the
+  manual's §5.1 and `lbaselib.c` `luaB_collectgarbage`, and executed on PUC 5.1.5, LuaJIT 2.0 and
+  LuaJIT 2.1:
+  - `opt` is optional. `luaL_checkoption(L, 1, "collect", …)` makes `"collect"` the default, so
+    there is a `fun(): integer` overload.
+  - `"stop"`, `"restart"` and `"collect"` return 0, `lua_pushnumber(L, res)`. Before, they returned
+    `nil`.
+  - `"count"` returns one number, the Kbytes in use. Before, it returned `integer, integer`.
+  - `"step"` returns a boolean. Its `arg` is optional (`luaL_optint`), so there are overloads with
+    and without it.
+  - `"setpause"` and `"setstepmul"` return the previous value.
+
+  Executed: `count=number:30.97…`, `step=boolean:false`, `setpause=number:200`, `stop=number:0`
+  and `collectgarbage()=0`, each a single value, on all three interpreters.
+- **Test check 2, typed receiver.** It was run first, with a control. On the unfixed tree,
+  `io.stdout:close()` resolves to nothing, although `File:close` is declared, so a colon call
+  through the `---@type File` receiver cannot tell a declared method from a missing one. Only the
+  text check is used for the `File` methods. This is filed as [[BUG-516]].
+
+**Deprecation.** `testOnlyRemovedCompatibilityFunctionsWarnAsDeprecated` runs
+`LuaDeprecatedApiInspection` under STANDARD 5.1 over the six compatibility names. Exactly `gcinfo`,
+`newproxy`, `foreach`, `foreachi` and `getn` warn, and `package.config` does not.
+- With the tag still on `package.config` (the first commit's `package.lua`), the inspection part
+  still passed. A probe found that `---@deprecated` on a field assignment never warns at a use: not
+  for `pkg.cfg = ""`, not for `local t = {}; t.x = 1`, and in the same run `function pkg.f()` did
+  warn. So the first commit's tag could not have produced a false warning in today's Lunar.
+- The test therefore also checks that `package.config`'s comment block in the stub text has no
+  `---@deprecated`. Re-adding the tag turns it red: `package.config is not deprecated`.
+
+**Red, then green.** On the unfixed tree, every test failed for the reason §1 states:
+
+| Test | Unfixed result |
+| :-- | :-- |
+| `testManualFunctionsMissingFromTheStubsResolve` | all 16 set-A names `-> 0` |
+| `testCompatibilityFunctionsResolve` | all 6 step-3 names `-> 0` |
+| `testNamesOutsideLua51DoNotResolve` | `dostring`, `io.setvbuf`, `os.getwd`, `os.tmpfile`, `package.preloaded`, `package.searchers` and `rawlen` `-> 1` |
+| `testDebugFunctionsAfterGetlocalResolve` | `debug.setlocal`, `sethook`, `gethook`, `setfenv`, `getfenv` and `traceback` `-> 0` |
+| `testIoStubDeclaresSetvbufMethodAndNotIseof` | `File:setvbuf` occurs 0 times |
+| `testDebugStubParsesWithoutErrors` | one error at line 40 |
+| `testOnlyRemovedCompatibilityFunctionsWarnAsDeprecated` | added in review, and red on the first commit's `package.lua`: `package.config is not deprecated` |
+
+After the fix, all seven pass.
+
+**Mutations.** Each was run on the fixed tree, and each test went red, naming only the mutated name:
+- re-adding `os.getwd`;
+- dropping `string.match`;
+- dropping `table.getn`;
+- re-adding `File:iseof`;
+- restoring the `local` parameter. This failed the parse test (line 40), the debug-names test, and
+  the set-A test, whose six new `debug.*` names follow `getlocal`;
+- dropping `File:setvbuf`.
+
+**Ground truth after the fix.** `three_way.py`, run on the fixed files, reports set A empty and set D
+empty. The only undeclared 5.1.5 names left are `string.gfind`, `math.mod` and `table.setn`, which §4
+step 3 excludes, plus `arg` and the three file metamethods. PUC 5.1.5, LuaJIT 2.0 and LuaJIT 2.1 each
+`loadfile` all nine files without error. The remaining Lunar parse errors are BUG-514's two forms
+(`builtin.lua:92`, `coroutine.lua:48`, `io.lua:141` and `string.lua:73`).
+
+**TARGET-12 anchors.** Replaying design §5 on the fixed files, E1–E5 each match exactly once, and
+none of the names that E6–E9 append is already declared.
+
+**Gates.**
+- Full suite (`test --rerun --no-build-cache`): 3226 tests, 0 failures, 0 errors, 4 skipped.
+- `ktlintCheck`: green, after `ktlintFormat`.
+- Corpus and parity (`test --rerun --no-build-cache --tests '*Corpus*' --tests '*InspectionParity*'
+  -PwithCorpus`): **not applicable to this fix**. The final run was green, with 6 tests and no
+  IMPROVED or REGRESSED line. An earlier run of the same tree printed one IMPROVED line, zerobrane
+  `LuaSuspiciousConcatenation` 21 → 19. This is the intermittent movement recorded as BUG-501's
+  DR-08, whose cause is unestablished. A repeat run gave 21, and so did a run with the first commit's
+  stubs. The sweep and
+  `LuaInspectionParityTest` never load these files. They set only `languageLevel = LUA51`, and the
+  project target stays STANDARD 5.4. A probe printed `target=Target(platform=Standard, version=5.4)`
+  and the `lua-5.4` library root for all four corpus members. So the gate cannot see any change to
+  `lua-5.1`. This is filed as [[BUG-515]].

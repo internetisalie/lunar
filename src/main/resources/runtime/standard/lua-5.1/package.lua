@@ -31,11 +31,11 @@ package = {}
 ---@type table
 package.loaded = {}
 
----Searchers for module loading
+---Loaders for module loading
 ---Array of functions that search for modules
 ---Each searcher takes modname and returns loader or nil
----@type fun[]
-package.searchers = {}
+---@type function[]
+package.loaders = {}
 
 ---Paths for searching modules
 ---Semicolon-separated list of module paths
@@ -50,12 +50,17 @@ package.path = ""
 package.cpath = ""
 
 ---Preloaded modules table
----Modules that are already loaded before require
+---Maps module name to a loader function that require calls before searching
 ---@type table
-package.preloaded = {}
+package.preload = {}
+
+---Path configuration: directory separator, path separator, template mark, executable-directory mark
+---and ignore mark, one per line
+---@type string
+package.config = ""
 
 ---Loads and returns a module
----Searches for a module using package.searchers
+---Searches for a module using package.loaders
 ---Returns the module (from package.loaded or loaded by searcher)
 ---@param modname string
 ---@return any

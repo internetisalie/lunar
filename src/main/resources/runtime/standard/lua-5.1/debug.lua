@@ -35,22 +35,17 @@ function debug.getinfo(level, what) end
 ---Returns name of local variable at given level and index
 ---First argument is index 1
 ---@param level integer
----@param local integer
+---@param index integer
 ---@return string|nil
-function debug.getlocal(level, local) end
+function debug.getlocal(level, index) end
 
 ---Sets value of local variable at given level and index
 ---Returns variable name or nil if out of range
 ---@param level integer
----@param local integer
+---@param index integer
 ---@param value any
 ---@return string|nil
-function debug.setlocal(level, local, value) end
-
----Returns function at stack level
----@param level integer
----@return function|nil
-function debug.getfunc(level) end
+function debug.setlocal(level, index, value) end
 
 ---Sets debug hook function
 ---mask: "c" (call), "r" (return), "l" (line), "y" (count)
@@ -86,3 +81,37 @@ function debug.getfenv(func) end
 ---@param level? integer
 ---@return string
 function debug.traceback(message, level) end
+
+---Enters an interactive mode with the user, running each string that the user enters
+---A line containing only the word cont finishes this function
+function debug.debug() end
+
+---Returns the metatable of the given object or nil if it does not have a metatable
+---@param object any
+---@return table|nil
+function debug.getmetatable(object) end
+
+---Returns the registry table
+---@return table
+function debug.getregistry() end
+
+---Returns the name and the value of the upvalue with index up of the function func
+---Returns nil if there is no upvalue with the given index
+---@param func function
+---@param up integer
+---@return string|nil name, any value
+function debug.getupvalue(func, up) end
+
+---Sets the metatable for the given object to the given table (which can be nil)
+---@param object any
+---@param table table|nil
+---@return boolean
+function debug.setmetatable(object, table) end
+
+---Assigns value to the upvalue with index up of the function func
+---Returns the name of the upvalue, or nil if there is no upvalue with the given index
+---@param func function
+---@param up integer
+---@param value any
+---@return string|nil
+function debug.setupvalue(func, up, value) end

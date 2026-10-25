@@ -54,10 +54,6 @@ function os.remove(filename) end
 ---@return boolean|nil, string|nil
 function os.rename(oldname, newname) end
 
----Returns current working directory
----@return string
-function os.getwd() end
-
 ---Returns current time in seconds since epoch
 ---@return integer
 function os.time() end
@@ -70,7 +66,24 @@ function os.time() end
 ---@return string
 function os.date(format, time) end
 
----Returns handle for temporary file
----File deleted when closed or program exits
----@return File
-function os.tmpfile() end
+---Returns an approximation of the CPU time used by the program, in seconds
+---@return number
+function os.clock() end
+
+---Returns the number of seconds from time t1 to time t2
+---@param t2 number
+---@param t1? number
+---@return number
+function os.difftime(t2, t1) end
+
+---Sets the current locale of the program; returns the new locale name, or nil if the request fails
+---category: "all" (default), "collate", "ctype", "monetary", "numeric" or "time"
+---@param locale? string
+---@param category? string
+---@return string|nil
+function os.setlocale(locale, category) end
+
+---Returns a name that can be used for a temporary file
+---The file must be opened explicitly and removed when no longer needed
+---@return string
+function os.tmpname() end
