@@ -18,8 +18,8 @@ folders:
 > MAINT-23, TYPE-10, REDIS-06, ROCKS-16, TOOLING-08) and Wave 19 (codebase-review remediation,
 > MAINT-24 through 32) both shipped and released (v0.19.0 / v0.19.1). Those two completed waves are
 > removed from this roadmap and live in git history. **Remaining work is all post-MVP:** the
-> **Wave 20 follow-ons** (corpus-sweep fixes + the consolidated loose backlog, incl. MAINT-21 —
-> deferred, externally blocked on the unreleased 2026.2 platform), the **Wave 21 definition-library
+> **Wave 20 follow-ons** (corpus-sweep fixes + the consolidated loose backlog, incl. MAINT-21,
+> the Gradle 9 / GoLand 2026.2 platform bump), the **Wave 21 definition-library
 > stream** (TARGET-07/09/10 and their bug follow-ons), and the **AI epic (Wave 22)**.
 >
 > **Waves map to releases: wave N ships as `v0.N.x`.** Wave 20 → v0.20.0/v0.20.1,
@@ -66,7 +66,9 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| MAINT-21 | IJPGP 2.17 + Gradle 9 bump (deferred from MAINT-03-04) | deferred | L | *(the 2026.2 platform has shipped: GoLand 2026.2.3 is build 262.10968.67. The GoLand upgrade is being prototyped separately, without this Gradle/IJPGP bump)* | — | — |
+| MAINT-21 | Gradle 9 + IJPGP 2.19 + GoLand 2026.2 platform bump (deferred from MAINT-03-04) | planned | L | — | BUG-524 | Serial: build config |
+| MAINT-43 | CI image publish job — build and push `lunar-ci` to tier2 with a monotonic-semver gate; the GAR copy stays manual | todo | S | — | — | ✓ |
+| BUG-524 | The IDE-Starter integration tests are unverified on GoLand 2026.2, and pin a 253 ide-starter | todo | S | MAINT-21 | — | Serial: build config |
 | MAINT-36 | Pre-contract residue — correctness, dead code and contract compliance (July review §4, findings #76–#92) | todo | M | — | — | ✓ |
 | MAINT-41 | Enforce the July review's systemic patterns mechanically (Logger.error on expected failures, PSI outside read actions, PSI in data classes, wildcard imports) | todo | M | — | — | ✓ |
 | BUG-520 | The require-based cross-file completion phase never returns anything, and its two tests cannot fail (reopens July review #24 / MAINT-28 TC-24) | todo | S | — | found in the third-pass review (#100); read and grepped, not run; self-`require` lead unconfirmed | ✓ |
