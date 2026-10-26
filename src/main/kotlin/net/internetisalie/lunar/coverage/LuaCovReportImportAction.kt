@@ -3,6 +3,7 @@ package net.internetisalie.lunar.coverage
 import com.intellij.coverage.CoverageDataManager
 import com.intellij.coverage.CoverageRunner
 import com.intellij.coverage.CoverageSuitesBundle
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
@@ -43,6 +44,8 @@ class LuaCovReportImportAction :
         val bundle = CoverageSuitesBundle(suite)
         manager.chooseSuitesBundle(bundle)
     }
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabledAndVisible = e.project != null

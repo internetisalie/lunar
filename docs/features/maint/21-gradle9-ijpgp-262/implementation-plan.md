@@ -224,7 +224,7 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
 - [ ] TC-18: GitHub draft-PR run (Phase 2, design §5.5).
 - [ ] TC-15 and TC-16: `verify-in-ide`, before PR 2 merges (Phase 3).
 - [ ] TC-17: `generate.sh` no-op regeneration (Phase 4).
-- [ ] Post-merge: both lanes on the first `v*` tag (design §5.5).
+- [x] Post-merge: both lanes on the first `v*` tag (design §5.5). Passed on v0.21.12: Gitea `build-release` and GitHub `build` each ran `Set up JDK 25` and `verifyPlugin`, with `Compatible.` against GO-261.25134.147 and GO-262.10968.67. Both forges published the release with `lunar-0.21.12.zip`.
 
 ## Task Summary
 

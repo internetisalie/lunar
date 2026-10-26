@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **No IDE error on right-click in the Project view** (BUG-528). Opening a file's context menu in
+  the Project view no longer raises an "IDE error occurred" balloon from the *Publish Rock to
+  LuaRocks* action. That action, *Run Test Matrix*, *Import LuaCov Report* and the Lua console
+  action now update their menu state off the UI thread.
+
 - **GoLand 2026.2 platform** (MAINT-21). Lunar is now built and tested against GoLand 2026.2, and
   still installs on 2026.1, which the plugin verifier checks on every release.
 

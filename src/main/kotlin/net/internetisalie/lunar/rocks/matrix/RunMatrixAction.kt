@@ -2,6 +2,7 @@ package net.internetisalie.lunar.rocks.matrix
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
@@ -24,6 +25,8 @@ import java.util.concurrent.atomic.AtomicInteger
  * the aggregate notification.
  */
 class RunMatrixAction : DumbAwareAction("Run Test Matrix…") {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun update(event: AnActionEvent) {
         val project = event.project
         event.presentation.isEnabled = project != null && environmentsOf(project).isNotEmpty()

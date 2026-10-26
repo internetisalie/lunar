@@ -2,6 +2,7 @@ package net.internetisalie.lunar.rocks.publish
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.progress.ProgressIndicator
@@ -30,6 +31,8 @@ class PublishRockAction :
         "Upload this rockspec to LuaRocks",
         LuaIcons.ROCKET,
     ) {
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
     override fun update(event: AnActionEvent) {
         val rockspec = event.getData(CommonDataKeys.VIRTUAL_FILE)
         val enabled = event.project != null && rockspec != null && isRockspec(rockspec)

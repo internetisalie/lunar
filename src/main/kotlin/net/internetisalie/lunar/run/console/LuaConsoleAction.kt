@@ -3,6 +3,7 @@ package net.internetisalie.lunar.run.console
 import com.intellij.execution.ExecutionException
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
@@ -25,6 +26,8 @@ class LuaConsoleAction : DumbAwareAction() {
             }
         }.queue()
     }
+
+    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(event: AnActionEvent) {
         event.presentation.isEnabled = event.getData(CommonDataKeys.PROJECT) != null

@@ -2,7 +2,7 @@
 id: "MAINT-21"
 title: "21: Gradle 9, IntelliJ Platform Gradle Plugin 2.19 and the GoLand 2026.2 Platform"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "medium"
 parent_id: "MAINT"
 folders:
