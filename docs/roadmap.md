@@ -67,7 +67,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | MAINT-43 | CI image publish job — build and push `lunar-ci` to tier2 with a monotonic-semver gate; the GAR copy stays manual | todo | S | — | — | ✓ |
-| MAINT-44 | Verifier-reported API usages — remove the internal, override-only and non-extendable usages `verifyPlugin` lists but MAINT-21 does not gate | todo | S | MAINT-21 | — | ✓ |
+| MAINT-44 | Verifier-reported API usages — remove the internal, override-only and non-extendable usages `verifyPlugin` lists but MAINT-21 does not gate | planned | S | MAINT-21 | — | ✓ |
 | MAINT-36 | Pre-contract residue — correctness, dead code and contract compliance (July review §4, findings #76–#92) | todo | M | — | — | ✓ |
 | MAINT-41 | Enforce the July review's systemic patterns mechanically (Logger.error on expected failures, PSI outside read actions, PSI in data classes, wildcard imports) | todo | M | — | — | ✓ |
 | BUG-520 | The require-based cross-file completion phase never returns anything, and its two tests cannot fail (reopens July review #24 / MAINT-28 TC-24) | todo | S | — | found in the third-pass review (#100); read and grepped, not run; self-`require` lead unconfirmed | ✓ |
