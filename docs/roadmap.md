@@ -77,7 +77,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | RUN-09 | Lunar-shipped busted output handler: nested describe suites and live results (RUN-05-06 residual) | todo | M | — | BUG-527 | ✓ |
 | BUG-527 | A busted spec that calls `pending(...)` produces no test tree: busted 2.3.0's JSON handler fails to encode the report | todo | S | — | — | ✓ |
 | BUG-529 | LuaRenameConflictTest's cancellation-count test fails intermittently on the 2026.2 platform | todo | S | — | — | ✓ |
-| BUG-531 | On GoLand 2026.1.3 the Stubs index fails to build for Lua files: stub element types not registered through `stubElementTypeHolder` | todo | S | — | — | ✓ |
 | BUG-532 | LuaRocks new-project page: typing a project name does not clear "Project name must not be empty" | todo | S | — | — | ✓ |
 | MAINT-42 | Third-pass residue — P3 cleanups in the files the July review never covered (review §6) | todo | C | — | — | ✓ |
 | REDIS-07 | Reuse an IntelliJ Database Redis data source | planned | C | REDIS-01 *(connections, done)* | — | ✓ |

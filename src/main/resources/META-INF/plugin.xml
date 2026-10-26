@@ -694,6 +694,10 @@
     <!-- COMP-09 receiver-keyed member enumeration. Complete and tested; the completion consumer is
          Phase 2 and materialization is Phase 3, so nothing reads it yet. -->
     <fileBasedIndex implementation="net.internetisalie.lunar.lang.indexing.LuaReceiverMemberIndex"/>
+    <!-- BUG-531: stub serializer IDs are assigned once, from the stub element types that exist when
+         the index initializes; loading this holder then creates Lua's three. No externalIdPrefix: that
+         form requires an interface whose field names are the external IDs minus the prefix. -->
+    <stubElementTypeHolder class="net.internetisalie.lunar.lang.psi.LuaStubElementTypes"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaClassNameIndex"/>
     <stubIndex implementation="net.internetisalie.lunar.lang.indexing.LuaAliasIndex"/>

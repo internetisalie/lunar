@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Lua files no longer drop out of the stub index** (BUG-531). A `.lua` file that first appeared
+  after the IDE had already indexed another language's files, such as one written by the LuaRocks
+  New Project wizard, failed to index. The IDE logged errors, and Go to Symbol and other
+  stub-based navigation missed the file's declarations. This affected every release on GoLand
+  2026.1 and 2026.2. Lunar now registers its stub types when the index starts.
+
 - **The LuaRocks New Project page renders again** (BUG-530). Choosing *LuaRocks* in
   *File → New → Project…* left the previous generator's page on screen and logged an IDE error,
   on GoLand 2026.1 and 2026.2 alike. The page now shows, and its *Library* / *Application*
