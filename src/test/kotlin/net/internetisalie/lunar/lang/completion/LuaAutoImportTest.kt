@@ -15,6 +15,25 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaAutoImportTest : IndexedBasePlatformTestCase() {
+    private lateinit var savedSourcePath: String
+
+    override fun setUp() {
+        super.setUp()
+        savedSourcePath = LuaProjectSettings.getInstance(project).state.sourcePath
+    }
+
+    /**
+     * BUG-525: the light project is shared, and the `/src` source path set here names a real
+     * directory wherever the checkout is mounted at `/src`, turning it into a library for later tests.
+     */
+    override fun tearDown() {
+        try {
+            LuaProjectSettings.getInstance(project).state.sourcePath = savedSourcePath
+        } finally {
+            super.tearDown()
+        }
+    }
+
     /** Point the source path at the directory holding [file] so the resolver can match it. */
     private fun configureSourcePathFor(file: VirtualFile) {
         val dir = file.parent.path

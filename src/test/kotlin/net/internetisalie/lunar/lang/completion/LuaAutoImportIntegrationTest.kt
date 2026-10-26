@@ -21,6 +21,22 @@ import org.junit.runners.JUnit4
  */
 @RunWith(JUnit4::class)
 class LuaAutoImportIntegrationTest : IndexedBasePlatformTestCase() {
+    private lateinit var savedSourcePath: String
+
+    override fun setUp() {
+        super.setUp()
+        savedSourcePath = LuaProjectSettings.getInstance(project).state.sourcePath
+    }
+
+    /** BUG-525: restore the shared light project's source path; see [LuaAutoImportTest.tearDown]. */
+    override fun tearDown() {
+        try {
+            LuaProjectSettings.getInstance(project).state.sourcePath = savedSourcePath
+        } finally {
+            super.tearDown()
+        }
+    }
+
     private fun configureSourcePathFor(file: VirtualFile) {
         val dir = file.parent.path
         LuaProjectSettings.getInstance(project).state.sourcePath = "$dir/?.lua;$dir/?/init.lua"
