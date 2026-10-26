@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The LuaRocks New Project page renders again** (BUG-530). Choosing *LuaRocks* in
+  *File → New → Project…* left the previous generator's page on screen and logged an IDE error,
+  on GoLand 2026.1 and 2026.2 alike. The page now shows, and its *Library* / *Application*
+  project-type choice allows exactly one selection.
+
 - **No IDE error on right-click in the Project view** (BUG-528). Opening a file's context menu in
   the Project view no longer raises an "IDE error occurred" balloon from the *Publish Rock to
   LuaRocks* action. That action, *Run Test Matrix*, *Import LuaCov Report* and the Lua console

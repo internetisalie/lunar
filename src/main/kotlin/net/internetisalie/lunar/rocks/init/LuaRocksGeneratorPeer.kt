@@ -65,8 +65,10 @@ class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
         panel {
             row("Project name:") { cell(nameField) }
             group("Project type") {
-                row { cell(libraryButton) }
-                row { cell(applicationButton) }
+                buttonsGroup {
+                    row { cell(libraryButton) }
+                    row { cell(applicationButton) }
+                }
             }
             group("Runtime") {
                 row("Runtime:") { cell(kindCombo) }
@@ -83,6 +85,7 @@ class LuaRocksGeneratorPeer : ProjectGeneratorPeer<LuaRocksProjectSettings> {
     }
 
     init {
+        // Exclusive before the lazy panel exists; the panel's `buttonsGroup` regroups both buttons.
         ButtonGroup().also {
             it.add(libraryButton)
             it.add(applicationButton)
