@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **busted results now appear in the test tree** (BUG-526). Running busted specs used to leave the
+  Run window's test tree empty, with "Test framework quit unexpectedly". Results now show under
+  their spec file and `describe` block, with pass, failure and error states, assertion diffs, stack
+  traces and durations, and a spec file that fails to load shows as an error. Nested `describe`
+  blocks appear as a single suite named by the joined path, because busted's JSON report does not
+  record the nesting. Top-level Lunity suites and tests no longer vanish from the tree either.
+
 - **The Lua 5.1 standard library now matches Lua 5.1** (BUG-513). With a Standard Lua 5.1 target,
   `string.match`, `string.gmatch`, `os.clock`, `os.difftime`, `os.setlocale`, `os.tmpname`,
   `math.deg`, `math.rad`, `package.loaders`, `package.preload` and `debug.getupvalue`,

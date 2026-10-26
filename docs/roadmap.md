@@ -75,6 +75,8 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-521 | The Color Scheme page offers five colour keys that nothing applies; the highlighter maps node types the lexer never emits | todo | S | — | found in the third-pass review (#98); verified by grep, not run | ✓ |
 | BUG-522 | "Enable type inference" and "Add additional completions" do nothing — decision: remove both settings | todo | S | — | found in the third-pass review (#106); verified by grep, not run | ✓ |
 | BUG-523 | The debugger's initial top frame is built without its stack entry, so it has no variables | todo | S | BUG-463, DEBUG-05 Phase 1 *(same lines — fix together)* | found in the third-pass review (#109); read against platform source, not run | — |
+| RUN-09 | Lunar-shipped busted output handler: nested describe suites and live results (RUN-05-06 residual) | todo | M | — | BUG-527 | ✓ |
+| BUG-527 | A busted spec that calls `pending(...)` produces no test tree: busted 2.3.0's JSON handler fails to encode the report | todo | S | — | — | ✓ |
 | MAINT-42 | Third-pass residue — P3 cleanups in the files the July review never covered (review §6) | todo | C | — | — | ✓ |
 | REDIS-07 | Reuse an IntelliJ Database Redis data source | planned | C | REDIS-01 *(connections, done)* | — | ✓ |
 | BUG-388 | Dimmed-text binding-state renderer | backlog | C | BUG-387 *(done)* | — | ✓ |

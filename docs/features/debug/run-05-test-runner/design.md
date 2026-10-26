@@ -654,27 +654,34 @@ The feature adds six subsystems:
 ### 3.2 Busted JSON Output Parsing
 - **Input**: stdout line (string)
 - **Output**: SMTestRunner events emitted to `GeneralTestEventsProcessor`
-- **Format**: Busted with `--output=json` produces **one final JSON blob** on stdout (not streaming). The JSON structure:
+- **Format**: Busted with `--output=json` produces **one final JSON blob** on stdout (not streaming). The JSON structure, as written by busted 2.3.0 (`outputHandlers/json.lua` + `base.lua` `format`):
   ```json
   {
-    "successes": [ { "name": "suite → test name", "trace": { "source": "@file.lua", "currentline": 10 }, "duration": 0.001 } ],
-    "failures": [ { "name": "suite → test name", "message": "Expected 4 but got 5", "trace": { ... }, "duration": 0.002 } ],
-    "errors": [ { "name": "...", "message": "...", "trace": { ... } } ],
-    "pendings": [ { "name": "..." } ],
+    "successes": [ { "name": "math utils addition adds two numbers",
+                     "trace": { "source": "@spec/m_spec.lua", "currentline": 10, "traceback": "..." },
+                     "element": { "name": "adds two numbers", "descriptor": "it", "duration": 0.001,
+                                  "trace": { "source": "@spec/m_spec.lua", "currentline": 10 } } } ],
+    "failures": [ { "name": "...", "message": "Expected objects to be equal. ...", "trace": { ... }, "element": { ... } } ],
+    "errors": [ { "name": "...", "message": "...", "isError": true, "trace": { ... }, "element": { ... } } ],
+    "pendings": [ ],
     "duration": 0.5
   }
   ```
+  `name` is the describe/it path joined by **single spaces** (`getFullName`), so it cannot be split
+  back into levels; `element.name` is the leaf. `trace` is the failure site, `element.trace` the `it`
+  call site. A file that fails to load reports `element.descriptor = "file"` with `trace = []` (an
+  empty Lua table encodes as an array).
 - **Steps**:
   1. Buffer all stdout until process exits (Busted dumps JSON at end).
   2. Parse JSON using `com.google.gson.JsonParser.parseString()` (Gson is bundled with IntelliJ).
-  3. Decompose `name` field by ` → ` separator into suite/test hierarchy: e.g. `"math utils → addition → adds two numbers"` → suites `["math utils", "addition"]` + test `"adds two numbers"`.
-  4. Emit `testSuiteStarted` for each unique suite prefix (track opened suites to avoid duplicates).
+  3. Per entry (`LuaBustedReportEntry`): test name = `element.name`; describe path = `name` minus the trailing `" " + element.name`, kept whole; file + line from `element.trace` (falling back to `trace`).
+  4. Open one suite per spec file (parent: the tree root, `TreeNodeEvent.ROOT_NODE_ID`) and, inside it, one per distinct describe path. Every node needs a defined parent id — the id-based tree rejects `null`. Nested describes therefore show as one suite named by the joined path (e.g. `outer inner`), not as nested suites.
   5. For each entry in `successes`: emit `testStarted(name, locationUrl)` → `testFinished(name, duration_ms)`.
-  6. For each entry in `failures`: emit `testStarted(name, locationUrl)` → `testFailed(name, message, stackTrace)` → `testFinished(name, duration_ms)`.
-  7. For each entry in `errors`: emit `testStarted(name, locationUrl)` → `testFailed(name, message, stackTrace, isTestError=true)` → `testFinished(name, duration_ms)`.
+  6. For each entry in `failures`: emit `testStarted(name, locationUrl)` → `testFailed(name, message, traceback)` → `testFinished(name, duration_ms)`.
+  7. For each entry in `errors`: emit `testStarted(name, locationUrl)` → `testFailed(name, message, traceback, isTestError=true)` → `testFinished(name, duration_ms)`.
   8. For each entry in `pendings`: emit `testIgnored(name)`.
   9. Close all open suites in reverse order.
-  10. **Location URL**: construct from `trace.source` (strip leading `@`) + `trace.currentline` → `"lua://<file>:<line>"`.
+  10. **Location URL**: `element.trace.source` (strip leading `@`) + `element.trace.currentline` → `"lua://<file>:<line>"`; duration from `element.duration`. busted 2.3.0 writes `element.duration` only for passing tests; failing and erroring tests carry none, so they show 0 ms.
 - **Edge cases**: If JSON parse fails, fall through to raw console output (requirement: fallback to console).
 
 ### 3.3 Lunity JSON Line Parsing

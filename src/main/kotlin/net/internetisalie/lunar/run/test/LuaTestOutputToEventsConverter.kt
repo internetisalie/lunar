@@ -10,6 +10,7 @@ import com.intellij.execution.testframework.sm.runner.events.TestIgnoredEvent
 import com.intellij.execution.testframework.sm.runner.events.TestStartedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteFinishedEvent
 import com.intellij.execution.testframework.sm.runner.events.TestSuiteStartedEvent
+import com.intellij.execution.testframework.sm.runner.events.TreeNodeEvent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.Key
 
@@ -89,7 +90,7 @@ class LuaTestOutputToEventsConverter(
         locationUrl: String?,
     ) {
         val id = "suite_${nextId++}"
-        val parentId = lunitySuiteStack.lastOrNull()
+        val parentId = lunitySuiteStack.lastOrNull() ?: TreeNodeEvent.ROOT_NODE_ID
         lunitySuiteStack.add(id)
         lunitySuiteNameToId[name] = id
         val startedEvent = TestSuiteStartedEvent(name, id, parentId, locationUrl, null, null, null, true)
@@ -112,7 +113,7 @@ class LuaTestOutputToEventsConverter(
         locationUrl: String?,
     ) {
         val id = "test_${nextId++}"
-        val parentId = lunitySuiteStack.lastOrNull()
+        val parentId = lunitySuiteStack.lastOrNull() ?: TreeNodeEvent.ROOT_NODE_ID
         lunityTestNameToId[name] = id
         val startedEvent = TestStartedEvent(name, id, parentId, locationUrl, null, null, null, true)
         processor?.onTestStarted(startedEvent)
@@ -166,7 +167,7 @@ class LuaTestOutputToEventsConverter(
         trace: String?,
     ) {
         val id = lunityTestNameToId[name] ?: "test_${nextId++}"
-        val parentId = lunitySuiteStack.lastOrNull()
+        val parentId = lunitySuiteStack.lastOrNull() ?: TreeNodeEvent.ROOT_NODE_ID
         if (!lunityTestNameToId.containsKey(name)) {
             val startedEvent = TestStartedEvent(name, id, parentId, locationUrl, null, null, null, true)
             processor?.onTestStarted(startedEvent)
@@ -194,105 +195,72 @@ class LuaTestOutputToEventsConverter(
     }
 
     private fun processBustedJson(obj: JsonObject) {
-        val startedSuites = mutableMapOf<String, String>()
-        val suitesToClose = mutableListOf<Pair<String, String>>()
-
-        fun getOrCreateSuites(parts: List<String>): String? {
-            var currentPath = ""
-            var parentId: String? = null
-            for (i in 0 until parts.size - 1) {
-                val suiteName = parts[i]
-                currentPath = if (currentPath.isEmpty()) suiteName else "$currentPath \u2192 $suiteName"
-                var id = startedSuites[currentPath]
-                if (id == null) {
-                    id = "suite_${nextId++}"
-                    startedSuites[currentPath] = id
-                    suitesToClose.add(suiteName to id)
-                    val startedEvent = TestSuiteStartedEvent(suiteName, id, parentId, null, null, null, null, true)
-                    processor?.onSuiteStarted(startedEvent)
-                }
-                parentId = id
+        val suites = BustedSuites()
+        for ((section, status) in BUSTED_SECTIONS) {
+            val items = obj.get(section)?.takeIf { it.isJsonArray }?.asJsonArray ?: continue
+            items.filter { it.isJsonObject }.forEach {
+                val entry = LuaBustedReportEntry.parse(it.asJsonObject)
+                emitBustedTest(entry, status, suites.parentIdFor(entry))
             }
-            return parentId
         }
-
-        fun processBustedItem(
-            item: JsonObject,
-            status: String,
-        ) {
-            val fullName = item.get("name")?.asString ?: ""
-            val parts = fullName.split(" \u2192 ")
-            val testName = parts.last()
-            val parentId = getOrCreateSuites(parts)
-
-            val traceObj = item.get("trace")?.asJsonObject
-            val source = traceObj?.get("source")?.asString
-            val currentline = traceObj?.get("currentline")?.asLong
-            val durationSec = item.get("duration")?.asDouble ?: 0.0
-            val durationMs = (durationSec * 1000).toLong()
-
-            val locationUrl =
-                if (source != null && currentline != null) {
-                    val cleanSource = source.removePrefix("@")
-                    "lua://$cleanSource:$currentline"
-                } else {
-                    null
-                }
-
-            val testId = "test_${nextId++}"
-
-            handleBustedItemStatus(status, testName, testId, parentId, locationUrl, durationMs, item, traceObj)
-        }
-
-        obj.get("successes")?.asJsonArray?.forEach {
-            if (it.isJsonObject) processBustedItem(it.asJsonObject, "success")
-        }
-        obj.get("failures")?.asJsonArray?.forEach {
-            if (it.isJsonObject) processBustedItem(it.asJsonObject, "failure")
-        }
-        obj.get("errors")?.asJsonArray?.forEach {
-            if (it.isJsonObject) processBustedItem(it.asJsonObject, "error")
-        }
-        obj.get("pendings")?.asJsonArray?.forEach {
-            if (it.isJsonObject) processBustedItem(it.asJsonObject, "pending")
-        }
-
-        for (i in suitesToClose.indices.reversed()) {
-            val (name, id) = suitesToClose[i]
-            val finishedEvent = TestSuiteFinishedEvent(name, id)
-            processor?.onSuiteFinished(finishedEvent)
-        }
+        suites.finishAll()
     }
 
-    private fun handleBustedItemStatus(
-        status: String,
-        testName: String,
-        testId: String,
-        parentId: String?,
-        locationUrl: String?,
-        durationMs: Long,
-        item: JsonObject,
-        traceObj: JsonObject?,
-    ) {
-        when (status) {
-            "success" -> {
-                val startedEvent = TestStartedEvent(testName, testId, parentId, locationUrl, null, null, null, true)
-                processor?.onTestStarted(startedEvent)
-                val finishedEvent = TestFinishedEvent(testName, testId, durationMs)
-                processor?.onTestFinished(finishedEvent)
+    /**
+     * Opens one suite per spec file and, inside it, one per distinct describe path, so every test
+     * node gets a parent the platform's id-based tree knows; a test with no known file hangs off
+     * the tree root ([TreeNodeEvent.ROOT_NODE_ID]).
+     */
+    private inner class BustedSuites {
+        private val idsByKey = mutableMapOf<List<String?>, String>()
+        private val opened = mutableListOf<Pair<String, String>>()
+
+        fun parentIdFor(entry: LuaBustedReportEntry): String {
+            val fileId = entry.file?.let { open(listOf(it), TreeNodeEvent.ROOT_NODE_ID, "lua://$it:1") }
+            val parentOfDescribe = fileId ?: TreeNodeEvent.ROOT_NODE_ID
+            return entry.describePath?.let { open(listOf(entry.file, it), parentOfDescribe, null) } ?: parentOfDescribe
+        }
+
+        fun finishAll() {
+            opened.asReversed().forEach { (name, id) -> processor?.onSuiteFinished(TestSuiteFinishedEvent(name, id)) }
+        }
+
+        private fun open(
+            key: List<String?>,
+            parentId: String,
+            locationUrl: String?,
+        ): String =
+            idsByKey.getOrPut(key) {
+                val name = key.last().orEmpty()
+                val id = "suite_${nextId++}"
+                opened.add(name to id)
+                processor?.onSuiteStarted(
+                    TestSuiteStartedEvent(name, id, parentId, locationUrl, null, null, null, true),
+                )
+                id
             }
+    }
+
+    private fun emitBustedTest(
+        entry: LuaBustedReportEntry,
+        status: String,
+        parentId: String,
+    ) {
+        val testName = entry.testName
+        val testId = "test_${nextId++}"
+        processor?.onTestStarted(
+            TestStartedEvent(testName, testId, parentId, entry.locationUrl, null, null, null, true),
+        )
+        when (status) {
             "failure", "error" -> {
-                val message = item.get("message")?.asString ?: "Test failed"
-                val trace = traceObj?.get("trace")?.asString ?: ""
+                val message = entry.message ?: "Test failed"
                 val diff = parseAssertionDiff(message)
-                val startedEvent = TestStartedEvent(testName, testId, parentId, locationUrl, null, null, null, true)
-                processor?.onTestStarted(startedEvent)
                 val failedEvent =
                     TestFailedEvent(
                         testName,
                         testId,
                         message,
-                        trace,
+                        entry.traceback.orEmpty(),
                         status == "error",
                         diff?.second,
                         diff?.first,
@@ -300,19 +268,13 @@ class LuaTestOutputToEventsConverter(
                         null,
                         false,
                         false,
-                        durationMs,
+                        entry.durationMs,
                     )
                 processor?.onTestFailure(failedEvent)
-                val finishedEvent = TestFinishedEvent(testName, testId, durationMs)
-                processor?.onTestFinished(finishedEvent)
             }
-            "pending" -> {
-                val startedEvent = TestStartedEvent(testName, testId, parentId, locationUrl, null, null, null, true)
-                processor?.onTestStarted(startedEvent)
-                val ignoredEvent = TestIgnoredEvent(testName, testId, "Pending", null)
-                processor?.onTestIgnored(ignoredEvent)
-            }
+            "pending" -> processor?.onTestIgnored(TestIgnoredEvent(testName, testId, "Pending", null))
         }
+        if (status != "pending") processor?.onTestFinished(TestFinishedEvent(testName, testId, entry.durationMs))
     }
 
     private fun findTopLevelJson(text: String): Pair<String, IntRange>? {
@@ -401,6 +363,9 @@ class LuaTestOutputToEventsConverter(
                 "(?:Passed in|Got|Actual):?\\s*\\n?(.*?)\\n\\s*Expected:?\\s*\\n?(.*)",
                 kotlin.text.RegexOption.DOT_MATCHES_ALL,
             )
+
+        private val BUSTED_SECTIONS =
+            listOf("successes" to "success", "failures" to "failure", "errors" to "error", "pendings" to "pending")
 
         private val LOG = Logger.getInstance(LuaTestOutputToEventsConverter::class.java)
     }

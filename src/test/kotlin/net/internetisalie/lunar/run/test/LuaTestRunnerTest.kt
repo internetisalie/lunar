@@ -179,7 +179,7 @@ class LuaTestRunnerTest : BaseDocumentTest() {
 
         val expected =
             listOf(
-                "onSuiteStarted: name=DB tests, id=suite_1, parentId=null, url=null",
+                "onSuiteStarted: name=DB tests, id=suite_1, parentId=0, url=null",
                 "onSuiteStarted: name=connection, id=suite_2, parentId=suite_1, url=null",
                 "onTestStarted: name=test_connect, id=test_3, parentId=suite_2, url=lua://db_test.lua:10",
                 "onTestFinished: name=test_connect, id=test_3, duration=12",
@@ -211,10 +211,10 @@ class LuaTestRunnerTest : BaseDocumentTest() {
 
         val expected =
             listOf(
-                "onTestStarted: name=test_fail, id=test_1, parentId=null, url=lua://t.lua:5",
+                "onTestStarted: name=test_fail, id=test_1, parentId=0, url=lua://t.lua:5",
                 "onTestFailure: name=test_fail, id=test_1, msg=expected 4 but got 5, trace=traceback..., isError=false, duration=5",
                 "onTestFinished: name=test_fail, id=test_1, duration=5",
-                "onTestStarted: name=test_pending, id=test_2, parentId=null, url=null",
+                "onTestStarted: name=test_pending, id=test_2, parentId=0, url=null",
                 "onTestIgnored: name=test_pending, id=test_2, comment=not done yet",
             )
         assertEquals(expected, processor.events)
@@ -232,17 +232,23 @@ class LuaTestRunnerTest : BaseDocumentTest() {
             {
               "successes": [
                 {
-                  "name": "Calculator → addition → adds two positives",
+                  "name": "Calculator addition adds two positives",
                   "trace": { "source": "@/project/calc_spec.lua", "currentline": 12 },
-                  "duration": 0.005
+                  "element": {
+                    "name": "adds two positives", "descriptor": "it", "duration": 0.005,
+                    "trace": { "source": "@/project/calc_spec.lua", "currentline": 12 }
+                  }
                 }
               ],
               "failures": [
                 {
-                  "name": "Calculator → division → fails by zero",
+                  "name": "Calculator division fails by zero",
                   "message": "division by zero",
-                  "trace": { "source": "@/project/calc_spec.lua", "currentline": 20 },
-                  "duration": 0.010
+                  "trace": { "source": "@/project/calc_spec.lua", "currentline": 21, "traceback": "calc_spec.lua:21" },
+                  "element": {
+                    "name": "fails by zero", "descriptor": "it", "duration": 0.010,
+                    "trace": { "source": "@/project/calc_spec.lua", "currentline": 20 }
+                  }
                 }
               ],
               "errors": [],
@@ -255,17 +261,17 @@ class LuaTestRunnerTest : BaseDocumentTest() {
 
         val expected =
             listOf(
-                "onSuiteStarted: name=Calculator, id=suite_1, parentId=null, url=null",
-                "onSuiteStarted: name=addition, id=suite_2, parentId=suite_1, url=null",
+                "onSuiteStarted: name=/project/calc_spec.lua, id=suite_1, parentId=0, url=lua:///project/calc_spec.lua:1",
+                "onSuiteStarted: name=Calculator addition, id=suite_2, parentId=suite_1, url=null",
                 "onTestStarted: name=adds two positives, id=test_3, parentId=suite_2, url=lua:///project/calc_spec.lua:12",
                 "onTestFinished: name=adds two positives, id=test_3, duration=5",
-                "onSuiteStarted: name=division, id=suite_4, parentId=suite_1, url=null",
+                "onSuiteStarted: name=Calculator division, id=suite_4, parentId=suite_1, url=null",
                 "onTestStarted: name=fails by zero, id=test_5, parentId=suite_4, url=lua:///project/calc_spec.lua:20",
-                "onTestFailure: name=fails by zero, id=test_5, msg=division by zero, trace=, isError=false, duration=10",
+                "onTestFailure: name=fails by zero, id=test_5, msg=division by zero, trace=calc_spec.lua:21, isError=false, duration=10",
                 "onTestFinished: name=fails by zero, id=test_5, duration=10",
-                "onSuiteFinished: name=division, id=suite_4",
-                "onSuiteFinished: name=addition, id=suite_2",
-                "onSuiteFinished: name=Calculator, id=suite_1",
+                "onSuiteFinished: name=Calculator division, id=suite_4",
+                "onSuiteFinished: name=Calculator addition, id=suite_2",
+                "onSuiteFinished: name=/project/calc_spec.lua, id=suite_1",
             )
         assertEquals(expected, structuredEvents(processor))
         assertTrue(
@@ -282,8 +288,8 @@ class LuaTestRunnerTest : BaseDocumentTest() {
         converter.setProcessor(processor)
 
         val jsonLine =
-            "{\"successes\":[{\"name\":\"tests → foo\"," +
-                "\"trace\":{\"source\":\"@t.lua\",\"currentline\":1},\"duration\":0}]}"
+            "{\"successes\":[{\"name\":\"tests foo\",\"element\":{\"name\":\"foo\",\"duration\":0}," +
+                "\"trace\":{\"source\":\"@t.lua\",\"currentline\":1}}]}"
         converter.process("DEBUG: loading test modules...\n", ProcessOutputTypes.STDOUT)
         converter.process("$jsonLine\n", ProcessOutputTypes.STDOUT)
         converter.process("Done.\n", ProcessOutputTypes.STDOUT)
@@ -296,10 +302,12 @@ class LuaTestRunnerTest : BaseDocumentTest() {
                 "onUncapturedOutput: text=DEBUG: loading test modules..., type=stdout",
                 "onUncapturedOutput: text=$jsonLine, type=stdout",
                 "onUncapturedOutput: text=Done., type=stdout",
-                "onSuiteStarted: name=tests, id=suite_1, parentId=null, url=null",
-                "onTestStarted: name=foo, id=test_2, parentId=suite_1, url=lua://t.lua:1",
-                "onTestFinished: name=foo, id=test_2, duration=0",
-                "onSuiteFinished: name=tests, id=suite_1",
+                "onSuiteStarted: name=t.lua, id=suite_1, parentId=0, url=lua://t.lua:1",
+                "onSuiteStarted: name=tests, id=suite_2, parentId=suite_1, url=null",
+                "onTestStarted: name=foo, id=test_3, parentId=suite_2, url=lua://t.lua:1",
+                "onTestFinished: name=foo, id=test_3, duration=0",
+                "onSuiteFinished: name=tests, id=suite_2",
+                "onSuiteFinished: name=t.lua, id=suite_1",
             )
         assertEquals(expected, processor.events)
     }
@@ -338,22 +346,22 @@ class LuaTestRunnerTest : BaseDocumentTest() {
               "successes": [],
               "failures": [
                 {
-                  "name": "Calculator → addition → adds two positives",
+                  "name": "Calculator addition adds two positives",
                   "message": "Expected objects to be equal.\nPassed in:\n4\nExpected:\n5",
                   "trace": { "source": "@/project/calc_spec.lua", "currentline": 12 },
-                  "duration": 0.005
+                  "element": { "name": "adds two positives", "duration": 0.005 }
                 },
                 {
-                  "name": "Calculator → addition → alternative message style",
+                  "name": "Calculator addition alternative message style",
                   "message": "Expected: 10\nGot: 9",
                   "trace": { "source": "@/project/calc_spec.lua", "currentline": 15 },
-                  "duration": 0.002
+                  "element": { "name": "alternative message style", "duration": 0.002 }
                 },
                 {
-                  "name": "Calculator → addition → actual first style",
+                  "name": "Calculator addition actual first style",
                   "message": "Actual:\n[1, 2, 3]\nExpected:\n[1, 2]",
                   "trace": { "source": "@/project/calc_spec.lua", "currentline": 18 },
-                  "duration": 0.003
+                  "element": { "name": "actual first style", "duration": 0.003 }
                 }
               ],
               "errors": [],
@@ -366,8 +374,8 @@ class LuaTestRunnerTest : BaseDocumentTest() {
 
         val expected =
             listOf(
-                "onSuiteStarted: name=Calculator, id=suite_1, parentId=null, url=null",
-                "onSuiteStarted: name=addition, id=suite_2, parentId=suite_1, url=null",
+                "onSuiteStarted: name=/project/calc_spec.lua, id=suite_1, parentId=0, url=lua:///project/calc_spec.lua:1",
+                "onSuiteStarted: name=Calculator addition, id=suite_2, parentId=suite_1, url=null",
                 "onTestStarted: name=adds two positives, id=test_3, parentId=suite_2, url=lua:///project/calc_spec.lua:12",
                 "onTestFailure: name=adds two positives, id=test_3, msg=Expected objects to be equal.\nPassed in:\n4\nExpected:\n5, trace=, isError=false, duration=5, expected=5, actual=4",
                 "onTestFinished: name=adds two positives, id=test_3, duration=5",
@@ -377,8 +385,8 @@ class LuaTestRunnerTest : BaseDocumentTest() {
                 "onTestStarted: name=actual first style, id=test_5, parentId=suite_2, url=lua:///project/calc_spec.lua:18",
                 "onTestFailure: name=actual first style, id=test_5, msg=Actual:\n[1, 2, 3]\nExpected:\n[1, 2], trace=, isError=false, duration=3, expected=[1, 2], actual=[1, 2, 3]",
                 "onTestFinished: name=actual first style, id=test_5, duration=3",
-                "onSuiteFinished: name=addition, id=suite_2",
-                "onSuiteFinished: name=Calculator, id=suite_1",
+                "onSuiteFinished: name=Calculator addition, id=suite_2",
+                "onSuiteFinished: name=/project/calc_spec.lua, id=suite_1",
             )
         assertEquals(expected, structuredEvents(processor))
     }
@@ -623,14 +631,15 @@ class LuaTestRunnerTest : BaseDocumentTest() {
 
         converter.process("doesn't matter — stray apostrophe\n", ProcessOutputTypes.STDOUT)
         converter.process(
-            "{\"successes\":[{\"name\":\"tests → it doesn't crash\",\"trace\":{\"source\":\"@t.lua\",\"currentline\":3},\"duration\":0}]}\n",
+            "{\"successes\":[{\"name\":\"tests it doesn't crash\",\"element\":{\"name\":\"it doesn't crash\"}," +
+                "\"trace\":{\"source\":\"@t.lua\",\"currentline\":3}}]}\n",
             ProcessOutputTypes.STDOUT,
         )
         converter.flushBufferOnProcessTermination(0)
 
         assertTrue(
             processor.events.contains(
-                "onTestStarted: name=it doesn't crash, id=test_2, parentId=suite_1, url=lua://t.lua:3",
+                "onTestStarted: name=it doesn't crash, id=test_3, parentId=suite_2, url=lua://t.lua:3",
             ),
             "JSON report must parse despite apostrophes; had ${processor.events}",
         )

@@ -1,0 +1,1 @@
+{"successes":[],"errors":[{"message":"spec/syntax_spec.lua:3: ')' expected (to close '(' at line 2) near '<eof>'","name":"spec/syntax_spec.lua","isError":true,"trace":[],"element":{"trace":[],"name":"spec/syntax_spec.lua","descriptor":"file"}}],"pendings":[],"duration":1.5851110219955e-05,"failures":[]}
