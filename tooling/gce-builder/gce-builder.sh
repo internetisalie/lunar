@@ -90,7 +90,7 @@ cmd_create() {
     log "Safeguards: hard TTL ${MAX_RUN_DURATION} (action ${TERMINATION_ACTION}) + idle auto-shutdown ${IDLE_MINUTES}m."
   fi
 
-  log "Waiting for bootstrap (JDK 21 + cache mount)…"
+  log "Waiting for bootstrap (JDK 21 + 25 + cache mount)…"
   for i in $(seq 1 40); do
     if ssh_exec --command "test -f /var/run/lunar-bootstrap-done" >/dev/null 2>&1; then
       log "Bootstrap complete. $(ssh_exec --command "$REMOTE_JAVA_HOME/bin/java -version" 2>&1 | head -1)"

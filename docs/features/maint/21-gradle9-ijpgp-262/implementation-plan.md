@@ -34,22 +34,22 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
 - **Done already**: foojay's JDK was deleted from the builder with the user's approval on
   2026-10-25, and `/opt/cache/gradle/jdks/` now holds only `CACHEDIR.TAG`.
 - **Tasks, in this order**:
-  - [ ] **1. Edit.** On a branch for PR 1:
+  - [x] **1. Edit.** On a branch for PR 1:
         - `tooling/ci-image/Dockerfile` per design §2.7;
         - the `.gitea/workflows/build-plugin.yml` `Verify toolchain` steps per §2.8.1 and §2.8.2;
         - `tooling/gce-builder/builder-bootstrap.sh`, `startup-script.sh` and the `gce-builder.sh`
           log line per §2.10.
-  - [ ] **2. Build, and push to tier2.** The push is anonymous and deploys nothing:
+  - [x] **2. Build, and push to tier2.** The push is anonymous and deploys nothing:
         ```bash
         docker build --platform=linux/amd64 \
           -t registry.internetisalie.net/lunar/lunar-ci:0.3.0 tooling/ci-image
         docker push registry.internetisalie.net/lunar/lunar-ci:0.3.0
         crane digest registry.internetisalie.net/lunar/lunar-ci:0.3.0
         ```
-  - [ ] **3. Gate against the tier2 image** (TC-13, TC-08): design §5.2, each case on a fresh
+  - [x] **3. Gate against the tier2 image** (TC-13, TC-08): design §5.2, each case on a fresh
         Gradle volume. **Stop on any failure**: nothing has been deployed yet. Fix the Dockerfile,
         then push as `0.3.1` rather than re-pushing `0.3.0`.
-  - [ ] **3a. Pre-copy checks.** Both must pass before step 4.
+  - [x] **3a. Pre-copy checks.** Both must pass before step 4.
         - **Monotonic:** run `crane ls northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci`.
           `0.3.0` must sort above every listed tag under semver; at planning time GAR held `0.1.0`
           and `0.2.0` (DR-27). If any listed tag is equal or higher, stop: the copy would not become
@@ -59,7 +59,7 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
           `main`'s Gradle 8 / JDK 21 job, and TC-08 shows the JDK 25 toolchain resolved from
           `/usr/lib/jvm` with auto-download off, both in this exact tier2 digest. Nothing further
           is run here.
-  - [ ] **4. Deploy — supervisor step, separately checkpointed, after steps 3 and 3a pass.** It is
+  - [x] **4. Deploy — supervisor step, separately checkpointed, after steps 3 and 3a pass.** It is
         authorised by the user. Precondition: GAR write credentials on the machine that runs it
         (design §2.7).
         ```bash
@@ -79,7 +79,7 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
         whose first line still reads `"21.`, the deploy did not take effect: confirm the GAR
         digest with `crane digest`, wait for the pool's next fresh VM, and stop and report to the
         user if a second `main` build still shows `"21.` — do not open PR 1.
-  - [ ] **6. Builder.** Re-run the bootstrap as root:
+  - [x] **6. Builder.** Re-run the bootstrap as root:
         `ssh builder 'bash -s' < tooling/gce-builder/builder-bootstrap.sh`.
   - [ ] **7. PR 1.** Open PR 1 with step 1's edits.
 - **Exit criteria**:
@@ -90,9 +90,14 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
   - Merge PR 1. From here on, a rollback needs PR 1 reverted first (design §2.7). TC-09 runs in
     Phase 2, because it needs the feature branch.
 - **Resolution** (filled in at step 4):
-  - tier2 `registry.internetisalie.net/lunar/lunar-ci:0.3.0` digest: `sha256:…`
-  - GAR `…/lunar/lunar-ci:0.3.0` digest: `sha256:…`; must equal the tier2 digest
-  - GAR tags before the copy (`crane ls`): `…`
+  - tier2 `registry.internetisalie.net/lunar/lunar-ci:0.3.0` digest: `sha256:8d30b8e02dda8d715b890e3dcb6d46a36aa831b705d16ee520815fa84b229293`
+  - GAR `…/lunar/lunar-ci:0.3.0` digest: `sha256:8d30b8e02dda8d715b890e3dcb6d46a36aa831b705d16ee520815fa84b229293`; equal to the tier2 digest
+  - GAR tags before the copy (`crane ls`): `0.1.0`, `0.2.0`
+  - Step 3: TC-13's first run had 16 failures, and the 0.2.0 image failed the same way. The cause
+    was a test leak that only shows where a real `/src` exists, which is where the harness mounts
+    the tree: BUG-525, fixed in #85. Re-run on `a76af2d4`: 3200 tests, 0 failures. TC-08 passed on
+    all four criteria.
+  - Step 6: the builder reports Corretto 25.0.5 beside 21.0.11, with auto-download off.
 
 ### Phase 2: The combined bump (PR 2) [Must]
 - **Goal**: Gradle 9.7.1, IJPGP 2.19.0 and the 2026.2.3 platform land together.
@@ -185,7 +190,7 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: JDK 25 in the build environments | todo | Must |
+| Phase 1: JDK 25 in the build environments | in_progress | Must |
 | Phase 2: The combined bump | todo | Must |
 | Phase 3: Live test-runner check | todo | Should |
 | Phase 4: Local-only files | todo | Should |

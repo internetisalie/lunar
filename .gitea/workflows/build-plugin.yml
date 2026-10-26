@@ -172,6 +172,14 @@ jobs:
           else
             echo "gradle cache: COLD (no ${GRADLE_USER_HOME} yet)"
           fi
+          # JDK 25 is the build TOOLCHAIN (MAINT-21); JAVA_HOME stays 21 for Gradle itself. Toolchains
+          # must come from the image: with auto-download off, a missing JDK fails the build instead of
+          # being fetched per cold VM. A gradle.properties line covers every later gradlew call in the
+          # job; GRADLE_OPTS -D and ORG_GRADLE_PROJECT_ were measured ineffective (MAINT-21 DR-19).
+          mkdir -p "$GRADLE_USER_HOME"
+          grep -qx 'org.gradle.java.installations.auto-download=false' "$GRADLE_USER_HOME/gradle.properties" 2>/dev/null \
+            || echo 'org.gradle.java.installations.auto-download=false' >> "$GRADLE_USER_HOME/gradle.properties"
+          grep -x 'org.gradle.java.installations.auto-download=false' "$GRADLE_USER_HOME/gradle.properties" && /usr/lib/jvm/java-25-openjdk-amd64/bin/java -version && echo "jdk25 ok"
 
       # No -PpluginVersion, and no version-derivation step. This lane never builds a tag,
       # so the derived value was always just gradle.properties' own pluginVersion —
@@ -344,7 +352,7 @@ jobs:
         # run): `set -eu` and mid-script failures do not fail a step — "python3: not
         # found" ×3 still printed "success" — the step's status is its final command's
         # exit. So every step here funnels its assertions into one final compound test.
-        # This one exists to catch the pool running a pre-0.2.0 image (no cc/python3):
+        # This one exists to catch the pool running a pre-0.3.0 image (no cc/python3, or no JDK 25):
         # fail here, in two lines, not five sweeps later at the ratchet.
         run: |
           java -version
@@ -355,7 +363,14 @@ jobs:
           else
             echo "gradle cache: COLD (no ${GRADLE_USER_HOME} yet)"
           fi
-          fc-match sans >/dev/null && cc -dumpversion >/dev/null && python3 --version && echo "toolchain ok (image >= 0.2.0)"
+          # JDK 25 is the build TOOLCHAIN (MAINT-21); JAVA_HOME stays 21 for Gradle itself. Toolchains
+          # must come from the image: with auto-download off, a missing JDK fails the build instead of
+          # being fetched per cold VM. A gradle.properties line covers every later gradlew call in the
+          # job; GRADLE_OPTS -D and ORG_GRADLE_PROJECT_ were measured ineffective (MAINT-21 DR-19).
+          mkdir -p "$GRADLE_USER_HOME"
+          grep -qx 'org.gradle.java.installations.auto-download=false' "$GRADLE_USER_HOME/gradle.properties" 2>/dev/null \
+            || echo 'org.gradle.java.installations.auto-download=false' >> "$GRADLE_USER_HOME/gradle.properties"
+          grep -qx 'org.gradle.java.installations.auto-download=false' "$GRADLE_USER_HOME/gradle.properties" && fc-match sans >/dev/null && cc -dumpversion >/dev/null && python3 --version && /usr/lib/jvm/java-25-openjdk-amd64/bin/java -version && echo "toolchain ok (image >= 0.3.0)"
 
       - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles, torture archive)
         # `test` is a tracked symlink to ../test; re-point it at the persistent /cache

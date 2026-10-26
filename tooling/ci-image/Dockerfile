@@ -14,18 +14,24 @@
 # northamerica-northeast1, and the chart's c4a default is arm64). From an arm64 host
 # pass --platform=linux/amd64 or the VM cannot run the image at all.
 #
+#   # 1. build and push to the tier2 staging registry (anonymous push):
 #   docker build --platform=linux/amd64 \
-#     -t northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci:0.2.0 \
-#     tooling/ci-image
-#   docker push northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci:0.2.0
+#     -t registry.internetisalie.net/lunar/lunar-ci:<semver> tooling/ci-image
+#   docker push registry.internetisalie.net/lunar/lunar-ci:<semver>
+#   # 2. gate: run main's job script in that tier2 image locally (MAINT-21 design §5.2)
+#   # 3. DEPLOY: copy to GAR, which the lunar-ci pool reads
+#   crane copy registry.internetisalie.net/lunar/lunar-ci:<semver> \
+#     northamerica-northeast1-docker.pkg.dev/cosmic-region-400615/lunar/lunar-ci:<semver>
 #
 # GAR in northamerica-northeast1, NOT registry.internetisalie.net: the VM pulls over its
 # own GCP egress, in-region. The fleet LAN registry is reachable — the pool masquerades
 # 192.168.2.0/24 over the WireGuard tunnel — but every pull would then cross the home
 # uplink. Same region as the pool is the point.
 #
-# Built by hand, like the runner image itself; there is no CI lane for it. Bump the tag
-# in deployment/values/lunar-ci.yaml deliberately.
+# Built by hand, like the runner image itself; there is no CI lane for it.
+# The pool's image label is tagless and resolves the newest semver tag in GAR, so the crane copy
+# IS the deploy: every lunar-ci job that starts afterwards runs the new image. Gate it on step 2.
+# The image publish job (separate MAINT) will automate steps 1-2.
 FROM debian:13-slim
 
 # git: REQUIRED, and not by any step — the executor emits its own checkout preamble that
@@ -37,6 +43,12 @@ FROM debian:13-slim
 #   pre-resolved GRADLE_USER_HOME, which would freeze mutable dependency state
 #   (modules-2 carries TTLs and absolute paths) into an immutable artifact and go stale
 #   silently. Gradle still resolves dependencies at job time.
+# openjdk-25: the Java 25 TOOLCHAIN (build.gradle.kts jvmToolchain(25)). Gradle finds it under
+#   /usr/lib/jvm by auto-detection; JAVA_HOME stays 21 and keeps running Gradle itself.
+#   Installing it repoints /usr/bin/java at 25 (update-alternatives picks the highest); main's
+#   jvmToolchain(21) build was run in this image with that in place (MAINT-21 DR-19).
+#   Toolchain auto-download is switched off per job, in $GRADLE_USER_HOME/gradle.properties,
+#   by the workflow's Verify toolchain step: GRADLE_OPTS cannot do it (MAINT-21 DR-19).
 # fontconfig + fonts-dejavu-core: NOT optional. Any test that initialises an editor
 #   colour scheme throws "RuntimeException: Fontconfig head is null" without them, which
 #   is most of the headless editor/inlay suite.
@@ -59,6 +71,7 @@ FROM debian:13-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         openjdk-21-jdk-headless \
+        openjdk-25-jdk-headless \
         fontconfig fonts-dejavu-core \
         lua5.4 lua-socket \
         curl ca-certificates \
@@ -89,6 +102,7 @@ ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 RUN git --version \
     && java -version \
     && "$JAVA_HOME/bin/java" -version \
+    && /usr/lib/jvm/java-25-openjdk-amd64/bin/java -version \
     && lua -v \
     && /root/bin/lua -v \
     && fc-match sans >/dev/null \

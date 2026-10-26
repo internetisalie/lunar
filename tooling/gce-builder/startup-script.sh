@@ -52,6 +52,20 @@ if [ ! -x "$JAVA_HOME/bin/java" ]; then
   tar xzf "$tmp/corretto.tar.gz" -C "$JAVA_HOME" --strip-components=1
   rm -rf "$tmp"
 fi
+echo "=== Corretto 25 -> /usr/lib/jvm/corretto-25 (Gradle toolchain; JAVA_HOME stays 21) ==="
+JDK25=/usr/lib/jvm/corretto-25
+if [ ! -x "$JDK25/bin/java" ]; then
+  tmp="$(mktemp -d)"
+  wget -qO "$tmp/corretto25.tar.gz" \
+    "https://corretto.aws/downloads/latest/amazon-corretto-25-x64-linux-jdk.tar.gz"
+  mkdir -p "$JDK25"
+  tar xzf "$tmp/corretto25.tar.gz" -C "$JDK25" --strip-components=1
+  rm -rf "$tmp"
+fi
+# Toolchains come from the VM, never from a download (MAINT-21-09).
+mkdir -p /opt/cache/gradle
+grep -qx 'org.gradle.java.installations.auto-download=false' /opt/cache/gradle/gradle.properties 2>/dev/null \
+  || echo 'org.gradle.java.installations.auto-download=false' >> /opt/cache/gradle/gradle.properties
 cat >/etc/profile.d/lunar-java.sh <<EOF
 export JAVA_HOME="$JAVA_HOME"
 export PATH="\$JAVA_HOME/bin:\$PATH"
@@ -127,5 +141,6 @@ systemctl daemon-reload
 systemctl enable --now lunar-idle.timer
 echo "Idle auto-shutdown armed: ${IDLE_MINUTES}m."
 
+echo "jdk25: $(/usr/lib/jvm/corretto-25/bin/java -version 2>&1 | head -1)"
 echo "=== bootstrap complete: $($JAVA_HOME/bin/java -version 2>&1 | head -1) ==="
 touch /var/run/lunar-bootstrap-done

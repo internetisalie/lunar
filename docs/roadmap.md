@@ -66,7 +66,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| MAINT-21 | Gradle 9 + IJPGP 2.19 + GoLand 2026.2 platform bump (deferred from MAINT-03-04) | planned | L | — | BUG-524 | Serial: build config |
+| MAINT-21 | Gradle 9 + IJPGP 2.19 + GoLand 2026.2 platform bump (deferred from MAINT-03-04) | in_progress | L | — | BUG-524 | Serial: build config |
 | MAINT-43 | CI image publish job — build and push `lunar-ci` to tier2 with a monotonic-semver gate; the GAR copy stays manual | todo | S | — | — | ✓ |
 | BUG-524 | The IDE-Starter integration tests are unverified on GoLand 2026.2, and pin a 253 ide-starter | todo | S | MAINT-21 | — | Serial: build config |
 | MAINT-36 | Pre-contract residue — correctness, dead code and contract compliance (July review §4, findings #76–#92) | todo | M | — | — | ✓ |
