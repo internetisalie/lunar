@@ -67,7 +67,7 @@ RUN apt-get update && apt-get install -y \
 
 ENV DISPLAY=:99 \
     IDE_TYPE=GO \
-    IDE_VERSION=2026.1.3
+    IDE_VERSION=2026.2.3
 
 # Download and extract the IDE (one cached layer).
 RUN mkdir -p /home/lunar/ide && \

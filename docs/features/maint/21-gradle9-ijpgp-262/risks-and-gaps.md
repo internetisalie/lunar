@@ -167,7 +167,8 @@ after the later test and Kover runs. This is TC-08 as specified (design §5.2).
   - Fix the offending site.
 - **Not covered here**: a failure on 2026.2.3. Dropping 2026.1 cannot fix it, so design §7 handles
   it: fix forward, or file a BUG and hold PR 2's merge.
-- **Still pending**: the narrowed verifier failure levels (design §2.6.5).
+- **Verifier failure levels**: the narrowed set in design §2.6.5 was confirmed by the user on
+  2026-10-26.
 
 ## Technical Debt & Future Work
 - **BUG-524**: `:integrationTest` on 262, and the 253 ide-starter pins. After PR 2 merges, every
@@ -177,7 +178,8 @@ after the later test and Kover runs. This is TC-08 as specified (design §5.2).
   `crane copy` stays a supervisor step either way.
 - **Gradle 10 deprecations** in `build.gradle.kts`: `by configurations.getting` at lines 54 and 57,
   and `by registering` at 357 (DR-01).
-- **API usage the verifier lists but does not gate**, the same on 261 and 262 (DR-09):
+- **API usage the verifier lists but does not gate**, the same on 261 and 262 (DR-09). Filed as
+  [MAINT-44](../44-verifier-reported-api-usages/requirements.md):
   - internal: `CoverageEngine.getQualifiedName`, `coverageProjectViewStatisticsApplicableTo`,
     `CoverageRunner.getInstanceById`, `UtilKt.targetPresentation`, `PluginManagerCore.getPlugin`
     (262 only) and `StartupManager.runAfterOpened`;
@@ -204,7 +206,7 @@ after the later test and Kover runs. This is TC-08 as specified (design §5.2).
 - **"`recommended()` verifier IDEs."** A template convention. Replaced, because it pulls an EAP
   (DR-15).
 - **"The verifier's default failure levels."** Narrowed. The extra usages predate this feature
-  (DR-09). Pending user confirmation.
+  (DR-09). Confirmed by the user on 2026-10-26.
 - **"A branch push exercises the GitHub workflow."** Measured false: GitHub triggers on `main`,
   tags and pull requests only (DR-24). A draft PR is used instead.
 - **"Tests should see only declared plugins"** (IJPGP 2.5 behaviour). Not restorable on 262 without

@@ -35,10 +35,10 @@ See [docs/features.md](docs/features.md) for the full feature index and
 
 ## Building & Testing
 
-Requires **JDK 21**. The Gradle wrapper (`./gradlew`) pins Gradle 8.14.4.
+Requires **JDK 21** to run Gradle and **JDK 25** as the build toolchain (Gradle finds it, or downloads one on a developer machine). The Gradle wrapper pins Gradle 9.7.1.
 
 ```bash
-./gradlew buildPlugin      # compile + verifyPlugin + build the distributable zip
+./gradlew buildPlugin      # compile + build the distributable zip
 ./gradlew test             # unit-test suite
 ./gradlew test --tests "*Glob*"   # a single test pattern
 ./gradlew integrationTest  # IDE-Starter integration tests (downloads GoLand, ~1.2 GB first run)
@@ -52,11 +52,12 @@ The IDE the plugin compiles and tests against is controlled by `gradle.propertie
 
 ```properties
 platformType    = GO         # IDE for builds: GO (GoLand), IC (IntelliJ Community), PY, WS, …
-platformVersion = 2026.1.3   # compile + unit-test platform (e.g. go:goland:2026.1.3)
-testVersion     = 2026.1.3   # ide-starter INTEGRATION-test IDE (read at runtime by IdeProductResolver)
+platformVersion = 2026.2.3   # compile + unit-test platform (e.g. go:goland:2026.2.3)
+testVersion     = 2026.2.3   # ide-starter INTEGRATION-test IDE (read at runtime by IdeProductResolver)
 ```
 
 `pluginSinceBuild = 261` keeps the plugin compatible across the whole 2026.1.x branch.
+verifyPlugin checks the built zip against GoLand 2026.1.3 and 2026.2.3.
 `testVersion` is parsed directly from this file by `IdeProductResolver` in `src/integrationTest`
 (not by the Gradle plugin), so keep it in sync by hand. The containerized debug IDE version is
 separate — `IDE_VERSION` in [docker/Dockerfile](docker/Dockerfile).

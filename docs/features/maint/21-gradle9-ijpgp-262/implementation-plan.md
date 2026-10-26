@@ -103,12 +103,12 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
 - **Goal**: Gradle 9.7.1, IJPGP 2.19.0 and the 2026.2.3 platform land together.
 - **Precondition**: Phase 1 is complete.
 - **Tasks** (one commit is fine; the order below is for the reader):
-  - [ ] Wrapper and `gradleVersion` — design §2.1.
-  - [ ] `gradle/libs.versions.toml` — §2.2.
-  - [ ] `settings.gradle.kts` foojay 1.0.0 — §2.3.
-  - [ ] `gradle.properties` comment, platform, test version and exclusions — §2.4.
-  - [ ] `LuaProjectSettings.kt` `expandMacros` — §2.5.
-  - [ ] `build.gradle.kts`:
+  - [x] Wrapper and `gradleVersion` — design §2.1.
+  - [x] `gradle/libs.versions.toml` — §2.2.
+  - [x] `settings.gradle.kts` foojay 1.0.0 — §2.3.
+  - [x] `gradle.properties` comment, platform, test version and exclusions — §2.4.
+  - [x] `LuaProjectSettings.kt` `expandMacros` — §2.5.
+  - [x] `build.gradle.kts`:
         - imports §2.6.1;
         - toolchain §2.6.2;
         - ide-starter §2.6.3;
@@ -116,14 +116,14 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
         - verifier §2.6.5;
         - `sandbox.home` §2.6.6;
         - `runIde261` §2.6.7.
-  - [ ] `SandboxAssetsIntegrationTest.kt` per §2.6.6, and the new `TestClasspathExclusionsTest.kt`
+  - [x] `SandboxAssetsIntegrationTest.kt` per §2.6.6, and the new `TestClasspathExclusionsTest.kt`
         per §2.6.8.
-  - [ ] Workflows per §2.8.3, §2.8.4 and §2.9.
-  - [ ] Tracked references per §2.11. That includes MAINT-03-04's row, which now points at
+  - [x] Workflows per §2.8.3, §2.8.4 and §2.9.
+  - [x] Tracked references per §2.11. That includes MAINT-03-04's row, which now points at
         MAINT-21.
-  - [ ] `CHANGELOG.md` per §2.11, using the `changelog` skill. Fill in the commit link after the
-        squash merge.
-  - [ ] Format as AGENTS.md describes: run `ktlintFormat` on the VM, then pull the result back.
+  - [x] `CHANGELOG.md` per §2.11, using the `changelog` skill. Fill in the commit link after the
+        squash merge (still a placeholder).
+  - [x] Format as AGENTS.md describes: run `ktlintFormat` on the VM, then pull the result back.
 - **Exit criteria**:
   - **On the builder**, from the PR branch: TC-01 to TC-07, TC-09, TC-11 and TC-12, each its own
     `builder-run`, with every log path in the PR description.
@@ -134,7 +134,20 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
     covered with the daemon on JDK 25 (DR-13), and its YAML parses (TC-14).
   - **Post-merge**: design §5.5's check of both lanes on the first `v*` tag, with its failure
     branches.
-  - **Phase 3 has passed**, and the user has answered the narrowed verifier levels.
+  - **Phase 3 has passed**, and the user has answered the narrowed verifier levels (confirmed
+    2026-10-26).
+- **Resolution** (builder gates, 2026-10-26, libvirt builder, each its own `builder-run`):
+  - TC-01: `BUILD SUCCESSFUL in 8s`, and again with `--rerun-tasks --no-build-cache` (`compileKotlin`
+    executed): `BUILD SUCCESSFUL in 52s`. TC-02: `lunar/lib/lunar-0.18.0.jar: major=65 classes=1764`.
+  - TC-03: `tests=3227 failures=0 errors=0 skipped=4`, `BUILD SUCCESSFUL in 10m 46s` (DR-12: 3226
+    tests, 11m 51s).
+  - TC-04: `against GO-261.25134.147: Compatible.` and `against GO-262.10968.67: Compatible.`,
+    `BUILD SUCCESSFUL in 41s`. The ungated usages it lists are filed as MAINT-44.
+  - TC-05: `LuaCorpusSweepTest` 4 and `LuaTortureCorpusTest` 1, `failures=0`, `BUILD SUCCESSFUL in 5m 16s`.
+  - TC-06: `BUILD SUCCESSFUL in 19s`. TC-07: both compile tasks executed, `BUILD SUCCESSFUL in 27s`.
+  - TC-09: `Auto-download: Disabled`, `Compiling with toolchain '/usr/lib/jvm/corretto-25'.`; the
+    builder's `jdks/` holds only `CACHEDIR.TAG`.
+  - TC-11 and TC-12: one test each, `failures=0`. TC-14: both workflow files parse.
 
 ### Phase 3: Live test-runner check [Should]
 - **Goal**: settle Risk 1.2 with TC-15 and TC-16.
@@ -179,8 +192,8 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
 - [ ] TC-08 and TC-13: local Docker against the tier2 image, before the GAR deploy (Phase 1, step 3).
 - [ ] The which-image-ran check after the deploy (Phase 1, step 5).
 - [ ] TC-10: Gitea `build` job logs of PR 1 and PR 2.
-- [ ] TC-01 to TC-07, TC-09, TC-11, TC-12: builder runs (Phase 2).
-- [ ] TC-14: local YAML parse (Phase 2).
+- [x] TC-01 to TC-07, TC-09, TC-11, TC-12: builder runs (Phase 2).
+- [x] TC-14: local YAML parse (Phase 2).
 - [ ] TC-18: GitHub draft-PR run (Phase 2, design §5.5).
 - [ ] TC-15 and TC-16: `verify-in-ide`, before PR 2 merges (Phase 3).
 - [ ] TC-17: `generate.sh` no-op regeneration (Phase 4).
@@ -191,6 +204,6 @@ After PR 2 come two steps that produce no PR. Phase 3 runs **before** PR 2 merge
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: JDK 25 in the build environments | in_progress | Must |
-| Phase 2: The combined bump | todo | Must |
+| Phase 2: The combined bump | in_progress | Must |
 | Phase 3: Live test-runner check | todo | Should |
 | Phase 4: Local-only files | todo | Should |

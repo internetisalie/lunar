@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run Plugin" type="GradleRunConfiguration" factoryName="Gradle">
-    <log_file alias="idea.log" path="$PROJECT_DIR$/build/idea-sandbox/system/log/idea.log" />
+    <log_file alias="idea.log" path="$PROJECT_DIR$/.intellijPlatform/sandbox/lunar/GO-2026.2.3/log/idea.log" />
     <ExternalSystemSettings>
       <option name="executionName" />
       <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -28,7 +28,7 @@
     <method v="2" />
   </configuration>
   <configuration default="false" name="Run Plugin" type="GradleRunConfiguration" factoryName="Gradle">
-    <log_file alias="idea.log" path="$PROJECT_DIR$/build/idea-sandbox/system/log/idea.log" />
+    <log_file alias="idea.log" path="$PROJECT_DIR$/.intellijPlatform/sandbox/lunar/GO-2026.2.3/log/idea.log" />
     <ExternalSystemSettings>
       <option name="executionName" />
       <option name="externalProjectPath" value="$PROJECT_DIR$" />

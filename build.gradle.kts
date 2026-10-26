@@ -1,7 +1,11 @@
 
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("java") // Java support
@@ -15,9 +19,20 @@ plugins {
 group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
-// Set the JVM language level used to build the project.
+// Compile with JDK 25: the 262 platform jars are class-file 69, which javac 21 cannot read.
+// Emit Java 21 bytecode: the 261 platform is itself Java 21 bytecode, and pluginSinceBuild=261
+// covers 2026.1 installs on a Java 21 runtime. Set per task: the extension-level jvmTarget
+// misses the test compilations (MAINT-21 DR-10).
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
+}
+
+tasks.withType<KotlinCompile>().configureEach {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(21)
 }
 
 // Configure project's dependencies
@@ -61,10 +76,12 @@ dependencies {
     ktlintConfig(libs.ktlint)
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
-    testImplementation(libs.ide.starter)
-    testImplementation("com.jetbrains.intellij.tools:ide-starter:253.29346.240")
     testImplementation(kotlin("test"))
     testImplementation("org.junit.vintage:junit-vintage-engine:5.9.2")
+    // IDE-Starter is used only by src/integrationTest. On the unit-test classpath its transitive
+    // platform 253 jars shadowed the 262 platform (MAINT-21 DR-03).
+    integrationTestImplementation(libs.ide.starter)
+    integrationTestImplementation("com.jetbrains.intellij.tools:ide-starter:253.29346.240")
     integrationTestImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
     integrationTestImplementation("org.kodein.di:kodein-di-jvm:7.20.2")
     integrationTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.1")
@@ -81,6 +98,12 @@ dependencies {
         bundledModule("intellij.platform.coverage")
         bundledModule("intellij.platform.coverage.agent")
         bundledModule("intellij.spellchecker")
+        // 262 moved the test-runner classes out of the core into content modules of the bundled
+        // `intellij.testRunner.plugin`; 261 keeps them in the core. Compile-time only: at runtime
+        // 262 adds intellij.platform.smRunner (which depends on testRunner) as an implicit
+        // dependency of every non-bundled plugin (MAINT-21 DR-05).
+        bundledModule("intellij.platform.testRunner")
+        bundledModule("intellij.platform.smRunner")
         testFramework(TestFrameworkType.Platform)
         testFramework(TestFrameworkType.Plugin.Go)
         testFramework(TestFrameworkType.Starter, configurationName = "integrationTestImplementation")
@@ -142,10 +165,30 @@ intellijPlatform {
     }
 
     pluginVerification {
+        // Fail on binary incompatibility only. The internal, override-only and non-extendable
+        // usages the verifier also lists exist on both 261 and 262 (MAINT-21 DR-09) and are
+        // tracked as debt, not gated here.
+        failureLevel.set(
+            listOf(
+                VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
+                VerifyPluginTask.FailureLevel.MISSING_DEPENDENCIES,
+                VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
+            ),
+        )
+        // The floor (pluginSinceBuild=261) and the compile platform, pinned: recommended() also
+        // pulls the newest EAP, so its verdict would move with JetBrains' release calendar.
         ides {
-            recommended()
+            create(IntelliJPlatformType.GoLand, "2026.1.3")
+            create(IntelliJPlatformType.GoLand, "2026.2.3")
         }
     }
+}
+
+// The plugin built against platformVersion, run inside GoLand 2026.1.3 (the pluginSinceBuild floor)
+// for live compatibility checks: `./gradlew runIde261`.
+intellijPlatformTesting.runIde.register("runIde261") {
+    type = IntelliJPlatformType.GoLand
+    version = "2026.1.3"
 }
 
 // Gradle Changelog Plugin configuration.
@@ -234,7 +277,7 @@ tasks {
     test {
         useJUnitPlatform()
         dependsOn(prepareSandbox)
-        systemProperty("sandbox.home", layout.buildDirectory.dir("idea-sandbox").get().asFile.absolutePath)
+        systemProperty("sandbox.home", prepareSandbox.get().sandboxDirectory.get().asFile.absolutePath)
         systemProperty("plugin.name", providers.gradleProperty("pluginName").get())
         // MAINT-38 tier 1 — Java Flight Recorder on demand: `./gradlew test -PjfrProfile`, or
         // `-PjfrProfile=default` for the low-overhead event set. OFF unless asked for, so the

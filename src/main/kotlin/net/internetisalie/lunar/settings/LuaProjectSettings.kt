@@ -222,9 +222,9 @@ class LuaProjectSettings(
 }
 
 fun String.expandMacros(project: Project): String =
-    PathMacroManager
-        .getInstance(project)
-        .expandPath(this)
+    project
+        .service<PathMacroManager>()
+        .expandPath(this) ?: this
 
 /**
  * User-configurable override for the auto-import template style (COMP-03-03).
