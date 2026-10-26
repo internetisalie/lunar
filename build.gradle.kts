@@ -78,13 +78,14 @@ dependencies {
     testImplementation(libs.opentest4j)
     testImplementation(kotlin("test"))
     testImplementation("org.junit.vintage:junit-vintage-engine:5.9.2")
-    // IDE-Starter is used only by src/integrationTest. On the unit-test classpath its transitive
-    // platform 253 jars shadowed the 262 platform (MAINT-21 DR-03).
-    integrationTestImplementation(libs.ide.starter)
-    integrationTestImplementation("com.jetbrains.intellij.tools:ide-starter:253.29346.240")
+    // IDE-Starter's version comes from testFramework(TestFrameworkType.Starter) below, which pins it
+    // to the target platform's build (BUG-524). It is declared here as well, unversioned, because
+    // the Starter framework's own declaration excludes the platform jars, IntelliJ coroutines and
+    // TeamCity service messages that the test JVM needs at runtime. Keep it off testImplementation:
+    // its transitive platform jars shadowed the IDE's on the unit-test classpath (MAINT-21 DR-03).
+    integrationTestImplementation("com.jetbrains.intellij.tools:ide-starter-junit5")
     integrationTestImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
     integrationTestImplementation("org.kodein.di:kodein-di-jvm:7.20.2")
-    integrationTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.1")
     intellijPlatform {
         create(providers.gradleProperty("platformType"), providers.gradleProperty("platformVersion"))
         bundledPlugins(

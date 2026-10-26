@@ -1,8 +1,11 @@
 package net.internetisalie.lunar
 
+import com.intellij.ide.starter.di.di
 import com.intellij.ide.starter.ide.IDETestContext
-import com.intellij.ide.starter.ide.IdeProductProvider
 import com.intellij.ide.starter.models.IdeInfo
+import com.intellij.ide.starter.models.IdeInfoType
+import org.kodein.di.direct
+import org.kodein.di.instance
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -96,33 +99,19 @@ object IdeProductResolver {
     fun getTestVersion(): String = readTestVersion()
 
     /**
-     * Get IDE info by platform type code
+     * Get IDE info by platform type code. Each product's [IdeInfo] lives in its own
+     * `ide-starter-product-*` module, which registers it in Starter's DI under its [IdeInfoType].
      * @param platformType Platform type (GO, IU, IC, AI, WS, PS, etc.)
      * @return IdeInfo instance or IC as fallback
      */
-    fun getIdeProductByType(platformType: String): IdeInfo =
-        when (platformType.uppercase()) {
-            "GO" -> IdeProductProvider.GO
-            "IU" -> IdeProductProvider.IU
-            "IC" -> IdeProductProvider.IC
-            "AI" -> IdeProductProvider.AI
-            "WS" -> IdeProductProvider.WS
-            "PS" -> IdeProductProvider.PS
-            "DB" -> IdeProductProvider.DB
-            "RM" -> IdeProductProvider.RM
-            "PY" -> IdeProductProvider.PY
-            "CL" -> IdeProductProvider.CL
-            "DS" -> IdeProductProvider.DS
-            "PC" -> IdeProductProvider.PC
-            "QA" -> IdeProductProvider.QA
-            "RR" -> IdeProductProvider.RR
-            "RD" -> IdeProductProvider.RD
-            "GW" -> IdeProductProvider.GW
-            else -> {
+    fun getIdeProductByType(platformType: String): IdeInfo {
+        val ideInfoType =
+            IdeInfoType.entries.find { it.productCode == platformType.uppercase() } ?: run {
                 println("⚠ Unknown platform type: $platformType, using IC (IntelliJ Community)")
-                IdeProductProvider.IC
+                IdeInfoType.IDEA_COMMUNITY
             }
-        }
+        return di.direct.instance<IdeInfo>(tag = ideInfoType)
+    }
 
     /**
      * Read platformType from gradle.properties
