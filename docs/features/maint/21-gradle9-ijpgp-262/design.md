@@ -186,8 +186,9 @@ Add these directly above `integrationTestImplementation("org.junit.jupiter:junit
 ```
 
 #### 2.6.5 Verifier (replaces `pluginVerification { ides { recommended() } }`)
-The 2026.1.3 entry is confirmed, together with `pluginSinceBuild = 261` (Gap 2.1). The failure
-levels are pending user confirmation.
+The 2026.1.3 entry is confirmed, together with `pluginSinceBuild = 261` (Gap 2.1). The user
+confirmed the narrowed failure levels below on 2026-10-26. The usages they leave ungated are tracked
+as [MAINT-44](../44-verifier-reported-api-usages/requirements.md).
 ```kotlin
     pluginVerification {
         // Fail on binary incompatibility only. The internal, override-only and non-extendable

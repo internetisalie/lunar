@@ -68,6 +68,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | MAINT-21 | Gradle 9 + IJPGP 2.19 + GoLand 2026.2 platform bump (deferred from MAINT-03-04) | in_progress | L | — | BUG-524 | Serial: build config |
 | MAINT-43 | CI image publish job — build and push `lunar-ci` to tier2 with a monotonic-semver gate; the GAR copy stays manual | todo | S | — | — | ✓ |
+| MAINT-44 | Verifier-reported API usages — remove the internal, override-only and non-extendable usages `verifyPlugin` lists but MAINT-21 does not gate | todo | S | MAINT-21 | — | ✓ |
 | BUG-524 | The IDE-Starter integration tests are unverified on GoLand 2026.2, and pin a 253 ide-starter | todo | S | MAINT-21 | — | Serial: build config |
 | MAINT-36 | Pre-contract residue — correctness, dead code and contract compliance (July review §4, findings #76–#92) | todo | M | — | — | ✓ |
 | MAINT-41 | Enforce the July review's systemic patterns mechanically (Logger.error on expected failures, PSI outside read actions, PSI in data classes, wildcard imports) | todo | M | — | — | ✓ |
@@ -77,6 +78,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-523 | The debugger's initial top frame is built without its stack entry, so it has no variables | todo | S | BUG-463, DEBUG-05 Phase 1 *(same lines — fix together)* | found in the third-pass review (#109); read against platform source, not run | — |
 | RUN-09 | Lunar-shipped busted output handler: nested describe suites and live results (RUN-05-06 residual) | todo | M | — | BUG-527 | ✓ |
 | BUG-527 | A busted spec that calls `pending(...)` produces no test tree: busted 2.3.0's JSON handler fails to encode the report | todo | S | — | — | ✓ |
+| BUG-528 | PublishRockAction reads `VIRTUAL_FILE` on the EDT in `update()`, and the IDE reports it as an error | todo | S | — | — | ✓ |
 | MAINT-42 | Third-pass residue — P3 cleanups in the files the July review never covered (review §6) | todo | C | — | — | ✓ |
 | REDIS-07 | Reuse an IntelliJ Database Redis data source | planned | C | REDIS-01 *(connections, done)* | — | ✓ |
 | BUG-388 | Dimmed-text binding-state renderer | backlog | C | BUG-387 *(done)* | — | ✓ |

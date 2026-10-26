@@ -66,7 +66,7 @@ rows of [risks-and-gaps.md](risks-and-gaps.md).
 | MAINT-21-02 | **262 platform** | M | `platformVersion` and `testVersion` are `2026.2.3`, and the code compiles against 262. |
 | MAINT-21-03 | **JDK 25 toolchain, Java 21 bytecode** | M | Kotlin and Java compile on a JDK 25 toolchain. Every class in the plugin jar is class-file major version 65 (Java 21). |
 | MAINT-21-04 | **Unit suite green on 262** | M | The full `test --rerun --no-build-cache` run on the builder reports zero failures. It runs at least as many tests as `main`, and takes at most 1.5 times as long. |
-| MAINT-21-05 | **2026.1 support kept and proven** | M | `pluginSinceBuild` stays `261`; the user has confirmed this, subject to TC-15 and TC-16. `verifyPlugin` checks GoLand 2026.1.3 and 2026.2.3 and reports no compatibility problems for either. The narrowed failure levels are pending user confirmation. |
+| MAINT-21-05 | **2026.1 support kept and proven** | M | `pluginSinceBuild` stays `261`; the user has confirmed this, subject to TC-15 and TC-16. `verifyPlugin` checks GoLand 2026.1.3 and 2026.2.3 and reports no compatibility problems for either. The user confirmed the narrowed failure levels on 2026-10-26. |
 | MAINT-21-06 | **Corpus gate unchanged** | M | `test --rerun --no-build-cache --tests '*Corpus*' -PwithCorpus` passes against the committed baselines. |
 | MAINT-21-07 | **Lint gate** | M | `ktlintCheck` passes. |
 | MAINT-21-08 | **Non-unit sources compile** | M | `compileIntegrationTestKotlin` and `compileRedisIntegrationTestKotlin` succeed. |
@@ -93,9 +93,9 @@ one bundled plugin made the suite about three times slower (DR-04). DR-12 ran wi
 on the builder, so its duration is an upper estimate.
 
 ### MAINT-21-05: The gate
-The since-build is confirmed. The failure-level narrowing is pending user confirmation. The gate fails on `COMPATIBILITY_PROBLEMS`, `MISSING_DEPENDENCIES` and `INVALID_PLUGIN`. The
+The since-build is confirmed, and the user confirmed the failure-level narrowing on 2026-10-26. The gate fails on `COMPATIBILITY_PROBLEMS`, `MISSING_DEPENDENCIES` and `INVALID_PLUGIN`. The
 internal-API and override-only findings already exist on both IDEs, so they are reported but not
-gated (DR-09). Compiling against 262 can produce bytecode that 261 cannot link even when the source
+gated (DR-09); they are tracked as [MAINT-44](../44-verifier-reported-api-usages/requirements.md). Compiling against 262 can produce bytecode that 261 cannot link even when the source
 is unchanged; design §2.5 fixes the one case found (DR-09). If a problem appears only on 2026.1.3
 and has no binary-compatible fix, the response is Gap 2.1. A problem on 2026.2.3 is fixed forward,
 or filed as a bug while PR 2's merge is held (design §7).
@@ -173,8 +173,8 @@ two (design §2.7).
       named in the PR.
 - [ ] TC-15 and TC-16 pass through `verify-in-ide`, with screenshots, **before PR 2 merges**.
 - [ ] TC-17 passes on the primary checkout after the merge.
-- [ ] The user has confirmed or overridden the narrowed verifier levels before PR 2 merges. The
-      since-build is already confirmed.
+- [x] The user has confirmed or overridden the narrowed verifier levels before PR 2 merges:
+      confirmed on 2026-10-26. The since-build is already confirmed.
 
 ## Non-Functional Requirements
 - The suite takes at most 1.5 times as long as `main` (MAINT-21-04).
