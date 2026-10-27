@@ -138,18 +138,7 @@ class LuaToolchainInventoryTable {
     }
 
     private fun showProjectChooser(candidates: List<Project>) {
-        val step =
-            object : BaseListPopupStep<Project>("Choose Target Project", candidates) {
-                override fun getTextFor(value: Project): String = value.name
-
-                override fun onChosen(
-                    selectedValue: Project,
-                    finalChoice: Boolean,
-                ): PopupStep<*>? {
-                    provisionInto(selectedValue)
-                    return FINAL_CHOICE
-                }
-            }
+        val step = ProvisionTargetStep(candidates) { provisionInto(it) }
         JBPopupFactory.getInstance().createListPopup(step).showInFocusCenter()
     }
 
@@ -202,6 +191,19 @@ class LuaToolchainInventoryTable {
     private fun onEdt(work: () -> Unit) {
         ApplicationManager.getApplication().invokeLater(work, ModalityState.any())
     }
+}
+
+/** Chooses the project to provision into; the provision dialog opens after the popup closes (BUG-537). */
+internal class ProvisionTargetStep(
+    candidates: List<Project>,
+    private val provisionInto: (Project) -> Unit,
+) : BaseListPopupStep<Project>("Choose Target Project", candidates) {
+    override fun getTextFor(value: Project): String = value.name
+
+    override fun onChosen(
+        selectedValue: Project,
+        finalChoice: Boolean,
+    ): PopupStep<*>? = doFinalStep { provisionInto(selectedValue) }
 }
 
 private fun kindDisplayName(tool: LuaRegisteredTool): String =

@@ -3,6 +3,7 @@ import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -247,7 +248,10 @@ tasks {
         dependsOn(patchChangelog)
     }
 
-    prepareSandbox {
+    // Every PrepareSandboxTask, not only the default one: each runIde registration (and runIde itself)
+    // prepares its own `plugins_<task>` sandbox through a `prepareSandbox_<task>` task (BUG-536).
+    // The unit-test sandboxes (`prepareTest*Sandbox`) are left out: unit tests do not read the assets.
+    withType<PrepareSandboxTask>().matching { !it.name.startsWith("prepareTest") }.configureEach {
         from(layout.projectDirectory.dir("src/main/resources/platform")) {
             into(pluginName.map { "$it/platform" })
         }
@@ -280,6 +284,19 @@ tasks {
         dependsOn(prepareSandbox)
         systemProperty("sandbox.home", prepareSandbox.get().sandboxDirectory.get().asFile.absolutePath)
         systemProperty("plugin.name", providers.gradleProperty("pluginName").get())
+        // BUG-539: the plugin's own resources (the JSON schemas) load from its jar in the test sandbox,
+        // which is not a root tests may read. Whichever test loads them first failed on CI, where
+        // the checkout is not under $HOME, so the failure moved with test order.
+        val testPluginDir = project.tasks.named<PrepareSandboxTask>("prepareTestSandbox").get().pluginDirectory
+        systemProperty("vfs.additional-allowed-roots", testPluginDir.get().asFile.absolutePath)
+        // BUG-536: the asset copy must reach the per-task sandboxes `runIde` launches from, not only
+        // the default one. `prepareSandbox_runIde` shares the test platform, so it costs no download.
+        val assetSandboxes = listOf(prepareSandbox, project.tasks.named<PrepareSandboxTask>("prepareSandbox_runIde"))
+        dependsOn(assetSandboxes)
+        systemProperty(
+            "lunar.sandbox.pluginDirs",
+            assetSandboxes.joinToString(File.pathSeparator) { it.get().pluginDirectory.get().asFile.absolutePath },
+        )
         // MAINT-38 tier 1 — Java Flight Recorder on demand: `./gradlew test -PjfrProfile`, or
         // `-PjfrProfile=default` for the low-overhead event set. OFF unless asked for, so the
         // routine loop starts no recording and carries no sampling cost.

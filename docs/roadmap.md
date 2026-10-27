@@ -79,6 +79,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-529 | LuaRenameConflictTest's cancellation-count test fails intermittently on the 2026.2 platform | todo | S | — | — | ✓ |
 | BUG-532 | LuaRocks new-project page: typing a project name does not clear "Project name must not be empty" | todo | S | — | — | ✓ |
 | BUG-535 | Provisioning sets a progress fraction on an indeterminate indicator, which the platform logs as IllegalStateException | todo | S | — | — | ✓ |
+| BUG-538 | Debugging in a wizard-provisioned environment fails: mobdebug requires luasocket, which provisioning does not install | todo | S | — | — | ✓ |
 | MAINT-42 | Third-pass residue — P3 cleanups in the files the July review never covered (review §6) | todo | C | — | — | ✓ |
 | REDIS-07 | Reuse an IntelliJ Database Redis data source | planned | C | REDIS-01 *(connections, done)* | — | ✓ |
 | BUG-388 | Dimmed-text binding-state renderer | backlog | C | BUG-387 *(done)* | — | ✓ |

@@ -1,8 +1,10 @@
 package net.internetisalie.lunar
 
+import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
+import kotlin.io.path.isRegularFile
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.pathString
 import kotlin.test.Test
@@ -32,5 +34,35 @@ class SandboxAssetsIntegrationTest {
             luaDir.listDirectoryEntries().isNotEmpty(),
             "Expected at least one copied lua asset in: ${luaDir.pathString}",
         )
+    }
+
+    @Test
+    fun `every prepared sandbox carries the plugin assets`() {
+        val pluginDirs = sandboxPluginDirs()
+        assertTrue(pluginDirs.size > 1, "Expected the default and per-task sandboxes, got: $pluginDirs")
+        pluginDirs.forEach(::assertCarriesAssets)
+    }
+
+    private fun sandboxPluginDirs(): List<Path> =
+        System
+            .getProperty("lunar.sandbox.pluginDirs")
+            .orEmpty()
+            .split(File.pathSeparator)
+            .filter { it.isNotBlank() }
+            .map { Path.of(it) }
+
+    private fun assertCarriesAssets(pluginDir: Path) {
+        ASSET_DIRS.map(pluginDir::resolve).forEach { assetDir ->
+            assertTrue(
+                assetDir.isDirectory() && assetDir.listDirectoryEntries().isNotEmpty(),
+                "Expected a non-empty asset directory: ${assetDir.pathString}",
+            )
+        }
+        val license = pluginDir.resolve("LICENSE")
+        assertTrue(license.isRegularFile(), "Expected the license at the plugin root: ${license.pathString}")
+    }
+
+    private companion object {
+        val ASSET_DIRS = listOf("lua", "platform", "runtime")
     }
 }

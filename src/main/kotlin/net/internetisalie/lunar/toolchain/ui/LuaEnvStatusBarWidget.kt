@@ -77,7 +77,7 @@ class LuaEnvStatusBarWidget(
     }
 
     /** List popup enumerating [envs] (active one checked) plus a trailing add-environment item. */
-    private class EnvPopupStep(
+    internal class EnvPopupStep(
         private val project: Project,
         private val envs: List<LuaEnvironmentState>,
         private val activeId: String?,
@@ -92,10 +92,9 @@ class LuaEnvStatusBarWidget(
         ): PopupStep<*>? {
             if (selectedValue is LuaEnvironmentState) {
                 LuaToolchainProjectSettings.getInstance(project).activateEnvironment(selectedValue.id)
-            } else {
-                invokeProvisionAction()
+                return FINAL_CHOICE
             }
-            return FINAL_CHOICE
+            return doFinalStep { invokeProvisionAction() }
         }
 
         private fun invokeProvisionAction() {

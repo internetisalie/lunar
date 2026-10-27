@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **No IDE error when adding an environment from the status bar** (BUG-537). Choosing *Add
+  environment…* in the Lua Environment widget opened the Provision dialog but also raised an "IDE
+  error occurred" balloon. The *Choose Target Project* popup in the Lua toolchain settings did the
+  same when several projects were open. Both now open the dialog after the popup has closed.
+
 - **The Lua Environment widget appears as soon as a project has an environment** (BUG-534). A
   project created with *New Project → LuaRocks* and *Provision isolated environment* showed no
   Lua Environment widget in the status bar until it was reopened. The widget now appears when a
