@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.rocks.init
 
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.StartupManager
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
 import net.internetisalie.lunar.platform.target.Target
@@ -21,8 +20,7 @@ import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
  * - [applySettings] sets the project [Target] and, when NOT provisioning, binds the chosen existing
  *   runtime tool via a TOOLING-02 project RUNTIME binding.
  * - [scheduleProvision] activates the wizard-provisioned environment and queues a TOOLING-04
- *   [LuaToolProvisioner] request (kind `lua`/`luajit` + `luarocks`) once the project has opened, so it
- *   never races project initialization.
+ *   [LuaToolProvisioner] request (kind `lua`/`luajit` + `luarocks`).
  */
 object LuaRocksInterpreterInitializer {
     /** Directory (relative to the project base) of the wizard-provisioned isolated environment. */
@@ -63,9 +61,7 @@ object LuaRocksInterpreterInitializer {
         LuaToolchainProjectSettings
             .getInstance(project)
             .upsertEnvironmentAndActivate(LuaEnvironmentState(name = environmentName, rootDir = rootDir))
-        StartupManager.getInstance(project).runAfterOpened {
-            LuaToolProvisioner.getInstance().provision(project, request)
-        }
+        LuaToolProvisioner.getInstance().provision(project, request)
     }
 
     /** Binds the registered runtime tool at [interpreterPath] as the project's RUNTIME kind (§2.8). */

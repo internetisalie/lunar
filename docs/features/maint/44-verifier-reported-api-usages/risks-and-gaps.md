@@ -92,6 +92,13 @@ an `ignoredProblemsFile`; it was reverted.
 re-runs DR-02's baseline and DR-03's counts on the rebased branch, and TC-10's expected counts are
 the re-measured ones if they differ.
 
+Re-measured 2026-10-26 on `d26298d2` (after BUG-528), unchanged from DR-02 and DR-03. Baseline: 262
+`… 39 usages of deprecated API. 45 usages of experimental API. 9 usages of internal API. 1
+non-extendable API usage violation. 1 override-only API usage violation`; 261 `… 29 … 60 … 8 …`, the
+same two violations. With Phase 1's replacements: 262 `… 38 usages of deprecated API. 45 usages of
+experimental API. 2 usages of internal API`; 261 `… 28 … 60 … 2 usages of internal API`. TC-10's
+expected counts therefore stand.
+
 | ID | Action | Observed | Verdict |
 |----|--------|----------|---------|
 | DR-01 | `javap -v` of each API in the 2026.1.3 and 2026.2.3 jars from the build's Gradle transforms (`javap/p261`, `javap/p262`; scripts `scripts/apicheck.sh`, `scripts/annot.py`) | See the table below | Every replacement is public on both; the kept overrides are internal on both |

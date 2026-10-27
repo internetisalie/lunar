@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.Presentation
+import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
@@ -101,7 +102,7 @@ class LuaEnvStatusBarWidget(
             val action = ActionManager.getInstance().getAction(PROVISION_ACTION_ID) ?: return
             val dataContext: DataContext = SimpleDataContext.getProjectContext(project)
             val actionEvent = AnActionEvent.createFromDataContext(WIDGET_PLACE, Presentation(), dataContext)
-            action.actionPerformed(actionEvent)
+            ActionUtil.performAction(action, actionEvent)
         }
 
         companion object {

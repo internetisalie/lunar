@@ -1,6 +1,5 @@
 package net.internetisalie.lunar.lang.doc
 
-import com.intellij.codeInsight.navigation.targetPresentation
 import com.intellij.icons.AllIcons
 import com.intellij.model.Pointer
 import com.intellij.openapi.project.Project
@@ -311,7 +310,7 @@ internal class LuaCatsDocumentationTarget(
         }
     }
 
-    override fun computePresentation(): TargetPresentation = targetPresentation(element)
+    override fun computePresentation(): TargetPresentation = LuaTargetPresentation.of(element)
 
     override val navigatable: Navigatable?
         get() = element as? Navigatable
@@ -417,7 +416,7 @@ internal class LuaFieldDocumentationTarget(
         }
     }
 
-    override fun computePresentation(): TargetPresentation = targetPresentation(anchor)
+    override fun computePresentation(): TargetPresentation = LuaTargetPresentation.of(anchor)
 
     override val navigatable: Navigatable?
         get() = anchor as? Navigatable

@@ -1,0 +1,5 @@
+# Internal (@ApiStatus.Internal) platform API that Lunar uses with no public replacement on 261 or 262.
+# One line per usage: the verifier's internal-api-usages.txt line up to ". This method".
+# verifyPlugin fails on any usage not listed here and on any entry the verifier no longer reports.
+Internal method com.intellij.coverage.CoverageEngine.getQualifiedName(java.io.File outputFile, com.intellij.psi.PsiFile sourceFile) : java.lang.String is overridden in class net.internetisalie.lunar.coverage.LuaCoverageEngine
+Internal method com.intellij.coverage.CoverageEngine.coverageProjectViewStatisticsApplicableTo(com.intellij.openapi.vfs.VirtualFile fileOrDir) : boolean is overridden in class net.internetisalie.lunar.coverage.LuaCoverageEngine

@@ -19,13 +19,13 @@ PR. Every code change is in design.md. First, on the rebased branch, re-run DR-0
 ### Phase 1: Public replacements [Must]
 - **Goal**: the replaceable usages are gone (MAINT-44-01 to -06).
 - **Tasks**:
-  - [ ] Add `LuaCoverageRunner.getInstance()` and switch its call sites — design §2.1.
-  - [ ] Create `lang/doc/LuaTargetPresentation.kt` and switch both `computePresentation`s — design §2.2.
-  - [ ] Call `provision` directly in `scheduleProvision`, and update the class KDoc — design §2.3.
-  - [ ] Replace the `pluginVirtualDirectory` getter — design §2.4.
-  - [ ] Use `ActionUtil.performAction` in `invokeProvisionAction` — design §2.5.
-  - [ ] Add `LuaCovReportImportAction.reportFileDescriptor()` and use it — design §2.6.
-  - [ ] Tests (each with the input, expectation and mutation of its requirements.md row):
+  - [x] Add `LuaCoverageRunner.getInstance()` and switch its call sites — design §2.1.
+  - [x] Create `lang/doc/LuaTargetPresentation.kt` and switch both `computePresentation`s — design §2.2.
+  - [x] Call `provision` directly in `scheduleProvision`, and update the class KDoc — design §2.3.
+  - [x] Replace the `pluginVirtualDirectory` getter — design §2.4.
+  - [x] Use `ActionUtil.performAction` in `invokeProvisionAction` — design §2.5.
+  - [x] Add `LuaCovReportImportAction.reportFileDescriptor()` and use it — design §2.6.
+  - [x] Tests (each with the input, expectation and mutation of its requirements.md row):
     - TC-01: new `src/test/kotlin/net/internetisalie/lunar/coverage/LuaCoverageRunnerTest.kt`
       (`BasePlatformTestCase`).
     - TC-02: new `src/test/kotlin/net/internetisalie/lunar/lang/doc/LuaTargetPresentationTest.kt`
@@ -46,10 +46,10 @@ PR. Every code change is in design.md. First, on the rebased branch, re-run DR-0
 ### Phase 2: Gate [Must]
 - **Goal**: new usages fail `verifyPlugin` (MAINT-44-07 to -09).
 - **Tasks**:
-  - [ ] Replace the `failureLevel` block and its comment — design §2.8.
-  - [ ] Add the `verifyPlugin { doLast { … } }` block — design §2.9.
-  - [ ] Add `gradle/verifier-internal-api-allowlist.txt` verbatim — design §2.9.
-  - [ ] Add a `CHANGELOG.md` entry with the `changelog` skill: the tag build now fails on new
+  - [x] Replace the `failureLevel` block and its comment — design §2.8.
+  - [x] Add the `verifyPlugin { doLast { … } }` block — design §2.9.
+  - [x] Add `gradle/verifier-internal-api-allowlist.txt` verbatim — design §2.9.
+  - [x] Add a `CHANGELOG.md` entry with the `changelog` skill: the tag build now fails on new
         internal, override-only or non-extendable platform API usage.
 - **Exit criteria**: TC-10 passes. TC-08, TC-09 and TC-11 (both variants) were run as mutations and
   then reverted, and each log shows the expected `BUILD FAILED` text.
@@ -63,13 +63,13 @@ PR. Every code change is in design.md. First, on the rebased branch, re-run DR-0
 | MAINT-44-10, -11 | W | not delivered (requirements.md says why) |
 
 ## Verification Tasks
-- [ ] `tooling/gce-builder/gce-builder.sh run "test --rerun"` (or `builder-run`): no failure other
+- [x] `tooling/gce-builder/gce-builder.sh run "test --rerun"` (or `builder-run`): no failure other
       than BUG-529's `LuaRenameConflictTest.testCancellationIsCheckedPerFileNameRefNotPerCollisionsCall`.
-- [ ] `verifyPlugin`: TC-10. Then the TC-08, TC-09 and TC-11 mutations, and a revert. Cite the
-      logs in the PR.
-- [ ] `ktlintCheck`. Format with `ktlintFormat` on the VM and pull the result back, as the project
+- [x] `verifyPlugin`: TC-10. Then the TC-08, TC-09 and TC-11 mutations, and a revert. The logs are
+      in `~/.cache/claude-scratch/lunar/maint-44/impl/` and cited in the PR.
+- [x] `ktlintCheck`. Format with `ktlintFormat` on the VM and pull the result back, as the project
       guide describes; never run `ktlintFormat ktlintCheck` together.
-- [ ] Sandbox IDE checks, on `runIde` (2026.2.3); HV-02 and HV-03 again on `runIde261` (2026.1.3,
+- [x] Sandbox IDE checks, on `runIde` (2026.2.3); HV-02 and HV-03 again on `runIde261` (2026.1.3,
       the floor) — risks-and-gaps "Premises examined":
   - **HV-01** (MAINT-44-05): open a project, click the Lua environment status-bar widget, and
     choose the add-environment item. The *Provision Lua Toolchain* dialog opens.
@@ -81,11 +81,13 @@ PR. Every code change is in design.md. First, on the rebased branch, re-run DR-0
   - **HV-04** (MAINT-44-06): *Analyze → Import LuaCov Report…*. A `.out` file can be chosen; a
     `.lua` file is not offered (design §2.6, visibility change).
   - **HV-05** (MAINT-44-02): Quick Documentation on a `---@class` local. The popup renders.
-- [ ] When the feature closes, delete its row from `docs/roadmap.md`.
+  - Result: all pass, HV-04 after the BUG-540 fix (before it, `main.lua` was imported as coverage).
+    Screenshots in `~/.cache/claude-scratch/lunar/maint-44/impl/hv/`.
+- [x] When the feature closes, delete its row from `docs/roadmap.md`.
 
 ## Task Summary
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Public replacements | todo | Must |
-| Phase 2: Gate | todo | Must |
+| Phase 1: Public replacements | done | Must |
+| Phase 2: Gate | done | Must |

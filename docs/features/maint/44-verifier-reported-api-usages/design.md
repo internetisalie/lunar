@@ -165,6 +165,11 @@ All paths are under `src/main/kotlin/net/internetisalie/lunar/` unless they star
   files not ending in `.out` are no longer shown. In a native chooser the filter affects only the
   final eligibility check, as the override did. `withExtensionFilter("out")` was not chosen: it is
   case-insensitive and adds a native-dialog filter label, which changes more than the override did.
+- **Universal chooser (BUG-540)**: GoLand 2026.2 enables `universal.file.chooser.is.enabled`, and
+  `UniversalFileChooser` consults neither the filter nor `isFileSelectable`; the old override was
+  ignored there too. `actionPerformed` therefore passes the chosen file to
+  `importReport(project, file)`, which shows an error and returns `false` unless the file is a
+  non-directory `*.out` file.
 
 ### 2.7 `net.internetisalie.lunar.coverage.LuaCoverageEngine` — kept overrides (MAINT-44-07)
 - **No code change** to `getQualifiedName` (`coverage/LuaCoverageEngine.kt:72-75`) or

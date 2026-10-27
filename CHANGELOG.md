@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Import LuaCov Report refuses files that are not reports** (BUG-540). On GoLand 2026.2 the
+  *Import LuaCov Report…* file chooser listed every file, and choosing a `.lua` file or a folder
+  loaded it as coverage data. Lunar now refuses anything but a `.out` report file with an error.
+
+- **Verifier-reported API usages** (MAINT-44). Lunar no longer uses the internal, override-only
+  and non-extendable platform APIs the plugin verifier reported, except two coverage-engine
+  overrides that have no public replacement. A release build now fails if a new such usage appears.
+
 - **No IDE error when adding an environment from the status bar** (BUG-537). Choosing *Add
   environment…* in the Lua Environment widget opened the Provision dialog but also raised an "IDE
   error occurred" balloon. The *Choose Target Project* popup in the Lua toolchain settings did the

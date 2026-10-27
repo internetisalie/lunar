@@ -41,4 +41,8 @@ class LuaCoverageRunner : CoverageRunner() {
     override fun getDataFileExtension(): String = "out"
 
     override fun acceptsCoverageEngine(engine: CoverageEngine): Boolean = engine is LuaCoverageEngine
+
+    companion object {
+        fun getInstance(): LuaCoverageRunner? = CoverageRunner.EP_NAME.findExtension(LuaCoverageRunner::class.java)
+    }
 }

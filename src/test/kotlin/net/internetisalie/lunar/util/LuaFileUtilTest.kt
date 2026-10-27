@@ -41,6 +41,14 @@ class LuaFileUtilTest : BasePlatformTestCase() {
         assertNull(LuaFileUtil.getPluginVirtualDirectoryChild("no-such-child-xyz"))
     }
 
+    /** MAINT-44 TC-04: the plugin root is the parent of the `lib/` directory holding the plugin jar. */
+    fun testPluginVirtualDirectoryIsParentOfLib() {
+        val pluginDir = LuaFileUtil.pluginVirtualDirectory
+
+        assertNotNull("plugin root resolved", pluginDir)
+        assertNotNull("plugin root contains lib/", pluginDir?.findChild("lib"))
+    }
+
     fun testFindPsiFilesMapsAndSkipsUnmappable() {
         myFixture.configureByText("m.lua", "local x = 1")
         val luaVirtualFile = myFixture.file.virtualFile

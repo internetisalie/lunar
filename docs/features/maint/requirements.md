@@ -57,7 +57,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | [`MAINT-41`](41-enforce-systemic-patterns/requirements.md) | **Enforce Systemic Patterns** | **M** | **Not Implemented** | Lint rules for the review's systemic patterns instead of re-review. |
 | [`MAINT-42`](42-third-pass-residue/requirements.md) | **Third-Pass Residue** | **C** | **Not Implemented** | Review §6: the P3 cleanups from the nine early-code files the July review never covered (`LuaComment`, highlighter map, lexer handler, `LuaScope`, contract sweep). |
 | [`MAINT-43`](43-ci-image-publish-job/requirements.md) | **CI Image Publish Job** | **C** | **Not Implemented** | Publish `lunar-ci` to tier2 from CI; the GAR copy stays manual. |
-| [`MAINT-44`](44-verifier-reported-api-usages/requirements.md) | **Verifier-Reported API Usages** | **C** | **Not Implemented** | Remove the internal, override-only and non-extendable API usages the plugin verifier reports on 261 and 262; MAINT-21 gates binary compatibility only. |
+| [`MAINT-44`](44-verifier-reported-api-usages/requirements.md) | **Verifier-Reported API Usages** | **C** | **Partial** | Remove the internal, override-only and non-extendable API usages the plugin verifier reports on 261 and 262; MAINT-21 gates binary compatibility only. |
 
 ---
 

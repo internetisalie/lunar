@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.util
 
-import com.intellij.ide.plugins.PluginManagerCore.getPlugin
-import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -15,8 +14,10 @@ import net.internetisalie.lunar.lang.LuaFileType
 object LuaFileUtil {
     val pluginVirtualDirectory: VirtualFile?
         get() {
-            val descriptor = getPlugin(PluginId.getId(LuaPlugin.ID)) ?: return null
-            return VirtualFileManager.getInstance().findFileByNioPath(descriptor.pluginPath)
+            val libDir = PathManager.getJarForClass(LuaPlugin::class.java)?.parent ?: return null
+            if (libDir.fileName?.toString() != "lib") return null
+            val pluginDir = libDir.parent ?: return null
+            return VirtualFileManager.getInstance().findFileByNioPath(pluginDir)
         }
 
     fun getPluginVirtualDirectoryChild(vararg args: String): VirtualFile? {

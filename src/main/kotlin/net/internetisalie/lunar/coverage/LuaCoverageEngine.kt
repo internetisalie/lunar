@@ -35,7 +35,7 @@ class LuaCoverageEnabledConfiguration(
     configuration: RunConfigurationBase<*>,
 ) : CoverageEnabledConfiguration(
         configuration,
-        CoverageRunner.getInstanceById("LuaCov") ?: LuaCoverageRunner(),
+        LuaCoverageRunner.getInstance() ?: LuaCoverageRunner(),
     )
 
 class LuaCoverageEngine : CoverageEngine() {

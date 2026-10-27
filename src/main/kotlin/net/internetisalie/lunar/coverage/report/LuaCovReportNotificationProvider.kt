@@ -1,7 +1,6 @@
 package net.internetisalie.lunar.coverage.report
 
 import com.intellij.coverage.CoverageDataManager
-import com.intellij.coverage.CoverageRunner
 import com.intellij.coverage.CoverageSuitesBundle
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.project.DumbAware
@@ -12,6 +11,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorNotificationPanel
 import com.intellij.ui.EditorNotificationProvider
 import com.intellij.ui.EditorNotifications
+import net.internetisalie.lunar.coverage.LuaCoverageRunner
 import java.util.function.Function
 import javax.swing.JComponent
 
@@ -34,7 +34,7 @@ class LuaCovReportNotificationProvider :
                 text = "This is a LuaCov coverage report."
                 createActionLabel("Load Coverage onto Project Files") {
                     val ioFile = VfsUtilCore.virtualToIoFile(file)
-                    val runner = CoverageRunner.getInstanceById("LuaCov")
+                    val runner = LuaCoverageRunner.getInstance()
                     if (runner != null) {
                         val manager = CoverageDataManager.getInstance(project)
                         val suite = manager.addExternalCoverageSuite(ioFile, runner)

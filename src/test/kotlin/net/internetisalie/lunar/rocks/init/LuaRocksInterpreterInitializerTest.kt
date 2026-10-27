@@ -1,5 +1,8 @@
 package net.internetisalie.lunar.rocks.init
 
+import com.intellij.notification.Notification
+import com.intellij.notification.Notifications
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.platform.LuaPlatform
@@ -8,10 +11,12 @@ import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
 import net.internetisalie.lunar.toolchain.model.LuaRuntimeInfo
 import net.internetisalie.lunar.toolchain.model.LuaToolHealth
 import net.internetisalie.lunar.toolchain.model.Origin
+import net.internetisalie.lunar.toolchain.provision.LuaToolProvisioner
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainAppState
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectSettings
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainProjectState
 import net.internetisalie.lunar.toolchain.registry.LuaToolchainRegistry
+import java.io.File
 import java.util.UUID
 
 /**
@@ -132,5 +137,44 @@ class LuaRocksInterpreterInitializerTest : BasePlatformTestCase() {
         val active = LuaToolchainProjectSettings.getInstance(project).activeEnvironment()
         assertNotNull("provisioning activates the wizard environment", active)
         assertEquals("/tmp/wizard-proj/${LuaRocksInterpreterInitializer.ENV_DIR_NAME}", active?.rootDir)
+    }
+
+    /** MAINT-44 TC-03: provisioning is requested directly; a held reservation surfaces as one balloon. */
+    fun testScheduleProvisionRequestsProvisioning() {
+        val settings =
+            LuaRocksProjectSettings(
+                name = "lib",
+                kindId = WizardRuntimeKinds.LUA,
+                luaVersion = "5.4",
+                provisionEnvironment = true,
+            )
+        val rootDir =
+            FileUtil.toCanonicalPath(
+                File("/tmp/wizard-proj/${LuaRocksInterpreterInitializer.ENV_DIR_NAME}").absolutePath,
+            )
+        val provisioner = LuaToolProvisioner.getInstance()
+        val balloons = captureBalloons()
+        provisioner.tryReserve(rootDir)
+        try {
+            LuaRocksInterpreterInitializer.scheduleProvision(project, "/tmp/wizard-proj", settings)
+        } finally {
+            provisioner.release(rootDir)
+        }
+
+        assertEquals(1, balloons.size)
+        assertTrue(balloons.single().content.contains("Provisioning already in progress"))
+    }
+
+    private fun captureBalloons(): MutableList<Notification> {
+        val balloons = mutableListOf<Notification>()
+        project.messageBus.connect(testRootDisposable).subscribe(
+            Notifications.TOPIC,
+            object : Notifications {
+                override fun notify(notification: Notification) {
+                    if (notification.groupId == "notification.group.lunar.tools") balloons.add(notification)
+                }
+            },
+        )
+        return balloons
     }
 }

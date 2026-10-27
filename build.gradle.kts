@@ -167,14 +167,17 @@ intellijPlatform {
     }
 
     pluginVerification {
-        // Fail on binary incompatibility only. The internal, override-only and non-extendable
-        // usages the verifier also lists exist on both 261 and 262 (MAINT-21 DR-09) and are
-        // tracked as debt, not gated here.
+        // Binary compatibility, plus override-only and non-extendable usage, which Lunar has none of
+        // (MAINT-44). Internal usage is checked against an allowlist by verifyPlugin's doLast below,
+        // because the coverage overrides have no public replacement and failureLevel cannot exempt
+        // them.
         failureLevel.set(
             listOf(
                 VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
                 VerifyPluginTask.FailureLevel.MISSING_DEPENDENCIES,
                 VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
+                VerifyPluginTask.FailureLevel.OVERRIDE_ONLY_API_USAGES,
+                VerifyPluginTask.FailureLevel.NON_EXTENDABLE_API_USAGES,
             ),
         )
         // The floor (pluginSinceBuild=261) and the compile platform, pinned: recommended() also
@@ -242,6 +245,45 @@ tasks {
 
     named("check") {
         dependsOn("lintDocs")
+    }
+
+    verifyPlugin {
+        val reportsDir = verificationReportsDirectory
+        val allowlist = layout.projectDirectory.file("gradle/verifier-internal-api-allowlist.txt")
+        val pluginDirName = "net.internetisalie.lunar/${project.version}"
+        val verifiedIdes = ides
+        doLast {
+            val ideDirs = reportsDir.get().asFile.listFiles().orEmpty().filter { it.isDirectory }
+            val reportFiles = ideDirs.map { it.resolve("plugins/$pluginDirName") }
+            val expectedIdeCount = verifiedIdes.files.size
+            check(ideDirs.size == expectedIdeCount && reportFiles.all { it.resolve("verification-verdict.txt").isFile }) {
+                "No verifier verdict under ${reportsDir.get().asFile}/<IDE>/plugins/$pluginDirName for each of " +
+                    "$expectedIdeCount verified IDEs; found ${ideDirs.map { it.name }}"
+            }
+            val reported =
+                reportFiles
+                    .map { it.resolve("internal-api-usages.txt") }
+                    .filter { it.isFile }
+                    .flatMap { it.readLines() }
+                    .filter { it.isNotBlank() }
+                    .map { it.substringBefore(". This method") }
+                    .toSortedSet()
+            val allowed =
+                allowlist.asFile
+                    .readLines()
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() && !it.startsWith("#") }
+                    .toSortedSet()
+            val unexpected = reported - allowed
+            val stale = allowed - reported
+            if (unexpected.isNotEmpty() || stale.isNotEmpty()) {
+                throw GradleException(
+                    "Internal API usages differ from ${allowlist.asFile.name}.\n" +
+                        "Not allowlisted:\n" + unexpected.joinToString("\n") +
+                        "\nAllowlisted but no longer reported:\n" + stale.joinToString("\n"),
+                )
+            }
+        }
     }
 
     publishPlugin {

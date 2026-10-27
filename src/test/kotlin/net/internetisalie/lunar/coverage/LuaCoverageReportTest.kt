@@ -6,7 +6,11 @@ import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.editor.ex.util.LayeredLexerEditorHighlighter
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.TestDialog
+import com.intellij.openapi.ui.TestDialogManager
 import com.intellij.openapi.util.Key
+import com.intellij.testFramework.LightVirtualFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.EditorNotificationPanel
 import net.internetisalie.lunar.coverage.report.LuaCovReportEditorHighlighter
@@ -21,6 +25,37 @@ import org.junit.Test
 import java.io.File
 
 class LuaCoverageReportTest : BasePlatformTestCase() {
+    /** MAINT-44 TC-06: the import chooser accepts exactly single non-directory `.out` files. */
+    @Test
+    fun testReportFileDescriptorAcceptsOnlyOutFiles() {
+        val descriptor = LuaCovReportImportAction.reportFileDescriptor()
+
+        assertTrue(descriptor.isFileSelectable(LightVirtualFile("luacov.report.out")))
+        assertTrue(descriptor.isFileSelectable(LightVirtualFile("luacov.stats.out")))
+        assertFalse(descriptor.isFileSelectable(LightVirtualFile("main.lua")))
+        assertFalse(descriptor.isFileSelectable(LightVirtualFile("report.txt")))
+        assertFalse(descriptor.isChooseFolders)
+        assertFalse(descriptor.isChooseMultiple)
+    }
+
+    /** BUG-540: the universal chooser ignores the descriptor's filter, so the action rejects a non-report itself. */
+    @Test
+    fun testImportReportRejectsANonReportFileBUG540() {
+        val shownMessages = mutableListOf<String>()
+        TestDialogManager.setTestDialog { message ->
+            shownMessages += message
+            Messages.OK
+        }
+        try {
+            val imported = LuaCovReportImportAction.importReport(project, LightVirtualFile("main.lua"))
+
+            assertFalse(imported)
+            assertEquals(listOf("main.lua is not a LuaCov report file."), shownMessages)
+        } finally {
+            TestDialogManager.setTestDialog(TestDialog.DEFAULT)
+        }
+    }
+
     @Test
     fun testLexer() {
         val reportText =
