@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **LuaJIT targets get the standard library and LuaJIT's own API** (TARGET-12). A project whose
+  target was LuaJIT 2.0 or 2.1 had no bundled stubs, so `string.format` resolved to nothing and
+  `jit` and `bit` were reported as undeclared. Lunar now ships the Lua 5.1 standard library with
+  the 5.2/5.3 extensions LuaJIT enables, the `jit` and `bit` globals, the `ffi` module, and
+  `jit.util` (both versions) plus `jit.profile`, `string.buffer`, `table.new` and `table.clear`
+  (2.1 only). A bare `require("util")` no longer resolves into the nested `jit/util.lua` stub.
+
 - **Import LuaCov Report refuses files that are not reports** (BUG-540). On GoLand 2026.2 the
   *Import LuaCov Report…* file chooser listed every file, and choosing a `.lua` file or a folder
   loaded it as coverage data. Lunar now refuses anything but a `.out` report file with an error.

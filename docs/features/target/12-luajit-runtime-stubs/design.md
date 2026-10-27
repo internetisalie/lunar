@@ -494,8 +494,8 @@ TC 11 asserts `rebuild(v, f) == text of luajit/luajit-<v>/<f>.lua` for every std
 both versions. Any edit to `lua-5.1/`, or to a copy, that is not mirrored on the other side fails.
 
 ### 7.4 Resolver rule tests (TC 18, TC 19)
-TC 19 is in `LuaJitRuntimeStubsTest`. In `runReadAction`, it builds this layout with
-`myFixture.tempDirFixture`:
+TC 19 is in `LuaJitRuntimeStubsTest`. It builds this layout with `myFixture.tempDirFixture`
+(creating files writes, so this happens outside the read action; the verdict calls run inside one):
 - `findOrCreateDir("vroot")` as the root;
 - `createFile("vroot/pkg/init.lua", "return {}")`, `createFile("vroot/jit/util.lua", "return {}")`
   and `createFile("vroot/top.lua", "return {}")` inside it;

@@ -89,12 +89,12 @@ class RuntimeLibraryProviderTest {
     }
 
     @Test
-    fun testGetLibraryFilesForFuturePlatformReturnsEmpty() {
+    fun testGetLibraryFilesForUnbundledTargetReturnsEmpty() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             val provider = RuntimeLibraryProvider(fixture.project)
-            val target = Target(LuaPlatform.LUAJIT, VersionEntry("2.1", "luajit-2.1"))
+            val target = Target(LuaPlatform.STANDARD, VersionEntry("unbundled", "never-bundled"))
             val files = provider.getLibraryFiles(target)
-            assertTrue(files.isEmpty(), "Future platforms should return empty list when not yet bundled")
+            assertTrue(files.isEmpty(), "An unbundled target should return an empty list")
         }
     }
 

@@ -3,9 +3,12 @@ package net.internetisalie.lunar.rocks.init
 import com.intellij.notification.Notification
 import com.intellij.notification.Notifications
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.testFramework.EdtTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.lang.LuaLanguageLevel
 import net.internetisalie.lunar.platform.LuaPlatform
+import net.internetisalie.lunar.platform.target.Target
+import net.internetisalie.lunar.project.PlatformLibraryIndex
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import net.internetisalie.lunar.toolchain.model.LuaRegisteredTool
 import net.internetisalie.lunar.toolchain.model.LuaRuntimeInfo
@@ -29,7 +32,10 @@ class LuaRocksInterpreterInitializerTest : BasePlatformTestCase() {
         try {
             LuaToolchainRegistry.getInstance().loadState(LuaToolchainAppState())
             LuaToolchainProjectSettings.getInstance(project).loadState(LuaToolchainProjectState())
-            LuaProjectSettings.getInstance(project).state.target = null
+            EdtTestUtil.runInEdtAndWait<RuntimeException> {
+                LuaProjectSettings.getInstance(project).setTargetAndNotify(Target.default())
+                PlatformLibraryIndex.reload()
+            }
         } finally {
             super.tearDown()
         }

@@ -7,6 +7,7 @@ import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.Target
 import net.internetisalie.lunar.platform.target.VersionEntry
 import net.internetisalie.lunar.project.LuaSettingsChangeListener
+import net.internetisalie.lunar.project.PlatformLibraryIndex
 import net.internetisalie.lunar.project.PlatformLibraryProvider
 
 /**
@@ -71,11 +72,22 @@ class LuaSettingsNotificationTest : BasePlatformTestCase() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {
             LuaProjectSettings
                 .getInstance(project)
-                .setTargetAndNotify(Target(LuaPlatform.LUAJIT, VersionEntry("2.0", "luajit-2.0")))
+                .setTargetAndNotify(Target(LuaPlatform.TARANTOOL, VersionEntry("2.10", "tarantool-2.10")))
         }
 
         val libraries = runReadAction { PlatformLibraryProvider().getSupportLibraries(project) }
 
         assertTrue(libraries.isEmpty())
+    }
+
+    override fun tearDown() {
+        try {
+            EdtTestUtil.runInEdtAndWait<RuntimeException> {
+                LuaProjectSettings.getInstance(project).setTargetAndNotify(Target.default())
+                PlatformLibraryIndex.reload()
+            }
+        } finally {
+            super.tearDown()
+        }
     }
 }

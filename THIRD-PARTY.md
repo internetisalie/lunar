@@ -102,6 +102,16 @@ file's header.
   - `src/main/lua/mobdebug/init.lua`
 - **Upstream:** https://github.com/pkulchenko/MobDebug
 
+### LuaJIT API stubs (Mike Pall)
+
+- **Copyright:** (C) 2005-2026 Mike Pall
+- **License:** MIT
+- **Version:** LuaJIT v2.0 `acf8fcbd`, v2.1 `2a8e017e` (the API inventories the stubs follow)
+- **Usage:** API stubs written from the LuaJIT documentation and the executed API of those builds.
+- **Files:** the LuaJIT-specific files under `src/main/resources/runtime/luajit/` (all except the
+  `lua-5.1` copies)
+- **Upstream:** https://luajit.org/
+
 ### `lua.l` flex lexer
 
 - **Copyright:** "Same as Lua" (the Lua/MIT license)
@@ -120,9 +130,11 @@ file's header.
 - **Usage:** Type-annotation stubs describing the Lua 5.1-5.4 standard-library
   API surface, used for completion, navigation, and type inference. Each file
   carries the full MIT license header.
-- **Files:** `src/main/resources/runtime/standard/lua-5.{1,2,3,4}/*.lua`
-  (39 files: `builtin`, `coroutine`, `debug`, `io`, `math`, `os`, `package`,
-  `string`, `table`, plus `bit32` (5.2) and `utf8` (5.3, 5.4)).
+- **Files:**
+  - `src/main/resources/runtime/standard/lua-5.{1,2,3,4}/*.lua`
+    (39 files: `builtin`, `coroutine`, `debug`, `io`, `math`, `os`, `package`,
+    `string`, `table`, plus `bit32` (5.2) and `utf8` (5.3, 5.4)).
+  - `src/main/resources/runtime/luajit/luajit-2.{0,1}/{builtin,coroutine,debug,io,math,os,package,string,table}.lua` (copies of `lua-5.1`)
 - **Upstream:** https://www.lua.org/
 
 ---
@@ -133,7 +145,8 @@ file's header.
 - **MIT (MobDebug)** — the notice is preserved inline at the top of
   `src/main/lua/mobdebug/init.lua`.
 - **MIT (Lua)** — the full notice is preserved at the top of each stub file
-  under `src/main/resources/runtime/standard/`.
+  under `src/main/resources/runtime/standard/` and of each `lua-5.1` copy under `src/main/resources/runtime/luajit/`.
+- **MIT (LuaJIT)** — the full notice is preserved at the top of each LuaJIT-specific stub file under `src/main/resources/runtime/luajit/`.
 
 ## Maintaining this file
 

@@ -5,7 +5,7 @@ type: feature
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-12: LuaJIT Runtime Stubs"
-status: "planned"
+status: "done"
 priority: "medium"
 ---
 
@@ -67,21 +67,21 @@ defect, as [[BUG-513]], which ships first.
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Description |
-|----|-------------|----------|-------------|
-| TARGET-12-01 | **Stdlib under LuaJIT** | M | Each stdlib file in `luajit-<v>/` is byte-identical to `lua-5.1/<f>` as fixed by BUG-513, with design §5's edits applied for that version. Stdlib members resolve under a LuaJIT target. |
-| TARGET-12-02 | **`jit` global** | M | Under a LuaJIT target, `jit` and its members resolve. The declared member set is exactly the version's set in design §4.1. |
-| TARGET-12-03 | **`bit` global** | M | Under a LuaJIT target, `bit` and every function in design §4.2 resolve. |
-| TARGET-12-04 | **`ffi` module, not a global** | M | `require("ffi")` resolves to the version's `ffi.lua`, and `ffi.*` members resolve. A bare `ffi` with no `require` stays undeclared. |
-| TARGET-12-05 | **Dotted modules, version-gated** | M | `require("jit.util")` resolves under both versions. `require("jit.profile")`, `require("string.buffer")`, `require("table.new")` and `require("table.clear")` resolve under 2.1 only. |
-| TARGET-12-06 | **Platform gating** | M | Under a `STANDARD` target, `jit` and `bit` are undeclared, as before this feature. |
-| TARGET-12-07 | **5.2-compat signatures** | S | Both versions carry the signatures LuaJIT enables unconditionally (design §5, E1–E7). |
-| TARGET-12-08 | **5.3-compat additions (2.1)** | S | `luajit-2.1/` declares `table.move` and `coroutine.isyieldable`; `luajit-2.0/` declares neither (E8, E9). |
-| TARGET-12-09 | **Clean parse** | M | Every LuaJIT-specific file parses with zero `PsiErrorElement`s. |
-| TARGET-12-10 | **Attribution** | M | Every LuaJIT-specific file starts with the exact design §6 header. `THIRD-PARTY.md` carries each of the design §6 edits. |
-| TARGET-12-11 | **Test isolation** | M | With the roots present, the tests changed in design §7.5 pass, and so does the full suite. Restoring STANDARD 5.4 in their `tearDown`s is checked by inspection only: DR-15 shows that a leaked target breaks no later class today, so no test can observe a missing restore. |
-| TARGET-12-12 | **`jit.` completion** | S | `jit.<caret>` offers `version`, `on` and `status` under LuaJIT 2.1. |
-| TARGET-12-13 | **Runtime-root module rule** | M | Inside the active runtime root, a module resolves only to the file at its relative path, `<a/b>.lua` or `<a/b>/init.lua`. A bare `require("util")` does not resolve to `luajit-2.1/jit/util.lua`, and a project `util.lua` still wins. |
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| TARGET-12-01 | **Stdlib under LuaJIT** | M | Full | Each stdlib file in `luajit-<v>/` is byte-identical to `lua-5.1/<f>` as fixed by BUG-513, with design §5's edits applied for that version. Stdlib members resolve under a LuaJIT target. |
+| TARGET-12-02 | **`jit` global** | M | Full | Under a LuaJIT target, `jit` and its members resolve. The declared member set is exactly the version's set in design §4.1. |
+| TARGET-12-03 | **`bit` global** | M | Full | Under a LuaJIT target, `bit` and every function in design §4.2 resolve. |
+| TARGET-12-04 | **`ffi` module, not a global** | M | Full | `require("ffi")` resolves to the version's `ffi.lua`, and `ffi.*` members resolve. A bare `ffi` with no `require` stays undeclared. |
+| TARGET-12-05 | **Dotted modules, version-gated** | M | Full | `require("jit.util")` resolves under both versions. `require("jit.profile")`, `require("string.buffer")`, `require("table.new")` and `require("table.clear")` resolve under 2.1 only. |
+| TARGET-12-06 | **Platform gating** | M | Full | Under a `STANDARD` target, `jit` and `bit` are undeclared, as before this feature. |
+| TARGET-12-07 | **5.2-compat signatures** | S | Full | Both versions carry the signatures LuaJIT enables unconditionally (design §5, E1–E7). |
+| TARGET-12-08 | **5.3-compat additions (2.1)** | S | Full | `luajit-2.1/` declares `table.move` and `coroutine.isyieldable`; `luajit-2.0/` declares neither (E8, E9). |
+| TARGET-12-09 | **Clean parse** | M | Full | Every LuaJIT-specific file parses with zero `PsiErrorElement`s. |
+| TARGET-12-10 | **Attribution** | M | Full | Every LuaJIT-specific file starts with the exact design §6 header. `THIRD-PARTY.md` carries each of the design §6 edits. |
+| TARGET-12-11 | **Test isolation** | M | Full | With the roots present, the tests changed in design §7.5 pass, and so does the full suite. Restoring STANDARD 5.4 in their `tearDown`s is checked by inspection only: DR-15 shows that a leaked target breaks no later class today, so no test can observe a missing restore. |
+| TARGET-12-12 | **`jit.` completion** | S | Full | `jit.<caret>` offers `version`, `on` and `status` under LuaJIT 2.1. |
+| TARGET-12-13 | **Runtime-root module rule** | M | Full | Inside the active runtime root, a module resolves only to the file at its relative path, `<a/b>.lua` or `<a/b>/init.lua`. A bare `require("util")` does not resolve to `luajit-2.1/jit/util.lua`, and a project `util.lua` wins over it. |
 
 ## Test Cases
 
@@ -110,13 +110,13 @@ Expected values are those measured in DR-11, DR-12 and DR-13.
 | 15 | -12 | LuaJIT 2.1, `jit.<caret>` | `completeBasic()` | Lookup strings include `version`, `on` and `status` | Delete `function jit.on` → `on` missing |
 | 16 | -01, -07, -08 | LuaJIT 2.1, `print(debug.traceback(), debug.upvalueid(print, 1), table.move, coroutine.isyieldable)` | `multiResolve` on `traceback`, `upvalueid`, `move`, `isyieldable` | Each has exactly one target in the matching `luajit-2.1/` file. Under LuaJIT 2.0, `move` and `isyieldable` have none | Remove E7 from `luajit-2.1/debug.lua` → `upvalueid` has none. Under unfixed BUG-513, `traceback` has none (DR-14) |
 | 17 | -10 | `THIRD-PARTY.md` | Read it | Contains `### LuaJIT API stubs (Mike Pall)`, the `runtime/luajit/luajit-2.{0,1}/{builtin,…}.lua` files line and the `**MIT (LuaJIT)**` line, and the `**MIT (Lua)**` line names `runtime/luajit/` | Delete the LuaJIT section → fails |
-| 18 | -13 | LuaJIT 2.1, a `require` of each of `util`, `new`, `clear`, `buffer`, `profile`, `jit.util` and `string` (design §7.4), and then a project `util.lua` | `resolve()` each | `null` for the first five, `…/jit/util.lua` and `…/luajit-2.1/string.lua` for the other two, and `/src/util.lua` once the project file exists | Remove the `runtimeRootVerdict` call → the first five resolve into the nested stub files (DR-13, before the fix) |
+| 18 | -13 | LuaJIT 2.1, a `require` of each of `util`, `new`, `clear`, `buffer`, `profile`, `jit.util` and `string` (design §7.4), and then a project `util.lua` | `resolve()` each | `null` for the first five, `…/jit/util.lua` and `…/luajit-2.1/string.lua` for the other two, and `/src/util.lua` once the project file exists | Remove the `runtimeRootVerdict` call → the first five resolve into the nested stub files (DR-13, before the fix), and the project-`util.lua` case can resolve to `jit/util.lua` instead, depending on index order |
 | 19 | -13 | A temp directory `vroot/` holding `pkg/init.lua`, `jit/util.lua` and `top.lua`, plus `elsewhere/util.lua` outside it (`myFixture.tempDirFixture`) | `runtimeRootVerdict(candidate, root, module)` (design §7.4) | `pkg/init.lua` gives `true` for `pkg` and `pkg.init`, and `false` for `init`. `jit/util.lua` gives `false` for `util` and `true` for `jit.util`. `top.lua` gives `true` for `top`. `elsewhere/util.lua` gives `null`, and so does a `null` root (DR-16) | Delete the `\|\| relativePath == "$modulePath/init.lua"` arm → the `pkg` case gives `false`. This is predicted, not executed: r18 ran only the unmutated verdicts. Phase 3's mutation proof runs it |
 
 ## Acceptance Criteria
-- [ ] Every test case above passes on the full suite (`run "test --rerun --no-build-cache"`).
-- [ ] TC 1, TC 7, TC 8, TC 18 and TC 19 go red under their named mutations (implementation-plan Phase 3).
-- [ ] `runtime/luajit/.gitkeep` is deleted, since the directory is no longer empty.
+- [x] Every test case above passes on the full suite (`run "test --rerun --no-build-cache"`).
+- [x] TC 1, TC 7, TC 8, TC 18 and TC 19 go red under their named mutations (implementation-plan Phase 3).
+- [x] `runtime/luajit/.gitkeep` is deleted, since the directory is no longer empty.
 
 ## Non-Functional Requirements
 - The design §1.1 rule runs on the caller's read path with no VFS refresh (design §9).

@@ -73,16 +73,10 @@ class RedisAmbientTypingTest : IndexedBasePlatformTestCase() {
     // -------------------------------------------------------------------------
     // TC-KEYS-1: KEYS[1] infers `string` under a Redis target (via bundled global.lua).
     //
-    // NOTE (fixture limitation, tracked in risks-and-gaps §Gap 2.3): the requirements
-    // TC-KEYS-1 also asserts "no undeclared-variable highlight on KEYS/ARGV". That sub-
-    // assertion rides the *reference-resolution* path (LuaUndeclaredNames → multiResolve →
-    // the platform library-bindings FileBasedIndex over the stub global.lua), NOT the
-    // type-inference path exercised here. In a BasePlatformTestCase the stub global.lua is
-    // served from inside the plugin jar (`jar:` URL) and is therefore never FileBasedIndex-
-    // indexed, so bare-global KEYS never resolves and the warning fires regardless of target.
-    // This is a light-fixture/packaging constraint, not a REDIS-04 resolution gap (a real IDE
-    // indexes library roots). The live "no undeclared on KEYS/ARGV" behavior is covered by
-    // human-verification-checklists Scenario 4.1.
+    // The "no undeclared-variable highlight on KEYS/ARGV" half of TC-KEYS-1 rides the
+    // reference-resolution path (LuaUndeclaredNames -> multiResolve), not the type path tested
+    // here. Bundled stub globals do resolve in a light fixture (TARGET-12-00-DR-06: KEYS ->
+    // global.lua under Redis 7+); this class does not assert that half.
     // -------------------------------------------------------------------------
     @Test
     fun testKeysIndexInfersString() {

@@ -3,11 +3,13 @@ package net.internetisalie.lunar.lang.path
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import net.internetisalie.lunar.lang.psi.LuaFile
+import net.internetisalie.lunar.project.PlatformLibraryIndex
 import java.io.File
 
 /**
@@ -42,13 +44,38 @@ fun resolveModuleCandidates(
             FilenameIndex.getVirtualFilesByName(moduleName.substringAfterLast('.') + ".lua", scope) +
                 FilenameIndex.getVirtualFilesByName("init.lua", scope)
 
+        val runtimeRoot = PlatformLibraryIndex.getPlatformLibraryFolder(project)
         for (virtualFile in byName) {
             val path = virtualFile.path
-            if (path.endsWith(expectedPathPart) || path.endsWith(expectedInitPathPart) || !moduleName.contains('.')) {
+            val accepted =
+                runtimeRootVerdict(virtualFile, runtimeRoot, moduleName)
+                    ?: (
+                        path.endsWith(expectedPathPart) ||
+                            path.endsWith(expectedInitPathPart) ||
+                            !moduleName.contains('.')
+                    )
+            if (accepted) {
                 (psiManager.findFile(virtualFile) as? LuaFile)?.let { yield(it) }
             }
         }
     }
+
+/**
+ * TARGET-12 (design §1.1): inside the active runtime root, a module resolves only to the file at
+ * its relative path, `<a/b>.lua` or `<a/b>/init.lua`, so a bare `require("util")` cannot land on a
+ * nested stub such as `luajit-2.1/jit/util.lua`. True or false for a candidate inside the active
+ * runtime root; null when the rule does not apply.
+ */
+internal fun runtimeRootVerdict(
+    candidate: VirtualFile,
+    runtimeRoot: VirtualFile?,
+    moduleName: String,
+): Boolean? {
+    if (runtimeRoot == null || !VfsUtilCore.isAncestor(runtimeRoot, candidate, true)) return null
+    val relativePath = VfsUtilCore.getRelativePath(candidate, runtimeRoot) ?: return false
+    val modulePath = moduleName.replace('.', '/')
+    return relativePath == "$modulePath.lua" || relativePath == "$modulePath/init.lua"
+}
 
 private fun findByPath(path: String): VirtualFile? =
     LocalFileSystem.getInstance().findFileByPath(path) ?: VfsUtil.findFileByIoFile(File(path), false)
