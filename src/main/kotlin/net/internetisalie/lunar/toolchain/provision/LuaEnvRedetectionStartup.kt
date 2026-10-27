@@ -20,7 +20,7 @@ import java.nio.file.Path
  * (TOOLING-04-16 — successor to the removed legacy env-detect startup). Scans the likely env root
  * `<projectBase>/.lua` off the EDT for a `.lunar-env.json` whose `environmentId` has no matching
  * TOOLING-02 record; if found, a notification (group `notification.group.lunar.tools`) offers
- * "Re-register", which registers the recorded tools + environment via [RegistryProvisionResultSink]
+ * "Re-register", which registers the recorded tools + environment via [LuaEnvReRegistration]
  * on a pooled thread. All filesystem work runs on [Dispatchers.IO]; no EDT blocking.
  */
 class LuaEnvRedetectionStartup : ProjectActivity {
@@ -81,10 +81,7 @@ class LuaEnvRedetectionStartup : ProjectActivity {
         ) {
             ApplicationManager.getApplication().executeOnPooledThread {
                 runCatching {
-                    RegistryProvisionResultSink().register(
-                        project,
-                        LuaEnvRedetection.toResult(rootDir, manifest),
-                    )
+                    LuaEnvReRegistration.reRegister(project, rootDir, manifest)
                 }.onFailure { LOG.warn("Re-registration failed for $rootDir", it) }
             }
             notification.expire()

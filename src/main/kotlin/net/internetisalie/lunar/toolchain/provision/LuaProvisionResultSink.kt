@@ -30,6 +30,15 @@ interface LuaProvisionResultSink {
         project: Project,
         result: LuaProvisionResult,
     )
+
+    /**
+     * The id of the environment already registered at [rootDir], which a provision of that directory
+     * must keep: registration merges by root and keeps the existing record's id (BUG-533).
+     */
+    fun registeredEnvironmentId(
+        project: Project,
+        rootDir: String,
+    ): String? = null
 }
 
 /**
@@ -44,16 +53,27 @@ class RegistryProvisionResultSink : LuaProvisionResultSink {
         result: LuaProvisionResult,
     ) {
         val registry = LuaToolchainRegistry.getInstance()
+        val environmentId = registeredEnvironmentId(project, result.rootDir) ?: result.environmentId
         val toolIds =
             result.components.map { component ->
                 val toolId = UUID.randomUUID().toString()
-                registry.registerProvisioned(toolFor(component, result.environmentId, toolId))
+                registry.registerProvisioned(toolFor(component, environmentId, toolId))
                 toolId
             }
         LuaToolchainProjectSettings.getInstance(project).upsertEnvironmentAndActivate(
-            LuaEnvironmentState(result.environmentId, result.environmentName, result.rootDir, toolIds.toMutableList()),
+            LuaEnvironmentState(environmentId, result.environmentName, result.rootDir, toolIds.toMutableList()),
         )
     }
+
+    override fun registeredEnvironmentId(
+        project: Project,
+        rootDir: String,
+    ): String? =
+        LuaToolchainProjectSettings
+            .getInstance(project)
+            .environmentAt(rootDir)
+            ?.id
+            ?.takeIf { it.isNotBlank() }
 
     private fun toolFor(
         component: LuaProvisionedComponent,

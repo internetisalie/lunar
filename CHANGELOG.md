@@ -2,6 +2,17 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The Lua Environment widget appears as soon as a project has an environment** (BUG-534). A
+  project created with *New Project → LuaRocks* and *Provision isolated environment* showed no
+  Lua Environment widget in the status bar until it was reopened. The widget now appears when a
+  project gains its first environment and goes away when it loses its last one.
+
+- **A provisioned environment no longer asks to be re-registered on every reopen** (BUG-533). The
+  LuaRocks New Project wizard and *Recreate Environment* recorded the environment under one id in
+  `.idea/lunar.xml` and another in `.lua/.lunar-env.json`, so every reopen offered *Re-register*,
+  and clicking it did not help. Provisioning now keeps the registered environment's id, and
+  *Re-register* repairs projects created before this fix.
+
 - **Lua files no longer drop out of the stub index** (BUG-531). A `.lua` file that first appeared
   after the IDE had already indexed another language's files, such as one written by the LuaRocks
   New Project wizard, failed to index. The IDE logged errors, and Go to Symbol and other

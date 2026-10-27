@@ -786,6 +786,9 @@
     <!-- Active Lua environment widget + test-matrix results (TOOLING-05-06) -->
     <statusBarWidgetFactory id="Lunar.LuaEnvWidget"
         implementation="net.internetisalie.lunar.toolchain.ui.LuaEnvStatusBarWidgetFactory"/>
+    <projectService
+            serviceInterface="net.internetisalie.lunar.toolchain.ui.LuaEnvWidgetAvailability"
+            serviceImplementation="net.internetisalie.lunar.toolchain.ui.LuaEnvWidgetAvailabilityImpl"/>
     <!-- The id doubles as the stripe title when nothing else names it, which is how the dotted id
          reached the UI (BUG-448 #21). MatrixResultsToolWindow.init sets the display name, so the id
          stays what it is: persisted layout state and RunMatrixAction's lookup key. -->
@@ -793,6 +796,12 @@
         factoryClass="net.internetisalie.lunar.rocks.matrix.MatrixResultsToolWindow"/>
 
   </extensions>
+
+  <applicationListeners>
+    <!-- Re-checks the Lua Environment widget when a project's environment set changes (BUG-534) -->
+    <listener class="net.internetisalie.lunar.toolchain.ui.LuaEnvWidgetAvailabilityListener"
+              topic="net.internetisalie.lunar.toolchain.registry.LuaToolchainListener"/>
+  </applicationListeners>
 
   <actions>
     <!-- Toolchain diagnostics snapshot (TOOLING-07-07) -->

@@ -195,7 +195,10 @@ class LuaProvisionEngine(
         rootDir: Path,
     ): LuaEnvManifest {
         val existing = LuaEnvManifest.read(rootDir)
-        val environmentId = existing?.environmentId ?: UUID.randomUUID().toString()
+        val environmentId = environmentIdFor(setup, existing)
+        if (existing != null && existing.environmentId != environmentId) {
+            LuaEnvManifest.write(rootDir, existing.copy(environmentId = environmentId))
+        }
         return LuaEnvManifest(
             manifestVersion = 1,
             environmentId = environmentId,
@@ -204,6 +207,15 @@ class LuaProvisionEngine(
             components = existing?.components.orEmpty(),
         )
     }
+
+    /** The registered record's id wins: registration keeps it, so the manifest must carry it (BUG-533). */
+    private fun environmentIdFor(
+        setup: LuaProvisionSetup,
+        existing: LuaEnvManifest?,
+    ): String =
+        sink.registeredEnvironmentId(setup.job.project, setup.job.request.rootDir)
+            ?: existing?.environmentId
+            ?: UUID.randomUUID().toString()
 
     private data class ItemRun(
         val setup: LuaProvisionSetup,

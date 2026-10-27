@@ -65,6 +65,14 @@ class LuaToolchainProjectSettings(
             }
         }
 
+    /** The environment whose root is [rootDir], matched the same way [upsertEnvironment] merges records. */
+    fun environmentAt(rootDir: String): LuaEnvironmentState? {
+        val normalized = normalizeDir(rootDir)
+        return synchronized(stateLock) {
+            myState.environments.firstOrNull { normalizeDir(it.rootDir) == normalized }
+        }
+    }
+
     fun binding(kindId: String): String? =
         synchronized(stateLock) {
             myState.bindings[kindId]
