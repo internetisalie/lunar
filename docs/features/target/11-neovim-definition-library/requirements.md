@@ -118,7 +118,7 @@ TC 3, 5 and 6 also on main.
 - [[TARGET-08]] (done): catalog, fetcher, provider, settings page.
 - [[BUG-503]] (done, `84fa67b0`), [[BUG-504]] (done, `33326f3f`), [[BUG-509]] (done, `a2399c0e`),
   [[BUG-510]] (done, `a1d7226d`): TARGET-11-06 rests on them (DR-02, DR-10, DR-11).
-- [[BUG-517]] (todo): gates the merge through TARGET-11-09 (DR-08).
+- [[BUG-517]] (done): gates the merge through TARGET-11-09 (DR-08).
 - [[BUG-505]], [[BUG-507]]: deliver TARGET-11-08; not blocking.
 - [[BUG-508]], [[BUG-511]], [[BUG-512]]: not blocking (risks-and-gaps, "The split").
 - Consumer: [[MAINT-39]] pins this entry for its lazy.nvim member.

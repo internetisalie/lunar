@@ -102,6 +102,7 @@ statement ::= emptyStatement
     | globalFuncDecl
     | globalModeDecl
     | globalVarDecl
+    | exprOnlyStatement
     | assignmentStatement
     | exprStatement
     | label
@@ -121,6 +122,13 @@ statement ::= emptyStatement
 emptyStatement ::= ';'
 assignmentStatement ::= varList '=' exprList
 exprStatement ::= expr
+// BUG-517: an expression statement not followed by `=` or `,` is taken BEFORE trying an
+// assignment. Trying assignmentStatement first parsed a call statement's whole argument list
+// (callback bodies included) as a varSuffix, failed, and exprStatement parsed it again, so
+// `f(function() g(function() ... end) end)` cost 2^depth. A real assignment's first target ends
+// at its `=` or `,`, so this rule fails there and assignmentStatement parses as before;
+// exprStatement stays as the fallback for broken input such as `f() = 1`.
+exprOnlyStatement ::= expr !('=' | ',') {elementType=exprStatement name="expr statement"}
 breakStatement ::= BREAK
 gotoStatement ::= GOTO labelRef
 doStatement ::= DO block END {
@@ -255,8 +263,7 @@ labelName ::= IDENTIFIER {
 
 expr ::= terminalExpr
     | funcDef
-    | funcCall
-    | prefixExpr
+    | suffixedExpr
     | tableConstructor
     | orBinOpExpr
     | andBinOpExpr
@@ -293,7 +300,13 @@ var ::= nameRef varSuffix*
     | '(' expr ')' varSuffix+
 varSuffix ::= nameAndArgs* indexExpr
 
-prefixExpr ::= varOrExp {extends=expr}
+// BUG-517: a suffixed expression (`f(x).y:m()`, `(e)[k]`) is parsed ONCE, by
+// LuaParserUtil.parseSuffixedExpr. It builds the varOrExp / var / varSuffix / nameAndArgs
+// children and the node is a prefixExpr, or a funcCall when the chain ends in a call. The
+// former `funcCall | prefixExpr` alternatives re-parsed every nested expression up to four
+// times per nesting level. prefixExpr and funcCall stay for their element types and PSI.
+suffixedExpr ::= <<parseSuffixedExpr>> {extends=expr elementType=prefixExpr name="prefix expr"}
+fake prefixExpr ::= varOrExp {extends=expr}
 funcCall ::= varOrExp nameAndArgs+ {extends=expr}
 varOrExp ::= var | '(' expr ')'
 nameAndArgs ::= methodExpr? args

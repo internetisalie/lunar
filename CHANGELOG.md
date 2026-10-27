@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Deeply nested expressions no longer freeze parsing** (BUG-517). Parse time grew
+  exponentially with nesting: `((((((((((a))))))))))` took 11 seconds, a 6 KB LPeg grammar in
+  Neovim's runtime took 8, and ten nested `f(function() … end)` callbacks took 2.2. Every edit,
+  highlighting pass and index of such a file paid it again. Lunar now parses a chain of calls and
+  indexes in one pass, so these files parse in milliseconds. The parse tree is unchanged; on
+  broken code, some error messages list fewer expected tokens.
+
 - **LuaJIT targets get the standard library and LuaJIT's own API** (TARGET-12). A project whose
   target was LuaJIT 2.0 or 2.1 had no bundled stubs, so `string.format` resolved to nothing and
   `jit` and `bit` were reported as undeclared. Lunar now ships the Lua 5.1 standard library with

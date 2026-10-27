@@ -62,4 +62,15 @@ object LuaParserUtil : GeneratedParserUtilBase() {
         builder.advanceLexer()
         return true
     }
+
+    /** BUG-517: `<<parseSuffixedExpr>>` in `lua.bnf`; see [LuaSuffixedExprParser]. */
+    @JvmStatic
+    fun parseSuffixedExpr(
+        builder: PsiBuilder,
+        level: Int,
+    ): Boolean {
+        if (!recursion_guard_(builder, level, "parseSuffixedExpr")) return false
+        if (!nextTokenIsSmart(builder, LuaElementTypes.IDENTIFIER, LuaElementTypes.LPAREN)) return false
+        return LuaSuffixedExprParser.parse(builder, level)
+    }
 }

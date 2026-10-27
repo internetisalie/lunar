@@ -350,6 +350,37 @@ public class LuaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // expr !('=' | ',')
+  public static boolean exprOnlyStatement(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "exprOnlyStatement")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, EXPR_STATEMENT, "<expr statement>");
+    result_ = expr(builder_, level_ + 1, -1);
+    result_ = result_ && exprOnlyStatement_1(builder_, level_ + 1);
+    exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  // !('=' | ',')
+  private static boolean exprOnlyStatement_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "exprOnlyStatement_1")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _NOT_);
+    result_ = !exprOnlyStatement_1_0(builder_, level_ + 1);
+    exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  // '=' | ','
+  private static boolean exprOnlyStatement_1_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "exprOnlyStatement_1_0")) return false;
+    boolean result_;
+    result_ = consumeToken(builder_, ASSIGN);
+    if (!result_) result_ = consumeToken(builder_, COMMA);
+    return result_;
+  }
+
+  /* ********************************************************** */
   // expr
   public static boolean exprStatement(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "exprStatement")) return false;
@@ -501,6 +532,34 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(builder_, level_, "funcBody_1")) return false;
     parList(builder_, level_ + 1);
     return true;
+  }
+
+  /* ********************************************************** */
+  // varOrExp nameAndArgs+
+  public static boolean funcCall(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "funcCall")) return false;
+    if (!nextTokenIs(builder_, "<func call>", IDENTIFIER, LPAREN)) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, FUNC_CALL, "<func call>");
+    result_ = varOrExp(builder_, level_ + 1);
+    result_ = result_ && funcCall_1(builder_, level_ + 1);
+    exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  // nameAndArgs+
+  private static boolean funcCall_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "funcCall_1")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = nameAndArgs(builder_, level_ + 1);
+    while (result_) {
+      int pos_ = current_position_(builder_);
+      if (!nameAndArgs(builder_, level_ + 1)) break;
+      if (!empty_element_parsed_guard_(builder_, "funcCall_1", pos_)) break;
+    }
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
   }
 
   /* ********************************************************** */
@@ -1048,6 +1107,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
   //     | globalFuncDecl
   //     | globalModeDecl
   //     | globalVarDecl
+  //     | exprOnlyStatement
   //     | assignmentStatement
   //     | exprStatement
   //     | label
@@ -1070,6 +1130,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     if (!result_) result_ = globalFuncDecl(builder_, level_ + 1);
     if (!result_) result_ = globalModeDecl(builder_, level_ + 1);
     if (!result_) result_ = globalVarDecl(builder_, level_ + 1);
+    if (!result_) result_ = exprOnlyStatement(builder_, level_ + 1);
     if (!result_) result_ = assignmentStatement(builder_, level_ + 1);
     if (!result_) result_ = exprStatement(builder_, level_ + 1);
     if (!result_) result_ = label(builder_, level_ + 1);
@@ -1271,21 +1332,20 @@ public class LuaParser implements PsiParser, LightPsiParser {
   // Operator priority table:
   // 0: ATOM(terminalExpr)
   // 1: ATOM(funcDef)
-  // 2: ATOM(funcCall)
-  // 3: ATOM(prefixExpr)
-  // 4: ATOM(tableConstructor)
-  // 5: BINARY(orBinOpExpr)
-  // 6: BINARY(andBinOpExpr)
-  // 7: BINARY(relBinOpExpr)
-  // 8: BINARY(borBinOpExpr)
-  // 9: BINARY(bnotBinOpExpr)
-  // 10: BINARY(bandBinOpExpr)
-  // 11: BINARY(bshiftBinOpExpr)
-  // 12: BINARY(concatBinOpExpr)
-  // 13: BINARY(addBinOpExpr)
-  // 14: BINARY(mulBinOpExpr)
-  // 15: PREFIX(unOpExpr)
-  // 16: BINARY(expBinOpExpr)
+  // 2: ATOM(suffixedExpr)
+  // 3: ATOM(tableConstructor)
+  // 4: BINARY(orBinOpExpr)
+  // 5: BINARY(andBinOpExpr)
+  // 6: BINARY(relBinOpExpr)
+  // 7: BINARY(borBinOpExpr)
+  // 8: BINARY(bnotBinOpExpr)
+  // 9: BINARY(bandBinOpExpr)
+  // 10: BINARY(bshiftBinOpExpr)
+  // 11: BINARY(concatBinOpExpr)
+  // 12: BINARY(addBinOpExpr)
+  // 13: BINARY(mulBinOpExpr)
+  // 14: PREFIX(unOpExpr)
+  // 15: BINARY(expBinOpExpr)
   public static boolean expr(PsiBuilder builder_, int level_, int priority_) {
     if (!recursion_guard_(builder_, level_, "expr")) return false;
     addVariant(builder_, "<expr>");
@@ -1293,8 +1353,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     Marker marker_ = enter_section_(builder_, level_, _NONE_, "<expr>");
     result_ = terminalExpr(builder_, level_ + 1);
     if (!result_) result_ = funcDef(builder_, level_ + 1);
-    if (!result_) result_ = funcCall(builder_, level_ + 1);
-    if (!result_) result_ = prefixExpr(builder_, level_ + 1);
+    if (!result_) result_ = suffixedExpr(builder_, level_ + 1);
     if (!result_) result_ = tableConstructor(builder_, level_ + 1);
     if (!result_) result_ = unOpExpr(builder_, level_ + 1);
     pinned_ = result_;
@@ -1308,48 +1367,48 @@ public class LuaParser implements PsiParser, LightPsiParser {
     boolean result_ = true;
     while (true) {
       Marker marker_ = enter_section_(builder_, level_, _LEFT_, null);
-      if (priority_ < 5 && binOps(builder_, level_ + 1, OR_parser_)) {
+      if (priority_ < 4 && binOps(builder_, level_ + 1, OR_parser_)) {
+        result_ = expr(builder_, level_, 4);
+        exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
+      }
+      else if (priority_ < 5 && binOps(builder_, level_ + 1, AND_parser_)) {
         result_ = expr(builder_, level_, 5);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
-      else if (priority_ < 6 && binOps(builder_, level_ + 1, AND_parser_)) {
+      else if (priority_ < 6 && binOps(builder_, level_ + 1, LuaParser::relBinOpExpr_0_0)) {
         result_ = expr(builder_, level_, 6);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
-      else if (priority_ < 7 && binOps(builder_, level_ + 1, LuaParser::relBinOpExpr_0_0)) {
+      else if (priority_ < 7 && binOps(builder_, level_ + 1, PIPE_parser_)) {
         result_ = expr(builder_, level_, 7);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
-      else if (priority_ < 8 && binOps(builder_, level_ + 1, PIPE_parser_)) {
+      else if (priority_ < 8 && binOps(builder_, level_ + 1, NEG_parser_)) {
         result_ = expr(builder_, level_, 8);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
-      else if (priority_ < 9 && binOps(builder_, level_ + 1, NEG_parser_)) {
+      else if (priority_ < 9 && binOps(builder_, level_ + 1, AMP_parser_)) {
         result_ = expr(builder_, level_, 9);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
-      else if (priority_ < 10 && binOps(builder_, level_ + 1, AMP_parser_)) {
+      else if (priority_ < 10 && binOps(builder_, level_ + 1, LuaParser::bshiftBinOpExpr_0_0)) {
         result_ = expr(builder_, level_, 10);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
-      else if (priority_ < 11 && binOps(builder_, level_ + 1, LuaParser::bshiftBinOpExpr_0_0)) {
-        result_ = expr(builder_, level_, 11);
+      else if (priority_ < 11 && binOps(builder_, level_ + 1, CONCAT_parser_)) {
+        result_ = expr(builder_, level_, 10);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
-      else if (priority_ < 12 && binOps(builder_, level_ + 1, CONCAT_parser_)) {
-        result_ = expr(builder_, level_, 11);
+      else if (priority_ < 12 && binOps(builder_, level_ + 1, LuaParser::addBinOpExpr_0_0)) {
+        result_ = expr(builder_, level_, 12);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
-      else if (priority_ < 13 && binOps(builder_, level_ + 1, LuaParser::addBinOpExpr_0_0)) {
+      else if (priority_ < 13 && binOps(builder_, level_ + 1, LuaParser::mulBinOpExpr_0_0)) {
         result_ = expr(builder_, level_, 13);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
-      else if (priority_ < 14 && binOps(builder_, level_ + 1, LuaParser::mulBinOpExpr_0_0)) {
+      else if (priority_ < 15 && binOps(builder_, level_ + 1, EXP_parser_)) {
         result_ = expr(builder_, level_, 14);
-        exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
-      }
-      else if (priority_ < 16 && binOps(builder_, level_ + 1, EXP_parser_)) {
-        result_ = expr(builder_, level_, 15);
         exit_section_(builder_, level_, marker_, BIN_OP_EXPR, result_, true, null);
       }
       else {
@@ -1387,40 +1446,12 @@ public class LuaParser implements PsiParser, LightPsiParser {
     return result_;
   }
 
-  // varOrExp nameAndArgs+
-  public static boolean funcCall(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "funcCall")) return false;
-    if (!nextTokenIsSmart(builder_, IDENTIFIER, LPAREN)) return false;
+  // <<parseSuffixedExpr>>
+  public static boolean suffixedExpr(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "suffixedExpr")) return false;
     boolean result_;
-    Marker marker_ = enter_section_(builder_, level_, _NONE_, FUNC_CALL, "<func call>");
-    result_ = varOrExp(builder_, level_ + 1);
-    result_ = result_ && funcCall_1(builder_, level_ + 1);
-    exit_section_(builder_, level_, marker_, result_, false, null);
-    return result_;
-  }
-
-  // nameAndArgs+
-  private static boolean funcCall_1(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "funcCall_1")) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
-    result_ = nameAndArgs(builder_, level_ + 1);
-    while (result_) {
-      int pos_ = current_position_(builder_);
-      if (!nameAndArgs(builder_, level_ + 1)) break;
-      if (!empty_element_parsed_guard_(builder_, "funcCall_1", pos_)) break;
-    }
-    exit_section_(builder_, marker_, null, result_);
-    return result_;
-  }
-
-  // varOrExp
-  public static boolean prefixExpr(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "prefixExpr")) return false;
-    if (!nextTokenIsSmart(builder_, IDENTIFIER, LPAREN)) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_, level_, _NONE_, PREFIX_EXPR, "<prefix expr>");
-    result_ = varOrExp(builder_, level_ + 1);
+    Marker marker_ = enter_section_(builder_, level_, _COLLAPSE_, PREFIX_EXPR, "<prefix expr>");
+    result_ = parseSuffixedExpr(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }
@@ -1493,7 +1524,7 @@ public class LuaParser implements PsiParser, LightPsiParser {
     Marker marker_ = enter_section_(builder_, level_, _NONE_, null);
     result_ = unOp(builder_, level_ + 1);
     pinned_ = result_;
-    result_ = pinned_ && expr(builder_, level_, 15);
+    result_ = pinned_ && expr(builder_, level_, 14);
     exit_section_(builder_, level_, marker_, UN_OP_EXPR, result_, pinned_, null);
     return result_ || pinned_;
   }
