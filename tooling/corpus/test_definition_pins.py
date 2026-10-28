@@ -96,7 +96,23 @@ class LibraryGlobalsTest(unittest.TestCase):
                 "p/spec/b.lua": "function outside() end\n",
                 "p/config.json": "{}",
             })
-            self.assertEqual({"describe", "context"}, definition_pins.library_globals(archive, "p/library"))
+            self.assertEqual({"describe", "context", "M"}, definition_pins.library_globals(archive, "p/library"))
+
+    def test_BUG_506_a_dotted_function_declares_its_root_and_a_method_does_not(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            archive = Path(scratch) / "n.tar.gz"
+            library = "function vim.list_extend(dst, src) end\nfunction vim.api.nvim_get_current_buf() end\n"
+            library += "function obj:method() end\n_G.shadow = _G.shadow or {}\nfield.x = 1\n"
+            write_archive(archive, {"n/runtime/lua/vim/shared.lua": library})
+            self.assertEqual({"vim"}, definition_pins.library_globals(archive, "n/runtime/lua"))
+
+    def test_BUG_509_a_local_root_is_not_a_global(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            archive = Path(scratch) / "n.tar.gz"
+            library = "local M = {}\nfunction M.f() end\nlocal a, log = 1, {}\nfunction log.g() end\n"
+            library += "function vim.x() end\nreturn M\n"
+            write_archive(archive, {"n/runtime/lua/m.lua": library})
+            self.assertEqual({"vim"}, definition_pins.library_globals(archive, "n/runtime/lua"))
 
 
 class VerifyTest(unittest.TestCase):

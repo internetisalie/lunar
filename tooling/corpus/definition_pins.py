@@ -32,8 +32,11 @@ GITHUB_WARNING = (
     "GitHub regenerates /archive/ tarballs. Do NOT update the catalog pin without establishing "
     "the content is unchanged (diff -r the two extracted trees)."
 )
-FUNCTION_DECLARATION = re.compile(r"^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+FUNCTION_DECLARATION = re.compile(r"^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*[.(]")
 GLOBAL_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)")
+LOCAL_DECLARATION = re.compile(
+    r"^\s*local\s+(?:function\s+)?([A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*)"
+)
 
 
 class PinError(Exception):
@@ -134,12 +137,25 @@ def fetch_library(lib: dict, dest_dir: Path) -> Path:
     )
 
 
-def declared_globals(text: str) -> set[str]:
+def file_locals(text: str) -> set[str]:
     names: set[str] = set()
     for line in text.splitlines():
-        match = FUNCTION_DECLARATION.match(line) or GLOBAL_ASSIGNMENT.match(line)
+        match = LOCAL_DECLARATION.match(line)
         if match:
-            names.add(match.group(1))
+            names.update(name.strip() for name in match.group(1).split(","))
+    return names
+
+
+def declared_globals(text: str) -> set[str]:
+    names: set[str] = set()
+    locals_here = file_locals(text)
+    for line in text.splitlines():
+        function = FUNCTION_DECLARATION.match(line)
+        if function and not (line[function.end() - 1] == "." and function.group(1) in locals_here):
+            names.add(function.group(1))
+        assignment = GLOBAL_ASSIGNMENT.match(line)
+        if assignment:
+            names.add(assignment.group(1))
     return names
 
 

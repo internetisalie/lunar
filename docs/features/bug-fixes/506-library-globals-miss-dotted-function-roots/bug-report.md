@@ -3,7 +3,7 @@ id: "BUG-506"
 title: "`definition_pins.library_globals` omits the root of `function a.b()`, which Lunar treats as a global declaration, so the attribution classifier calls a library's own drop UNEXPLAINED"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -117,3 +117,10 @@ In `tooling/corpus/test_definition_pins.py`, `LibraryGlobalsTest`:
 **Done:** [[BUG-509]] is merged; the tests above pass in `python3 -m unittest` from `tooling/corpus/`;
 every mutant in the table has been observed red; and the MAINT-37 edits in §5 are made. No TARGET-11 code and no corpus
 sweep is needed.
+
+## 7. Verification of the delivered fix (2026-10-28)
+
+§5's rule and local exclusion, and §6's two tests, are in `tooling/corpus/`. `python3 -m unittest
+test_definition_pins` passes. Each mutant was observed red: keeping `\s*\(` fails TC 27,
+`test_BUG_506_…` and `test_BUG_509_…`; `\s*[.(:]` fails `test_BUG_506_…` (`obj`); dropping the local
+exclusion fails `test_BUG_509_…`. MAINT-37 design §3.6 step 2 and TC 27 carry the new rule.

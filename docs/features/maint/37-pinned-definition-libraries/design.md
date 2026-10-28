@@ -767,9 +767,11 @@ against a project local), anything else is a library contract being enforced (`T
 `library_globals(archive, root_prefix)`:
 1. Open with `tarfile.open(archive, "r:gz")`. For each member that `isfile()`, whose name starts
    `root_prefix + "/"` and ends `.lua`: decode UTF-8 with `errors="replace"`.
-2. For each line, match `^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(` or
+2. For each line, match `^function\s+([A-Za-z_][A-Za-z0-9_]*)\s*[.(]` or
    `^([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)`; add group 1. Anchored at column 0, so nested and `local`
-   declarations, dotted names (`function M.f()`) and comparisons (`x == y`) never match.
+   declarations and comparisons (`x == y`) never match. A dotted name (`function M.f()`)
+   contributes its root `M`, unless the same file declares `M` local (BUG-506, BUG-509); a method
+   (`function M:f()`) contributes nothing.
 3. Return the set. Executed against the real pinned archives (2026-10-10) it yields exactly the
    sets listed in requirements → MAINT-37-06/-07.
 
