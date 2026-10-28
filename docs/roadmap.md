@@ -140,6 +140,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |
 | MAINT-39 | A LuaCATS-annotated corpus — the sweep cannot see the annotated path at all | todo | M | TYPE-12 *(done)*; BUG-501 *(done)* | 0 of 734 corpus files carry any `---@` tag; corpus is pre-LuaCATS-era Lua, so the whole luacats subsystem and the annotated type engine are unswept — BUG-473 lived there undetected. Staged: DR-6 fixture, then S6, then real projects | ✓ |
 | MAINT-40 | Corpus sweep results stored per commit — SARIF findings under an environment-derived suite name, so a "before" is a fetch, not a re-record | todo | M | — | — | ✓ |
+| MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | todo | M | MAINT-40 | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
 | BUG-462 | The package detail card strands its loading placeholders, and its description and dependency regions never render | todo | S | — | — | ✓ |
