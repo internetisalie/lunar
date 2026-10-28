@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Neovim (`vim.*`) definition library** (TARGET-11): enable it under Settings ▸ Languages &
+  Frameworks ▸ Lua ▸ Lua Project ▸ Definition Libraries to declare `vim` and its direct members.
+  It registers Neovim 0.12.6's own `runtime/lua` API definitions. Members of nested namespaces
+  such as `vim.api.` and `vim.fn.` do not complete yet.
+
 - **Deeply nested expressions no longer freeze parsing** (BUG-517). Parse time grew
   exponentially with nesting: `((((((((((a))))))))))` took 11 seconds, a 6 KB LPeg grammar in
   Neovim's runtime took 8, and ten nested `f(function() … end)` callbacks took 2.2. Every edit,

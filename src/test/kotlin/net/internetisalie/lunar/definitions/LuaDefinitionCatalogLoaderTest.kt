@@ -61,11 +61,39 @@ class LuaDefinitionCatalogLoaderTest {
             assertTrue(entry.size > 0, "${entry.id}: size missing")
             assertTrue(entry.license.isNotBlank(), "${entry.id}: license missing")
             assertTrue(entry.attributionUrl.isNotBlank(), "${entry.id}: attributionUrl missing")
+            val wrapper = entry.rootPrefix.substringBefore('/')
             assertTrue(
-                entry.rootPrefix.endsWith("/library"),
-                "${entry.id}: rootPrefix should name the library dir to register, was '${entry.rootPrefix}'",
+                wrapper.endsWith(entry.version) &&
+                    entry.rootPrefix.length > wrapper.length + 1 &&
+                    !entry.rootPrefix.endsWith("/"),
+                "${entry.id}: rootPrefix must name a directory below the archive's '<repo>-<version>' " +
+                    "wrapper, was '${entry.rootPrefix}'",
             )
         }
+    }
+
+    /** TARGET-11 TC 1. */
+    @Test
+    fun neovimEntryIsPinnedToNeovim0126() {
+        val neovim = assertNotNull(LuaDefinitionCatalogLoader.load().entry("neovim"))
+        assertEquals(
+            LuaDefinitionEntry(
+                id = "neovim",
+                displayName = "Neovim (vim.*)",
+                version = "779c36969e31080503be2dfccbcc3f999e289606",
+                urls =
+                    listOf(
+                        "https://github.com/neovim/neovim/archive/779c36969e31080503be2dfccbcc3f999e289606.tar.gz",
+                    ),
+                sha256 = "912c4e695f0496acf39b7c3b8877e312539ffdd067b2950015140125c41e29f3",
+                size = 13736994L,
+                rootPrefix = "neovim-779c36969e31080503be2dfccbcc3f999e289606/runtime/lua",
+                license = "Apache-2.0 AND Vim AND MIT",
+                attributionUrl = "https://github.com/neovim/neovim",
+                requires = emptyList(),
+            ),
+            neovim,
+        )
     }
 
     /**

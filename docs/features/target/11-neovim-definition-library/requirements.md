@@ -2,7 +2,7 @@
 id: "TARGET-11"
 title: "11: Neovim (`vim.*`) Definition Library"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "high"
 parent_id: "TARGET"
 folders:
@@ -48,14 +48,14 @@ This feature neither performs nor waits for them. Parent epic: [TARGET](../requi
 
 | ID | Requirement | Priority | Status | Description |
 | :--- | :--- | :---: | :---: | :--- |
-| TARGET-11-01 | **Pinned catalog entry** | M | Not Implemented | The bundled catalog carries the `neovim` entry of design §2.1, field for field. |
-| TARGET-11-02 | **Root below the archive wrapper** | M | Not Implemented | The bundled-catalog invariant requires every `rootPrefix` to name a directory strictly below its `<repo>-<version>` wrapper, instead of requiring a `/library` suffix. |
-| TARGET-11-03 | **`vim` is declared** | M | Not Implemented | With the library provisioned, references to `vim` raise no `Undeclared variable 'vim'`, and `vim.` completes the direct members the registered tree declares. |
-| TARGET-11-04 | **Only `runtime/lua` is registered** | M | Not Implemented | Lua files outside `runtime/lua` in the archive (Neovim's `runtime/plugin/`, `runtime/ftplugin/`) declare nothing. |
-| TARGET-11-05 | **The pin is real** | M | Not Implemented | The pinned URL yields the pinned bytes, and the archive holds the definition files under `rootPrefix`. |
-| TARGET-11-06 | **Works live** | M | Not Implemented | Enabled in GoLand from the settings page, the real archive fetches, indexes without error and declares `vim`, with no deprecated-API warning on `vim`, and an undeclared `M` or `uv` in user code is still reported. |
-| TARGET-11-09 | **Highlighting cost** | M | Not Implemented | On lazy.nvim, highlighting with the library on takes at most 1.5× as long as with it off, measured as design §4.2 states. |
-| TARGET-11-07 | **Release note** | S | Not Implemented | `CHANGELOG.md` records the new library under the release that ships it. |
+| TARGET-11-01 | **Pinned catalog entry** | M | Full | The bundled catalog carries the `neovim` entry of design §2.1, field for field. |
+| TARGET-11-02 | **Root below the archive wrapper** | M | Full | The bundled-catalog invariant requires every `rootPrefix` to name a directory strictly below its `<repo>-<version>` wrapper, instead of requiring a `/library` suffix. |
+| TARGET-11-03 | **`vim` is declared** | M | Full | With the library provisioned, references to `vim` raise no `Undeclared variable 'vim'`, and `vim.` completes the direct members the registered tree declares. |
+| TARGET-11-04 | **Only `runtime/lua` is registered** | M | Full | Lua files outside `runtime/lua` in the archive (Neovim's `runtime/plugin/`, `runtime/ftplugin/`) declare nothing. |
+| TARGET-11-05 | **The pin is real** | M | Full | The pinned URL yields the pinned bytes, and the archive holds the definition files under `rootPrefix`. |
+| TARGET-11-06 | **Works live** | M | Full | Enabled in GoLand from the settings page, the real archive fetches, indexes without error and declares `vim`, with no deprecated-API warning on `vim`, and an undeclared `M` or `uv` in user code is still reported. |
+| TARGET-11-09 | **Highlighting cost** | M | Full | On lazy.nvim, highlighting with the library on takes at most 1.5× as long as with it off, measured as design §4.2 states. |
+| TARGET-11-07 | **Release note** | S | Full | `CHANGELOG.md` records the new library under the release that ships it. |
 | TARGET-11-08 | **Nested namespace members** | W | Future Work | `vim.api.`, `vim.fn.`, `vim.uv.` and the other namespaces complete. Delivered by [[BUG-505]] and [[BUG-507]], not here. |
 
 ## Detailed Specifications
@@ -83,6 +83,11 @@ The bound is 1.5× because it lies between today's 1.71× and the 1.24× measure
 removed (DR-08 `c8`). It fails on the measured defect, and it leaves room for run-to-run spread:
 DR-08's library runs range from 71.6 s to 81.8 s, about 13 % of their mean.
 
+**Measured** on 2026-10-28 with BUG-517 merged, design §4.2 on the libvirt builder: control
+`elapsedMs` 38552 and 39675, library 49221 and 51345, so the ratio is 50283 ÷ 39113.5 = 1.29.
+Both library runs report `LuaUndeclaredVariable=7` against the control's 537, as in DR-03, which
+shows the library arm was provisioned.
+
 ## Test Cases
 
 `NeovimDefinitionLibraryTest` is design §2.4. No mutation edits an assertion or the fixture. Every
@@ -102,11 +107,11 @@ TC 3, 5 and 6 also on main.
 | 9 | 09 | The implementation tree with BUG-517 merged; design §4.2's probe | Design §4.2: two runs of each arm | `library mean elapsedMs ÷ control mean elapsedMs` ≤ 1.5 | Already red: main without BUG-517 gives 1.71 (DR-08) |
 
 ## Acceptance Criteria
-- [ ] TC 1–6 pass in `tooling/gce-builder/gce-builder.sh run test`; each mutation of TC 1–6 turns its case red once and is reverted (implementation-plan Phase 1).
-- [ ] TC 7 prints design §4.1's expected line.
-- [ ] TC 8 passes, recorded in the checklist with date and evidence.
-- [ ] TC 9's ratio is ≤ 1.5, with all four `elapsedMs` values in the PR description.
-- [ ] TARGET-11-07: the `CHANGELOG.md` entry exists.
+- [x] TC 1–6 pass in `tooling/gce-builder/gce-builder.sh run test`; each mutation of TC 1–6 turns its case red once and is reverted (implementation-plan Phase 1).
+- [x] TC 7 prints design §4.1's expected line.
+- [x] TC 8 passes, recorded in the checklist with date and evidence.
+- [x] TC 9's ratio is ≤ 1.5, with all four `elapsedMs` values in the PR description.
+- [x] TARGET-11-07: the `CHANGELOG.md` entry exists.
 
 ## Non-Functional Requirements
 - **Cost.** DR-01 measures the download and the registered tree. DR-08 measures the indexing and

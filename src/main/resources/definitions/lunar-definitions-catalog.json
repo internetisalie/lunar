@@ -56,6 +56,20 @@
       "license": "MIT",
       "attributionUrl": "https://github.com/LuaCATS/openresty",
       "requires": []
+    },
+    {
+      "id": "neovim",
+      "displayName": "Neovim (vim.*)",
+      "version": "779c36969e31080503be2dfccbcc3f999e289606",
+      "urls": [
+        "https://github.com/neovim/neovim/archive/779c36969e31080503be2dfccbcc3f999e289606.tar.gz"
+      ],
+      "sha256": "912c4e695f0496acf39b7c3b8877e312539ffdd067b2950015140125c41e29f3",
+      "size": 13736994,
+      "rootPrefix": "neovim-779c36969e31080503be2dfccbcc3f999e289606/runtime/lua",
+      "license": "Apache-2.0 AND Vim AND MIT",
+      "attributionUrl": "https://github.com/neovim/neovim",
+      "requires": []
     }
   ]
 }

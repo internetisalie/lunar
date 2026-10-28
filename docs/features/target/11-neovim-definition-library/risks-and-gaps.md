@@ -42,7 +42,7 @@ this entry; TARGET-12 is independent of it.
 | It hides no real error in user code (no false negatives) | runtime | DR-11 | confirmed on main: of the probed candidate names, it declares only `vim` |
 | The synthetic-archive tests can fail | runtime | DR-07 | confirmed: every TC 1–6 mutation turns its case red at the assertion |
 | The corpus attribution can explain the pin's drop | runtime | DR-05 | **refuted** (BUG-506) |
-| Cost is tolerable: library-on highlighting ≤ 1.5× library-off (TARGET-11-09) | runtime | DR-08 | **refuted** on main (1.71×). A Lunar parser defect, [[BUG-517]], accounts for about two-thirds of the sweep gap (DR-08) and gates TARGET-11 |
+| Cost is tolerable: library-on highlighting ≤ 1.5× library-off (TARGET-11-09) | runtime | DR-08, TC 9 | **refuted** before [[BUG-517]] (1.71×, DR-08); **confirmed** after it: TC 9 measured 1.29× on 2026-10-28 (requirements, TARGET-11-09) |
 | `jit` belongs here | read | DR-09 | rejected |
 
 Constraints examined: the `/library` suffix was inherited from LuaCATS addons and is generalised

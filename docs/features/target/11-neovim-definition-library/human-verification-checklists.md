@@ -30,4 +30,21 @@ tree.
   is underlined or struck through, and the completion list contains `notify` and `api`; step 5 prints `0`;
   in step 6 `M` carries `Undeclared variable 'M'` ([[BUG-509]]) and `uv` carries
   `Undeclared variable 'uv'` ([[BUG-510]]).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass, 2026-10-28, GoLand 2026.2.3 `runIde` on the libvirt builder, plugin built from
+  `beed0fc4` (Phase 1). Evidence (`$S` = `~/.cache/claude-scratch/lunar/target-11/impl`):
+  - Before step 1, with no library enabled, both `vim` references were underlined
+    (`$S/shots/08-before.png`).
+  - Step 2: the row read `Neovim (vim.*)`, `Not fetched`, `Apache-2.0 AND Vim AND MIT`,
+    `https://github.com/neovim/neovim` (`$S/shots/10-step2.png`).
+  - Step 3: after *Apply*, the definitions cache held `neovim-779c36969e31080503be2dfccbcc3f999e289606`
+    with 128 `.lua` files, and the log shows the indexing task for `Synthetic library 'Lua Definition
+    Libraries'`. The open panel kept showing `Not fetched`, because it does not re-read state after
+    *Apply*. Reopened, the row read `Fetched` (`$S/shots/20-fetched.png`).
+  - Step 4: neither `vim` was underlined or struck through (`$S/shots/13-after.png`). Completion on
+    `vim.` listed `notify` (`$S/shots/15-notify.png`) and `api` (`$S/shots/16-api.png`).
+  - Step 5: `0`. The whole log also had no `Error while indexing` line and no `ERROR` or `SEVERE`
+    entry.
+  - Step 6: the Problems view listed `Undeclared variable 'M' :3` and `Undeclared variable 'uv' :4`,
+    plus three `Unused local variable` warnings, and nothing on `vim` (`$S/shots/19-problems.png`).
+  - TC 8's mutations (reverting BUG-504, BUG-509 or BUG-510) were not run live. DR-10 and DR-11 ran
+    their equivalents in tests.

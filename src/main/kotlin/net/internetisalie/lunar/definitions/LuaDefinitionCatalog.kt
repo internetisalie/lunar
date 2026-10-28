@@ -49,6 +49,8 @@ data class LuaDefinitionCatalog(
  * [rootPrefix] is the path *to register* inside the extracted archive, not merely a wrapper dir to
  * strip. Addons put their `.lua` definitions in a `<repo>-<sha>/library` directory beside a
  * `config.json`, and registering the archive root would index that `config.json` as project content.
+ * Not every library is an addon: Neovim's definitions are its own `runtime/lua`, so its prefix is
+ * `neovim-<sha>/runtime/lua`.
  *
  * [requires] names other catalog ids this library needs; see [LuaDefinitionCatalog.withDependencies].
  */
