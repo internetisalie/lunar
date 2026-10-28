@@ -116,13 +116,21 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
     @Test
     fun testPenlightCorpus() = sweepAndRatchet("penlight")
 
+    /**
+     * MAINT-39: the one member written in LuaCATS — `lazy.nvim`, annotated natively and densely
+     * (`@class` with inheritance, `@alias`, `@generic`, `@overload`, `@cast`), so a green sweep says
+     * something about the luacats subsystem and the annotated type engine.
+     */
+    @Test
+    fun testLazynvimCorpus() = sweepAndRatchet("lazynvim")
+
     private fun sweepAndRatchet(name: String) {
         val repoRoot = File(testDataPath)
         val entry = CorpusManifest.entry(repoRoot, name)
         CorpusGuards.assertCorpusFetched(repoRoot, entry)
         // Pinned per project: the target selects the stdlib root and the level, so leaving it at
         // the LUA54 default would make every inspection count a function of that default (BUG-515).
-        savedTarget = CorpusTarget.pin(project, entry.luaLevel)
+        savedTarget = CorpusTarget.pin(project, CorpusTarget.memberTarget(entry))
 
         val attribution = attributionMode()
         // Deleted up front, so an arm that fails before writing leaves no older run's tally behind.

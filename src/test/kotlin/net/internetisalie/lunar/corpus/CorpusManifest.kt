@@ -3,6 +3,9 @@ package net.internetisalie.lunar.corpus
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import net.internetisalie.lunar.lang.LuaLanguageLevel
+import net.internetisalie.lunar.platform.LuaPlatform
+import net.internetisalie.lunar.platform.target.PlatformVersionRegistry
+import net.internetisalie.lunar.platform.target.Target
 import java.io.File
 
 /**
@@ -20,11 +23,13 @@ data class CorpusEntry(
      * The subdirectory module names resolve against, when the project puts its Lua tree on
      * `package.path` rather than requiring from the checkout root — KOReader's
      * `require("ui/uimanager")` means `frontend/ui/uimanager.lua`. Null means "resolve from the
-     * checkout root", which is what every currently-pinned project does.
+     * checkout root", which is what most pinned projects do.
      */
     val moduleRoot: String?,
     /** Catalog ids from `lunar-definitions-catalog.json` the sweep enables for this member (MAINT-37). */
     val definitionLibraries: List<String> = emptyList(),
+    /** The member's non-Standard target (`"<LuaPlatform>:<version label>"`); null pins Standard [luaLevel]. */
+    val target: Target? = null,
 )
 
 /**
@@ -99,7 +104,22 @@ object CorpusManifest {
                     ?.trim()
                     ?.takeIf { it.isNotEmpty() },
             definitionLibraries = entry.distinctIds("definitionLibraries"),
-        )
+        ).let { parsed -> parsed.copy(target = entry.target(parsed)) }
+    }
+
+    /** Absent means Standard at `luaLevel`; a target whose implicit level differs is refused. */
+    private fun JsonObject.target(parsed: CorpusEntry): Target? {
+        val spec = get("target")?.asString?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val platform = LuaPlatform.valueOf(spec.substringBefore(':'))
+        val version =
+            requireNotNull(PlatformVersionRegistry.findVersion(platform, spec.substringAfter(':', ""))) {
+                "Corpus entry '${parsed.name}' names unknown target '$spec' in $MANIFEST_PATH"
+            }
+        val target = Target(platform, version)
+        require(target.getImplicitLanguageLevel() == parsed.luaLevel) {
+            "Corpus entry '${parsed.name}': target '$spec' implies ${target.getImplicitLanguageLevel().name}, not ${parsed.luaLevel.name}"
+        }
+        return target
     }
 
     /**

@@ -25,12 +25,9 @@ import net.internetisalie.lunar.lang.psi.types.RootAccessor
 /**
  * BUG-473 DR-6 — the annotated fixture the corpus lane never had.
  *
- * Measured 2026-08-29: **0 of the 734 pinned corpus files carry any `---@` annotation**. The pinned
- * projects are pre-LuaCATS-era Lua, so the trigger condition for BUG-473 — one `---@class` making
- * `LuaTypesSnapshot.forFile` superlinear in call-site count — is unsatisfiable on 100 % of the
- * corpus, and a green sweep says nothing about the annotated path. This fixture is the smallest
- * thing that changes that. Real annotated projects are MAINT-39 step 3 and stay blocked until
- * BUG-473's growth exponent moves.
+ * The pinned pre-LuaCATS projects cannot trigger BUG-473, and a whole-project sweep cannot gate a
+ * root-resolution budget on one sized file, so this fixture does. Real annotated code is swept by
+ * `LuaCorpusSweepTest.testLazynvimCorpus` (MAINT-39).
  *
  * **The gate is the root-resolution count, never a duration.** BUG-474 records the ratio assertion
  * in `LuaClassTagSnapshotPerformanceTest` reading 87× on one builder and 340× on another at the

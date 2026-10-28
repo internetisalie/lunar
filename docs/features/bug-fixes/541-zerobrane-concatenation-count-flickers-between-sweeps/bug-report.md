@@ -43,3 +43,9 @@ target. Reported here without a root cause.
   ratchet stays green, but the nondeterminism remains.
 - Evidence (scratch, not durable): the BUG-515 planning runs' highlight dumps
   (`hits-fix.txt`, `hits-fix6.txt`, `hits-control.txt`) under the BUG-515 scratch directory.
+- **With the MAINT-39 `lazynvim` member** (`5dd675a4`, libvirt builder, full `'*Corpus*'` shape),
+  zerobrane read 17 in 9 of 11 runs: records 1–7 of MAINT-39 Phase 1 and two gate runs at 17;
+  record 8 and one gate run at 19. Each 17 differed from the committed file only in
+  `inspection.LuaSuspiciousConcatenation=19` → `17` and `symbol.LuaSuspiciousConcatenation.nil=3`
+  → `1`. Whether the member raises the rate is still not established: the runs without it are too
+  few to compare.

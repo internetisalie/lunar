@@ -25,16 +25,19 @@
     "  prune      optional; deleted after checkout so the builder rsync stays cheap",
     "             (luarocks/win32 alone is 11 MB of vendored Windows binaries)",
     "  luaLevel   the Lua language level the sweep runs under. It matters beyond the",
-    "             LuaLanguageLevel inspection: the level selects which stdlib globals are known, so",
-    "             an unpinned level would make every inspection count a function of",
-    "             LuaProjectSettings' LUA54 default.",
+    "             LuaLanguageLevel inspection: the level selects which stdlib globals are known, unless",
+    "             `target` is set (below), so an unpinned level would make every inspection count a",
+    "             function of LuaProjectSettings' LUA54 default.",
     "  moduleRoot optional; the subdirectory module names resolve against, put on package.path for",
-    "             the sweep. Omit when requires are relative to the checkout root, as all four below",
-    "             are. It exists for projects that name modules relative to a subtree — KOReader's",
+    "             the sweep. Omit when requires are relative to the checkout root. It exists for",
+    "             projects that name modules relative to a subtree — KOReader's",
     "             require(\"ui/uimanager\") means frontend/ui/uimanager.lua.",
     "  definitionLibraries optional; catalog ids (src/main/resources/definitions/lunar-definitions-catalog.json)",
     "             whose pinned archives the sweep enables for this member, with their `requires`",
-    "             closure. definition_pins.py fetches and verifies them into test/corpus/.definitions/."
+    "             closure. definition_pins.py fetches and verifies them into test/corpus/.definitions/.",
+    "  target     optional; \"<LuaPlatform>:<version label>\" from PlatformVersionRegistry, e.g.",
+    "             \"LUAJIT:2.1\". The sweep pins that target instead of the Standard one of luaLevel,",
+    "             which must be the level the target implies; CorpusManifest refuses a mismatch."
   ],
   "corpora": [
     {
@@ -70,6 +73,16 @@
       "luaLevel": "LUA51",
       "moduleRoot": "lua",
       "definitionLibraries": ["busted"]
+    },
+    {
+      "name": "lazynvim",
+      "url": "https://github.com/folke/lazy.nvim.git",
+      "commit": "85c7ff3711b730b4030d03144f6db6375044ae82",
+      "roots": ["lua"],
+      "luaLevel": "LUA51",
+      "target": "LUAJIT:2.1",
+      "moduleRoot": "lua",
+      "definitionLibraries": ["neovim"]
     }
   ]
 }

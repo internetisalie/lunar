@@ -40,9 +40,12 @@ job (`.gitea/workflows/build-plugin.yml`) runs the gate in the same shape.
 
 Append an entry to `corpus.json` — the fields are documented in its `$comment`: `name`, `url`,
 **a commit SHA resolved from a release tag**, the `roots` to index, `luaLevel`, and optionally
-`prune`, `moduleRoot` and `definitionLibraries`. Never pin a branch — the ratchet needs a
-byte-identical tree across runs. Then add a `test<Name>Corpus` method to `LuaCorpusSweepTest` and
-record a baseline.
+`prune`, `moduleRoot`, `definitionLibraries` and `target` (a non-Standard target such as
+`LUAJIT:2.1`). Never pin a branch — the ratchet needs a byte-identical tree across runs. `name` is
+lowercase ASCII letters only: the sweep method is `test` + `name` with its first letter
+upper-cased + `Corpus` (`lazynvim` → `testLazynvimCorpus`), which must be a Kotlin identifier, and
+CI's ratchet diagnostics match `\[corpus:[a-z-]*\]` only. Add that method to `LuaCorpusSweepTest`
+and record a baseline with the full `'*Corpus*'` filter (above).
 
 Prune **binaries only** (`luarocks/win32` is 22 vendored `.exe`/`.dll`). Do not prune config or
 text ballast: the non-Lua files in a real project are the record of which ecosystem tools it

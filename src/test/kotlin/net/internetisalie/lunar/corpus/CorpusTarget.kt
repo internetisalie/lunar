@@ -17,7 +17,8 @@ data class SavedTarget(
 )
 
 /**
- * Pins a corpus member to the Standard target of its manifest level, not just the level (BUG-515).
+ * Pins a corpus member to its target — the manifest's `target`, else the Standard target of its
+ * level — not just the level (BUG-515, MAINT-39).
  *
  * The stdlib root follows [LuaProjectSettings.State.getTarget], which derives a target from
  * `languageLevel` only while none is stored. The shared light project already stores one, so
@@ -29,15 +30,23 @@ object CorpusTarget {
     fun pin(
         project: Project,
         level: LuaLanguageLevel,
+    ): SavedTarget = pin(project, standardTarget(level))
+
+    fun pin(
+        project: Project,
+        target: Target,
     ): SavedTarget {
         val settings = LuaProjectSettings.getInstance(project)
         val state = settings.state
         val saved = SavedTarget(state.target?.toTarget(), state.languageLevel, state.explicitTarget)
         // Explicit, so LuaTargetSynchronizer.recompute stops queueing moves to the builder's runtime.
         state.explicitTarget = true
-        apply(project, standardTarget(level))
+        apply(project, target)
         return saved
     }
+
+    /** The manifest's `target` when it names one, else the Standard target of its `luaLevel`. */
+    fun memberTarget(entry: CorpusEntry): Target = entry.target ?: standardTarget(entry.luaLevel)
 
     fun restore(
         project: Project,

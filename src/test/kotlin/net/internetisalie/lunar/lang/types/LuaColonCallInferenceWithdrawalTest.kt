@@ -26,9 +26,9 @@ import org.junit.runners.JUnit4
  * `function t:m(cb)`, the member name resolved to nothing pre-feature too (a colon method's stub is
  * keyed `t:m`, not `m`), so `z` was `unknown` there already.
  *
- * **This is a fixture rather than a ratchet row because the ratchet structurally cannot see it**:
- * the pinned corpus carries 0 `---@` tags across all 734 files, so no expected-callback type exists
- * to seed from. `ExpectedCallbackResolverTest` cannot see it either — it carries no colon-call
+ * **This is a fixture rather than a ratchet row because the ratchet cannot gate it**: it needs a
+ * hand-built colon-call receiver, which no corpus member supplies, so no expected-callback type
+ * exists to seed from. `ExpectedCallbackResolverTest` cannot see it either — it carries no colon-call
  * fixture at all.
  *
  * Falsifier: delete the colon branch from `LuaNameReference.multiResolve` (case 1's mutation). It

@@ -138,7 +138,18 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | TYPE-14 | Generics — the LuaLS closed baseline (nested positions, cross-file callees, methods, generic classes, grammar) plus a constraint's bound in the body | **planned** | **M** | TYPE-05 *(done)*, TYPE-10 *(done)*, TYPE-13 *(done)*, MAINT-34 *(done)* | closes BUG-420 | needs a parser regen (local-only) |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | **TYPE-14** *(Phase 5 closes it — do not fix twice)* | — | ✓ |
 | BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |
-| MAINT-39 | A LuaCATS-annotated corpus — the sweep cannot see the annotated path at all | todo | M | TYPE-12 *(done)*; BUG-501 *(done)* | 0 of 734 corpus files carry any `---@` tag; corpus is pre-LuaCATS-era Lua, so the whole luacats subsystem and the annotated type engine are unswept — BUG-473 lived there undetected. Staged: DR-6 fixture, then S6, then real projects | ✓ |
+| BUG-542 | An optional key (`name?:`) in a `---@field` table type, or an optional `fun` parameter in `---@overload`, is a LuaCATS parse error | todo | S | — | found in MAINT-39: 6 lazy.nvim sites; the `@alias` form parses; see BUG-502 | ✓ |
+| BUG-543 | A numeric key (`[1]`) in a `---@field` name or a `---@field` table type is a LuaCATS parse error | todo | S | — | found in MAINT-39: 5 lazy.nvim sites | ✓ |
+| BUG-544 | An optional `fun` return type (`fun():boolean?`) inside a LuaCATS table type is a parse error | todo | S | — | found in MAINT-39: `view/sections.lua:13`; possibly one defect with BUG-545 | ✓ |
+| BUG-545 | A parenthesised `fun` return list (`fun():(A?, B?)`) inside a LuaCATS table type is a parse error | todo | S | — | found in MAINT-39: `core/plugin.lua:149`; possibly one defect with BUG-544 | ✓ |
+| BUG-546 | An `async fun(…)` type is a LuaCATS parse error | todo | S | — | found in MAINT-39: `manage/task/init.lua:12` | ✓ |
+| BUG-547 | A `fun` type with unnamed parameters (`fun(LazyPlugin)`) is a LuaCATS parse error | todo | S | — | found in MAINT-39: `manage/task/plugin.lua:65` | ✓ |
+| BUG-548 | A string-literal type or string-literal union in a `---@field` is a LuaCATS parse error | todo | S | — | found in MAINT-39: `pkg/init.lua:11`; `@alias`/`@param` parse; see BUG-514 | ✓ |
+| BUG-549 | A `---@see \|text\|` reference is a LuaCATS parse error | todo | C | — | found in MAINT-39: `core/cache.lua:228` | ✓ |
+| BUG-550 | The string argument of a call chained on `require(…)` is recognised as a require | todo | S | — | found in MAINT-39 DR-06: `require("lazy.stats").track("LazyDone")`; moves lazynvim's identity-checked `requires` | ✓ |
+| BUG-551 | `loadstring` is reported as a deprecated API on the Lua 5.1 and LuaJIT 2.1 targets, where it is current | todo | S | — | found in MAINT-39 DR-12: `core/plugin.lua:308` | ✓ |
+| BUG-552 | An explicit `nil` argument for an optional `---@param mode? string` is reported as not assignable | todo | S | — | found in MAINT-39 DR-12: `loadfile(file, nil, ret)` on LuaJIT 2.1 | ✓ |
+| BUG-553 | A string-valued operand typed `{ ... }` is reported by Suspicious Concatenation | todo | S | — | found in MAINT-39: all 14 of lazynvim's concatenation hits; not reproduced in isolation | ✓ |
 | MAINT-40 | Corpus sweep results stored per commit — SARIF findings under an environment-derived suite name, so a "before" is a fetch, not a re-record | todo | M | — | — | ✓ |
 | MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | todo | M | MAINT-40 | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |

@@ -350,6 +350,42 @@ class BaselineRatchetTest {
         )
     }
 
+    /** MAINT-39: `target` names a non-Standard target; absent leaves the Standard target of `luaLevel`. */
+    @Test
+    fun manifestTargetParses() {
+        val repoRoot =
+            manifestRoot(
+                """{"name":"plain","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"],"luaLevel":"LUA51"}""",
+                """{"name":"jit","url":"https://example.invalid/y.git","commit":"cafebabe","roots":["src"],""" +
+                    """"luaLevel":"LUA51","target":"LUAJIT:2.1"}""",
+            )
+        assertNull(CorpusManifest.entry(repoRoot, "plain").target)
+        assertEquals("runtime/luajit/luajit-2.1", CorpusManifest.entry(repoRoot, "jit").target?.getLibraryRootPath())
+    }
+
+    /** A target implying another level would split the oracle's level from the sweep's. */
+    @Test
+    fun manifestTargetMustImplyTheLuaLevel() {
+        val repoRoot =
+            manifestRoot(
+                """{"name":"skew","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"],""" +
+                    """"luaLevel":"LUA54","target":"LUAJIT:2.1"}""",
+            )
+        val failure = runCatching { CorpusManifest.load(repoRoot) }.exceptionOrNull()
+        assertTrue("got: ${failure?.message}", failure?.message.orEmpty().contains("implies LUA51, not LUA54"))
+    }
+
+    @Test
+    fun manifestTargetMustBeRegistered() {
+        val repoRoot =
+            manifestRoot(
+                """{"name":"nine","url":"https://example.invalid/x.git","commit":"deadbeef","roots":["src"],""" +
+                    """"luaLevel":"LUA51","target":"LUAJIT:9.9"}""",
+            )
+        val failure = runCatching { CorpusManifest.load(repoRoot) }.exceptionOrNull()
+        assertTrue("got: ${failure?.message}", failure?.message.orEmpty().contains("unknown target 'LUAJIT:9.9'"))
+    }
+
     @Test
     fun manifestLuaLevelDefaultsAndParses() {
         val repoRoot =
@@ -363,7 +399,7 @@ class BaselineRatchetTest {
 
     /**
      * The optional `moduleRoot`. Omitting it means "modules resolve from the checkout root", which
-     * is what every currently-pinned project does — so the default must stay null rather than "".
+     * is what most pinned projects do — so the default must stay null rather than "".
      */
     @Test
     fun manifestModuleRootDefaultsAndParses() {
