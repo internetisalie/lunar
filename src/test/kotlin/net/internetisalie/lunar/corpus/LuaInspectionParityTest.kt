@@ -7,7 +7,6 @@ import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import net.internetisalie.lunar.analysis.LuaTypeAssignabilityInspection
 import net.internetisalie.lunar.analysis.inspections.LuaUndeclaredVariableInspection
-import net.internetisalie.lunar.settings.LuaProjectSettings
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -39,6 +38,7 @@ import java.io.File
 class LuaInspectionParityTest : BasePlatformTestCase() {
     private val undeclared = LuaUndeclaredVariableInspection()
     private val assignability = LuaTypeAssignabilityInspection()
+    private var savedTarget: SavedTarget? = null
 
     override fun getTestDataPath(): String = System.getProperty("user.dir")
 
@@ -49,6 +49,14 @@ class LuaInspectionParityTest : BasePlatformTestCase() {
             File(System.getProperty("user.dir"), CorpusManifest.CORPUS_DIR).canonicalPath,
         )
         myFixture.enableInspections(undeclared, assignability)
+    }
+
+    override fun tearDown() {
+        try {
+            savedTarget?.let { CorpusTarget.restore(project, it) }
+        } finally {
+            super.tearDown()
+        }
     }
 
     /**
@@ -66,7 +74,7 @@ class LuaInspectionParityTest : BasePlatformTestCase() {
         val repoRoot = File(testDataPath)
         val entry = CorpusManifest.entry(repoRoot, MEMBER)
         CorpusGuards.assertCorpusFetched(repoRoot, entry)
-        LuaProjectSettings.getInstance(myFixture.project).state.languageLevel = entry.luaLevel
+        savedTarget = CorpusTarget.pin(project, entry.luaLevel)
 
         val files =
             entry.roots.flatMap { root ->

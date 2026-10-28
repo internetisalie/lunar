@@ -36,6 +36,7 @@ import java.nio.file.Path
 class LuaCorpusSweepTest : BasePlatformTestCase() {
     private var provisioned: List<Path> = emptyList()
     private var savedSourcePath: String = ""
+    private var savedTarget: SavedTarget? = null
 
     override fun getTestDataPath(): String = System.getProperty("user.dir")
 
@@ -85,9 +86,14 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
      */
     override fun tearDown() {
         try {
-            val moduleRootRestored = CorpusSourcePath.restore(project, savedSourcePath)
-            CorpusDefinitionLibraries.release(project, provisioned)
-            if (moduleRootRestored && provisioned.isEmpty()) CorpusDefinitionLibraries.refreshRoots(project)
+            try {
+                val moduleRootRestored = CorpusSourcePath.restore(project, savedSourcePath)
+                CorpusDefinitionLibraries.release(project, provisioned)
+                if (moduleRootRestored && provisioned.isEmpty()) CorpusDefinitionLibraries.refreshRoots(project)
+            } finally {
+                // Even when a step above throws: a leaked explicit 5.1 target would skew later classes.
+                savedTarget?.let { CorpusTarget.restore(project, it) }
+            }
         } finally {
             super.tearDown()
         }
@@ -114,9 +120,9 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
         val repoRoot = File(testDataPath)
         val entry = CorpusManifest.entry(repoRoot, name)
         CorpusGuards.assertCorpusFetched(repoRoot, entry)
-        // Pinned per project: the level selects which stdlib globals are known, so leaving it at
-        // the LUA54 default would make every inspection count a function of that default.
-        LuaProjectSettings.getInstance(myFixture.project).state.languageLevel = entry.luaLevel
+        // Pinned per project: the target selects the stdlib root and the level, so leaving it at
+        // the LUA54 default would make every inspection count a function of that default (BUG-515).
+        savedTarget = CorpusTarget.pin(project, entry.luaLevel)
 
         val attribution = attributionMode()
         // Deleted up front, so an arm that fails before writing leaves no older run's tally behind.
