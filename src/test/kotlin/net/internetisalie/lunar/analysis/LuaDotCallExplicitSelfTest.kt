@@ -5,6 +5,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubIndex
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
+import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import net.internetisalie.lunar.lang.types.IndexedBasePlatformTestCase
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -176,11 +177,11 @@ class LuaDotCallExplicitSelfTest : IndexedBasePlatformTestCase() {
         val wire: String,
     )
 
-    private fun callbackHits(shape: CallbackShape): List<String> =
-        hits(
-            "---@class F\nlocal M = {}\n\n${shape.close}\n\n---@param ${shape.fnTag}\nfunction M:on_key(fn)\n" +
-                "  ${shape.call}\nend\n\nfunction M:setup()\n  ${shape.wire}\nend\n",
-        )
+    private fun callbackText(shape: CallbackShape): String =
+        "---@class F\nlocal M = {}\n\n${shape.close}\n\n---@param ${shape.fnTag}\nfunction M:on_key(fn)\n" +
+            "  ${shape.call}\nend\n\nfunction M:setup()\n  ${shape.wire}\nend\n"
+
+    private fun callbackHits(shape: CallbackShape): List<String> = hits(callbackText(shape))
 
     private val colonClose = "---@param n? number\nfunction M:close(n)\n  return n\nend"
     private val dotClose = "---@param n? number\nfunction M.close(n)\n  return n\nend"
@@ -217,5 +218,79 @@ class LuaDotCallExplicitSelfTest : IndexedBasePlatformTestCase() {
     fun testDotFunctionValueCalledWithSelfStillReports() {
         val found = callbackHits(CallbackShape("fn fun(self?)", "fn(self)", dotClose, "self:on_key(M.close)"))
         assertTrue(found.toString(), "{ ... } | F is not assignable to nil | number" in found)
+    }
+
+    private val optionalOptsMethod = "---@param opts? {wipe:boolean}\nfunction M:close(opts)\n  return opts\nend"
+    private val requiredArgMethod = "---@param a string\nfunction M:close(a)\n  return a\nend"
+    private val selfCloseWire = "self:on_key(self.close)"
+
+    private fun onKeyHits(
+        close: String,
+        fnTag: String,
+        call: String,
+    ): List<String> = callbackHits(CallbackShape(fnTag, call, close, selfCloseWire))
+
+    /** Every graph error at every tier, HYPOTHESIS included, after highlighting [text]. */
+    private fun graphMessages(text: String): List<String> {
+        hits(text)
+        return runReadAction { LuaTypesSnapshot.forFile(myFixture.file).getErrors().map { it.message } }.distinct()
+    }
+
+    /**
+     * BUG-14. A colon method with no required parameter is a valid zero-argument callback: Lua fills
+     * the missing receiver with nil, so the `:` slot is not a required argument.
+     */
+    @Test
+    fun testOptionalParamMethodMatchesBareFunctionType() =
+        assertEquals(emptyList<String>(), onKeyHits(optionalOptsMethod, "fn function", "fn()"))
+
+    @Test
+    fun testOptionalParamMethodMatchesEmptyFunType() =
+        assertEquals(emptyList<String>(), onKeyHits(optionalOptsMethod, "fn fun()", "fn()"))
+
+    @Test
+    fun testOptionalParamMethodCalledWithSelfMatchesBareFunctionType() =
+        assertEquals(emptyList<String>(), onKeyHits(optionalOptsMethod, "fn function", "fn(self)"))
+
+    @Test
+    fun testOptionalParamMethodMatchesOptionalParamFunType() =
+        assertEquals(emptyList<String>(), onKeyHits(optionalOptsMethod, "fn fun(opts?: table)", "fn()"))
+
+    @Test
+    fun testOptionalParamMethodMatchesBareFunctionTypeCrossFile() {
+        myFixture.addFileToProject(
+            "defs.lua",
+            "---@class S\nlocal S = {}\n---@param opts? table\nfunction S:close(opts) end\nreturn S\n",
+        )
+        val caller = "---@type S\nlocal s\n---@param fn function\nlocal function take(fn) end\ntake(s.close)\n"
+        assertEquals(emptyList<String>(), hits(caller))
+    }
+
+    @Test
+    fun testRequiredParamMethodPassedToEmptyFunTypeIsTooFew() =
+        assertEquals(
+            listOf("Too few arguments: expected at least 2, got 0"),
+            onKeyHits(requiredArgMethod, "fn fun()", "fn()"),
+        )
+
+    @Test
+    fun testOptionalParamMethodMatchesUnionWithFunTypeInDryRun() {
+        val text = callbackText(CallbackShape("fn string|fun()", "", optionalOptsMethod, selfCloseWire))
+        val unionMismatch = graphMessages(text).filter { "is not assignable to union fun() | string" in it }
+        assertEquals(emptyList<String>(), unionMismatch)
+    }
+
+    /**
+     * A dot redefinition of a member another file declares with `:` is a real conflict: callers of
+     * `F:close` write `x:close(opts)`, so `M.close(n)` would receive `x` as `n` and drop `opts`.
+     */
+    @Test
+    fun testDotRedefinitionOfColonMemberStillReports() {
+        myFixture.addFileToProject(
+            "other.lua",
+            callbackText(CallbackShape("fn fun(self?)", "fn(self)", optionalOptsMethod, selfCloseWire)),
+        )
+        val found = callbackHits(CallbackShape("fn fun(self?)", "fn(self)", dotClose, "self:on_key(M.close)"))
+        assertTrue(found.toString(), "Too many arguments: expected at most 0, got 1" in found)
     }
 }

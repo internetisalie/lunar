@@ -905,10 +905,20 @@ class LuaTypeGraph {
         use: LuaGraphType.Function,
     ): Int = (if (value.implicitSelf) 1 else 0) - (if (use.implicitSelf) 1 else 0)
 
+    /**
+     * BUG-14: an implicit receiver is required only when a required parameter follows it. Lua fills a
+     * missing receiver with nil like any other argument, and the `:` declares a slot, not a
+     * requirement — only a `---@param` tag is a contract (BUG-419). A dot call that omits the receiver
+     * of `function C:add(a)` with a required `a` still falls short, because `a` cannot be reached.
+     */
     private fun minArity(
         value: LuaGraphType.Function,
         use: LuaGraphType.Function,
-    ): Int = (value.params.count { !it.isOptional && !it.isVararg } + receiverDelta(value, use)).coerceAtLeast(0)
+    ): Int {
+        val required = value.params.count { !it.isOptional && !it.isVararg }
+        if (required == 0) return 0
+        return (required + receiverDelta(value, use)).coerceAtLeast(0)
+    }
 
     private fun maxArity(
         value: LuaGraphType.Function,

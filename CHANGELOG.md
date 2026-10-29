@@ -2,14 +2,16 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
-- **Passing `self` explicitly to a method lines up its arguments** (BUG-8). A dot call of a method
-  declared with `:`, such as `Base.init(self, opts)` or `self.super.add(self, plugin)` in
+- **Passing `self` explicitly to a method lines up its arguments** (BUG-8, BUG-14). A dot call of a
+  method declared with `:`, such as `Base.init(self, opts)` or `self.super.add(self, plugin)` in
   lazy.nvim, was reported as *Too many arguments*, and `self` was checked against the method's
   first `---@param`. The reverse was also reported: a `:` call of a function that declares `self`
   as its first parameter was *Too few arguments*. Lunar now counts the receiver on whichever side
   leaves it implicit, so these calls are clean, and the remaining arguments are checked against
   the right parameters. A dot call that leaves the receiver out, such as `c.add("x")`, is now
-  reported as *Too few arguments*.
+  reported as *Too few arguments* when the method has a required parameter. A method whose
+  parameters are all optional can still be passed where a `function` or `fun()` is expected and
+  called with no arguments.
 
 - **A doc comment followed by a blank line no longer documents the next declaration** (BUG-9).
   A `---@class`, `---@type`, `---@param` or other LuaCATS block separated by a blank line from the
