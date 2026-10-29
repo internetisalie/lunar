@@ -61,7 +61,7 @@
 
 - **Verifier-reported API usages** (MAINT-44). Lunar no longer uses the internal, override-only
   and non-extendable platform APIs the plugin verifier reported, except two coverage-engine
-  overrides that have no public replacement. A release build now fails if a new such usage appears.
+  overrides that have no public replacement.
 
 - **No IDE error when adding an environment from the status bar** (BUG-537). Choosing *Add
   environment…* in the Lua Environment widget opened the Provision dialog but also raised an "IDE
@@ -200,8 +200,7 @@
   at a colon call site no longer starts an inline rename on a same-named local, and a declaration
   kept alive only by such a call is now correctly reported unused.
 
-  Reach is honest rather than total: 51 of 941 colon-method declarations in the pinned corpus gain a
-  resolving call site, and 121 of 268 in a heavily annotated project. Un-annotated receivers do not
+  Un-annotated receivers do not
   resolve across files, and a chained call, a factory-returned table, a `self` receiver, a
   `require`d module and an aliased local remain out of scope — each resolves to nothing rather than
   to a plausible-but-wrong target.
@@ -243,8 +242,7 @@
 - **A member resolved on a plain table, a global table, or a `setmetatable`-based class now carries
   its declaration — not only when the receiver has an `---@class` tag** (TYPE-13). The engine could
   previously trace a colon call like `obj:method()` back to the `function Obj:method()` that
-  declares it only when `obj`'s type carried a LuaCATS annotation; a corpus measurement found 809
-  colon-method declarations across 734 files, and not one of them was annotated. The engine now
+  declares it only when `obj`'s type carried a LuaCATS annotation. The engine now
   recovers the same declaration from the code's structure instead of from a tag — for plain and
   global tables directly, and for `setmetatable`-based OO through its supertype chain, without
   changing what any inspection or diagnostic reports. This is groundwork, not a new command: it
@@ -278,8 +276,8 @@
   reads *"Undo Renaming local variable config…"*, matching the rename dialog's wording, which was
   already correct. The undo itself always worked; only its label was wrong.
 
-- **Editing a `---@class`-annotated module no longer freezes the IDE for minutes** (BUG-473,
-  Phase 1). A single `---@class` tag made type inference superlinear in the number of colon calls
+- **Editing a `---@class`-annotated module no longer freezes the IDE for minutes** (BUG-473).
+  A single `---@class` tag made type inference superlinear in the number of colon calls
   against that class: a file with 80 call sites took 12.8 seconds to analyse, one with 160 took
   over two minutes, and the same file with the tag removed took a fifth of a second. The failure
   got worse the more a module followed the annotation conventions the plugin exists to reward. The
@@ -287,19 +285,16 @@
   graph walks for 80 call sites, half of them re-deriving an answer that had not changed — and now
   reuses a result until the graph it was computed from actually changes. Measured on the same file
   and machine, an annotated file went from 679× the cost of its unannotated control to 87×, and
-  145 seconds to 21 at 160 call sites. Annotated files that large were still slower than they should
-  be, which is what the next entry addresses.
+  145 seconds to 21 at 160 call sites.
 
-- **The same annotated modules are now several times faster again** (BUG-473, Phase 2). Phase 1
-  ended the multi-minute freeze but left the cost still climbing steeply with file size: 160 colon
+- **The same annotated modules are now several times faster again** (BUG-473). 160 colon
   calls against an annotated class took 27 seconds to analyse. The checker was resolving the same
   variable's type from scratch once for *every pair* of values and uses it compared — 27 372 full
   graph walks where 1 132 were needed — because it adds edges to the graph as it runs and so kept
-  invalidating Phase 1's cache out from under itself. It now resolves each value once per variable
+  invalidating its own type cache. It now resolves each value once per variable
   it visits. That file takes 3.6 seconds, an 80-call one takes 0.6 (was 2.4), and the number of
   graph walks grows with the file rather than with its square. Every diagnostic the engine reported
-  before, it still reports — compared message-for-message and now pinned by a test, because the
-  fastest alternative fix silently deleted the `---@param` type errors on every method call. Large
+  before, it still reports. Large
   annotated files are still slower than unannotated ones; what remains is a limitation in how method
   calls are modelled, not a defect.
 
@@ -356,7 +351,7 @@
   pane can show you that — and `::labels::` are unchanged.
 
 - **"Search in comments and strings" in the rename dialog now works, and remembers your answer**
-  (REFACT-01 Phase 7). Ticking either non-code-search checkbox previously searched for an internal
+  (REFACT-01). Ticking either non-code-search checkbox previously searched for an internal
   debug string rather than the identifier, so it reliably found nothing — a box that appeared to work
   and did nothing. Renaming `counter` to `total` with the box ticked now rewrites
   `-- counter tracks the total` along with the code. Both checkboxes are **off by default**, because
@@ -365,13 +360,7 @@
   only ever remembered them for *file* renames. The preview pane remains the place to check a
   best-effort match before applying it.
 
-- **The rule that decides which declarations may be renamed inline** (REFACT-01 Phase 7, partial).
-  The availability half ships and is correct — the inline template is offered only for file-local
-  declarations, never for a global and never for the raw identifier token, which the IDE would have
-  cast unchecked and crashed on. Starting the template needed a change to how Lua declarations are
-  modelled in the PSI; that change is the in-place rename entry above.
-
-- **Cancelling a rename no longer leaves the file half-renamed** (REFACT-01 Phase 8, BUG-468).
+- **Cancelling a rename no longer leaves the file half-renamed** (REFACT-01, BUG-468).
   Pressing **Stop** partway through a rename used to abandon it mid-write: some usages carried the
   new name, the declaration carried the old one, and the refactoring reported success — a broken
   file, silently, in the one situation where you had explicitly asked it to stop. Rename now resolves
@@ -382,20 +371,18 @@
   either way Ctrl+Z undoes the whole rename as a single command.
 
 - **Renaming a Lua file now rewrites its `require(...)` callers, and renaming a parameter moves its
-  `---@param` tag** (REFACT-01 Phases 5-6). Quote style and long-bracket delimiters are preserved,
+  `---@param` tag** (REFACT-01). Quote style and long-bracket delimiters are preserved,
   and a new name that cannot form a valid string literal is refused rather than silently truncated.
   Previously, renaming a file a `require` named threw and abandoned the refactoring outright.
 
 - **`function M.run()` renames with its call sites; `function Obj:m()` still declines, by name**
-  (REFACT-01 Phase 4). Renaming the `run` of a dotted member function now rewrites every `M.run()`
+  (REFACT-01). Renaming the `run` of a dotted member function now rewrites every `M.run()`
   call site along with the declaration, leaving the receiver `M` alone. The colon form is unchanged
   and still refused: `obj:m()` calls are not resolved to `function Obj:m()`, so renaming it would
-  rewrite the declaration and leave every call behind — measured as **zero** findable references,
-  which is why declining is the correct answer until method resolution by receiver type exists.
-  No behaviour was added for the dotted case; it was verified, and the verification is the change.
+  rewrite the declaration and leave every call behind.
 
 - **A `function M.run()` beside an `M.run = function() end` no longer loses its call sites in
-  silence** (REFACT-01 Phase 4, BUG-466). Lua lets the same qualified name be bound as a function
+  silence** (REFACT-01, BUG-466). Lua lets the same qualified name be bound as a function
   declaration in one file and as a field assignment in another; when both exist, `M.run` resolves to
   neither, so `M.run()` stops being a findable reference and a rename rewrote the two declarations
   and left every call behind — reporting success. The conflicts dialog now says `'M.run' is declared
@@ -405,7 +392,7 @@
 - **Rename warns before it changes meaning.** Renaming `x` to `y` in Lua does not *collide* the way
   it would in Java — it silently **rebinds**: the file still parses, still runs, and reads a
   different value. Lunar now reports four of those cases in the conflicts dialog before anything is
-  written (REFACT-01 Phase 3). A usage that would be captured by a `y` already visible where it
+  written (REFACT-01). A usage that would be captured by a `y` already visible where it
   sits; an existing reference to `y` that the renamed declaration would shadow; a global whose new
   name another file already declares, which would merge the two into one `_ENV` entry; and a global
   declared in more than one place, where — because such a name resolves to nothing — the rename
@@ -419,21 +406,16 @@
   file, and across the whole project for a global (all four forms: `function greet()`, `config = {}`,
   and Lua 5.5's `global x` / `global function f`). It works from a usage as well as from the
   declaration, and an inner `local x` that shadows an outer one is left alone, as are `goto` labels,
-  which keep the rename they already had (REFACT-01 Phase 2).
+  which keep the rename they already had (REFACT-01).
 
-  This **replaces the interim refusal** shipped for BUG-457, which declined to rename anything but a
-  label. That refusal existed because rename used to *appear* to work: measured in a live IDE, it
-  renamed the declaration, left four usages bound to the old name, reported success, and `print(counter)`
-  started printing nil. Where a correct rewrite still does not exist, Lunar now **declines with a
+  Previously, rename refused everything but a `goto` label. Where a correct rewrite still does not exist, Lunar now **declines with a
   reason** instead of half-applying — a `function Obj:method()` declaration, the receiver part of a
-  `function M.run()` name, and a name whose declaration cannot be determined each explain why. Two
-  limits worth knowing: renaming from the caret on a numeric `for`'s own variable (`for i = 1, 3`) is
-  not offered — rename from a use of `i` instead — and `require(...)` rewriting on file rename and
-  `---@param` propagation are still to come.
+  `function M.run()` name, and a name whose declaration cannot be determined each explain why. One
+  limit worth knowing: renaming from the caret on a numeric `for`'s own variable (`for i = 1, 3`) is
+  not offered — rename from a use of `i` instead.
 
 - **A declaration is a declaration everywhere now — `function M.run()` is findable, Lua 5.5
-  `global`s resolve across files, and Safe Delete stops leaving `global  = 1` behind** (REFACT-01
-  Phase 1). Lunar models no declaration PSI — apart from `::labels::`, every declared name is just a
+  `global`s resolve across files, and Safe Delete stops leaving `global  = 1` behind** (REFACT-01). Lunar models no declaration PSI — apart from `::labels::`, every declared name is just a
   name reference in a particular parent — so "is this a declaration?" was a question four subsystems
   each answered with their own copy of the rule, and two of them already disagreed. Find Usages,
   Safe Delete, reference search and the refactoring-availability check now share one classifier.
@@ -447,7 +429,7 @@
   when the IDE asks whether it can be safely deleted.
 
 - **Lua settings pages, provisioning dialogs and the test-matrix window now line up with the rest
-  of the IDE** (BUG-448, first batch): columns in the Definition Libraries list and the provisioning
+  of the IDE** (BUG-448): columns in the Definition Libraries list and the provisioning
   dialogs stopped drifting apart (85px and 90px of stagger — a label-less Kotlin UI DSL row sizes
   itself alone unless told to share the page grid); the Redis Connections page fills its width
   instead of a third of it; the toolchain inventory and matrix results tables size their columns to
@@ -456,8 +438,7 @@
   matrix dialog is wide enough for its own title; and the matrix tool window is called *Lua Test
   Matrix* rather than `Lunar.LuaMatrix`, with run status shown as `Passed`/`Failed` plus an icon
   instead of the bare enum constant `FAIL`.
-- **The four Lua run-configuration editors read like the platform's own** (BUG-448, batch D — run
-  configurations): all 27 labelled rows across the Lua, Lua Tests, LuaRocks and Redis Script editors
+- **The four Lua run-configuration editors read like the platform's own** (BUG-448): all 27 labelled rows across the Lua, Lua Tests, LuaRocks and Redis Script editors
   now end in a colon and carry a mnemonic, matching the `Name:` row the platform draws directly
   above them in the same dialog. The Lua Tests editor no longer shows the raw stored values
   `BUSTED` and `FILE` — it renders *Busted* and *File*, while continuing to persist exactly what it
@@ -468,17 +449,15 @@
   beside 360px siblings — is now as wide as the rest of the column. The environment-variables row is
   finally called the same thing in every editor.
 - **Lua settings-panel labels are sentence case, and the LuaCheck arguments row has its colon
-  back** (BUG-448, batch C — text and casing): two checkboxes (`Enable Type Inference`,
+  back** (BUG-448): two checkboxes (`Enable Type Inference`,
   `Add Additional Completions`) were the only Title-Case controls on a page where every native
   comparator was sentence case; the LuaCheck arguments label was the only one on its page missing a
   colon beside `Lua:`/`StyLua:`/`Busted:`; and seven settings-panel group titles across the Project,
   Application and Toolchain pages (`Toolchain Bindings`, `Resolved Runtime`, `Platform Target`,
   `Source & Completion`, `Editor Features`, `Global Default Bindings`, and `Luacheck` itself spelled
   two different ways across two pages) now match the sentence-case form `Advanced tools` already
-  used correctly on the same pages. A new `LuaBundleCasingTest` holds the bundle half of this rule
-  so it cannot regress.
-- **The Redis Functions and LuaRocks Dependencies tool windows use platform chrome** (BUG-448,
-  batch B — tool-window chrome): both drove their actions from bordered Swing push-buttons —
+  used correctly on the same pages.
+- **The Redis Functions and LuaRocks Dependencies tool windows use platform chrome** (BUG-448): both drove their actions from bordered Swing push-buttons —
   Refresh/Deploy/Delete on one, Refresh/Expand/Collapse on the other — which read as a foreign
   application beside the flat action gutter of the native Problems window docked next to them. Both
   now use a flat `ActionToolbar`. The dependency filter was a bare text box with no placeholder and
@@ -554,7 +533,7 @@
   `redis.REPL_ALL` ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
 - **A grandchild is no longer offered as a member** (BUG-430): `Shapes.nested.deep = 1` stops
   offering `deep` on `Shapes.`, where it does not exist ([d4179561](https://github.com/internetisalie/lunar/commit/d4179561)).
-- **A `---@class` can declare an operator metamethod** (COMP-09, closing BUG-426's known limitation):
+- **A `---@class` can declare an operator metamethod** (COMP-09, BUG-426):
   a `---@field __add fun(a: Vec, b: Vec): Vec` makes `a + b` legal on its instances as `setmetatable`
   already did, inherited metamethods included
   ([4a614d25](https://github.com/internetisalie/lunar/commit/4a614d25)).
@@ -586,7 +565,7 @@
 - **LuaCATS extraction unification** (MAINT-34, BUG-402): annotations are read once through one
   extractor instead of three, and a keyed `---@field` renders its key rather than "Unknown"
   ([149a5144](https://github.com/internetisalie/lunar/commit/149a5144)).
-- **Free globals typed for the whole engine** (BUG-397, closes BUG-359): free-global typing reaches
+- **Free globals typed for the whole engine** (BUG-397, BUG-359): free-global typing reaches
   inference, not just completion ([f08d7ca3](https://github.com/internetisalie/lunar/commit/f08d7ca3)).
 - **Un-pinning a platform target** (BUG-404): returning a pinned target to Auto reflows to the runtime
   ([8f8fd0e5](https://github.com/internetisalie/lunar/commit/8f8fd0e5)).
