@@ -249,9 +249,18 @@ internal class VariableElement(
         // written first — a stdlib stub declaring ten `function table.<name>` produced a `table` with
         // exactly one member. Every other kind of demand keeps first-wins.
         val tables = demands.filterIsInstance<LuaGraphType.Table>()
+        // BUG-553: a member demand is a hypothesis about the value, an operator trait that admits no
+        // table is evidence against it. `x:sub()` beside `"a" .. x` describes a string, so the trait
+        // outranks every table demand, whichever came first and however many there are.
+        if (tables.isNotEmpty()) tableExcludingTrait(demands)?.let { return it }
         if (tables.size > 1) return mergeTableDemands(tables)
         return demands.firstOrNull() ?: LuaGraphType.Any
     }
+
+    private fun tableExcludingTrait(demands: List<LuaGraphType>): LuaGraphType.Trait? =
+        demands
+            .filterIsInstance<LuaGraphType.Trait>()
+            .firstOrNull { trait -> trait.admits.none { it is LuaGraphType.Table } }
 
     private fun mergeTableDemands(tables: List<LuaGraphType.Table>): LuaGraphType.Table {
         val members = LinkedHashMap<String, VariableNode>()

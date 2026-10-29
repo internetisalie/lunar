@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A string used with method calls is a string** (BUG-553). A value with no known type, such as an
+  unannotated parameter or the result of an unresolved call, was treated as a table once it was
+  called with `:`, so `x:sub(1, 1)` followed by `"a" .. x` was reported as *Suspicious
+  concatenation*. A `..` or arithmetic use now outranks method and field uses when Lunar infers the
+  value's type, so the warning no longer fires and the value is shown as `string` (or `number`).
+
 - **Only the module name in a `require` call is a require** (BUG-550). In
   `require("lazy.stats").track("LazyDone")`, the string passed to `track` was also treated as a
   module name: Go to Declaration on `"LazyDone"` opened an unrelated `init.lua`, and the file was
