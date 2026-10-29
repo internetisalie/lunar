@@ -92,7 +92,7 @@ mirror of the production package tree, all extending
 - **Responsibility**: Verify `LuaPsiImplUtil.getCatsComment(owner)`
   (`lang/psi/LuaPsiImplUtil.kt:14`) returns the nearest preceding LuaCATS comment block for
   a local variable and a function declaration, and returns `null` when an intervening
-  non-comment statement breaks the association.
+  non-comment statement or a blank line breaks the association (BUG-9).
 - **Threading**: Default test thread.
 - **Collaborators**: `LuaPsiImplUtil.getCatsComment` (returns `LuaCatsComment?`);
   `LuaCatsComment` (`luacats/lang/psi/LuaCatsComment` — `getTypeTagList()`, `getClassTagList()`,
@@ -101,7 +101,7 @@ mirror of the production package tree, all extending
   ```kotlin
   @Test fun testTypeCommentResolvedForLocalVar()        // AC-09-02
   @Test fun testCatsCommentResolvedForFuncDecl()
-  @Test fun testNearestPrecedingCommentIsChosen()
+  @Test fun testNearestPrecedingCommentIsChosen()       // a `--[[ ]]` comment between block and decl stays transparent; no blank line
   @Test fun testInterveningStatementBreaksAssociation() // expects null (LuaPsiImplUtil.kt:36)
   ```
 

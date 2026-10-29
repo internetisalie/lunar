@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.lang.psi
 
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiWhiteSpace
@@ -18,6 +19,7 @@ object LuaPsiImplUtil {
         while (current != null && current !is LuaFile) {
             var prev = current.prevSibling
             while (prev != null && (prev is PsiWhiteSpace || (prev is PsiComment && prev !is LuaCatsComment))) {
+                if (isBlankLineGap(prev)) return null
                 prev = prev.prevSibling
             }
 
@@ -48,6 +50,10 @@ object LuaPsiImplUtil {
 
         return null
     }
+
+    /** A whitespace run holding a blank line ends a LuaCATS comment's reach (LuaLS binds row+1 only). */
+    fun isBlankLineGap(element: PsiElement): Boolean =
+        element is PsiWhiteSpace && StringUtil.countNewLines(element.text) >= 2
 
     @JvmStatic
     fun getComment(owner: LuaCommentOwner?): PsiComment? {

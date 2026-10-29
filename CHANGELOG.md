@@ -2,6 +2,16 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A doc comment followed by a blank line no longer documents the next declaration** (BUG-9).
+  A `---@class`, `---@type`, `---@param` or other LuaCATS block separated by a blank line from the
+  `local` or `function` below it was still attached to it. In lazy.nvim, `---@class ProcessOpts`
+  took the members of the module table `local M = {}` that followed it, so passing a plain options
+  table was reported as *Missing required field 'running'*. Lunar now matches LuaLS: a blank line
+  ends the block, and a detached `---@class` is a class with only its own `@field`s. This also
+  affects hover documentation, inlay and parameter hints, and *Generate doc*, which is now offered
+  for such a declaration. The first time the updated plugin opens a project it rebuilds the
+  project's Lua index.
+
 - **A string used with method calls is a string** (BUG-553). A value with no known type, such as an
   unannotated parameter or the result of an unresolved call, was treated as a table once it was
   called with `:`, so `x:sub(1, 1)` followed by `"a" .. x` was reported as *Suspicious

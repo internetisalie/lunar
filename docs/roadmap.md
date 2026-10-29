@@ -148,7 +148,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-564 | A local declared without a value and assigned inside a `while` loop is reported as an unused local, though it is read | todo | S | — | found triaging BUG-554's corpus movement: 2 lazy.nvim hits (`to`, `url`) that a false *Too few arguments* ERROR had hidden | ✓ |
 | BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
 | BUG-8 | A dot call of a colon method with an explicit `self` matches `self` to the first `@param` | todo | S | — | BUG-566 | ✓ |
-| BUG-9 | A bare `---@class` block binds to the next local even across a blank line | todo | S | — | BUG-566 | ✓ |
 | BUG-10 | An untyped `fun(self)` callback parameter is read as a table type | todo | S | — | BUG-566 | ✓ |
 | BUG-11 | An optional parameter typed as a union with a table literal collapses to `nil` | todo | S | — | BUG-566 | ✓ |
 | BUG-566 | A method call's argument types are never checked against its declared `@param` types | blocked | M | BUG-8, BUG-9, BUG-10, BUG-11 | found fixing BUG-554: `c:m(1, "y")` is silent where a free function's `g("x", 1)` is reported; fixing it will raise lazynvim's `LuaTypeAssignability` | ✓ |

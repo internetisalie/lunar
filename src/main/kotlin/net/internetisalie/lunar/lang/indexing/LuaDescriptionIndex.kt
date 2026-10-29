@@ -45,7 +45,8 @@ class LuaDescriptionIndex : FileBasedIndexExtension<String, String>() {
     // that has indexed before it.
     // 4 -> 5 (BUG-503): values are written with `IOUtil.writeUTF`, whose encoding differs from
     // `DataOutput.writeUTF`, so a persisted index would fail to read (`EOFException`).
-    override fun getVersion(): Int = 5
+    // 5 -> 6 (BUG-9): `owner.catsComment` no longer reaches across a blank line, so values change.
+    override fun getVersion(): Int = 6
 
     override fun dependsOnFileContent(): Boolean = true
 

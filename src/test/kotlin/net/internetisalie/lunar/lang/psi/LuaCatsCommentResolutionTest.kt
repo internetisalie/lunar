@@ -65,8 +65,7 @@ class LuaCatsCommentResolutionTest : BasePlatformTestCase() {
                 "test.lua",
                 """
                 ---@class Animal
-                
-                -- some regular comment
+                --[[ some regular comment ]]
                 local Animal = {}
                 """.trimIndent(),
             )
