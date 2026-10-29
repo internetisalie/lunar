@@ -22,7 +22,7 @@
 
   A `---@param opts? {indent?: number}` now declares `opts` instead of dropping it, so passing
   it is no longer *Too many arguments*. Annotations that now parse are also type-checked, which
-  can surface new warnings. Some are false positives, filed as BUG-554 to BUG-558.
+  can surface new warnings.
 
 - **An explicit `nil` satisfies an optional parameter** (BUG-552). A call that passed `nil` for a
   parameter declared `---@param mode? string`, such as `loadfile("x.lua", nil, env)` on LuaJIT
