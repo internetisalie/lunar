@@ -190,8 +190,7 @@ function load(reader, chunkname) end
 ---@return function|nil, string|nil
 function loadfile(filename) end
 
----Loads and executes Lua code from string (deprecated, use load+pcall)
----@deprecated
+---Loads a chunk from a string and returns it as a function, without running it
 ---@param chunk string
 ---@param chunkname? string
 ---@return function|nil, string|nil

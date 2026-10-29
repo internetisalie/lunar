@@ -147,7 +147,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-548 | A string-literal type or string-literal union in a `---@field` is a LuaCATS parse error | todo | S | — | found in MAINT-39: `pkg/init.lua:11`; `@alias`/`@param` parse; see BUG-514 | ✓ |
 | BUG-549 | A `---@see \|text\|` reference is a LuaCATS parse error | todo | C | — | found in MAINT-39: `core/cache.lua:228` | ✓ |
 | BUG-550 | The string argument of a call chained on `require(…)` is recognised as a require | todo | S | — | found in MAINT-39 DR-06: `require("lazy.stats").track("LazyDone")`; moves lazynvim's identity-checked `requires` | ✓ |
-| BUG-551 | `loadstring` is reported as a deprecated API on the Lua 5.1 and LuaJIT 2.1 targets, where it is current | todo | S | — | found in MAINT-39 DR-12: `core/plugin.lua:308` | ✓ |
 | BUG-552 | An explicit `nil` argument for an optional `---@param mode? string` is reported as not assignable | todo | S | — | found in MAINT-39 DR-12: `loadfile(file, nil, ret)` on LuaJIT 2.1 | ✓ |
 | BUG-553 | A string-valued operand typed `{ ... }` is reported by Suspicious Concatenation | todo | S | — | found in MAINT-39: all 14 of lazynvim's concatenation hits; not reproduced in isolation | ✓ |
 | MAINT-40 | Corpus sweep results stored per commit — SARIF findings under an environment-derived suite name, so a "before" is a fetch, not a re-record | todo | M | — | — | ✓ |

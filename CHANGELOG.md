@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **`loadstring` is no longer reported as deprecated on Lua 5.1 and LuaJIT** (BUG-551). Every
+  call was flagged *Deprecated API*, although `loadstring` is the current API on those targets;
+  Lua deprecated it only in 5.2. Its quick documentation also wrongly said it runs the chunk: it
+  compiles the chunk and returns it as a function.
+
 - **Neovim (`vim.*`) definition library** (TARGET-11): enable it under Settings ▸ Languages &
   Frameworks ▸ Lua ▸ Lua Project ▸ Definition Libraries to declare `vim` and its direct members.
   It registers Neovim 0.12.6's own `runtime/lua` API definitions. Members of nested namespaces

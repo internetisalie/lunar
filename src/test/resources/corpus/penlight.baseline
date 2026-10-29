@@ -5,7 +5,6 @@ requires=100
 unresolvedRequires=0
 library.busted=5ed85d0e016a5eb5eca097aa52905eedf1b180f1
 library.luassert=d3528bb679302cbfdedefabb37064515ab95f7b9
-inspection.LuaDeprecatedApi=2
 inspection.LuaReturnTypeMismatch=2
 inspection.LuaShadowingVariable=65
 inspection.LuaSuspiciousConcatenation=19
