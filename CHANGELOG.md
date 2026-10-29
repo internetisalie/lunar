@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **An explicit `nil` satisfies an optional parameter** (BUG-552). A call that passed `nil` for a
+  parameter declared `---@param mode? string`, such as `loadfile("x.lua", nil, env)` on LuaJIT
+  2.1, was reported as *nil value is not assignable to string*. This happened whether the function
+  was declared in a bundled stub, another project file or the same file. Lunar now accepts `nil`
+  for a `?` parameter, as it already did when the argument was omitted. A wrong non-nil type, and
+  `nil` for a required parameter, are still reported.
+
 - **`loadstring` is no longer reported as deprecated on Lua 5.1 and LuaJIT** (BUG-551). Every
   call was flagged *Deprecated API*, although `loadstring` is the current API on those targets;
   Lua deprecated it only in 5.2. Its quick documentation also wrongly said it runs the chunk: it

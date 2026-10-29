@@ -1052,12 +1052,20 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         if (!positionsAreUnambiguous(declared, argExprs.size)) return
         argExprs.forEachIndexed { index, argExpr ->
             val param = declared.params.getOrNull(index)?.takeUnless { it.isVararg } ?: return@forEachIndexed
-            val declaredType = param.node.read
+            val declaredType = demandTypeOf(param)
             if (carriesGraphNodes(declaredType)) return@forEachIndexed
             val argNode = firstNode(unwrapExpression(argExpr)) ?: return@forEachIndexed
             graph.addEdge(argNode, graph.use(argExpr, declaredType, declaredDemand = true))
         }
     }
+
+    /** BUG-552: a `?` parameter accepts nil, so its demand is `T|nil`, the same as `---@param p T|nil`. */
+    private fun demandTypeOf(param: LuaGraphType.Function.Parameter): LuaGraphType =
+        if (param.isOptional) {
+            LuaGraphType.Union.create(listOf(param.node.read, LuaGraphType.Nil))
+        } else {
+            param.node.read
+        }
 
     /**
      * Whether [type] embeds graph nodes, and therefore cannot safely be used as a demand here.

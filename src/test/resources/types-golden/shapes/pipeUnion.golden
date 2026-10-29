@@ -38,7 +38,7 @@ HYPOTHESIS|Pipe | nil is not assignable to { ... }|(224,229)|LuaMethodExprImpl
 (290,292)|LuaNameRefImpl|Pipe | nil|867919801cdcafab
 (290,292)|LuaVarImpl|Pipe | nil|867919801cdcafab
 (290,300)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
-(71,98)|LuaFuncDeclImpl|fun(fmt?)|7d01bc307b0cecd9
+(71,98)|LuaFuncDeclImpl|fun(fmt?)|c23a900752bd7e0e
 (90,93)|LuaNameRefImpl|string|e87ba97e700edac9
 (99,124)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
 [globals]
