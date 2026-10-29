@@ -168,4 +168,54 @@ class LuaDotCallExplicitSelfTest : IndexedBasePlatformTestCase() {
             emptyList<String>(),
             astArmHits("---@param cb fun(self: C, x: string)\nlocal function take(cb) end\ntake(c.add)"),
         )
+
+    private data class CallbackShape(
+        val fnTag: String,
+        val call: String,
+        val close: String,
+        val wire: String,
+    )
+
+    private fun callbackHits(shape: CallbackShape): List<String> =
+        hits(
+            "---@class F\nlocal M = {}\n\n${shape.close}\n\n---@param ${shape.fnTag}\nfunction M:on_key(fn)\n" +
+                "  ${shape.call}\nend\n\nfunction M:setup()\n  ${shape.wire}\nend\n",
+        )
+
+    private val colonClose = "---@param n? number\nfunction M:close(n)\n  return n\nend"
+    private val dotClose = "---@param n? number\nfunction M.close(n)\n  return n\nend"
+
+    /**
+     * BUG-10. A colon method wired in as a callback and called `fn(self)` aligns by `implicitSelf`
+     * in the reporting path `checkFunctionCompatibility`, so `self` does not land on `n`. These pin
+     * that path; the dry-run `isFunctionCompatible` is pinned by the union-callback tests above.
+     */
+    @Test
+    fun testColonMethodValueCalledWithSelfIsSilent() =
+        assertEquals(
+            emptyList<String>(),
+            callbackHits(CallbackShape("fn fun(self?)", "fn(self)", colonClose, "self:on_key(self.close)")),
+        )
+
+    @Test
+    fun testOptionalColonMethodFallbackCalledWithSelfIsSilent() =
+        assertEquals(
+            emptyList<String>(),
+            callbackHits(
+                CallbackShape("fn? fun(self)", "if fn then fn(self) end", colonClose, "self:on_key(self.close)"),
+            ),
+        )
+
+    @Test
+    fun testUnwiredSelfCallbackIsSilent() =
+        assertEquals(
+            emptyList<String>(),
+            callbackHits(CallbackShape("fn fun(self?)", "fn(self)", colonClose, "self:on_key(function() end)")),
+        )
+
+    @Test
+    fun testDotFunctionValueCalledWithSelfStillReports() {
+        val found = callbackHits(CallbackShape("fn fun(self?)", "fn(self)", dotClose, "self:on_key(M.close)"))
+        assertTrue(found.toString(), "{ ... } | F is not assignable to nil | number" in found)
+    }
 }

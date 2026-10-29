@@ -270,9 +270,8 @@ from an existing modelling defect that the fix promotes from hypothesis to error
 
 | Hits | Cause |
 |---|---|
-| 3 | [[BUG-8]]: a dot call of a colon method with an explicit `self` |
+| 9 | [[BUG-8]]: a dot call of a colon method with an explicit `self`, including 6 first filed as BUG-10 (a colon method passed as a callback and called with `self`) |
 | 11 | [[BUG-9]]: a bare `---@class ProcessOpts` bound to the module table after a blank line (the 8 gone hits are its old *Missing required field* form) |
-| 6 | [[BUG-10]]: an untyped `fun(self)` parameter read as a table |
 | 5 | [[BUG-11]]: an optional union parameter type collapsed to `nil` |
 
 **Held** until BUG-8 to BUG-11 are fixed, so the fix does not ship new false errors. The
