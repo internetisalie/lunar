@@ -60,6 +60,7 @@ Lunar prioritizes codebase health, performance, and alignment with modern Intell
 | [`MAINT-43`](43-ci-image-publish-job/requirements.md) | **CI Image Publish Job** | **C** | **Not Implemented** | Publish `lunar-ci` to tier2 from CI; the GAR copy stays manual. |
 | [`MAINT-44`](44-verifier-reported-api-usages/requirements.md) | **Verifier-Reported API Usages** | **C** | **Partial** | Remove the internal, override-only and non-extendable API usages the plugin verifier reports on 261 and 262; MAINT-21 gates binary compatibility only. |
 | [`MAINT-45`](45-performance-records-per-commit/requirements.md) | **Performance Records Stored Per Commit** | **S** | **Not Implemented** | Timings are asserted against a budget and then discarded, so no change can be compared with another. Emits CTRF records (counts plus timings, CPU model in the metadata) from `lunar-ci` per commit; counts gate PRs against the merge-base, timings trend over time. Builds on MAINT-40's store wiring. |
+| [`MAINT-46`](46-ticket-ids-minted-by-loom/requirements.md) | **Ticket IDs Minted by loom** | **S** | **Not Implemented** | Bug IDs are picked by hand from a branch snapshot, so two sessions can pick the same one. Mints them with `loom-cli id mint` after a scripted backfill of every number already used. |
 
 ---
 
