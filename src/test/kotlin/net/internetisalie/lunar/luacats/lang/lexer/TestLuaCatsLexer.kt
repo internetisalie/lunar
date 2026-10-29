@@ -279,6 +279,28 @@ class TestLuaCatsLexer {
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("Description", LuaCatsTokenTypes.LCATS_NAME),
         )
+
+        // BUG-548: a string-literal type lexes as STRING, as it does in TAG_TYPE.
+        testLexer(
+            "x \"a\"|'b'",
+            TAG_FIELD,
+            Token("x", LuaCatsTokenTypes.LCATS_NAME),
+            Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
+            Token("\"a\"", LuaCatsTokenTypes.LCATS_STRING),
+            Token("|", LuaCatsTokenTypes.LCATS_SYMBOL),
+            Token("'b'", LuaCatsTokenTypes.LCATS_STRING),
+        )
+
+        // BUG-543: a numeric key lexes as NUMBER, as it does in TAG_TYPE.
+        testLexer(
+            "[1] string",
+            TAG_FIELD,
+            Token("[", LuaCatsTokenTypes.LCATS_SYMBOL),
+            Token("1", LuaCatsTokenTypes.LCATS_NUMBER),
+            Token("]", LuaCatsTokenTypes.LCATS_SYMBOL),
+            Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
+            Token("string", LuaCatsTokenTypes.LCATS_NAME),
+        )
     }
 
     @Test
@@ -405,6 +427,31 @@ class TestLuaCatsLexer {
             Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
             Token("...", LuaCatsTokenTypes.LCATS_SYMBOL),
         )
+
+        // BUG-514: a string-literal return type lexes as STRING, as it does in TAG_TYPE.
+        testLexer(
+            "\"a\"|'b'",
+            TAG_RETURN,
+            Token("\"a\"", LuaCatsTokenTypes.LCATS_STRING),
+            Token("|", LuaCatsTokenTypes.LCATS_SYMBOL),
+            Token("'b'", LuaCatsTokenTypes.LCATS_STRING),
+        )
+    }
+
+    /** BUG-514: a vararg `fun` parameter's `...` is one SYMBOL, not a prose `.`. */
+    @Test
+    fun testTypeEllipsis() {
+        testLexer(
+            "fun(...: any)",
+            TAG_TYPE,
+            Token("fun", LuaCatsTokenTypes.LCATS_KEYWORD),
+            Token("(", LuaCatsTokenTypes.LCATS_SYMBOL),
+            Token("...", LuaCatsTokenTypes.LCATS_SYMBOL),
+            Token(":", LuaCatsTokenTypes.LCATS_SYMBOL),
+            Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
+            Token("any", LuaCatsTokenTypes.LCATS_NAME),
+            Token(")", LuaCatsTokenTypes.LCATS_SYMBOL),
+        )
     }
 
     @Test
@@ -415,6 +462,15 @@ class TestLuaCatsLexer {
             Token("http.www", LuaCatsTokenTypes.LCATS_NAME),
             Token(":", LuaCatsTokenTypes.LCATS_SYMBOL),
             Token("get", LuaCatsTokenTypes.LCATS_NAME),
+        )
+
+        // BUG-549: a Vim help-tag reference lexes as one NAME.
+        testLexer(
+            "|a.b()| x",
+            TAG_SEE,
+            Token("|a.b()|", LuaCatsTokenTypes.LCATS_NAME),
+            Token(" ", LuaCatsTokenTypes.LCATS_WHITESPACE),
+            Token("x", LuaCatsTokenTypes.LCATS_NAME),
         )
     }
 

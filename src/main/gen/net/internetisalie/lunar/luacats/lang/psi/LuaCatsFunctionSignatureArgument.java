@@ -7,13 +7,13 @@ import com.intellij.psi.PsiElement;
 
 public interface LuaCatsFunctionSignatureArgument extends PsiElement {
 
-  @NotNull
+  @Nullable
   LuaCatsArgName getArgName();
 
-  @NotNull
+  @Nullable
   LuaCatsArgSymbol getArgSymbol();
 
-  @NotNull
+  @Nullable
   LuaCatsArgType getArgType();
 
 }

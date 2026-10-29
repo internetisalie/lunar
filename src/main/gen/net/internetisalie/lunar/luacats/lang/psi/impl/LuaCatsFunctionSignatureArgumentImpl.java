@@ -28,21 +28,21 @@ public class LuaCatsFunctionSignatureArgumentImpl extends LuaCatsBaseElement imp
   }
 
   @Override
-  @NotNull
+  @Nullable
   public LuaCatsArgName getArgName() {
-    return findNotNullChildByClass(LuaCatsArgName.class);
+    return findChildByClass(LuaCatsArgName.class);
   }
 
   @Override
-  @NotNull
+  @Nullable
   public LuaCatsArgSymbol getArgSymbol() {
-    return findNotNullChildByClass(LuaCatsArgSymbol.class);
+    return findChildByClass(LuaCatsArgSymbol.class);
   }
 
   @Override
-  @NotNull
+  @Nullable
   public LuaCatsArgType getArgType() {
-    return findNotNullChildByClass(LuaCatsArgType.class);
+    return findChildByClass(LuaCatsArgType.class);
   }
 
 }

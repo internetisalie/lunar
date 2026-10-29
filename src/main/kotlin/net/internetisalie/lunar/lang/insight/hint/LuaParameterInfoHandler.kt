@@ -179,8 +179,8 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
                             params.add("self")
                             types.add(null)
                         }
-                        params.addAll(signature.functionSignatureArgumentList.map { it.argName.text })
-                        types.addAll(signature.functionSignatureArgumentList.map { it.argType.text })
+                        params.addAll(signature.functionSignatureArgumentList.map { it.argName?.text ?: "_" })
+                        types.addAll(signature.functionSignatureArgumentList.map { it.argType?.text })
                         candidates.add(LuaParameterInfoCandidate(name, params, types, isMethod))
                     }
                 } else {
@@ -225,8 +225,8 @@ class LuaParameterInfoHandler : ParameterInfoHandler<LuaArgs, LuaParameterInfoHa
                     // Add overloads
                     for (overload in comment.overloadTagList) {
                         val signature = overload.overloadFunctionSignature
-                        val params = signature.functionSignatureArgumentList.map { it.argName.text }
-                        val types = signature.functionSignatureArgumentList.map { it.argType.text }
+                        val params = signature.functionSignatureArgumentList.map { it.argName?.text ?: "_" }
+                        val types = signature.functionSignatureArgumentList.map { it.argType?.text }
                         candidates.add(LuaParameterInfoCandidate(name, params, types))
                     }
                 } else {

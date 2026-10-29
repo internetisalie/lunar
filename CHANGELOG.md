@@ -2,6 +2,21 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **More LuaCATS annotations parse** (BUG-542–549, BUG-502, BUG-514). These forms, common in
+  Neovim plugins such as lazy.nvim, no longer report a syntax error or silently fall back to
+  documentation text:
+  - optional table keys and `fun` parameters (`{file?: string}`, `fun(opts?: table)`);
+  - numeric and optional bracket keys (`---@field [1] string`, `---@field [2]? string`, `{[1]: string, [string]: any}`);
+  - optional nested types and return lists (`fun(): boolean?`, `fun(): (string?, number?)`);
+  - `async fun(...)`;
+  - type-only and vararg `fun` parameters (`fun(LazyPlugin)`, `fun(...: any)`, `fun(...)`);
+  - string literals in `@field` and `@return` (`"lazy" | "packspec"`);
+  - Vim help-tag references (`---@see |luaL_loadfile()|`).
+
+  A `---@param opts? {indent?: number}` now declares `opts` instead of dropping it, so passing
+  it is no longer *Too many arguments*. Annotations that now parse are also type-checked, which
+  can surface new warnings. Some are false positives, filed as BUG-554 to BUG-558.
+
 - **An explicit `nil` satisfies an optional parameter** (BUG-552). A call that passed `nil` for a
   parameter declared `---@param mode? string`, such as `loadfile("x.lua", nil, env)` on LuaJIT
   2.1, was reported as *nil value is not assignable to string*. This happened whether the function

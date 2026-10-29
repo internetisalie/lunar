@@ -102,36 +102,72 @@ object TypeParser {
             val tableBase = LuaTypeManager.getInstance(context.project).createTypeReference("table", context)
             return LuaParameterizedType(tableBase, listOf(keyType, valueType))
         }
-        distinctType.literalTableType?.let { tableLiteral ->
-            val members = mutableMapOf<String, LuaTypeMember>()
-            tableLiteral.tableLiteralEntryList.forEach { entry ->
-                val key = entry.namedType?.text ?: entry.builtinType?.text ?: "unknown"
-                val valType = parseType(entry.type, context)
-                members[key] = LuaTypeMember(key, valType)
-            }
-            return LuaTableLiteralType(members)
-        }
-        distinctType.functionSignatureType?.let { funcSig ->
-            val params =
-                funcSig.functionSignatureArgumentList.map { arg ->
-                    val argName = arg.argName.text
-                    val isVararg = argName == "..."
-                    // The parser doesn't explicitly handle '?' in function signatures yet,
-                    // but we can check if it exists as a raw symbol child.
-                    val isOptional = arg.children.any { it.text == "?" }
-                    val argTypeNode = PsiTreeUtil.findChildOfType(arg.argType, LuaCatsType::class.java)
-                    val argType = if (argTypeNode != null) parseType(argTypeNode, context) else LuaPrimitiveType.ANY
-                    LuaParameter(argName, argType, isOptional, isVararg)
-                }
-            val returnTypeNode =
-                PsiTreeUtil.findChildOfType(
-                    funcSig.functionSignatureReturnType?.argType,
-                    LuaCatsType::class.java,
-                )
-            val returnType = if (returnTypeNode != null) parseType(returnTypeNode, context) else LuaPrimitiveType.VOID
-            // A `fun(...)` signature is written by hand, so its arity is a contract (BUG-419).
-            return LuaFunctionType(params, returnType, declaredSignature = true)
-        }
+        distinctType.literalTableType?.let { return parseTableLiteral(it, context) }
+        distinctType.functionSignatureType?.let { return parseFunctionSignature(it, context) }
         return LuaPrimitiveType.UNKNOWN
     }
+
+    private fun parseTableLiteral(
+        tableLiteral: LuaCatsLiteralTableType,
+        context: PsiElement,
+    ): LuaType {
+        // A bracket key (`[1]:`) names no member; without the filter it would land under "unknown".
+        val namedEntries =
+            tableLiteral.tableLiteralEntryList.filter {
+                PsiTreeUtil.getChildOfType(it, LuaCatsFieldKeyDescriptor::class.java) == null
+            }
+        val members =
+            namedEntries.associate { entry ->
+                val key = entry.namedType?.text ?: entry.builtinType?.text ?: "unknown"
+                val valType = parseType(entry.type, context)
+                // An optional key admits nil, the same widening `@field name?` gets (BUG-401).
+                val memberType =
+                    if (hasOptionalMarker(
+                            entry,
+                        )
+                    ) {
+                        LuaUnionType(setOf(valType, LuaPrimitiveType.NIL))
+                    } else {
+                        valType
+                    }
+                key to LuaTypeMember(key, memberType)
+            }
+        return LuaTableLiteralType(members)
+    }
+
+    private fun parseFunctionSignature(
+        funcSig: LuaCatsFunctionSignatureType,
+        context: PsiElement,
+    ): LuaType {
+        val params = funcSig.functionSignatureArgumentList.map { parseFunctionArgument(it, context) }
+        val returnTypeNode =
+            PsiTreeUtil.findChildOfType(
+                funcSig.functionSignatureReturnType?.argType,
+                LuaCatsType::class.java,
+            )
+        val returnType = if (returnTypeNode != null) parseType(returnTypeNode, context) else LuaPrimitiveType.VOID
+        // A `fun(...)` signature is written by hand, so its arity is a contract (BUG-419).
+        return LuaFunctionType(params, returnType, declaredSignature = true)
+    }
+
+    private fun parseFunctionArgument(
+        arg: LuaCatsFunctionSignatureArgument,
+        context: PsiElement,
+    ): LuaParameter {
+        // A type-only parameter (`fun(table)`) is positional: `_`, which inlay hints already suppress.
+        val argName = arg.argName?.text ?: "_"
+        val argTypeNode = PsiTreeUtil.findChildOfType(arg.argType, LuaCatsType::class.java)
+        val argType = if (argTypeNode != null) parseType(argTypeNode, context) else LuaPrimitiveType.ANY
+        // `p?: T` marks the name; `p: T?` admits nil. Either way the argument may be omitted.
+        val isOptional =
+            hasOptionalMarker(arg) ||
+                arg.argType
+                    ?.text
+                    ?.trimEnd()
+                    ?.endsWith("?") == true
+        return LuaParameter(argName, argType, isOptional, isVararg = argName == "...")
+    }
+
+    /** `?` is a bare leaf; PSI `children` skips leaves, so the AST is the only place it shows. */
+    private fun hasOptionalMarker(element: PsiElement): Boolean = element.node.getChildren(null).any { it.text == "?" }
 }

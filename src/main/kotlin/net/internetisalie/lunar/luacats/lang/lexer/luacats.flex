@@ -162,7 +162,11 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     "private"               { return LCATS_KEYWORD; }
     "protected"             { return LCATS_KEYWORD; }
     "public"                { return LCATS_KEYWORD; }
+    {NUMBER}                { return LCATS_NUMBER; }
     {NAME}                  { return LCATS_NAME; }
+    {ELLIPSIS}              { return LCATS_SYMBOL; }
+    {STRINGD}               { return LCATS_STRING; }
+    {STRINGS}               { return LCATS_STRING; }
     {TYPES}                 { return LCATS_SYMBOL; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
@@ -195,6 +199,8 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
 <TAG_RETURN> {
     {NAME}                  { return LCATS_NAME; }
     {ELLIPSIS}              { return LCATS_SYMBOL; }
+    {STRINGD}               { return LCATS_STRING; }
+    {STRINGS}               { return LCATS_STRING; }
     {TYPES}                 { return LCATS_SYMBOL; }
     {POUND}                 { yybegin(COMMENT_DATA); return LCATS_SYMBOL; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
@@ -204,6 +210,8 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     {NAME}                  { return LCATS_NAME; }
     {PERIOD}                { return LCATS_SYMBOL; }
     {COLON}                 { return LCATS_SYMBOL; }
+    // BUG-549: a Vim help-tag reference (`|luaL_loadfile()|`) is one NAME.
+    {PIPE}[^|\r\n]+{PIPE}   { return LCATS_NAME; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
@@ -219,6 +227,7 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     {NAME}                  { return LCATS_NAME; }
     {STRINGD}               { return LCATS_STRING; }
     {STRINGS}               { return LCATS_STRING; }
+    {ELLIPSIS}              { return LCATS_SYMBOL; }
     {TYPES}                 { return LCATS_SYMBOL; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }

@@ -140,6 +140,60 @@ class LuaParameterInfoHandlerTest : BaseDocumentTest() {
         }
     }
 
+    /** BUG-547: a type-only overload parameter is a candidate with a positional `_` name. */
+    @Test
+    fun testOverloadUnnamedParameter() {
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                configureByText(
+                    """
+                    --- @overload fun(string): void
+                    --- @param x number
+                    function process(x) end
+
+                    process(<caret>)
+                    """.trimIndent(),
+                )
+
+                val createCtx = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)
+                LuaParameterInfoHandler().findElementForParameterInfo(createCtx)
+
+                val items = requireNotNull(createCtx.itemsToShow) { "no candidates" }
+                assertEquals(2, items.size, "Should have 2 candidates for overloads")
+                val overload = items[1] as LuaParameterInfoHandler.LuaParameterInfoCandidate
+                assertEquals(listOf("_"), overload.params)
+                assertEquals(listOf<String?>("string"), overload.types)
+            }
+        }
+    }
+
+    /** BUG-514: an untyped vararg overload parameter has a name and no type. */
+    @Test
+    fun testOverloadUntypedVararg() {
+        EdtTestUtil.runInEdtAndWait<RuntimeException> {
+            runReadAction {
+                configureByText(
+                    """
+                    --- @overload fun(...): void
+                    --- @param x number
+                    function process(x) end
+
+                    process(<caret>)
+                    """.trimIndent(),
+                )
+
+                val createCtx = MockCreateParameterInfoContext(myFixture.editor, myFixture.file)
+                LuaParameterInfoHandler().findElementForParameterInfo(createCtx)
+
+                val items = requireNotNull(createCtx.itemsToShow) { "no candidates" }
+                assertEquals(2, items.size, "Should have 2 candidates for overloads")
+                val overload = items[1] as LuaParameterInfoHandler.LuaParameterInfoCandidate
+                assertEquals(listOf("..."), overload.params)
+                assertEquals(listOf<String?>(null), overload.types)
+            }
+        }
+    }
+
     @Test
     fun testVarargSupport() {
         EdtTestUtil.runInEdtAndWait<RuntimeException> {

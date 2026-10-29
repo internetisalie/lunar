@@ -1,9 +1,18 @@
 package net.internetisalie.lunar.luacats.lang.parser
 
+import com.intellij.openapi.application.runReadAction
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiErrorElement
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgType
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsFieldTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsOverloadFunctionSignature
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsReturnTypeDescriptor
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsSeeTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsTypeTag
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -45,6 +54,29 @@ class LuaCatsParserTest : BaseDocumentTest() {
             }
         }
     }
+
+    /**
+     * Parses [code] error-free and asserts the type text of the first [tagClass] element.
+     *
+     * "No errors" alone is not evidence of a parse: a failed type under `@alias`/`@type`/`@return`
+     * falls back to prose and `@param` to `ldocParamTag`, both silently (batch plan §2).
+     */
+    private fun assertTagType(
+        code: String,
+        tagClass: Class<out PsiElement>,
+        expectedType: String,
+    ) {
+        doTest(code)
+        runReadAction {
+            val tag =
+                requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, tagClass)) { "no ${tagClass.simpleName}" }
+            val argType = PsiTreeUtil.getChildOfType(tag, LuaCatsArgType::class.java)
+            Assertions.assertEquals(expectedType, argType?.text?.trim())
+        }
+    }
+
+    private fun firstSeeTag(): LuaCatsSeeTag =
+        requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaCatsSeeTag::class.java)) { "no LuaCatsSeeTag" }
 
     @Test
     fun testBasicTags() {
@@ -341,6 +373,460 @@ class LuaCatsParserTest : BaseDocumentTest() {
             ---@return number, string
             function myFunc() end
             """.trimIndent(),
+        )
+    }
+
+    /** BUG-549: a Vim help-tag reference is one NAME, so `seeTag` takes it as the reference. */
+    @Test
+    fun testSeeVimHelpTagReference() {
+        doTest(
+            """
+            ---@see |luaL_loadfile()|
+            local function f() end
+            """.trimIndent(),
+        )
+        runReadAction { Assertions.assertEquals("|luaL_loadfile()|", firstSeeTag().argName.text) }
+    }
+
+    @Test
+    fun testSeeHelpTagWithDescription() {
+        doTest(
+            """
+            ---@see |vim.fn| for details
+            local function f() end
+            """.trimIndent(),
+        )
+        runReadAction {
+            val tag = firstSeeTag()
+            Assertions.assertEquals("|vim.fn|", tag.argName.text)
+            Assertions.assertEquals("for details", tag.description?.text?.trim())
+        }
+    }
+
+    @Test
+    fun testSeeUnterminatedPipeIsStillAnError() {
+        doTest(
+            """
+            ---@see |luaL_loadfile()
+            local function f() end
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    /** BUG-548: TAG_FIELD had no string rule, so a string-literal field type was a parse error. */
+    @Test
+    fun testStringLiteralUnionFieldType() {
+        assertTagType(
+            """
+            ---@class P4
+            ---@field source "lazy" | "packspec"
+            local P4 = {}
+            """.trimIndent(),
+            LuaCatsFieldTag::class.java,
+            "\"lazy\" | \"packspec\"",
+        )
+    }
+
+    @Test
+    fun testSingleStringLiteralFieldType() {
+        assertTagType(
+            """
+            ---@class P4
+            ---@field source "lazy"
+            local P4 = {}
+            """.trimIndent(),
+            LuaCatsFieldTag::class.java,
+            "\"lazy\"",
+        )
+    }
+
+    @Test
+    fun testUnterminatedStringFieldTypeIsStillAnError() {
+        doTest(
+            """
+            ---@class P4
+            ---@field source "lazy
+            local P4 = {}
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    /** BUG-542: `tableLiteralEntry` had no slot for an optional-key marker. */
+    @Test
+    fun testOptionalKeyInFieldTableType() {
+        assertTagType(
+            """
+            ---@class P1
+            ---@field notifs {msg:string, file?:string}[]
+            local P1 = {}
+            """.trimIndent(),
+            LuaCatsFieldTag::class.java,
+            "{msg:string, file?:string}[]",
+        )
+    }
+
+    /** On HEAD this one shows no error: the failed type falls to `description`, leaving no type. */
+    @Test
+    fun testOptionalKeyInAliasTableType() {
+        assertTagType(
+            """
+            ---@alias Q5 {name:string, file?:string}
+            local x = 1
+            """.trimIndent(),
+            LuaCatsAliasTag::class.java,
+            "{name:string, file?:string}",
+        )
+    }
+
+    @Test
+    fun testOptionalOverloadParameter() {
+        doTest(
+            """
+            ---@overload fun(opts?:table):table
+            local function f(o) end
+            """.trimIndent(),
+        )
+        runReadAction {
+            val signature =
+                requireNotNull(
+                    PsiTreeUtil.findChildOfType(myFixture.file, LuaCatsOverloadFunctionSignature::class.java),
+                )
+            Assertions.assertEquals(1, signature.functionSignatureArgumentList.size)
+        }
+    }
+
+    @Test
+    fun testTableKeyWithoutColonIsStillAnError() {
+        doTest(
+            """
+            ---@class P1
+            ---@field p {file?string}
+            local P1 = {}
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    /** BUG-543: TAG_FIELD had no NUMBER rule, so `[1]` lexed as prose. */
+    @Test
+    fun testNumericFieldKey() {
+        assertTagType(
+            """
+            ---@class K
+            ---@field [1] string lhs
+            local K = {}
+            """.trimIndent(),
+            LuaCatsFieldTag::class.java,
+            "string",
+        )
+    }
+
+    /** BUG-543: a bracket key was accepted only by the single-entry `dictionaryType`. */
+    @Test
+    fun testNumericKeysInFieldTableType() {
+        assertTagType(
+            """
+            ---@class K
+            ---@field p {[1]:string, [string]:any}
+            local K = {}
+            """.trimIndent(),
+            LuaCatsFieldTag::class.java,
+            "{[1]:string, [string]:any}",
+        )
+    }
+
+    @Test
+    fun testNumericKeysInAliasTableType() {
+        assertTagType(
+            """
+            ---@alias LazyProps {[1]:string, [2]:string|fun(), [3]?:string}[]
+            local x = 1
+            """.trimIndent(),
+            LuaCatsAliasTag::class.java,
+            "{[1]:string, [2]:string|fun(), [3]?:string}[]",
+        )
+    }
+
+    @Test
+    fun testBracketKeyWithoutColonIsStillAnError() {
+        doTest(
+            """
+            ---@class K
+            ---@field p {[1]string}
+            local K = {}
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    /** BUG-544: a nested type took no `?` suffix, so a table member could not be optional. */
+    @Test
+    fun testOptionalFunReturnInTableType() {
+        assertTagType(
+            """
+            ---@alias S1 {title:string, filter:fun(p:table):boolean?}
+            local x = 1
+            """.trimIndent(),
+            LuaCatsAliasTag::class.java,
+            "{title:string, filter:fun(p:table):boolean?}",
+        )
+    }
+
+    /** On HEAD the `?` went to the tag's prose, leaving the type `fun(p:table):boolean`. */
+    @Test
+    fun testOptionalFunReturnAtTopLevelBelongsToTheType() {
+        assertTagType(
+            """
+            ---@alias S2 fun(p:table):boolean?
+            local x = 1
+            """.trimIndent(),
+            LuaCatsAliasTag::class.java,
+            "fun(p:table):boolean?",
+        )
+    }
+
+    @Test
+    fun testOptionalValueInTableType() {
+        assertTagType(
+            """
+            ---@alias Q1 {a:string?}
+            local x = 1
+            """.trimIndent(),
+            LuaCatsAliasTag::class.java,
+            "{a:string?}",
+        )
+    }
+
+    /** A tag's own type keeps `?` out, or `string?` would be looked up as a class name. */
+    @Test
+    fun testTopLevelOptionalStaysOutsideTheType() {
+        assertTagType(
+            """
+            ---@type string?
+            local x
+            """.trimIndent(),
+            LuaCatsTypeTag::class.java,
+            "string",
+        )
+    }
+
+    @Test
+    fun testDoubleOptionalIsStillAnError() {
+        doTest(
+            """
+            ---@class P
+            ---@field p {a:string??}
+            local P = {}
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    /** BUG-545: a `fun` return was a single type, so a parenthesised list failed at its first `,` or `?`. */
+    @Test
+    fun testParenReturnListInTableType() {
+        assertTagType(
+            """
+            ---@alias Q3 {load: fun():(string?, number?)}
+            local x = 1
+            """.trimIndent(),
+            LuaCatsAliasTag::class.java,
+            "{load: fun():(string?, number?)}",
+        )
+    }
+
+    @Test
+    fun testParenReturnListWithoutOptionals() {
+        assertTagType(
+            """
+            ---@alias Q4 {load: fun():(string, number)}
+            local x = 1
+            """.trimIndent(),
+            LuaCatsAliasTag::class.java,
+            "{load: fun():(string, number)}",
+        )
+    }
+
+    @Test
+    fun testParenReturnListAtTopLevel() {
+        assertTagType(
+            """
+            ---@type {modname: string, load: fun():(string?, string?)}[]
+            local x
+            """.trimIndent(),
+            LuaCatsTypeTag::class.java,
+            "{modname: string, load: fun():(string?, string?)}[]",
+        )
+    }
+
+    @Test
+    fun testEmptyReturnListIsStillAnError() {
+        doTest(
+            """
+            ---@class P
+            ---@field p {load: fun():()}
+            local P = {}
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    /** BUG-546: `async` was read as a type name, and the `fun` keyword after it could not be prose. */
+    @Test
+    fun testAsyncFunType() {
+        assertTagType(
+            """
+            ---@alias TF async fun(t:table, o:table)
+            local x = 1
+            """.trimIndent(),
+            LuaCatsAliasTag::class.java,
+            "async fun(t:table, o:table)",
+        )
+    }
+
+    /** The prefix is unpinned, so a type named `async` alone still rolls back to `namedType`. */
+    @Test
+    fun testAsyncAloneIsStillATypeName() {
+        assertTagType(
+            """
+            ---@type async
+            local x
+            """.trimIndent(),
+            LuaCatsTypeTag::class.java,
+            "async",
+        )
+    }
+
+    @Test
+    fun testAsyncWithoutParameterListIsStillAnError() {
+        doTest(
+            """
+            ---@alias TF async fun
+            local x = 1
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    /** BUG-547: a `fun` parameter given by type alone was read as a name, and `:` was demanded. */
+    @Test
+    fun testUnnamedFunParameter() {
+        assertTagType(
+            """
+            ---@type fun(table)
+            local h
+            """.trimIndent(),
+            LuaCatsTypeTag::class.java,
+            "fun(table)",
+        )
+    }
+
+    /** The lazy.nvim form. `doTest` only: the trailing `[]` after `(...)` is still prose. */
+    @Test
+    fun testUnnamedFunParameterInCast() {
+        doTest(
+            """
+            local builders
+            ---@cast builders (string|fun(LazyPlugin))[]
+            print(builders)
+            """.trimIndent(),
+        )
+    }
+
+    @Test
+    fun testParameterWithColonButNoTypeIsStillAnError() {
+        doTest(
+            """
+            ---@type fun(a:)
+            local h
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    /** BUG-514: TAG_RETURN had no string rule, so a string-literal return type was a parse error. */
+    @Test
+    fun testStringLiteralUnionReturn() {
+        assertTagType(
+            """
+            ---@return "nil"|"boolean"|"number"
+            function f1(v) end
+            """.trimIndent(),
+            LuaCatsReturnTypeDescriptor::class.java,
+            "\"nil\"|\"boolean\"|\"number\"",
+        )
+    }
+
+    /** BUG-514: TAG_TYPE did not lex `...`, and `argumentName` did not admit it. */
+    @Test
+    fun testVarargFunParameter() {
+        doTest(
+            """
+            ---@overload fun(repl: fun(...: any): string): string
+            function f4(r) end
+            """.trimIndent(),
+        )
+    }
+
+    @Test
+    fun testUntypedVarargFunParameter() {
+        assertTagType(
+            """
+            ---@type fun(...)
+            local f
+            """.trimIndent(),
+            LuaCatsTypeTag::class.java,
+            "fun(...)",
+        )
+    }
+
+    @Test
+    fun testTwoDotVarargIsStillAnError() {
+        doTest(
+            """
+            ---@type fun(..: any)
+            local f
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    @Test
+    fun testUnterminatedReturnStringIsStillAnError() {
+        doTest(
+            """
+            ---@return "nil
+            function f1(v) end
+            """.trimIndent(),
+            expectErrors = true,
+        )
+    }
+
+    /** BUG-543: the key branch of `fieldDescriptor` had no optional marker, unlike the name branch. */
+    @Test
+    fun testOptionalBracketKeyFieldName() {
+        assertTagType(
+            """
+            ---@class S
+            ---@field [2]? string|fun():string?|false rhs
+            local S = {}
+            """.trimIndent(),
+            LuaCatsFieldTag::class.java,
+            "string|fun():string?|false",
+        )
+    }
+
+    @Test
+    fun testDoubleMarkedBracketKeyIsStillAnError() {
+        doTest(
+            """
+            ---@class S
+            ---@field [2]?? string
+            local S = {}
+            """.trimIndent(),
+            expectErrors = true,
         )
     }
 }

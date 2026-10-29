@@ -3,7 +3,7 @@ id: "BUG-542"
 title: "An optional key (`name?:`) in a `@field` table type, or an optional `fun` parameter in `@overload`, is a LuaCATS parse error"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -51,3 +51,67 @@ Controls from the same run, no errors: the same two snippets without the `?`; an
 - **Corpus effect**: each affected file counts once in `parseErrors` and once in
   `oracleDisagreements` (a false reject against `luac`). A fix lowers both in
   `src/test/resources/corpus/lazynvim.baseline`, and the fixing change re-records it.
+
+## 4. Root Cause
+Read from code, not executed. Two rules have no slot for the `?` marker:
+
+- **Table-type key**: `tableLiteralEntry ::= simpleType ':' type` (`luacats.bnf:195`). After the key
+  `file`, the parser demands `':'` and meets `?`, so `literalTableType` (`:193`) fails, then `type`
+  (`:177`) and the whole `fieldTag` (`:108`), whose `<<ArgType type>>` is required.
+- **`fun` parameter**: `functionSignatureArgument ::= <<ArgName argumentName>> <<ArgSymbol (':')>>
+  <<ArgType type>>` (`:198`). `@overload` reaches it through `overloadFunctionSignature` (`:134-139`).
+
+The `@alias` control passes only because `aliasTag`'s type is optional and `description` swallows
+the failed type as prose (`:82`, `:214`). The control's PSI has no `argType` at all. This mechanism is
+described once, in the batch plan §2.
+
+[[BUG-502]] is the same defect. Its `@param` falls back to `ldocParamTag` (`:153`) rather than
+reporting an error. The fix below is the fix for both reports.
+
+## 5. Fix Strategy
+`luacats.bnf`, no lexer change (`?` is already a `SYMBOL` in every type-bearing state, `luacats.flex:74`):
+
+```
+tableLiteralEntry ::= simpleType '?'? ':' type
+functionSignatureArgument ::= <<ArgName argumentName>> '?'? <<ArgSymbol (':')>> <<ArgType type>>
+```
+
+The bare `'?'` leaf is deliberate. Wrapping it in `<<ArgSymbol>>` would turn
+`LuaCatsFunctionSignatureArgument.getArgSymbol()` into a list. **No accessor changes**:
+`tokenAccessors="no"` (`:17`), so a literal adds no method.
+
+Kotlin, same commit, `lang/psi/types/TypeParser.kt`. Both edits compile against the old and new
+accessor sets because they use only `ASTNode` and existing classes:
+- `:121`: `arg.children` skips leaves (`ASTDelegatePsiElement.getChildrenSkippingLeaves`), so the
+  existing `?` check can never be true. Replace it with
+  `arg.node.getChildren(null).any { it.text == "?" }`, and move the per-argument mapping into
+  `private fun parseFunctionArgument(arg: LuaCatsFunctionSignatureArgument, context: PsiElement): LuaParameter`.
+- `:105-113`: move the table branch into
+  `private fun parseTableLiteral(tableLiteral: LuaCatsLiteralTableType, context: PsiElement): LuaType`.
+  When an entry has a direct `?` leaf (`entry.node.getChildren(null)`), store the member type as
+  `LuaUnionType(setOf(valType, LuaPrimitiveType.NIL))`, the same widening BUG-401 applies to
+  `@field name?` (`LuaCatsDeclarations.kt:53-55`).
+
+Without the first edit, `fun(opts?:T)` would parse as a required parameter. `LuaFunctionType` from a
+`fun(...)` is `declaredSignature = true` (`TypeParser.kt:133`, BUG-419), so every zero-argument call
+would get an arity warning.
+
+## 6. Test Strategy
+Each positive test fails on HEAD. The `@alias` case fails because `argType` is null there, not
+because an error exists.
+- `LuaCatsParserTest` (`src/test/kotlin/.../luacats/lang/parser/`), using the `assertTagType` helper
+  that the batch plan §3 defines:
+  - `testOptionalKeyInFieldTableType`: `---@class P1` / `---@field notifs {msg:string, file?:string}[]`
+    / `local P1 = {}`. The `LuaCatsFieldTag` type text is `{msg:string, file?:string}[]`.
+  - `testOptionalKeyInAliasTableType`: `---@alias Q5 {name:string, file?:string}`. The type text is
+    `{name:string, file?:string}`.
+  - `testOptionalOverloadParameter`: `---@overload fun(opts?:table):table` before
+    `local function f(o) end`. No errors, and `overloadFunctionSignature.functionSignatureArgumentList`
+    has size 1.
+  - Control `testTableKeyWithoutColonIsStillAnError`: `---@field p {file?string}`, with `expectErrors = true`.
+- `TestTypeParser` (`src/test/kotlin/.../lang/types/`):
+  - `testOptionalFunParameter`: `fun(opts?: table)` gives `params[0]` named `opts` with
+    `isOptional == true`.
+  - `testOptionalTableKeyAdmitsNil`: `{a?: string}` gives a `LuaTableLiteralType` whose member `a`
+    is a union of `string` and `nil`.
+- The BUG-502 regression test lives in that report.

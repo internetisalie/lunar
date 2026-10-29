@@ -107,7 +107,7 @@ private enumName ::= NAME
 
 fieldTag ::= '@field' fieldDescriptor <<ArgType type>> description?
 fieldDescriptor ::= (<<ArgKeyword fieldScope>>? <<ArgName fieldNameDescriptor>>)
-    | (<<ArgKeyword fieldScope>>? <<ArgType fieldKeyDescriptor>>)
+    | (<<ArgKeyword fieldScope>>? <<ArgType (fieldKeyDescriptor '?'?)>>)
 fieldScope ::= 'private' | 'protected' | 'public'
 fieldNameDescriptor ::= NAME '?'?
 fieldKeyDescriptor ::= '[' type ']'
@@ -189,15 +189,22 @@ distinctType ::=
 
 literalType ::= STRING | NUMBER | 'true' | 'false'
 tupleType ::= '[' type { ',' type }* ']'
-dictionaryType ::= '{' '[' type ']' ':' type '}'
+dictionaryType ::= '{' '[' type ']' ':' optionalType '}'
 literalTableType ::= '{' tableLiteralEntries? '}'
 private tableLiteralEntries ::= tableLiteralEntry { ',' tableLiteralEntry }*
-tableLiteralEntry ::= simpleType ':' type
-functionSignatureType ::= 'fun' '(' functionSignatureArguments? ')' functionSignatureReturnType?
+tableLiteralEntry ::= (simpleType | fieldKeyDescriptor) '?'? ':' optionalType
+functionSignatureType ::= 'async'? 'fun' '(' functionSignatureArguments? ')' functionSignatureReturnType?
 private functionSignatureArguments ::= functionSignatureArgument { ',' functionSignatureArgument }*
-functionSignatureArgument ::= <<ArgName argumentName>> <<ArgSymbol (':')>> <<ArgType type>>
-private argumentName ::= NAME
-functionSignatureReturnType ::= <<ArgSymbol (':')>> <<ArgType type>>
+functionSignatureArgument ::= (<<ArgName argumentName>> '?'? <<ArgSymbol (':')>> <<ArgType optionalType>>)
+                            | <<ArgName ('...')>>
+                            | <<ArgType optionalType>>
+private argumentName ::= NAME | '...'
+functionSignatureReturnType ::= <<ArgSymbol (':')>> <<ArgType functionReturnTypes>>
+// BUG-545: the list alternative comes first; it also covers `fun():(A|B)`, whose first type is the union.
+private functionReturnTypes ::= '(' optionalType { ',' optionalType }* ')' | optionalType
+// BUG-544: a `?` suffix only where a type nests in another type. A tag's own top-level type keeps
+// `?` in its description, or `string?` would reach `argType.text` and resolve as a class name.
+private optionalType ::= type '?'?
 parameterizedName ::= genericType '<' typeParam {',' typeParam }* '>'
 genericType ::= NAME
 typeParam ::= NAME

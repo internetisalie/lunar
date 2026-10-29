@@ -11,6 +11,9 @@ public interface LuaCatsTableLiteralEntry extends PsiElement {
   LuaCatsBuiltinType getBuiltinType();
 
   @Nullable
+  LuaCatsFieldKeyDescriptor getFieldKeyDescriptor();
+
+  @Nullable
   LuaCatsNamedType getNamedType();
 
   @NotNull

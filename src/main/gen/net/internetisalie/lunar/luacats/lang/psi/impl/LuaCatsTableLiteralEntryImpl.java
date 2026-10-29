@@ -35,6 +35,12 @@ public class LuaCatsTableLiteralEntryImpl extends LuaCatsBaseElement implements 
 
   @Override
   @Nullable
+  public LuaCatsFieldKeyDescriptor getFieldKeyDescriptor() {
+    return findChildByClass(LuaCatsFieldKeyDescriptor.class);
+  }
+
+  @Override
+  @Nullable
   public LuaCatsNamedType getNamedType() {
     return findChildByClass(LuaCatsNamedType.class);
   }

@@ -3,7 +3,7 @@ id: "BUG-502"
 title: "A LuaCATS @param whose table type has an optional key (`{k?: T}`) silently becomes an LDoc tag, so the parameter disappears from the signature"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -79,3 +79,35 @@ a contract (BUG-419), and it has only `str` and `hl`.
 - **Relevant files**: the LuaCATS grammar (`@param` tag and table-literal type rules),
   `LuaCatsDeclarations.paramTypes` (reads only `paramTagList`).
 - **Lua version**: any. Seen at `LUA51`.
+
+## 4. Root Cause
+Read from code, not executed. This is the same defect as [[BUG-542]]:
+`tableLiteralEntry ::= simpleType ':' type` (`luacats.bnf:195`) has no slot for `?` after the key.
+`paramTag` (`:143`) needs its `<<ArgType type>>`, so when the table type fails, the whole tag fails.
+`anyTag` then tries `ldocParamTag ::= '@param' description` (`:153`, listed after `paramTag` at
+`:71-72`). Its `description` (`:214`) accepts every token on the line, so the comment parses with no
+error.
+
+The two reports behave differently because of their host tags, not because of the grammar gap:
+- `@field` has no prose fallback, so the gap surfaces as an error element (BUG-542).
+- `@param` has one, so the gap surfaces as a missing parameter (this report).
+
+This answers §3's open question.
+
+## 5. Fix Strategy
+The fix is BUG-542's, delivered in the same commit. See that report's §5. Nothing in this report
+needs a separate change. Once `tableLiteralEntry` accepts `indent?:`, `paramTag` matches first and
+`ldocParamTag` is never reached.
+
+## 6. Test Strategy
+- `LuaCatsDeclarationsTest` (`src/test/kotlin/net/internetisalie/lunar/luacats/`, already a
+  `BasePlatformTestCase`). Add a `paramsOf(source)` helper next to `fieldsOf`. It returns
+  `LuaCatsDeclarations.paramTypes(comment)` for the first `LuaCatsComment`.
+  - `testOptionalKeyTableParamIsDeclared`: the §1 fixture, with `opts?` and the optional-key table.
+    The keys are `[a, opts, b]`, and `opts` maps to `{indent?: number, prefix?: string}`. On HEAD the
+    keys are `[a, b]`.
+  - Control `testMalformedTableParamStillFallsBackToLdoc`: line 2 is
+    `---@param opts {indent?: number` (unclosed brace). The keys are `[a, b]`. An unparseable type
+    must still degrade to LDoc prose (BUG-393) rather than become an error or a half-typed parameter.
+- §1's user-visible *Too many arguments* hit is not unit-tested here. Its corpus effect is covered by
+  the batch plan §5.

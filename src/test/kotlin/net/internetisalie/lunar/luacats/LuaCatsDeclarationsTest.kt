@@ -26,6 +26,15 @@ class LuaCatsDeclarationsTest : BasePlatformTestCase() {
         }
     }
 
+    /** The `@param` name → type map declared by [source], read straight through the extractor. */
+    private fun paramsOf(source: String): Map<String, String> {
+        val file = myFixture.configureByText("params.lua", source)
+        return runReadAction {
+            val comment = PsiTreeUtil.findChildOfType(file, LuaCatsComment::class.java)
+            LuaCatsDeclarations.paramTypes(requireNotNull(comment) { "no LuaCATS comment in fixture" })
+        }
+    }
+
     @Test
     fun testPlainFieldKeepsItsNameAndType() {
         val fields = fieldsOf("---@class C\n---@field a string\nlocal C = {}\n")
@@ -51,6 +60,15 @@ class LuaCatsDeclarationsTest : BasePlatformTestCase() {
         val fields = fieldsOf("---@class C\n---@field [string] number\nlocal C = {}\n")
         assertEquals("[string]", fields[0].name)
         assertEquals("number", fields[0].typeName)
+    }
+
+    /** BUG-543: an optional key is read like an optional name: marker dropped, nil admitted. */
+    @Test
+    fun testOptionalKeyedFieldAdmitsNil() {
+        val fields = fieldsOf("---@class C\n---@field [2]? number\nlocal C = {}\n")
+        assertEquals(1, fields.size)
+        assertEquals("[2]", fields[0].name)
+        assertEquals("(number) | nil", fields[0].typeName)
     }
 
     /** `fieldScope` is a separate `argKeyword` child, so it is excluded without any stripping. */
@@ -80,5 +98,27 @@ class LuaCatsDeclarationsTest : BasePlatformTestCase() {
     fun testFieldMemberCarriesItsTag() {
         val fields = fieldsOf("---@class C\n---@field a string\nlocal C = {}\n")
         assertNotNull("a PSI-read field must carry its tag", fields[0].tag)
+    }
+
+    /** BUG-502: an optional key in the table type used to drop the whole tag to LDoc prose. */
+    @Test
+    fun testOptionalKeyTableParamIsDeclared() {
+        val params =
+            paramsOf(
+                "---@param a string\n---@param opts? {indent?: number, prefix?: string}\n" +
+                    "---@param b string\nfunction f0(a, opts, b) end\n",
+            )
+        assertEquals(listOf("a", "opts", "b"), params.keys.toList())
+        assertEquals("{indent?: number, prefix?: string}", params["opts"])
+    }
+
+    /** BUG-393: an unparseable type still degrades to LDoc prose, not an error or a half-typed param. */
+    @Test
+    fun testMalformedTableParamStillFallsBackToLdoc() {
+        val params =
+            paramsOf(
+                "---@param a string\n---@param opts {indent?: number\n---@param b string\nfunction f0(a, opts, b) end\n",
+            )
+        assertEquals(listOf("a", "b"), params.keys.toList())
     }
 }

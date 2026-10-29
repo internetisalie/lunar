@@ -188,9 +188,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // NAME
+  // NAME | '...'
   static boolean argumentName(PsiBuilder builder_, int level_) {
-    return consumeToken(builder_, NAME);
+    if (!recursion_guard_(builder_, level_, "argumentName")) return false;
+    boolean result_;
+    result_ = consumeToken(builder_, NAME);
+    if (!result_) result_ = consumeToken(builder_, "...");
+    return result_;
   }
 
   /* ********************************************************** */
@@ -566,7 +570,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '{' '[' type ']' ':' type '}'
+  // '{' '[' type ']' ':' optionalType '}'
   public static boolean dictionaryType(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "dictionaryType")) return false;
     boolean result_;
@@ -576,7 +580,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     result_ = result_ && type(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, "]");
     result_ = result_ && consumeToken(builder_, ":");
-    result_ = result_ && type(builder_, level_ + 1);
+    result_ = result_ && optionalType(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, "}");
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
@@ -655,7 +659,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // (<<ArgKeyword fieldScope>>? <<ArgName fieldNameDescriptor>>)
-  //     | (<<ArgKeyword fieldScope>>? <<ArgType fieldKeyDescriptor>>)
+  //     | (<<ArgKeyword fieldScope>>? <<ArgType (fieldKeyDescriptor '?'?)>>)
   public static boolean fieldDescriptor(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "fieldDescriptor")) return false;
     boolean result_;
@@ -684,13 +688,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // <<ArgKeyword fieldScope>>? <<ArgType fieldKeyDescriptor>>
+  // <<ArgKeyword fieldScope>>? <<ArgType (fieldKeyDescriptor '?'?)>>
   private static boolean fieldDescriptor_1(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "fieldDescriptor_1")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
     result_ = fieldDescriptor_1_0(builder_, level_ + 1);
-    result_ = result_ && ArgType(builder_, level_ + 1, LuaCatsParser::fieldKeyDescriptor);
+    result_ = result_ && ArgType(builder_, level_ + 1, LuaCatsParser::fieldDescriptor_1_1_0);
     exit_section_(builder_, marker_, null, result_);
     return result_;
   }
@@ -699,6 +703,24 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   private static boolean fieldDescriptor_1_0(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "fieldDescriptor_1_0")) return false;
     ArgKeyword(builder_, level_ + 1, LuaCatsParser::fieldScope);
+    return true;
+  }
+
+  // fieldKeyDescriptor '?'?
+  private static boolean fieldDescriptor_1_1_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "fieldDescriptor_1_1_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = fieldKeyDescriptor(builder_, level_ + 1);
+    result_ = result_ && fieldDescriptor_1_1_0_1(builder_, level_ + 1);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // '?'?
+  private static boolean fieldDescriptor_1_1_0_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "fieldDescriptor_1_1_0_1")) return false;
+    consumeToken(builder_, "?");
     return true;
   }
 
@@ -770,25 +792,103 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // <<ArgName argumentName>> <<ArgSymbol (':')>> <<ArgType type>>
-  public static boolean functionSignatureArgument(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "functionSignatureArgument")) return false;
-    if (!nextTokenIs(builder_, NAME)) return false;
+  // '(' optionalType { ',' optionalType }* ')' | optionalType
+  static boolean functionReturnTypes(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionReturnTypes")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
-    result_ = ArgName(builder_, level_ + 1, LuaCatsParser::argumentName);
-    result_ = result_ && ArgSymbol(builder_, level_ + 1, LuaCatsParser::functionSignatureArgument_1_0);
-    result_ = result_ && ArgType(builder_, level_ + 1, LuaCatsParser::type);
-    exit_section_(builder_, marker_, FUNCTION_SIGNATURE_ARGUMENT, result_);
+    result_ = functionReturnTypes_0(builder_, level_ + 1);
+    if (!result_) result_ = optionalType(builder_, level_ + 1);
+    exit_section_(builder_, marker_, null, result_);
     return result_;
   }
 
+  // '(' optionalType { ',' optionalType }* ')'
+  private static boolean functionReturnTypes_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionReturnTypes_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = consumeToken(builder_, "(");
+    result_ = result_ && optionalType(builder_, level_ + 1);
+    result_ = result_ && functionReturnTypes_0_2(builder_, level_ + 1);
+    result_ = result_ && consumeToken(builder_, ")");
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // { ',' optionalType }*
+  private static boolean functionReturnTypes_0_2(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionReturnTypes_0_2")) return false;
+    while (true) {
+      int pos_ = current_position_(builder_);
+      if (!functionReturnTypes_0_2_0(builder_, level_ + 1)) break;
+      if (!empty_element_parsed_guard_(builder_, "functionReturnTypes_0_2", pos_)) break;
+    }
+    return true;
+  }
+
+  // ',' optionalType
+  private static boolean functionReturnTypes_0_2_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionReturnTypes_0_2_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = consumeToken(builder_, ",");
+    result_ = result_ && optionalType(builder_, level_ + 1);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  /* ********************************************************** */
+  // (<<ArgName argumentName>> '?'? <<ArgSymbol (':')>> <<ArgType optionalType>>)
+  //                             | <<ArgName ('...')>>
+  //                             | <<ArgType optionalType>>
+  public static boolean functionSignatureArgument(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureArgument")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, FUNCTION_SIGNATURE_ARGUMENT, "<function signature argument>");
+    result_ = functionSignatureArgument_0(builder_, level_ + 1);
+    if (!result_) result_ = ArgName(builder_, level_ + 1, LuaCatsParser::functionSignatureArgument_1_0);
+    if (!result_) result_ = ArgType(builder_, level_ + 1, LuaCatsParser::optionalType);
+    exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  // <<ArgName argumentName>> '?'? <<ArgSymbol (':')>> <<ArgType optionalType>>
+  private static boolean functionSignatureArgument_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureArgument_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = ArgName(builder_, level_ + 1, LuaCatsParser::argumentName);
+    result_ = result_ && functionSignatureArgument_0_1(builder_, level_ + 1);
+    result_ = result_ && ArgSymbol(builder_, level_ + 1, LuaCatsParser::functionSignatureArgument_0_2_0);
+    result_ = result_ && ArgType(builder_, level_ + 1, LuaCatsParser::optionalType);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // '?'?
+  private static boolean functionSignatureArgument_0_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureArgument_0_1")) return false;
+    consumeToken(builder_, "?");
+    return true;
+  }
+
   // (':')
+  private static boolean functionSignatureArgument_0_2_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureArgument_0_2_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = consumeToken(builder_, ":");
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // ('...')
   private static boolean functionSignatureArgument_1_0(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "functionSignatureArgument_1_0")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
-    result_ = consumeToken(builder_, ":");
+    result_ = consumeToken(builder_, "...");
     exit_section_(builder_, marker_, null, result_);
     return result_;
   }
@@ -797,7 +897,6 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   // functionSignatureArgument { ',' functionSignatureArgument }*
   static boolean functionSignatureArguments(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "functionSignatureArguments")) return false;
-    if (!nextTokenIs(builder_, NAME)) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
     result_ = functionSignatureArgument(builder_, level_ + 1);
@@ -829,13 +928,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // <<ArgSymbol (':')>> <<ArgType type>>
+  // <<ArgSymbol (':')>> <<ArgType functionReturnTypes>>
   public static boolean functionSignatureReturnType(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "functionSignatureReturnType")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, FUNCTION_SIGNATURE_RETURN_TYPE, "<function signature return type>");
     result_ = ArgSymbol(builder_, level_ + 1, LuaCatsParser::functionSignatureReturnType_0_0);
-    result_ = result_ && ArgType(builder_, level_ + 1, LuaCatsParser::type);
+    result_ = result_ && ArgType(builder_, level_ + 1, LuaCatsParser::functionReturnTypes);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }
@@ -851,30 +950,38 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // 'fun' '(' functionSignatureArguments? ')' functionSignatureReturnType?
+  // 'async'? 'fun' '(' functionSignatureArguments? ')' functionSignatureReturnType?
   public static boolean functionSignatureType(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "functionSignatureType")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, FUNCTION_SIGNATURE_TYPE, "<function signature type>");
-    result_ = consumeToken(builder_, "fun");
+    result_ = functionSignatureType_0(builder_, level_ + 1);
+    result_ = result_ && consumeToken(builder_, "fun");
     result_ = result_ && consumeToken(builder_, "(");
-    result_ = result_ && functionSignatureType_2(builder_, level_ + 1);
+    result_ = result_ && functionSignatureType_3(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, ")");
-    result_ = result_ && functionSignatureType_4(builder_, level_ + 1);
+    result_ = result_ && functionSignatureType_5(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }
 
+  // 'async'?
+  private static boolean functionSignatureType_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureType_0")) return false;
+    consumeToken(builder_, "async");
+    return true;
+  }
+
   // functionSignatureArguments?
-  private static boolean functionSignatureType_2(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "functionSignatureType_2")) return false;
+  private static boolean functionSignatureType_3(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureType_3")) return false;
     functionSignatureArguments(builder_, level_ + 1);
     return true;
   }
 
   // functionSignatureReturnType?
-  private static boolean functionSignatureType_4(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "functionSignatureType_4")) return false;
+  private static boolean functionSignatureType_5(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureType_5")) return false;
     functionSignatureReturnType(builder_, level_ + 1);
     return true;
   }
@@ -1246,6 +1353,25 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   private static boolean operatorTag_2(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "operatorTag_2")) return false;
     description(builder_, level_ + 1);
+    return true;
+  }
+
+  /* ********************************************************** */
+  // type '?'?
+  static boolean optionalType(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "optionalType")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = type(builder_, level_ + 1);
+    result_ = result_ && optionalType_1(builder_, level_ + 1);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // '?'?
+  private static boolean optionalType_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "optionalType_1")) return false;
+    consumeToken(builder_, "?");
     return true;
   }
 
@@ -1812,16 +1938,33 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // simpleType ':' type
+  // (simpleType | fieldKeyDescriptor) '?'? ':' optionalType
   public static boolean tableLiteralEntry(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "tableLiteralEntry")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, TABLE_LITERAL_ENTRY, "<table literal entry>");
-    result_ = simpleType(builder_, level_ + 1);
+    result_ = tableLiteralEntry_0(builder_, level_ + 1);
+    result_ = result_ && tableLiteralEntry_1(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, ":");
-    result_ = result_ && type(builder_, level_ + 1);
+    result_ = result_ && optionalType(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
+  }
+
+  // simpleType | fieldKeyDescriptor
+  private static boolean tableLiteralEntry_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "tableLiteralEntry_0")) return false;
+    boolean result_;
+    result_ = simpleType(builder_, level_ + 1);
+    if (!result_) result_ = fieldKeyDescriptor(builder_, level_ + 1);
+    return result_;
+  }
+
+  // '?'?
+  private static boolean tableLiteralEntry_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "tableLiteralEntry_1")) return false;
+    consumeToken(builder_, "?");
+    return true;
   }
 
   /* ********************************************************** */
