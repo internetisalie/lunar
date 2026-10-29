@@ -1,8 +1,8 @@
 commit=85c7ff3711b730b4030d03144f6db6375044ae82
 files=54
 parseErrors=0
-requires=202
-unresolvedRequires=5
+requires=205
+unresolvedRequires=3
 library.neovim=779c36969e31080503be2dfccbcc3f999e289606
 inspection.LuaDeprecatedApi=6
 inspection.LuaReturnTypeMismatch=58

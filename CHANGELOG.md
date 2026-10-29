@@ -2,6 +2,15 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Only the module name in a `require` call is a require** (BUG-550). In
+  `require("lazy.stats").track("LazyDone")`, the string passed to `track` was also treated as a
+  module name: Go to Declaration on `"LazyDone"` opened an unrelated `init.lua`, and the file was
+  recorded as requiring `LazyDone` instead of `lazy.stats`, which affected name resolution and
+  auto-import. A chain that ends in a field, such as `local t = require("x").f` or
+  `print(require("x").f)`, had no navigation on `"x"` at all. Lunar now treats only the
+  argument of the call made directly on `require` as a module name. The first time the updated
+  plugin opens a project it rebuilds the project's Lua index.
+
 - **A method's optional parameter is optional** (BUG-554). A call that omitted a parameter
   declared `---@param hl? string` on a class method, such as `self:append("Tasks: ")` against
   `Text:append(str, hl?, opts?)` in lazy.nvim, was reported as *Too few arguments*. Free

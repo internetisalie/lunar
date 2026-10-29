@@ -2,9 +2,9 @@ package net.internetisalie.lunar.lang.completion
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiRecursiveElementVisitor
+import net.internetisalie.lunar.lang.LuaRequireReference
 import net.internetisalie.lunar.lang.psi.LuaArgs
 import net.internetisalie.lunar.lang.psi.LuaFile
-import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import net.internetisalie.lunar.lang.syntax.extractLuaString
 
@@ -27,7 +27,7 @@ object LuaDeduplicationChecker {
         file.accept(
             object : PsiRecursiveElementVisitor() {
                 override fun visitElement(element: PsiElement) {
-                    if (element is LuaFuncCall) {
+                    if (element is LuaArgs) {
                         extractRequirePath(element)?.let { paths.add(it) }
                     }
                     super.visitElement(element)
@@ -37,11 +37,8 @@ object LuaDeduplicationChecker {
         return paths
     }
 
-    private fun extractRequirePath(call: LuaFuncCall): String? {
-        val luaVar = call.varOrExp?.`var` ?: return null
-        if (luaVar.nameRef?.identifier?.text != "require") return null
-
-        val args = call.nameAndArgsList.firstOrNull()?.args ?: return null
+    private fun extractRequirePath(args: LuaArgs): String? {
+        if (!LuaRequireReference.isRequireArgs(args)) return null
         val stringElem = args.string ?: singleExprListString(args)
         return stringElem?.let { extractLuaString(it.text) }
     }

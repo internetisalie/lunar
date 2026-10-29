@@ -1,7 +1,7 @@
 commit=990ec6ca3b097c7160fe925cfca4b8e57cfe5685
 files=159
 parseErrors=0
-requires=606
+requires=607
 unresolvedRequires=12
 library.busted=5ed85d0e016a5eb5eca097aa52905eedf1b180f1
 library.luassert=d3528bb679302cbfdedefabb37064515ab95f7b9

@@ -13,10 +13,11 @@ import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.ID
 import com.intellij.util.io.EnumeratorIntegerDescriptor
 import com.intellij.util.io.KeyDescriptor
+import net.internetisalie.lunar.lang.LuaRequireReference
 import net.internetisalie.lunar.lang.path.SourcePathPattern
+import net.internetisalie.lunar.lang.psi.LuaArgs
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
 import net.internetisalie.lunar.lang.psi.LuaFile
-import net.internetisalie.lunar.lang.psi.LuaFuncCall
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaFuncName
 import net.internetisalie.lunar.lang.psi.LuaGlobalFuncDecl
@@ -123,7 +124,8 @@ class LuaFileBindingsIndex : FileBasedIndexExtension<Int, LuaFileBindingsRecord>
         // MAINT-30-01 (§3.2): 2 → 3 forces a one-time full rebuild so the shrunk declaration-only
         // binding set (usages no longer recorded) replaces the stale usage-inclusive index.
         // 3 -> 4 (BUG-436): the filter widened, so the index content changed.
-        const val VERSION: Int = 4
+        // 4 -> 5 (BUG-550): a chained call's string argument is no longer recorded as a require.
+        const val VERSION: Int = 5
     }
 }
 
@@ -314,49 +316,23 @@ class LuaFileBindingsIndexer : ForwardIndexer<LuaFileBindingsRecord>() {
     ) {
         if (stmt == null) return
 
-        // Recursively walk to find require() calls
         stmt.accept(
             object : PsiRecursiveElementVisitor() {
                 override fun visitElement(element: PsiElement) {
-                    if (element is LuaFuncCall) {
-                        // Try to extract require() call
-                        val varOrExp = element.varOrExp ?: return@visitElement
-                        val luaVar = varOrExp.`var` ?: return@visitElement
-
-                        // Check if function name is "require"
-                        val nameAndArgsList = element.nameAndArgsList
-                        if (nameAndArgsList.isEmpty()) return@visitElement
-
-                        if (luaVar.nameRef?.identifier?.text != "require") return@visitElement
-
-                        // Extract string argument
-                        val nameAndArgs = nameAndArgsList[0]
-                        val args = nameAndArgs.args ?: return@visitElement
-
-                        // Try to get string from args
-                        var stringElem = args.string
-                        if (stringElem == null) {
-                            // Try to get from exprList
-                            val exprList = args.exprList?.exprList ?: return@visitElement
-                            if (exprList.size == 1) {
-                                val expr = exprList[0]
-                                if (expr is LuaTerminalExpr) {
-                                    stringElem = expr.string
-                                }
-                            }
-                        }
-
-                        stringElem?.let {
-                            val str = extractLuaString(it.text)
-                            if (str != null && !requires.contains(str)) {
-                                requires.add(str)
-                            }
-                        }
+                    if (element is LuaArgs) {
+                        requiredModuleOf(element)?.let { if (it !in requires) requires.add(it) }
                     }
                     super.visitElement(element)
                 }
             },
         )
+    }
+
+    /** The module [args] requires, when it is a `require`'s string argument (BUG-550). */
+    private fun requiredModuleOf(args: LuaArgs): String? {
+        if (!LuaRequireReference.isRequireArgs(args)) return null
+        val stringElem = args.string ?: (args.exprList?.exprList?.singleOrNull() as? LuaTerminalExpr)?.string
+        return stringElem?.let { extractLuaString(it.text) }
     }
 
     /**

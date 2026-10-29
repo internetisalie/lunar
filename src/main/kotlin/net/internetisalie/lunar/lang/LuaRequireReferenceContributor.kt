@@ -9,7 +9,7 @@ import com.intellij.psi.PsiReferenceProvider
 import com.intellij.psi.PsiReferenceRegistrar
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
-import net.internetisalie.lunar.lang.psi.LuaFuncCall
+import net.internetisalie.lunar.lang.psi.LuaArgs
 
 /**
  * Contributes a [LuaRequireReference] to the module-name string of a `require` call, in **both**
@@ -34,7 +34,9 @@ class LuaRequireReferenceContributor : PsiReferenceContributor() {
                 ): Array<PsiReference> {
                     val stringElement =
                         LuaRequireReference.moduleStringOf(element) ?: return PsiReference.EMPTY_ARRAY
-                    if (!isRequireCall(element)) return PsiReference.EMPTY_ARRAY
+                    val args =
+                        element as? LuaArgs ?: PsiTreeUtil.getParentOfType(element, LuaArgs::class.java)
+                    if (args == null || !LuaRequireReference.isRequireArgs(args)) return PsiReference.EMPTY_ARRAY
 
                     val moduleName = moduleNameOf(stringElement) ?: return PsiReference.EMPTY_ARRAY
                     // Range is relative to the host element, which differs between the two shapes:
@@ -53,15 +55,6 @@ class LuaRequireReferenceContributor : PsiReferenceContributor() {
     }
 
     private companion object {
-        fun isRequireCall(element: PsiElement): Boolean {
-            val funcCall = PsiTreeUtil.getParentOfType(element, LuaFuncCall::class.java) ?: return false
-            return funcCall.varOrExp
-                ?.`var`
-                ?.nameRef
-                ?.identifier
-                ?.text == "require"
-        }
-
         /**
          * Strips the quote or long-bracket delimiters; null when nothing is left.
          *

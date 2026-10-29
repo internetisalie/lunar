@@ -6,7 +6,11 @@ import com.intellij.psi.PsiReferenceBase
 import net.internetisalie.lunar.lang.path.resolveModuleCandidates
 import net.internetisalie.lunar.lang.psi.LuaArgs
 import net.internetisalie.lunar.lang.psi.LuaElementFactory
+import net.internetisalie.lunar.lang.psi.LuaFuncCall
+import net.internetisalie.lunar.lang.psi.LuaNameAndArgs
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
+import net.internetisalie.lunar.lang.psi.LuaVar
+import net.internetisalie.lunar.lang.psi.LuaVarSuffix
 
 class LuaRequireReference(
     element: PsiElement,
@@ -60,6 +64,37 @@ class LuaRequireReference(
             when (element) {
                 is LuaTerminalExpr -> element.string
                 is LuaArgs -> element.string
+                else -> null
+            }
+
+        /**
+         * True when [args] is the argument list of a call applied directly to the bare name
+         * `require` (BUG-550).
+         *
+         * `require("x").f("y")` is one `LuaFuncCall` headed by `require`, and the call segment
+         * holding `("x")` sits inside the head `LuaVar`'s first `LuaVarSuffix` whenever an index
+         * follows it. So the test is on the segment, not the chain: [args] must be the first
+         * segment, with no `:method`, directly after the bare name. A chain ending in an index
+         * (`local t = require("x").f`) has no `LuaFuncCall` at all, so the rule never looks for one.
+         */
+        fun isRequireArgs(args: LuaArgs): Boolean {
+            val nameAndArgs = args.parent as? LuaNameAndArgs ?: return false
+            if (nameAndArgs.methodExpr != null) return false
+            val calleeVar = bareCalleeOf(nameAndArgs) ?: return false
+            return calleeVar.nameRef?.identifier?.text == "require"
+        }
+
+        /** The `LuaVar` [nameAndArgs] is the first call on, when nothing sits between them. */
+        private fun bareCalleeOf(nameAndArgs: LuaNameAndArgs): LuaVar? =
+            when (val owner = nameAndArgs.parent) {
+                is LuaFuncCall ->
+                    owner.varOrExp?.`var`?.takeIf {
+                        owner.nameAndArgsList.firstOrNull() === nameAndArgs && it.varSuffixList.isEmpty()
+                    }
+                is LuaVarSuffix ->
+                    (owner.parent as? LuaVar)?.takeIf {
+                        owner.nameAndArgsList.firstOrNull() === nameAndArgs && it.varSuffixList.firstOrNull() === owner
+                    }
                 else -> null
             }
 

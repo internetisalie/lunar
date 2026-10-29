@@ -70,6 +70,16 @@ class LuaFileBindingsIndexTest {
     }
 
     @Test
+    fun testChainedCallArgumentIsNotARequire() {
+        // BUG-550: only the call applied directly to `require` is a require; "y" is an ordinary string.
+        runInEdtAndWait {
+            val virtualFile = myFixture.addFileToProject("chain.lua", "require(\"x\").f(\"y\")\n").virtualFile
+            val record = readBindingsRecord(virtualFile)
+            assertEquals(listOf("x"), record.requires, "require(\"x\").f(\"y\") requires only x")
+        }
+    }
+
+    @Test
     fun testDottedAssignmentIsNotABinding() {
         // TC-07 (MAINT-30-01): `t.f = 1` is a member-field assignment owned by the member-field index,
         // not a file-scope binding — neither `t` nor `f` is recorded.
