@@ -241,7 +241,7 @@ class LuaTypesSnapshot(
             }
         val returnType =
             type.returns.firstOrNull()?.let { graphTypeToLuaType(it.write, visited) } ?: LuaPrimitiveType.VOID
-        return LuaFunctionType(params, returnType)
+        return LuaFunctionType(params, returnType, implicitSelf = type.implicitSelf)
     }
 
     companion object {

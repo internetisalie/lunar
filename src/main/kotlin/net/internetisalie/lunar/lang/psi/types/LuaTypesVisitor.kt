@@ -986,6 +986,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             LuaGraphType.Function(
                 params = argNodes,
                 returns = callResultNodes,
+                implicitSelf = methodExpr != null,
             )
 
         // If the callee is a generic function template, instantiate it for this call site.
@@ -1559,7 +1560,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
             // The bare parameter list declares names, not requirements — Lua fills missing arguments
             // with nil. Only a `---@param` tag makes this signature's arity a contract (BUG-419).
-            val funcType = LuaGraphType.Function(finalParams, returnNodes, catsParams.isNotEmpty())
+            val funcType = LuaGraphType.Function(finalParams, returnNodes, catsParams.isNotEmpty(), selfBinding != null)
             if (funcNode != null) {
                 graph.addEdge(graph.value(element, funcType), funcNode)
             }

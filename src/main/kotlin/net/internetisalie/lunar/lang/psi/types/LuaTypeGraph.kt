@@ -255,7 +255,12 @@ class LuaTypeGraph {
                 }
             }
 
-        return LuaGraphType.Function(instantiatedParams, instantiatedReturns, template.declaredSignature)
+        return LuaGraphType.Function(
+            instantiatedParams,
+            instantiatedReturns,
+            template.declaredSignature,
+            template.implicitSelf,
+        )
     }
 
     // ---------------------------------------------------------------------------
@@ -830,8 +835,7 @@ class LuaTypeGraph {
         ctx: CompatContext,
     ): Boolean {
         // Simple arity check for dry-run
-        val minParams = value.params.count { !it.isOptional && !it.isVararg }
-        if (use.params.size < minParams) return false
+        if (use.params.size < minArity(value, use)) return false
 
         // Return types
         for (i in 0 until minOf(value.returns.size, use.returns.size)) {
@@ -839,8 +843,8 @@ class LuaTypeGraph {
         }
 
         // Param types (contravariant)
-        for (i in 0 until minOf(value.params.size, use.params.size)) {
-            if (!isCompatible(use.params[i].node.write, value.params[i].node.read, ctx)) return false
+        for ((valueParam, useParam) in alignedParams(value, use)) {
+            if (!isCompatible(useParam.node.write, valueParam.node.read, ctx)) return false
         }
 
         return true
@@ -853,8 +857,8 @@ class LuaTypeGraph {
         useElement: PsiElement,
         visited: MutableSet<Pair<LuaGraphType, LuaGraphType>>,
     ) {
-        val minParams = value.params.count { !it.isOptional && !it.isVararg }
-        val maxParams = if (value.params.any { it.isVararg }) Int.MAX_VALUE else value.params.size
+        val minParams = minArity(value, use)
+        val maxParams = maxArity(value, use)
         val provided = use.params.size
 
         // BUG-419 defect 4. Arity reached the user through `addError` directly, so the rule defect 3
@@ -886,9 +890,49 @@ class LuaTypeGraph {
             addEdge(value.returns[i], use.returns[i])
         }
 
-        for (i in 0 until minOf(value.params.size, use.params.size)) {
-            addEdge(use.params[i].node, value.params[i].node)
+        for ((valueParam, useParam) in alignedParams(value, use)) {
+            addEdge(useParam.node, valueParam.node)
         }
+    }
+
+    /**
+     * BUG-8: how many more leading arguments [value] expects than [use] wrote. +1 when a dot call
+     * passes the receiver of a `:` method explicitly, −1 when a colon call supplies the explicit
+     * `self` of a `.` function. The arity bounds therefore count the arguments written in the call.
+     */
+    private fun receiverDelta(
+        value: LuaGraphType.Function,
+        use: LuaGraphType.Function,
+    ): Int = (if (value.implicitSelf) 1 else 0) - (if (use.implicitSelf) 1 else 0)
+
+    private fun minArity(
+        value: LuaGraphType.Function,
+        use: LuaGraphType.Function,
+    ): Int = (value.params.count { !it.isOptional && !it.isVararg } + receiverDelta(value, use)).coerceAtLeast(0)
+
+    private fun maxArity(
+        value: LuaGraphType.Function,
+        use: LuaGraphType.Function,
+    ): Int =
+        if (value.params.any { it.isVararg }) {
+            Int.MAX_VALUE
+        } else {
+            (value.params.size + receiverDelta(value, use)).coerceAtLeast(0)
+        }
+
+    /**
+     * Pairs each parameter of [value] with the argument of [use] that fills it, shifted by
+     * [receiverDelta]. An explicit receiver argument binds the implicit `self` and is paired with
+     * nothing; an explicit `self` parameter filled by a colon call's receiver gets no argument.
+     */
+    private fun alignedParams(
+        value: LuaGraphType.Function,
+        use: LuaGraphType.Function,
+    ): List<Pair<LuaGraphType.Function.Parameter, LuaGraphType.Function.Parameter>> {
+        val delta = receiverDelta(value, use)
+        return value.params.indices
+            .filter { it + delta in use.params.indices }
+            .map { value.params[it] to use.params[it + delta] }
     }
 
     private fun checkTableCompatibility(

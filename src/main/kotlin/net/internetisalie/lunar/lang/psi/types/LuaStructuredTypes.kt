@@ -108,6 +108,12 @@ class LuaFunctionType(
      * `LuaFunctionType` from an *inferred* graph function and must keep the default.
      */
     val declaredSignature: Boolean = false,
+    /**
+     * True when [params] leaves out a receiver that Lua passes first, because the function was
+     * declared with `:` (a value) or the call was written with `:` (a demand). [LuaTypeGraph] aligns
+     * a value with a demand by this flag (BUG-8).
+     */
+    val implicitSelf: Boolean = false,
 ) : LuaType {
     override val name: String =
         run {

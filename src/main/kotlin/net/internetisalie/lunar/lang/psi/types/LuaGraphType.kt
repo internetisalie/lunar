@@ -45,6 +45,12 @@ sealed class LuaGraphType {
          * that already routes through `reportIncompatible`'s `declaredDemand` gate.
          */
         val declaredSignature: kotlin.Boolean = false,
+        /**
+         * True when [params] leaves out a receiver that Lua passes first, because the function was
+         * declared with `:` (a value) or the call was written with `:` (a demand). [LuaTypeGraph]
+         * aligns a value with a demand by this flag (BUG-8).
+         */
+        val implicitSelf: kotlin.Boolean = false,
     ) : LuaGraphType() {
         data class Parameter(
             val node: VariableNode,
@@ -258,7 +264,7 @@ sealed class LuaGraphType {
                 LuaPrimitiveType.INTEGER -> Number
 
                 is LuaFunctionType -> {
-                    val result = Function(emptyList(), emptyList(), type.declaredSignature)
+                    val result = Function(emptyList(), emptyList(), type.declaredSignature, type.implicitSelf)
                     visited[type] = result
 
                     val params =
@@ -267,7 +273,7 @@ sealed class LuaGraphType {
                         }
                     val returnNode = memberNodeFor(type.returnType, graph, visited)
 
-                    val finalFunc = Function(params, listOf(returnNode), type.declaredSignature)
+                    val finalFunc = Function(params, listOf(returnNode), type.declaredSignature, type.implicitSelf)
                     visited[type] = finalFunc
                     finalFunc
                 }

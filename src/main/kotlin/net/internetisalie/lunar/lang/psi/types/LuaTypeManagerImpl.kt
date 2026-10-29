@@ -557,7 +557,7 @@ class LuaTypeManagerImpl(
             if (membersMap.containsKey(member.name)) continue
             val decl = declaredMethod(scan, member, scope) ?: continue
             LuaTypeSourceRecorder.reportFile(decl.containingFile) // §3.5
-            val fnType = funcTypeFromStub(scan.className, decl)
+            val fnType = funcTypeFromStub(scan.className, decl, member.separator == LuaReceiverMember.Separator.COLON)
             membersMap[member.name] = LuaTypeMember(member.name, fnType, sourceElement = decl)
         }
     }
@@ -601,6 +601,7 @@ class LuaTypeManagerImpl(
     private fun funcTypeFromStub(
         className: String,
         decl: LuaFuncDecl,
+        implicitSelf: Boolean,
     ): LuaType {
         // Prefer the stub (no AST load) but fall back to the cats comment for AST-backed decls —
         // the stub is null when the method is declared in the file currently being edited, where
@@ -631,7 +632,7 @@ class LuaTypeManagerImpl(
             }
         // `params` is built from `---@param` tags only (stub or cats), so a non-empty list means the
         // user declared this signature and its arity is a contract (BUG-419).
-        return LuaFunctionType(params, returnType, declaredSignature = params.isNotEmpty())
+        return LuaFunctionType(params, returnType, declaredSignature = params.isNotEmpty(), implicitSelf = implicitSelf)
     }
 
     private fun materializeAlias(
