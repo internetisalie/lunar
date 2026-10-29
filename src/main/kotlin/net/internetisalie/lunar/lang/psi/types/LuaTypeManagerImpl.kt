@@ -614,13 +614,14 @@ class LuaTypeManagerImpl(
             } else {
                 null
             }
-        val paramTypes: Map<String, String> =
-            stub?.luacatsParamTypes
-                ?: cats?.let { LuaCatsDeclarations.paramTypes(it) }
-                ?: emptyMap()
+        val declared: List<LuaCatsDeclarations.ParamDecl> =
+            stub?.luacatsParams
+                ?: cats?.let { LuaCatsDeclarations.params(it) }
+                ?: emptyList()
         val rawReturn = stub?.luacatsReturnType ?: cats?.let { LuaCatsDeclarations.returnTypeName(it) }
 
-        val params = paramTypes.map { (pName, pType) -> LuaParameter(pName, LuaTypeReference(pType, decl)) }
+        val params =
+            declared.map { LuaParameter(it.name, LuaTypeReference(it.typeName, decl), isOptional = it.isOptional) }
         // `---@return self` parses to a type literally named "self"; substitute the receiver class.
         val returnType: LuaType =
             when {

@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A method's optional parameter is optional** (BUG-554). A call that omitted a parameter
+  declared `---@param hl? string` on a class method, such as `self:append("Tasks: ")` against
+  `Text:append(str, hl?, opts?)` in lazy.nvim, was reported as *Too few arguments*. Free
+  functions already handled this. Lunar now counts only a method's required parameters, whether
+  the method is declared in the same file or another one. The first time the updated plugin
+  opens a project it rebuilds the project's Lua index.
+
 - **More LuaCATS annotations parse** (BUG-542–549, BUG-502, BUG-514). These forms, common in
   Neovim plugins such as lazy.nvim, no longer report a syntax error or silently fall back to
   documentation text:

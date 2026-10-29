@@ -85,9 +85,23 @@ object LuaCatsDeclarations {
             .map { it.text.trim() }
             .filter { it.isNotEmpty() }
 
-    /** Declared parameter name → type string, in declaration order. */
-    fun paramTypes(comment: LuaCatsComment): Map<String, String> =
-        comment.paramTagList.associate { (it.argName?.text ?: "") to it.argType.text }
+    /** One `@param`: its name, its type string, and whether `name?` marked it optional (BUG-554). */
+    data class ParamDecl(
+        val name: String,
+        val typeName: String,
+        val isOptional: Boolean,
+    )
+
+    /**
+     * Every `@param` on [comment], in declaration order. A repeated name keeps its first position
+     * and its last tag, which is the order and the winner the former name → type map had.
+     */
+    fun params(comment: LuaCatsComment): List<ParamDecl> =
+        comment.paramTagList
+            .map { ParamDecl(it.argName?.text ?: "", it.argType.text, it.argSymbol?.text == "?") }
+            .associateBy { it.name }
+            .values
+            .toList()
 
     /**
      * The first declared `@return`'s type string, or null.

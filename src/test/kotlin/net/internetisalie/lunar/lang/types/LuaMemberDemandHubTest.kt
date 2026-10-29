@@ -46,15 +46,14 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
         assertEquals(CHAIN_ERRORS.sorted(), errorsOf(shape("chain")))
     }
 
+    /**
+     * The three `Pipe | nil is not assignable to { ... }` hypotheses this case used to pin came from
+     * `fh:read()` failing `Pipe:read(fmt?)`'s declared arity, which ignored the `?` (BUG-554). With
+     * the marker honoured, `Pipe` satisfies every site's demand and the fixture reports nothing.
+     */
     @Test
     fun case05PerSiteCallShapeAddsNoPipeHypothesis() {
-        val expected =
-            listOf(
-                "HYPOTHESIS|Pipe | nil is not assignable to { ... }|(178,180)",
-                "HYPOTHESIS|Pipe | nil is not assignable to { ... }|(183,192)",
-                "HYPOTHESIS|Pipe | nil is not assignable to { ... }|(224,229)",
-            )
-        assertEquals(expected.sorted(), errorsOf(shape("pipeUnion")))
+        assertEquals(emptyList(), errorsOf(shape("pipeUnion")))
     }
 
     @Test

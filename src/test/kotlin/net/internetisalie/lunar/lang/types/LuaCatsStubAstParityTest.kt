@@ -328,6 +328,32 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         )
     }
 
+    /**
+     * TC-11: a method's `@param b?` keeps its optional marker on both arms (BUG-554).
+     * `LuaFunctionType.name` renders `b?` only when the parameter's `isOptional` is set.
+     */
+    @Test
+    fun testOptionalMethodParamAgrees() {
+        assertParity(
+            ParityCase(
+                id = "TC-11",
+                source =
+                    """
+                    ---@class C__
+                    local C__ = {}
+                    ---@param a string
+                    ---@param b? string
+                    function C__:m(a, b) end
+                    """.trimIndent(),
+                className = "C__",
+                expectedMembers = setOf("m"),
+                expectedSupertypes = emptyList(),
+                expectedMemberTypeContains = mapOf("m" to "fun(a: string, b?: string)"),
+            ),
+            index = 11,
+        )
+    }
+
     /** TC-6: `@alias` — not a class, so it gets its own method rather than a [ParityCase]. */
     @Test
     fun testAliasTargetAgrees() {
@@ -361,7 +387,7 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
      */
     @Test
     fun testStubVersionIsCurrent() {
-        assertEquals("stub version", 5, LuaParserDefinition.FILE.stubVersion)
+        assertEquals("stub version", 6, LuaParserDefinition.FILE.stubVersion)
     }
 
     /**

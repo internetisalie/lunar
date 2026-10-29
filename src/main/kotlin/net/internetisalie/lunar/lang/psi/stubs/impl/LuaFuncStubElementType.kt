@@ -26,9 +26,9 @@ class LuaFuncStubElementType(
         // MAINT-34-03: one extractor, not a copy. This block and its twin in the sibling
         // *FuncStubElementType were byte-identical, and funcTypeFromStub held a third.
         val returnType = catsComment?.let { LuaCatsDeclarations.returnTypeName(it) }
-        val paramTypes = catsComment?.let { LuaCatsDeclarations.paramTypes(it) } ?: emptyMap()
+        val params = catsComment?.let { LuaCatsDeclarations.params(it) } ?: emptyList()
 
-        return LuaFuncStubImpl(parentStub, name, returnType, paramTypes, LuaFuncNameBinding.rootIsLocal(psi))
+        return LuaFuncStubImpl(parentStub, name, returnType, params, LuaFuncNameBinding.rootIsLocal(psi))
     }
 
     override fun getExternalId(): String = "lunar.func.decl"
@@ -39,11 +39,7 @@ class LuaFuncStubElementType(
     ) {
         dataStream.writeName(stub.name)
         dataStream.writeName(stub.luacatsReturnType)
-        dataStream.writeInt(stub.luacatsParamTypes.size)
-        stub.luacatsParamTypes.forEach { (name, type) ->
-            dataStream.writeName(name)
-            dataStream.writeName(type)
-        }
+        LuaCatsParamStubCodec.write(stub.luacatsParams, dataStream)
         dataStream.writeBoolean(stub.rootIsLocal)
     }
 
@@ -53,14 +49,8 @@ class LuaFuncStubElementType(
     ): LuaFuncStub {
         val name = dataStream.readName()?.string
         val returnType = dataStream.readName()?.string
-        val paramCount = dataStream.readInt()
-        val paramTypes = mutableMapOf<String, String>()
-        repeat(paramCount) {
-            val pName = dataStream.readName()?.string ?: ""
-            val pType = dataStream.readName()?.string ?: ""
-            paramTypes[pName] = pType
-        }
-        return LuaFuncStubImpl(parentStub, name, returnType, paramTypes, dataStream.readBoolean())
+        val params = LuaCatsParamStubCodec.read(dataStream)
+        return LuaFuncStubImpl(parentStub, name, returnType, params, dataStream.readBoolean())
     }
 
     override fun indexStub(

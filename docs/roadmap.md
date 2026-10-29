@@ -138,7 +138,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |
 | BUG-550 | The string argument of a call chained on `require(…)` is recognised as a require | todo | S | — | found in MAINT-39 DR-06: `require("lazy.stats").track("LazyDone")`; moves lazynvim's identity-checked `requires` | ✓ |
 | BUG-553 | A string-valued operand typed `{ ... }` is reported by Suspicious Concatenation | todo | S | — | found in MAINT-39: all 14 of lazynvim's concatenation hits; not reproduced in isolation | ✓ |
-| BUG-554 | A method's optional `---@param name?` is required in its declared signature | todo | S | — | found triaging the LuaCATS grammar batch: net +52 lazy.nvim hits; reproduces on `8e7a48f2` | ✓ |
 | BUG-555 | A `---@field name T?` field is required: the trailing `?` does not make the type admit nil | todo | S | — | found triaging the LuaCATS grammar batch: 10 lazy.nvim hits (`url`); reproduces on `8e7a48f2` | ✓ |
 | BUG-556 | A bracket-keyed `---@field [k] T` is a required member named `"[k]"`, which no constructor can supply | todo | S | — | found triaging the LuaCATS grammar batch: 21 lazy.nvim hits (`[1]`); reproduces on `8e7a48f2` | ✓ |
 | BUG-557 | A comment block with several `@class` tags and a trailing `@type` checks the next statement against every class | todo | S | — | found triaging the LuaCATS grammar batch: 18 lazy.nvim hits at `pkg/init.lua:30`, 1 of them added; reproduces on `8e7a48f2` | ✓ |
@@ -148,6 +147,9 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-561 | The bundled Lua 5.1 stubs spell literals `'"nil"'` and varargs `fun(...any)`, which no lexer state reads as intended | todo | C | — | deferred from the LuaCATS grammar batch (§8); see BUG-514 | ✓ |
 | BUG-562 | A numeric-literal `@return` type (`---@return 1\|2`) is a LuaCATS parse error | todo | C | — | deferred from the LuaCATS grammar batch (§8) | ✓ |
 | BUG-563 | A vararg `fun(...)` type in a `---@cast` is read as a class named `fun` | todo | C | — | found implementing BUG-514 | ✓ |
+| BUG-564 | A local declared without a value and assigned inside a `while` loop is reported as an unused local, though it is read | todo | S | — | found triaging BUG-554's corpus movement: 2 lazy.nvim hits (`to`, `url`) that a false *Too few arguments* ERROR had hidden | ✓ |
+| BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
+| BUG-566 | A method call's argument types are never checked against its declared `@param` types | todo | M | — | found fixing BUG-554: `c:m(1, "y")` is silent where a free function's `g("x", 1)` is reported; fixing it will raise lazynvim's `LuaTypeAssignability` | ✓ |
 | MAINT-40 | Corpus sweep results stored per commit — SARIF findings under an environment-derived suite name, so a "before" is a fetch, not a re-record | todo | M | — | — | ✓ |
 | MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | todo | M | MAINT-40 | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |

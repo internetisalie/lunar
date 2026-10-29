@@ -26,12 +26,12 @@ class LuaCatsDeclarationsTest : BasePlatformTestCase() {
         }
     }
 
-    /** The `@param` name → type map declared by [source], read straight through the extractor. */
-    private fun paramsOf(source: String): Map<String, String> {
+    /** The `@param` records declared by [source], read straight through the extractor. */
+    private fun paramsOf(source: String): List<LuaCatsDeclarations.ParamDecl> {
         val file = myFixture.configureByText("params.lua", source)
         return runReadAction {
             val comment = PsiTreeUtil.findChildOfType(file, LuaCatsComment::class.java)
-            LuaCatsDeclarations.paramTypes(requireNotNull(comment) { "no LuaCATS comment in fixture" })
+            LuaCatsDeclarations.params(requireNotNull(comment) { "no LuaCATS comment in fixture" })
         }
     }
 
@@ -108,8 +108,8 @@ class LuaCatsDeclarationsTest : BasePlatformTestCase() {
                 "---@param a string\n---@param opts? {indent?: number, prefix?: string}\n" +
                     "---@param b string\nfunction f0(a, opts, b) end\n",
             )
-        assertEquals(listOf("a", "opts", "b"), params.keys.toList())
-        assertEquals("{indent?: number, prefix?: string}", params["opts"])
+        assertEquals(listOf("a", "opts", "b"), params.map { it.name })
+        assertEquals("{indent?: number, prefix?: string}", params.single { it.name == "opts" }.typeName)
     }
 
     /** BUG-393: an unparseable type still degrades to LDoc prose, not an error or a half-typed param. */
@@ -119,6 +119,13 @@ class LuaCatsDeclarationsTest : BasePlatformTestCase() {
             paramsOf(
                 "---@param a string\n---@param opts {indent?: number\n---@param b string\nfunction f0(a, opts, b) end\n",
             )
-        assertEquals(listOf("a", "b"), params.keys.toList())
+        assertEquals(listOf("a", "b"), params.map { it.name })
+    }
+
+    /** BUG-554: a `name?` marker is carried as the record's `isOptional`, not dropped. */
+    @Test
+    fun testOptionalMarkerIsCarried() {
+        val params = paramsOf("---@param a string\n---@param b? string\nfunction f0(a, b) end\n")
+        assertEquals(listOf(false, true), params.map { it.isOptional })
     }
 }
