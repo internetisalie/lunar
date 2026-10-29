@@ -2,6 +2,16 @@
 # source-sha256 44d2748c4b6d5e5f36fafc931402cdc9ed255f789dd1d5d5db09f99561c56e34
 [errors]
 ERROR|number is not assignable to string|(100,101)|LuaNameRefImpl
+ERROR|number is not assignable to string|(163,164)|LuaTerminalExprImpl
+ERROR|number is not assignable to string|(192,193)|LuaTerminalExprImpl
+ERROR|number is not assignable to string|(221,222)|LuaTerminalExprImpl
+ERROR|number is not assignable to string|(250,251)|LuaTerminalExprImpl
+ERROR|number is not assignable to string|(279,280)|LuaTerminalExprImpl
+ERROR|number is not assignable to string|(309,311)|LuaTerminalExprImpl
+ERROR|number is not assignable to string|(340,342)|LuaTerminalExprImpl
+ERROR|number is not assignable to string|(371,373)|LuaTerminalExprImpl
+ERROR|number is not assignable to string|(402,404)|LuaTerminalExprImpl
+ERROR|number is not assignable to string|(433,435)|LuaTerminalExprImpl
 ERROR|number is not assignable to string|(75,118)|LuaFuncDeclImpl
 ERROR|string | number is not assignable to string|(75,118)|LuaFuncDeclImpl
 ERROR|{ ... } | Builder is not assignable to Builder|(75,118)|LuaFuncDeclImpl
@@ -47,16 +57,6 @@ HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(392,405)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(393,401)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(423,436)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(424,432)|LuaMethodExprImpl
-HYPOTHESIS|number is not assignable to string|(163,164)|LuaTerminalExprImpl
-HYPOTHESIS|number is not assignable to string|(192,193)|LuaTerminalExprImpl
-HYPOTHESIS|number is not assignable to string|(221,222)|LuaTerminalExprImpl
-HYPOTHESIS|number is not assignable to string|(250,251)|LuaTerminalExprImpl
-HYPOTHESIS|number is not assignable to string|(279,280)|LuaTerminalExprImpl
-HYPOTHESIS|number is not assignable to string|(309,311)|LuaTerminalExprImpl
-HYPOTHESIS|number is not assignable to string|(340,342)|LuaTerminalExprImpl
-HYPOTHESIS|number is not assignable to string|(371,373)|LuaTerminalExprImpl
-HYPOTHESIS|number is not assignable to string|(402,404)|LuaTerminalExprImpl
-HYPOTHESIS|number is not assignable to string|(433,435)|LuaTerminalExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to Builder|(24,31)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to Builder|(92,99)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(138,146)|LuaMethodExprImpl

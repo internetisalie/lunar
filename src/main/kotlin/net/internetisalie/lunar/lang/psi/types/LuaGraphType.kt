@@ -269,7 +269,13 @@ sealed class LuaGraphType {
 
                     val params =
                         type.params.map { p ->
-                            Function.Parameter(memberNodeFor(p.type, graph, visited), p.name, p.isOptional, p.isVararg)
+                            val node =
+                                if (type.declaredSignature) {
+                                    declaredParamNodeFor(p, graph, visited)
+                                } else {
+                                    memberNodeFor(p.type, graph, visited)
+                                }
+                            Function.Parameter(node, p.name, p.isOptional, p.isVararg)
                         }
                     val returnNode = memberNodeFor(type.returnType, graph, visited)
 
@@ -386,6 +392,30 @@ sealed class LuaGraphType {
             }
             type.superTypes.forEach { superGraphTypes.add(fromLuaType(it, graph, visited)) }
             return classGraphType
+        }
+
+        /**
+         * A declared signature's parameter node (BUG-566). Its demand is marked declared, so an
+         * argument wired into it at a call reports at ERROR tier, at the argument. An optional
+         * parameter of a known type also accepts `nil` (BUG-552); an unresolved one keeps its
+         * `Undefined` demand, because `Undefined | nil` canonicalizes to `nil` (BUG-11). Do not
+         * move this demand to the call site: `addError` de-duplicates on element and message, so
+         * the existing HYPOTHESIS would shadow it, and bypassing this node breaks generic binding,
+         * which flows through the same edge.
+         */
+        private fun declaredParamNodeFor(
+            param: LuaParameter,
+            graph: LuaTypeGraph,
+            visited: MutableMap<LuaType, LuaGraphType>,
+        ): VariableNode {
+            val anchor = graph.firstNodeElement() ?: error("Graph must have at least one node")
+            val paramNode = graph.variable(anchor)
+            val graphType = fromLuaType(param.type, graph, visited)
+            paramNode.upSet.add(graph.value(paramNode.element, graphType))
+            val acceptsNil = param.isOptional && graphType != Undefined
+            val demand = if (acceptsNil) Union.create(listOf(graphType, Nil)) else graphType
+            paramNode.downSet.add(graph.use(paramNode.element, demand, declaredDemand = true))
+            return paramNode
         }
 
         private fun memberNodeFor(

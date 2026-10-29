@@ -2,6 +2,7 @@
 # source-sha256 1778a8d10833c785cad5f5d13fcf1ce5c690fc488d1f34d70519c738fbf53846
 [errors]
 ERROR|number is not assignable to string|(100,101)|LuaNameRefImpl
+ERROR|number is not assignable to string|(147,149)|LuaTerminalExprImpl
 ERROR|number is not assignable to string|(75,118)|LuaFuncDeclImpl
 ERROR|string | number is not assignable to string|(75,118)|LuaFuncDeclImpl
 ERROR|{ ... } | Builder is not assignable to Builder|(75,118)|LuaFuncDeclImpl
@@ -10,7 +11,6 @@ HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(138,146)|LuaMethodExprIm
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(91,99)|LuaFuncNameMethodImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(137,150)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(138,146)|LuaMethodExprImpl
-HYPOTHESIS|number is not assignable to string|(147,149)|LuaTerminalExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to Builder|(24,31)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to Builder|(92,99)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(138,146)|LuaMethodExprImpl

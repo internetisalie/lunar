@@ -138,9 +138,10 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
                 "HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(89,97)",
             )
 
-        /** Requirements Appendix B. */
+        /** Requirements Appendix B. The call argument at (135,136) is ERROR since BUG-566. */
         val CHAIN_ERRORS =
             listOf(
+                "ERROR|number is not assignable to string|(135,136)",
                 "ERROR|number is not assignable to string|(60,94)",
                 "ERROR|number is not assignable to string|(76,77)",
                 "ERROR|string | number is not assignable to string|(60,94)",
@@ -168,7 +169,6 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(119,123)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(129,137)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(130,134)",
-                "HYPOTHESIS|number is not assignable to string|(135,136)",
                 "HYPOTHESIS|{ ... } | Bd is not assignable to Bd|(19,21)",
                 "HYPOTHESIS|{ ... } | Bd is not assignable to Bd|(72,75)",
                 "HYPOTHESIS|{ ... } | Bd is not assignable to { ... }|(114,115)",

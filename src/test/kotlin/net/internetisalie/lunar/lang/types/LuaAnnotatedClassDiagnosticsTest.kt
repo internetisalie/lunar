@@ -23,17 +23,16 @@ import kotlin.test.assertEquals
  */
 class LuaAnnotatedClassDiagnosticsTest : BaseDocumentTest() {
     @Test
-    fun declaredParamViolationKeepsItsFourErrorTierDiagnostics() {
+    fun declaredParamViolationKeepsItsFiveErrorTierDiagnostics() {
         assertDiagnostics(
             paramViolationFixture(),
             mapOf(
-                "ERROR|number is not assignable to string" to 2,
+                "ERROR|number is not assignable to string" to 3,
                 "ERROR|string | number is not assignable to string" to 1,
                 "ERROR|{ ... } | Builder is not assignable to Builder" to 1,
                 "HYPOTHESIS|Builder | { ... } | Builder is not assignable to Builder" to 1,
                 "HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)" to 2,
                 "HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)" to 2,
-                "HYPOTHESIS|number is not assignable to string" to 1,
                 "HYPOTHESIS|{ ... } | Builder is not assignable to Builder" to 2,
                 "HYPOTHESIS|{ ... } | Builder is not assignable to { ... }" to 1,
             ),

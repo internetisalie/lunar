@@ -1,6 +1,7 @@
 # lunar type golden v1
 # source-sha256 47a1cbe802c36f8fbda3275e5caa10e419d078b565070beb143edb8b020aea50
 [errors]
+ERROR|number is not assignable to string|(135,136)|LuaTerminalExprImpl
 ERROR|number is not assignable to string|(60,94)|LuaFuncDeclImpl
 ERROR|number is not assignable to string|(76,77)|LuaNameRefImpl
 ERROR|string | number is not assignable to string|(60,94)|LuaFuncDeclImpl
@@ -28,7 +29,6 @@ HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(118,128)|LuaFun
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(119,123)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(129,137)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(130,134)|LuaMethodExprImpl
-HYPOTHESIS|number is not assignable to string|(135,136)|LuaTerminalExprImpl
 HYPOTHESIS|{ ... } | Bd is not assignable to Bd|(19,21)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Bd is not assignable to Bd|(72,75)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Bd is not assignable to { ... }|(114,115)|LuaNameRefImpl

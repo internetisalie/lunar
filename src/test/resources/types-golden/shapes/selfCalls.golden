@@ -2,13 +2,13 @@
 # source-sha256 b4d9cbed70d0ecea04a7d45ba80018b28d591fcbba75591361888beb89dbb616
 [errors]
 ERROR|number | string is not assignable to number|(44,65)|LuaFuncDeclImpl
+ERROR|string is not assignable to number|(102,105)|LuaTerminalExprImpl
 ERROR|string is not assignable to number|(44,65)|LuaFuncDeclImpl
 ERROR|string is not assignable to number|(59,60)|LuaNameRefImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun()|(138,148)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun()|(142,146)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(93,106)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(97,101)|LuaMethodExprImpl
-HYPOTHESIS|string is not assignable to number|(102,105)|LuaTerminalExprImpl
 HYPOTHESIS|{ ... } | C is not assignable to { ... }|(130,134)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | C is not assignable to { ... }|(142,146)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | C is not assignable to { ... }|(172,176)|LuaMethodExprImpl

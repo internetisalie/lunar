@@ -3,7 +3,7 @@ id: "BUG-566"
 title: "A method call's argument types are never checked against the method's declared `@param` types"
 type: "bug"
 parent_id: "BUG"
-status: "blocked"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -254,26 +254,27 @@ the four generic tests in §4.2, and `LuaCatsStubAstParityTest`.
      the triage table.
 
 ## 7. Not established
-- The corpus magnitude. It was not run.
-- Whether the §5.3 guard is needed, and its exact implementation. It is not prototyped.
+- Whether the §5.3 guard is needed, and its exact implementation. It is not prototyped. No corpus
+  member has a hit of that shape (§8).
 - Why `---@field m fun(...)` members and `require`-obtained class receivers produce no argument
   diagnostic at any tier (§3). This root cause does not explain it.
 - The spurious `{ ... } | C is not assignable to C` at `---@type C\nlocal c = C` in the
   reproduction (present before and after the fix). It is unrelated; file separately if wanted.
 
-## 8. Corpus triage and hold
+## 8. Corpus triage
 
-With the fix, lazynvim's `inspection.LuaTypeAssignability` goes from 306 to 323 (25 new hits, 8
+On `72cd1a99`, with the fix, lazynvim's `inspection.LuaTypeAssignability` goes from 306 to 323 (25 new hits, 8
 gone) and `inspection.LuaReturnTypeMismatch` from 58 to 59. No other member moves. All 25 new hits
 are false positives, and none is the omitted-middle-optional shape §5 guarded against. Each comes
 from an existing modelling defect that the fix promotes from hypothesis to error:
 
 | Hits | Cause |
 |---|---|
-| 9 | [[BUG-8]]: a dot call of a colon method with an explicit `self`, including 6 first filed as BUG-10 (a colon method passed as a callback and called with `self`) |
+| 13 | [[BUG-8]]: a dot call of a colon method with an explicit `self`, including 6 first filed as BUG-10 (a colon method passed as a callback and called with `self`) and 4 first attributed to BUG-11 (`init.lua:23`/`:299`) |
 | 11 | [[BUG-9]]: a bare `---@class ProcessOpts` bound to the module table after a blank line (the 8 gone hits are its old *Missing required field* form) |
-| 5 | [[BUG-11]]: an optional union parameter type collapsed to `nil` |
+| 1 | [[BUG-11]]: an optional parameter of an unresolved declared type demands `nil` (`view/init.lua:81`) |
 
-**Held** until BUG-8 to BUG-11 are fixed, so the fix does not ship new false errors. The
-implementation (fix, `LuaMethodArgumentTypeTest`, golden and test updates; full suite green,
-mutation-proved) is on branch `bug-566`. Re-run the corpus on that branch after the four land.
+The fix was held until these were fixed. [[BUG-11]] is a defect in this fix's own optional-parameter
+widening and lands with it. On `ba3eb9d7`, a per-site dump of every corpus member (luacheck, luarocks,
+penlight, lazynvim, zerobrane) is identical with and without this fix plus [[BUG-11]]: no hit
+added, none removed, and every committed baseline holds unchanged.

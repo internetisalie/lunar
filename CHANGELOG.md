@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A method call's arguments are checked against the method's `---@param` types** (BUG-566). A
+  call such as `c:m(1, "y")` to a class method declared in another file, in a library or inherited
+  from a parent class was not reported, though the same mistake in a call to a global function
+  was. A call to a method declared in the same file was reported only at the method's
+  declaration. Lunar now reports each wrong argument as *… is not assignable to …* on the argument
+  itself, for `:` and `.` calls alike. Passing `nil`, or nothing, for an optional parameter is
+  still accepted.
+
 - **Passing `self` explicitly to a method lines up its arguments** (BUG-8, BUG-14). A dot call of a
   method declared with `:`, such as `Base.init(self, opts)` or `self.super.add(self, plugin)` in
   lazy.nvim, was reported as *Too many arguments*, and `self` was checked against the method's
