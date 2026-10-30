@@ -3,7 +3,7 @@ id: "MAINT-49"
 title: "49: Fixture Tests Run in CI"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -58,15 +58,15 @@ expensive part of a cold provision (DR-04).
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-49-01 | **Recursive-reference test reads the corpus** | M | Not Implemented | `testLuacheckParserRecursiveCall` copies `test/corpus/luacheck/src/luacheck/parser.lua`; no test source names `test/luacheck/` (design §2.1) |
-| MAINT-49-02 | **Index-size guard walks one pinned member** | M | Not Implemented | `testIndexRealWorldProjectAndMeasureSize` walks `test/corpus/lazynvim` and asserts its pinned line count, measures the project-scope index only and asserts no bundled-definition record is counted, and fails above 10 bytes per line (design §2.2, §3.2) |
+| MAINT-49-01 | **Recursive-reference test reads the corpus** | M | Full | `testLuacheckParserRecursiveCall` copies `test/corpus/luacheck/src/luacheck/parser.lua`; no test source names `test/luacheck/` (design §2.1) |
+| MAINT-49-02 | **Index-size guard walks one pinned member** | M | Full | `testIndexRealWorldProjectAndMeasureSize` walks `test/corpus/lazynvim` and asserts its pinned line count, measures the project-scope index only and asserts no bundled-definition record is counted, and fails above 10 bytes per line (design §2.2, §3.2) |
 | MAINT-49-03 | **`fetch-luac.py` downloads and verifies** | M | Full | Downloads each pinned archive, refuses on a sha256 mismatch before extracting, installs only `bin/luac` after it reports its version, stamps the archive digest, and skips a stamped install (design §2.3, §3.1) |
 | MAINT-49-04 | **`luac.json` pins the TOOLING-09 release** | M | Full | Five `linux-x86_64` archives of release `v2026.10.30`, each with its archive sha256; `LUA55` pins 5.5.0 (design §2.4, §4.1) |
-| MAINT-49-05 | **Gitea `build` provisions fixtures** | M | Not Implemented | Re-points `test` at `/cache/lunar/test` and runs both fetchers before the build; a failure is recorded, fails the job in the final step, and suppresses the `a3` store (design §2.5) |
-| MAINT-49-06 | **The other suite lanes provision fixtures** | M | Not Implemented | Gitea `build-release` and GitHub `build` run both fetchers into a fresh `test/` before the tests, failing the job on any fetch failure (design §2.6) |
-| MAINT-49-07 | **The exclusion is gone** | M | Not Implemented | No workflow passes `-PexcludeExternalFixtureTests`; `build.gradle.kts` has no such filter; the four classes run in every CI suite lane (design §2.7) |
+| MAINT-49-05 | **Gitea `build` provisions fixtures** | M | Full | Re-points `test` at `/cache/lunar/test` and runs both fetchers before the build; a failure is recorded, fails the job in the final step, and suppresses the `a3` store (design §2.5) |
+| MAINT-49-06 | **The other suite lanes provision fixtures** | M | Full | Gitea `build-release` and GitHub `build` run both fetchers into a fresh `test/` before the tests, failing the job on any fetch failure (design §2.6) |
+| MAINT-49-07 | **The exclusion is gone** | M | Full | No workflow passes `-PexcludeExternalFixtureTests`; `build.gradle.kts` has no such filter; the four classes run in every CI suite lane (design §2.7) |
 | MAINT-49-08 | **The glibc preflight is removed** | S | Full | `check_luac_glibc` and its README section go: static binaries carry no `GLIBC_` symbol (design §2.8) |
-| MAINT-49-09 | **No stale prose** | S | Not Implemented | Comments, KDoc and READMEs stop describing the exclusion, the compile, and `test/luacheck` (design §2.9) |
+| MAINT-49-09 | **No stale prose** | S | Full | Comments, KDoc and READMEs stop describing the exclusion, the compile, and `test/luacheck` (design §2.9) |
 
 ## Test Cases
 
@@ -105,12 +105,13 @@ One property has no case that can fail, and says so rather than invent one:
   and stays green. DR-03's one 5.1.5→5.4.8 flip is of this kind.
 
 ## Acceptance Criteria
-- [ ] Cases 2–6 and 17–19 hold on their phase's tree (MAINT-49-01, -02, -07, -08, -09).
-- [ ] `FetchLuacScriptTest` passes in the unit suite (cases 7–11; MAINT-49-03).
-- [ ] Cases 12 and 13 hold, and the Phase 2 PR's `corpus` job passes (MAINT-49-04).
-- [ ] Cases 1, 14 and 15 hold on the Phase 3 PR (MAINT-49-01, -05).
-- [ ] Case 16 holds on the first GitHub `main` run after Phase 3 and on the first tag after it (MAINT-49-06).
-- [ ] The full suite (`test --rerun --no-build-cache`) is green on the builder after each phase.
+- [x] Cases 2–6 and 17–19 hold on their phase's tree (MAINT-49-01, -02, -07, -08, -09).
+- [x] `FetchLuacScriptTest` passes in the unit suite (cases 7–11; MAINT-49-03).
+- [x] Cases 12 and 13 hold, and the Phase 2 PR's `corpus` job passes (MAINT-49-04).
+- [x] Cases 1, 14 and 15 hold on the Phase 3 PR (MAINT-49-01, -05).
+- [x] Case 16 holds on the first GitHub `main` run after Phase 3 (`72d43e13`). Its `build-release`
+  half is observed at the next `v*` tag.
+- [x] The full suite (`test --rerun --no-build-cache`) is green on the builder after each phase.
 
 ## Non-Functional Requirements
 - **Cost.** A cold provision costs seconds and a warm one is a stamp check (DR-04, DR-05).

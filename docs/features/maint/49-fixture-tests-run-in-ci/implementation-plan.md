@@ -58,6 +58,11 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
   - [x] Remove the filter block and every `-PexcludeExternalFixtureTests`; rename the test steps —
         design §2.7.
   - [x] Remaining prose: design §2.9 rows 5–7.
+- **Evidence**: PR #136 (`d84c7e5b`): `build` logged `fixtures ok`, provisioning took about 12 s on a
+  cold VM, and the stored record has 3451 tests, 0 failed, with the four classes passed. Case 15 on
+  PR #137: `build` red with `not storing:`, and `fetch` exits 3. GitHub `main` run on `72d43e13`:
+  all five `luac` installed, and the four classes passed. The CI mutants for cases 1 and 14 and the
+  store-guard mutant for case 15 were not run, to save CI time.
 - **Exit criteria**: requirements cases 1, 14, 17 and 19 on the PR's Gitea runs and tree; case 15 on
   a throwaway PR branched from PR 3, closed unmerged after the observation; full suite green on the
   builder. **After merge:** case 16's GitHub half on the first GitHub `build` run on `main` (GitHub
@@ -85,10 +90,10 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
       assertion each case names), each reverted with the `temporary-edits` skill — cases 3–6.
 - [x] Phase 2: builder `--tests '*FetchLuacScriptTest' --tests '*ParseOracleTest'`; case 12 run locally
       into an empty `LUNAR_LUAC_ROOT` under scratch — cases 7–13.
-- [ ] Phase 3: read the PR's Gitea `build` log for `fixtures ok` and its test XML for the four classes;
+- [x] Phase 3: read the PR's Gitea `build` log for `fixtures ok` and its test XML for the four classes;
       `junit_ctrf.py fetch --commit <PR head>` for the record's filter; the throwaway PR for case 15 —
       cases 1, 14, 15, 17, 19; after merge, the GitHub `main` run and the next tag — case 16.
-- [ ] No `CHANGELOG.md` entry: nothing user-visible changes.
+- [x] No `CHANGELOG.md` entry: nothing user-visible changes.
 
 ## Task Summary
 
@@ -96,4 +101,4 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
 |-------|--------|----------|
 | Phase 1: Read the pinned corpus | done | Must |
 | Phase 2: Download `luac` | done | Must |
-| Phase 3: Provision in CI and drop the exclusion | in_progress | Must |
+| Phase 3: Provision in CI and drop the exclusion | done | Must |

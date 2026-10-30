@@ -75,7 +75,8 @@ These are named, out of scope, and need the owner; none blocks implementation.
 ### Gap 2.1: The hand-made files in `test/`
 - **Question**: version `cases/`, `examples/`, `regression/`, `schema/`, `rocks/` and the loose
   `.lua` files, and where?
-- **Resolved by**: the owner. After Phase 1 no unit test reads them.
+- **Resolved**: no. The owner keeps them unversioned, as the `runIde` sandbox project. No unit test
+  reads them after Phase 1.
 
 ### Gap 2.2: The C toolchain in the CI image
 - **Question**: `build-essential` (`tooling/ci-image/Dockerfile:78`) and the `corpus` job's
