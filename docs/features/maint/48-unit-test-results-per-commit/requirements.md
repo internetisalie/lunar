@@ -3,7 +3,7 @@ id: "MAINT-48"
 title: "48: Unit Test Results Stored Per Commit"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "high"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -62,7 +62,7 @@ commit's own test results.
 | MAINT-48-02 | **One CTRF document** | M | Full | `junit_ctrf.py assemble` turns a JUnit XML directory and its sidecar into one CTRF 0.2.0 document with one test per `testcase`, carrying status, duration in milliseconds and failure message (design §4.3). The same inputs give the same bytes. |
 | MAINT-48-03 | **Test identity** | M | Full | Each `testId` is `<class>.<method>`, with `#<n>` only for repeats, assigned independently of file and element order. The `testId` of a name that occurs once never depends on status, duration or message. Repeats of one name are ordered by those fields (design §3.2). |
 | MAINT-48-04 | **Test-set identity** | M | Full | `environment.testEnvironment` is derived from the sidecar, and `environment.extra.filter` carries its lists. Nobody types it. |
-| MAINT-48-05 | **Store from CI** | M | Partial | The Gitea `build` job puts the document against `HEAD` as `a3`, no suite, after the unit tests, whether they passed or failed. An existing record is not an error. A partial (`--tests`) run or a run with no XML is refused. A store failure fails the job and never changes the test verdict. |
+| MAINT-48-05 | **Store from CI** | M | Full | The Gitea `build` job puts the document against `HEAD` as `a3`, no suite, after the unit tests, whether they passed or failed. An existing record is not an error. A partial (`--tests`) run or a run with no XML is refused. A store failure fails the job and never changes the test verdict. |
 | MAINT-48-06 | **Fetch a baseline** | M | Full | `junit_ctrf.py fetch --commit C` returns the unit-test record of the nearest first-parent ancestor of `C` whose code is identical to `C`'s, and exits 3 when there is none (design §3.6). |
 | MAINT-48-07 | **Compare by test** | M | Full | `junit_ctrf.py diff` lists newly failing, newly skipped, newly passing, added, removed and out-of-set tests and the executed counts over the tests both sets run. A test only one side's filter selects is never reported as added or removed. Exit 1 on a new failure or a passed test now skipped, 4 on an executed-count drop, 2 when not comparable (design §3.8). |
 | MAINT-48-08 | **One home for store plumbing** | M | Full | `corpus_ctrf.py` and `junit_ctrf.py` share `tooling/ctrf/loom_store.py`; both jobs share `tooling/ci/install-loom-cli.sh`. MAINT-40's tests pass with no assertion changed. |
@@ -93,7 +93,7 @@ Python cases TC 2–8, 13 and 14 live in `tooling/ctrf/test_junit_ctrf.py` (TC 1
 
 - [x] TC 1–8, 11, 13 and 14 pass, with each named mutant observed red.
 - [x] The document assembled from a real full run validates against the pinned CTRF 0.2.0 schema.
-- [ ] TC 9, TC 10 and TC 12 hold on CI.
+- [x] TC 9, TC 10 and TC 12 hold on CI.
 
 ## Non-Functional Requirements
 

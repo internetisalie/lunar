@@ -68,7 +68,10 @@ gate that consumes the record is MAINT-50.
   PR #130 (closed, branch deleted): commit `2aa2e0e9` logged `store: stored …/a3.ctrf.json` and only
   the unit-test `::error::`; commit `80802602` passed its tests, logged `loom-cli: resolve HEAD
   exited 1: … chdir /nonexistent …` and only the store `::error::`.
-  - [ ] After merge: TC 10 on the merge commit.
+  - [x] After merge: TC 10 on the merge commit. `88910731` (#129): `resolve --check a3` exits 0;
+        `tool.name` is `lunar-unit-tests`, 3421 tests, 0 failed; `commandLineIncludePatterns` is
+        empty; a builder run of `test --rerun -PexcludeExternalFixtureTests --tests
+        '*LuaBundleCasingTest*'` at that commit wrote a sidecar with the same `excludePatterns`.
 - **Exit criteria**: the PR's `build` job is green and its log has a `store:` line; its `corpus` job
   (the PR touches `build-plugin.yml`, so `changes` selects it) is green and logs the loom-cli version.
   TC 9, TC 10 and TC 12 hold.
@@ -80,8 +83,8 @@ Phase 1: MAINT-48-01. Phase 2: -08 (the Python half). Phase 3: -02, -03, -04, -0
 
 ## Verification Tasks
 
-- [ ] `CHANGELOG.md`: none. The feature has no user-facing change.
-- [ ] MAINT-45 `requirements.md` carries its one-line suite note (made at planning).
+- [x] `CHANGELOG.md`: none. The feature has no user-facing change.
+- [x] MAINT-45 `requirements.md` carries its one-line suite note (made at planning).
 
 ## Task Summary
 
@@ -90,4 +93,4 @@ Phase 1: MAINT-48-01. Phase 2: -08 (the Python half). Phase 3: -02, -03, -04, -0
 | Phase 1: Test-set sidecar | done | Must |
 | Phase 2: Shared store plumbing | done | Must |
 | Phase 3: Converter, fetch and diff | done | Must |
-| Phase 4: Store from CI | in_progress | Must |
+| Phase 4: Store from CI | done | Must |

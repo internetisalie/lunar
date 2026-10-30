@@ -149,7 +149,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
 | BUG-15 | A bare `function` type demands a function with no parameters | todo | S | — | found planning BUG-14; predates BUG-8 | ✓ |
 | BUG-16 | An unresolved member of a union parameter type is dropped from the demand | todo | S | — | found planning BUG-11 | ✓ |
-| MAINT-48 | Unit test results stored per commit — CI's suite results as CTRF under loom `a3`, plus `fetch` of a commit's record and a per-test `diff` | planned | M | MAINT-40 | MAINT-50 | ✓ |
 | MAINT-50 | Supervise-implement per-test gate — the skill's baseline is a fetch of MAINT-48's merge-base record and each phase is judged by its `diff`, not a fresh full-suite count | todo | M | MAINT-48 | — | ✓ |
 | MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | todo | M | MAINT-40 | — | ✓ |
 | MAINT-46 | Ticket IDs minted by `loom-cli id mint` after a scripted backfill of every used number, so concurrent sessions never pick the same ID | todo | S | — | — | ✓ |
