@@ -3,7 +3,7 @@ id: "MAINT-49"
 title: "49: Fixture Tests Run in CI"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "in_progress"
 priority: "high"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -60,12 +60,12 @@ expensive part of a cold provision (DR-04).
 |----|-------------|----------|--------|-------------|
 | MAINT-49-01 | **Recursive-reference test reads the corpus** | M | Not Implemented | `testLuacheckParserRecursiveCall` copies `test/corpus/luacheck/src/luacheck/parser.lua`; no test source names `test/luacheck/` (design §2.1) |
 | MAINT-49-02 | **Index-size guard walks one pinned member** | M | Not Implemented | `testIndexRealWorldProjectAndMeasureSize` walks `test/corpus/lazynvim` and asserts its pinned line count, measures the project-scope index only and asserts no bundled-definition record is counted, and fails above 10 bytes per line (design §2.2, §3.2) |
-| MAINT-49-03 | **`fetch-luac.py` downloads and verifies** | M | Not Implemented | Downloads each pinned archive, refuses on a sha256 mismatch before extracting, installs only `bin/luac` after it reports its version, stamps the archive digest, and skips a stamped install (design §2.3, §3.1) |
-| MAINT-49-04 | **`luac.json` pins the TOOLING-09 release** | M | Not Implemented | Five `linux-x86_64` archives of release `v2026.10.30`, each with its archive sha256; `LUA55` pins 5.5.0 (design §2.4, §4.1) |
+| MAINT-49-03 | **`fetch-luac.py` downloads and verifies** | M | Full | Downloads each pinned archive, refuses on a sha256 mismatch before extracting, installs only `bin/luac` after it reports its version, stamps the archive digest, and skips a stamped install (design §2.3, §3.1) |
+| MAINT-49-04 | **`luac.json` pins the TOOLING-09 release** | M | Full | Five `linux-x86_64` archives of release `v2026.10.30`, each with its archive sha256; `LUA55` pins 5.5.0 (design §2.4, §4.1) |
 | MAINT-49-05 | **Gitea `build` provisions fixtures** | M | Not Implemented | Re-points `test` at `/cache/lunar/test` and runs both fetchers before the build; a failure is recorded, fails the job in the final step, and suppresses the `a3` store (design §2.5) |
 | MAINT-49-06 | **The other suite lanes provision fixtures** | M | Not Implemented | Gitea `build-release` and GitHub `build` run both fetchers into a fresh `test/` before the tests, failing the job on any fetch failure (design §2.6) |
 | MAINT-49-07 | **The exclusion is gone** | M | Not Implemented | No workflow passes `-PexcludeExternalFixtureTests`; `build.gradle.kts` has no such filter; the four classes run in every CI suite lane (design §2.7) |
-| MAINT-49-08 | **The glibc preflight is removed** | S | Not Implemented | `check_luac_glibc` and its README section go: static binaries carry no `GLIBC_` symbol (design §2.8) |
+| MAINT-49-08 | **The glibc preflight is removed** | S | Full | `check_luac_glibc` and its README section go: static binaries carry no `GLIBC_` symbol (design §2.8) |
 | MAINT-49-09 | **No stale prose** | S | Not Implemented | Comments, KDoc and READMEs stop describing the exclusion, the compile, and `test/luacheck` (design §2.9) |
 
 ## Test Cases

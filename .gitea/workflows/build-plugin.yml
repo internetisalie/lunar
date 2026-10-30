@@ -333,8 +333,8 @@ jobs:
   # The out-of-repo `test/` tree: the repo tracks `test` as a symlink to `../test`, which
   # dangles on a CI checkout. It is re-pointed at the pool's node-local /cache mount, so
   # the pinned fixtures persist across jobs on a warm VM — every fetcher below stamps its
-  # artifacts (commit SHA / tarball sha256 / archive sha256) and is a no-op when the
-  # stamp matches, so a warm run provisions in seconds and a cold VM pays ~3 min once.
+  # artifacts (commit SHA / archive sha256) and is a no-op when the
+  # stamp matches, so a warm run provisions in seconds and a cold VM pays seconds once (MAINT-49 DR-04).
   #
   # INVOCATION SHAPE IS LOAD-BEARING (BUG-418): counts are byte-deterministic per
   # invocation shape, and the baselines were recorded with the full '*Corpus*' filter.
@@ -540,7 +540,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y --no-install-recommends \
-            fontconfig fonts-dejavu-core lua5.4 lua-socket build-essential
+            fontconfig fonts-dejavu-core lua5.4 lua-socket build-essential python3 git
           fc-cache -f || true
           mkdir -p "$HOME/bin"
           ln -sf "$(command -v lua5.4)" "$HOME/bin/lua"

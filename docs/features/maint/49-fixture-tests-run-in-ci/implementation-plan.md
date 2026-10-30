@@ -31,18 +31,18 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
 ### Phase 2: Download `luac` [Must] — PR 2
 - **Goal**: the oracle comes from the TOOLING-09 release, verified, with no compile.
 - **Tasks**:
-  - [ ] `tooling/corpus/fetch-luac.py` per design §2.3 and §3.1.
-  - [ ] `tooling/corpus/luac.json` per design §4.1.
-  - [ ] `FetchLuacScriptTest` (new) with requirements cases 7–11; delete
+  - [x] `tooling/corpus/fetch-luac.py` per design §2.3 and §3.1.
+  - [x] `tooling/corpus/luac.json` per design §4.1.
+  - [x] `FetchLuacScriptTest` (new) with requirements cases 7–11; delete
         `testChecksumMismatchInstallsNothing` and `runFetchScript` from `ParseOracleTest` — design §2.3.
-  - [ ] `ParseOracleTest` `"5.5.0"`, `ParseOracleTest` header KDoc, `ParseOracle.kt` prose,
+  - [x] `ParseOracleTest` `"5.5.0"`, `ParseOracleTest` header KDoc, `ParseOracle.kt` prose,
         the `gce-builder.sh:145` comment — design §2.4, §2.9 rows 4 and 9.
-  - [ ] Remove `check_luac_glibc` and replace the README section — design §2.8.
-  - [ ] `python3 git` on the apt line of Gitea `build-release` and GitHub `build` — design §2.6
+  - [x] Remove `check_luac_glibc` and replace the README section — design §2.8.
+  - [x] `python3 git` on the apt line of Gitea `build-release` and GitHub `build` — design §2.6
         Phase 2 paragraph. `FetchLuacScriptTest` runs `python3` in those lanes' suite, so a tag cut
         between PR 2 and PR 3 needs it.
-  - [ ] Stale prose: design §2.9 rows 10 and 11.
-  - [ ] Locally, re-run `python3 tooling/corpus/fetch-luac.py` so the fixture tree holds the
+  - [x] Stale prose: design §2.9 rows 10 and 11.
+  - [x] Locally, re-run `python3 tooling/corpus/fetch-luac.py` so the fixture tree holds the
         downloaded binaries before the builder run (risks Risk 1.1); state this in the PR body.
 - **Exit criteria**: requirements cases 7–13 and 18; full suite green; the PR's `corpus` job passes
   (it runs because the PR touches `tooling/corpus/`, `build-plugin.yml:102`). After merge, the first
@@ -83,7 +83,7 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
 - [x] Phase 1: builder `test --rerun --no-build-cache --tests '*LuaRecursiveReferenceTest' --tests '*LuaDescriptionIndexTest'`,
       then the mutants of cases 3, 5 and 6 one at a time on the same pattern (expect red at the
       assertion each case names), each reverted with the `temporary-edits` skill — cases 3–6.
-- [ ] Phase 2: builder `--tests '*FetchLuacScriptTest' --tests '*ParseOracleTest'`; case 12 run locally
+- [x] Phase 2: builder `--tests '*FetchLuacScriptTest' --tests '*ParseOracleTest'`; case 12 run locally
       into an empty `LUNAR_LUAC_ROOT` under scratch — cases 7–13.
 - [ ] Phase 3: read the PR's Gitea `build` log for `fixtures ok` and its test XML for the four classes;
       `junit_ctrf.py fetch --commit <PR head>` for the record's filter; the throwaway PR for case 15 —
@@ -95,5 +95,5 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Read the pinned corpus | done | Must |
-| Phase 2: Download `luac` | todo | Must |
+| Phase 2: Download `luac` | in_progress | Must |
 | Phase 3: Provision in CI and drop the exclusion | todo | Must |

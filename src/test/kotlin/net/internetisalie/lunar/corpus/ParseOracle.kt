@@ -16,7 +16,7 @@ import java.util.concurrent.TimeoutException
  * luarocks code rejected) sat in a baseline as an expected number until a human read the file. This
  * is the missing judge.
  *
- * The binary is **built from a sha256-pinned upstream tarball** by `tooling/corpus/fetch-luac.py`
+ * The binary is **downloaded from a sha256-pinned TOOLING-09 release archive** by `tooling/corpus/fetch-luac.py`
  * and resolved by table lookup to exactly one path. `PATH` is never consulted: a distro `luac` is
  * unpinned and patched, so two machines would judge by different binaries while the gate looked
  * uniform — see `luac.json` and design §2.0.
@@ -78,14 +78,14 @@ internal object ParseOracle {
                     // `level.name`, not `$level`: LuaLanguageLevel overrides toString() to a display
                     // form ("Lua 5.0"), and the manifest is keyed on the enum constant. The error must
                     // name the thing the reader will grep for.
-                    "No pinned luac for ${level.name}. The parse oracle is built from source, not " +
-                        "installed from a package, and ${level.name} has no entry in $MANIFEST_PATH.",
+                    "No pinned luac for ${level.name}. The parse oracle is a pinned release binary, not " +
+                        "a distro package, and ${level.name} has no entry in $MANIFEST_PATH.",
                 )
         val binary = File(repoRoot, "test/luac/${build.version}/luac")
         if (!binary.isFile) {
             error(
                 "No luac for ${level.name} at ${binary.path}.\n" +
-                    "The parse oracle is built from pinned source, not installed from a package.\n" +
+                    "The parse oracle is downloaded from a pinned release archive, not installed from a package.\n" +
                     "Run:  tooling/corpus/fetch-luac.py",
             )
         }
@@ -94,7 +94,7 @@ internal object ParseOracle {
     }
 
     /**
-     * The binary must carry the digest of the tarball it was built from.
+     * The binary must carry the digest of the archive it came from.
      *
      * Existence was the only check, which left the oracle trusting whatever sat at the resolved
      * path — a stale build from a previous pin, or a hand-copied distro binary. `TortureManifest`
@@ -113,7 +113,7 @@ internal object ParseOracle {
         }
     }
 
-    /** One `luac.json` entry: which upstream release answers for a level, and its tarball digest. */
+    /** One `luac.json` entry: which upstream release answers for a level, and its archive digest. */
     private data class PinnedBuild(
         val version: String,
         val sha256: String,

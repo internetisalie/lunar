@@ -11,9 +11,8 @@ import java.io.File
  * excludes `*Corpus*` unless `-PwithCorpus` is passed, and these are cheap unit tests that should
  * run in the routine suite.
  *
- * They need the pinned binaries from `tooling/corpus/fetch-luac.py`, which live in the out-of-repo
- * `test/` tree — the same prerequisite `LuaRecursiveReferenceTest` and `LuaDescriptionIndexTest`
- * already have, and which CI skips via `-PexcludeExternalFixtureTests`.
+ * They need the pinned binaries that `tooling/corpus/fetch-luac.py` downloads into the out-of-repo
+ * `test/` tree.
  */
 class ParseOracleTest : BasePlatformTestCase() {
     private val repoRoot = File(System.getProperty("user.dir"))
@@ -87,7 +86,7 @@ class ParseOracleTest : BasePlatformTestCase() {
     fun testPinnedVersionsComeFromTheManifest() {
         assertEquals("5.1.5", ParseOracle.pinnedVersion(repoRoot, LuaLanguageLevel.LUA51))
         assertEquals("5.4.8", ParseOracle.pinnedVersion(repoRoot, LuaLanguageLevel.LUA54))
-        assertEquals("5.5.1", ParseOracle.pinnedVersion(repoRoot, LuaLanguageLevel.LUA55))
+        assertEquals("5.5.0", ParseOracle.pinnedVersion(repoRoot, LuaLanguageLevel.LUA55))
         assertNull(ParseOracle.pinnedVersion(repoRoot, LuaLanguageLevel.LUA50))
     }
 
@@ -110,34 +109,6 @@ class ParseOracleTest : BasePlatformTestCase() {
         val message = failure?.message.orEmpty()
         assertTrue("the error must name the remedy; was: $message", message.contains("fetch-luac.py"))
         assertTrue("the error must name the path it looked at; was: $message", message.contains("test/luac/5.1.5"))
-    }
-
-    /**
-     * TC-9 — a checksum mismatch installs nothing.
-     *
-     * Driven through the real script with a `file://` entry, so it needs neither the network nor the
-     * real pins. Asserting on the **absence of the stamp** is the point: the stamp is what makes a
-     * later run skip the build, so a mismatch that stamped anyway would bless an unverified binary
-     * permanently.
-     */
-    fun testChecksumMismatchInstallsNothing() {
-        val work = FileUtil.createTempDirectory("lunar-luac-tc9", null)
-        val tarball = File(work, "decoy.tar.gz").apply { writeText("not a lua tarball") }
-        val manifest = File(work, "luac.json")
-        val wrongDigest = "0".repeat(64)
-        manifest.writeText(
-            """{"builds":[{"level":"LUA51","version":"5.1.5",""" +
-                """"url":"${tarball.toURI()}","sha256":"$wrongDigest"}]}""",
-        )
-        val luacRoot = File(work, "out")
-
-        val exit = runFetchScript(manifest, luacRoot)
-        assertTrue("a sha256 mismatch must fail the script; exit was $exit", exit != 0)
-        assertFalse("no binary may be installed", File(luacRoot, "5.1.5/luac").exists())
-        assertFalse(
-            "no stamp may be written — it would make the next run skip the build",
-            File(luacRoot, "5.1.5/.luac-sha").exists(),
-        )
     }
 
     /**
@@ -239,21 +210,6 @@ class ParseOracleTest : BasePlatformTestCase() {
     fun testLargeValidSourceIsAccepted() {
         val large = FILLER.repeat(50_000) + "local a = 1\n"
         assertEquals(ParseOracle.Verdict.Accept, judge(large, LuaLanguageLevel.LUA51))
-    }
-
-    private fun runFetchScript(
-        manifest: File,
-        luacRoot: File,
-    ): Int {
-        val script = File(repoRoot, "tooling/corpus/fetch-luac.py")
-        val builder = ProcessBuilder("python3", script.path).redirectErrorStream(true)
-        builder.environment()["LUNAR_LUAC_MANIFEST"] = manifest.path
-        builder.environment()["LUNAR_LUAC_ROOT"] = luacRoot.path
-        val process = builder.start()
-        val output = process.inputStream.readBytes().toString(Charsets.UTF_8)
-        val exit = process.waitFor()
-        println("[fetch-luac] $output")
-        return exit
     }
 
     private companion object {

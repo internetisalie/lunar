@@ -101,31 +101,6 @@ cmd_create() {
   die "Bootstrap did not finish in time; check: ./gce-builder.sh shell  then  sudo cat /var/log/lunar-bootstrap.log"
 }
 
-# Compares the highest GLIBC_x.y symbol the pinned luac oracles require against the builder's
-# runtime glibc. Warns rather than dies: `run test` (the routine loop) excludes the corpus classes,
-# so a mismatch only matters for `test -PwithCorpus`.
-check_luac_glibc() {
-  local luac_dir="$REPO_ROOT/test/luac"
-  [ -d "$luac_dir" ] || return 0
-  command -v objdump >/dev/null 2>&1 || return 0
-  local needed have
-  # `|| true` on every stage: this is advisory, and `set -euo pipefail` would otherwise turn an
-  # empty grep — or a builder that will not answer — into a silent abort of the whole sync.
-  needed="$(objdump -T "$luac_dir"/*/luac 2>/dev/null \
-    | grep -o 'GLIBC_[0-9]\+\.[0-9]\+' | sed 's/GLIBC_//' | sort -V | tail -1 || true)"
-  [ -n "$needed" ] || return 0
-  # ssh_exec, NOT the $ssh_t string: that string carries single-quoted paths which only rsync
-  # re-parses, so running it directly hands ssh a literally-quoted key path and exits 255.
-  have="$(ssh_exec --command "ldd --version | head -1 | grep -o '[0-9]\+\.[0-9]\+\$'" 2>/dev/null | tr -d '\r' | tail -1 || true)"
-  [ -n "$have" ] || return 0
-  if [ "$(printf '%s\n%s\n' "$needed" "$have" | sort -V | tail -1)" != "$have" ]; then
-    log "WARNING: pinned luac oracles need glibc >= $needed but this builder has $have."
-    log "         'test -PwithCorpus' will fail as \"the oracle rejected valid Lua\" — a GLIBC link"
-    log "         error, not a parser regression. Fix: raise BOOT_IMAGE_FAMILY in config.sh, or"
-    log "         rebuild the oracles on this host with tooling/corpus/fetch-luac.py."
-  fi
-}
-
 cmd_sync() {
   instance_exists || die "No instance; run: ./gce-builder.sh create"
   local ip; ip="$(external_ip)"
@@ -142,19 +117,13 @@ cmd_sync() {
     --filter=':- .gitignore' --exclude='/.git/' --exclude='/test' \
     -e "$ssh_t" \
     "$REPO_ROOT/" "$REMOTE_USER@$ip:$REMOTE_DIR/"
-  # Vendored test data (e.g. test/luacheck and test/*.lua) needed by integration/unit tests:
+  # Vendored test data (e.g. test/corpus and test/luac) needed by integration/unit tests:
   # follow the symlink (-L) and push the real files so they survive --delete and aren't a dangling link on the VM.
   if [ -d "$REPO_ROOT/test" ]; then
     ssh_exec --command "rm -f '$REMOTE_DIR/test' 2>/dev/null; mkdir -p '$REMOTE_DIR/test'" >/dev/null 2>&1 || true
     rsync -aLz --delete -e "$ssh_t" \
       "$REPO_ROOT/test/" "$REMOTE_USER@$ip:$REMOTE_DIR/test/"
   fi
-  # PREFLIGHT: the pinned `luac` oracles in test/luac/ are BUILT by tooling/corpus/fetch-luac.py on
-  # whichever host ran it and then shipped here verbatim, so they carry that host's glibc symbol
-  # versions. If the builder's glibc is older, every corpus sweep case dies with a `GLIBC_x.yz not
-  # found` link error that surfaces as "the oracle rejected valid Lua" — a diagnosis two steps
-  # removed from the cause. Fail loudly here instead. Non-fatal: only the sweep needs the oracles.
-  check_luac_glibc
   # The debug-harness test execs ~/bin/lua; ensure it points at the bootstrap-installed lua5.4.
   ssh_exec --command "command -v lua5.4 >/dev/null && { mkdir -p ~/bin; ln -sf \$(command -v lua5.4) ~/bin/lua; }" >/dev/null 2>&1 || true
   log "Sync done."

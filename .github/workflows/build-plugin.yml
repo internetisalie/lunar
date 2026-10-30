@@ -89,7 +89,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y --no-install-recommends \
-            fontconfig fonts-dejavu-core lua5.4 lua-socket
+            fontconfig fonts-dejavu-core lua5.4 lua-socket python3 git
           fc-cache -f || true
           mkdir -p "$HOME/bin"
           ln -sf "$(command -v lua5.4)" "$HOME/bin/lua"
