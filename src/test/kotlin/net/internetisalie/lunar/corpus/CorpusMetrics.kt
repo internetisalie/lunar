@@ -46,7 +46,7 @@ data class CorpusMetrics(
      * them and the baseline showed 19.
      */
     val oracleFalseAccepts: Int = 0,
-    /** Diagnostic, capped at 20 in `CorpusSweep.run`: `falseReject:<path>` / `falseAccept:<path>`. */
+    /** Diagnostic, capped at 20 in `CorpusFindingCounts.oracleSites`: `falseReject:<path>` / `falseAccept:<path>`. */
     val oracleSites: List<String> = emptyList(),
     /**
      * **Gated.** A `NotJudged` verdict is not neutral: an unjudged file cannot be a disagreement, so
@@ -71,6 +71,11 @@ data class CorpusMetrics(
      * attribution tally. **Not rendered** into the baseline.
      */
     val allSymbolHits: Map<String, Int> = emptyMap(),
+    /**
+     * MAINT-40-01 — every hit behind the counters above, which [CorpusFindingCounts.derive] computes
+     * from it. **Not rendered** into the baseline; written to `build/corpus-findings/` instead.
+     */
+    val findings: List<CorpusFinding> = emptyList(),
 ) {
     companion object {
         /** Reserved key for highlights whose originating inspection cannot be identified. */
@@ -169,7 +174,7 @@ object CorpusBaseline {
             appendLine("lexerRoundTripFailures=${metrics.lexerRoundTripFailures}")
             appendLine("unmergedTokens=${metrics.unmergedTokens}")
             metrics.parseErrorFiles.forEach { appendLine("parseErrorFile=$it") }
-            // Already capped at construction (CorpusSweep.run), never here: a render-time cap is lossy
+            // Already capped at construction (CorpusFindingCounts.oracleSites), never here: a render-time cap is lossy
             // and would break BaselineRatchetTest.renderParseRoundTrip.
             metrics.oracleSites.forEach { appendLine("$ORACLE_SITE_KEY=$it") }
         }

@@ -3,6 +3,7 @@ package net.internetisalie.lunar.corpus
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.fileTypes.UnknownFileType
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiErrorElement
@@ -26,24 +27,32 @@ import java.io.File
  * can be large and can grow without anyone authoring per-file assertions.
  */
 object CorpusSweep {
-    private const val SYMBOLS_PER_INSPECTION = 10
-
+    /**
+     * One file's findings (MAINT-40-01) and the counts read from them. The counts are computed from
+     * [findings], never stored beside them, so the two cannot disagree.
+     */
     internal data class FileTally(
-        val parseErrors: Int,
         val requires: Int,
-        val unresolved: Int,
-        val errorSites: List<String> = emptyList(),
-        /** MAINT-35-04: token texts did not reconstitute the source. */
-        val roundTripFailed: Boolean = false,
-        /** MAINT-35-04: internal `LONGSTRING*`/`LONGCOMMENT*` tokens escaped the merge (BUG-392). */
-        val unmergedTokens: Int = 0,
-        /** MAINT-35-05: `lex:<Class>` or `parse:<Class>`, else null. */
-        val crash: String? = null,
+        val findings: List<CorpusFinding>,
         /** MAINT-35-02: PUC's verdict, or null when the file was not judged. */
         val oracle: ParseOracle.Verdict? = null,
+    ) {
+        val parseErrors get() = CorpusFindingCounts.count(findings, CorpusRules.PARSE_ERROR)
+
         /** BUG-409: syntax errors Lunar reports without a `PsiErrorElement` (`LuaSyntaxDiagnostics`). */
-        val invalidStatements: Int = 0,
-    )
+        val invalidStatements get() = CorpusFindingCounts.count(findings, CorpusRules.INVALID_STATEMENT)
+
+        val unresolved get() = CorpusFindingCounts.count(findings, CorpusRules.UNRESOLVED_REQUIRE)
+
+        /** MAINT-35-04: token texts did not reconstitute the source. */
+        val roundTripFailed get() = CorpusFindingCounts.count(findings, CorpusRules.LEXER_ROUND_TRIP) > 0
+
+        /** MAINT-35-04: internal `LONGSTRING*`/`LONGCOMMENT*` tokens escaped the merge (BUG-392). */
+        val unmergedTokens get() = CorpusFindingCounts.count(findings, CorpusRules.UNMERGED_TOKENS)
+
+        /** MAINT-35-05: `lex:<Class>` or `parse:<Class>`, else null. */
+        val crash get() = findings.firstOrNull { it.rule == CorpusRules.CRASH }?.message
+    }
 
     private data class SweptFile(
         val path: String,
@@ -61,10 +70,25 @@ object CorpusSweep {
 
         /** Lunar accepts and `luac` does not — diagnostic; see the level-superset note above. */
         val falseAccept get() = tally.oracle is ParseOracle.Verdict.Reject && lunarAccepts
+
+        /** The tally's findings plus the oracle's verdict on this file, as findings. */
+        val findings: List<CorpusFinding> get() = tally.findings + oracleFindings(FindingSite(path, null))
+
+        private fun oracleFindings(site: FindingSite): List<CorpusFinding> =
+            listOfNotNull(
+                site.fileFinding(CorpusRules.ORACLE_FALSE_REJECT, FALSE_REJECT_MESSAGE).takeIf { falseReject },
+                site.fileFinding(CorpusRules.ORACLE_FALSE_ACCEPT, FALSE_ACCEPT_MESSAGE).takeIf { falseAccept },
+                site.fileFinding(CorpusRules.ORACLE_TIMEOUT, NOT_JUDGED_MESSAGE).takeIf {
+                    tally.oracle is ParseOracle.Verdict.NotJudged
+                },
+            )
     }
 
-    /** Mirrors SYMBOLS_PER_INSPECTION's intent: the baseline must stay reviewable. */
-    private const val ORACLE_SITES_CAP = 20
+    private const val FALSE_REJECT_MESSAGE = "luac accepts, Lunar rejects"
+    private const val FALSE_ACCEPT_MESSAGE = "Lunar accepts, luac rejects"
+    private const val NOT_JUDGED_MESSAGE = "oracle did not judge the file"
+    private const val ROUND_TRIP_MESSAGE = "token texts do not reconstitute the source"
+    private const val UNMERGED_MESSAGE = "internal long-bracket tokens escaped the merge"
 
     /** What every per-file step needs beyond the fixture: which corpus, and where the repo is. */
     private data class SweepContext(
@@ -85,55 +109,29 @@ object CorpusSweep {
         // "no disagreements" (MAINT-35-03).
         ParseOracle.assertDiscriminates(repoRoot, entry.luaLevel)
         val swept = entry.roots.flatMap { sweepRoot(fixture, context, it) }.sortedBy { it.path }
-        val sink = inspectionHits(fixture, swept)
-        return metricsOf(context, swept, sink).copy(libraries = CorpusDefinitionLibraries.enabledPins(fixture.project))
-    }
-
-    private fun metricsOf(
-        context: SweepContext,
-        swept: List<SweptFile>,
-        sink: HitSink,
-    ): CorpusMetrics {
-        val checkoutDir = CorpusManifest.checkoutDir(context.repoRoot, context.entry.name)
-        return CorpusMetrics(
-            commit = context.entry.commit,
-            files = swept.size,
-            parseErrors = swept.sumOf { it.tally.parseErrors },
-            requires = swept.sumOf { it.tally.requires },
-            unresolvedRequires = swept.sumOf { it.tally.unresolved },
-            parseErrorFiles =
-                swept
-                    .filter { it.tally.parseErrors > 0 }
-                    .flatMap { file -> file.tally.errorSites.map { "${file.path}:$it" } },
-            inspectionHits = sink.hits,
-            symbolHits = topSymbols(sink.symbols),
-            ballast = ballast(checkoutDir, context.entry),
-            // MAINT-35-02: only FALSE REJECTS are gated. Lunar parses a superset of any single
-            // language level and defers enforcement to LuaLanguageLevelInspection, so "luac rejects,
-            // Lunar accepts" has a systematic false positive (DR-01) and is diagnostic only.
-            oracleDisagreements = swept.count { it.falseReject },
-            oracleFalseAccepts = swept.count { it.falseAccept },
-            oracleSites = oracleSites(swept),
-            oracleTimeouts = swept.count { it.tally.oracle is ParseOracle.Verdict.NotJudged },
-            lexerRoundTripFailures = swept.count { it.tally.roundTripFailed },
-            unmergedTokens = swept.sumOf { it.tally.unmergedTokens },
-            crashes = swept.mapNotNull { it.tally.crash }.groupingBy { it }.eachCount(),
-            allSymbolHits = sink.symbols.toSortedMap(),
-        )
+        val metrics = metricsOf(context, swept, inspectionHits(fixture, swept))
+        return metrics.copy(libraries = CorpusDefinitionLibraries.enabledPins(fixture.project))
     }
 
     /**
-     * Disagreement sites, **gated direction first**, capped so the baseline stays reviewable.
-     *
-     * The order is load-bearing, not cosmetic. A plain `.sorted().take(20)` sorts `falseAccept`
-     * ahead of `falseReject` alphabetically, so the moment a corpus produced more than 20 sites the
-     * cap would discard exactly the direction that fails the build — leaving `oracleDisagreements`
-     * non-zero with nothing in the baseline saying where.
+     * Every counter comes from the findings (MAINT-40-02). MAINT-35-02: only FALSE REJECTS are
+     * gated. Lunar parses a superset of any single language level and defers enforcement to
+     * LuaLanguageLevelInspection, so "luac rejects, Lunar accepts" has a systematic false positive
+     * (DR-01) and is diagnostic only.
      */
-    private fun oracleSites(swept: List<SweptFile>): List<String> {
-        val rejects = swept.filter { it.falseReject }.map { "falseReject:${it.path}" }.sorted()
-        val accepts = swept.filter { it.falseAccept }.map { "falseAccept:${it.path}" }.sorted()
-        return (rejects + accepts).take(ORACLE_SITES_CAP)
+    private fun metricsOf(
+        context: SweepContext,
+        swept: List<SweptFile>,
+        inspectionFindings: List<CorpusFinding>,
+    ): CorpusMetrics {
+        val checkoutDir = CorpusManifest.checkoutDir(context.repoRoot, context.entry.name)
+        val findings = swept.flatMap { it.findings } + inspectionFindings
+        return CorpusFindingCounts.derive(findings).copy(
+            commit = context.entry.commit,
+            files = swept.size,
+            requires = swept.sumOf { it.tally.requires },
+            ballast = ballast(checkoutDir, context.entry),
+        )
     }
 
     /**
@@ -155,21 +153,6 @@ object CorpusSweep {
         val base = File(checkoutDir, moduleRoot).canonicalPath
         LuaProjectSettings.getInstance(fixture.project).state.sourcePath = "$base/?.lua;$base/?/init.lua"
     }
-
-    /**
-     * The top [SYMBOLS_PER_INSPECTION] symbols per inspection. Capped so the baseline stays a
-     * reviewable diff rather than a dump of every name in the corpus; ties break by name so the
-     * selection is deterministic.
-     */
-    private fun topSymbols(symbols: Map<String, Int>): Map<String, Int> =
-        symbols.entries
-            .groupBy { it.key.substringBefore('.') }
-            .values
-            .flatMap { perTool ->
-                perTool
-                    .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
-                    .take(SYMBOLS_PER_INSPECTION)
-            }.associate { it.key to it.value }
 
     /**
      * MAINT-33-07. Ballast is the **complement of what the sweep indexes**: a file is ballast
@@ -226,73 +209,51 @@ object CorpusSweep {
         return collectLuaFiles(copied).mapNotNull { luaFile ->
             val psiFile = psiManager.findFile(luaFile) ?: return@mapNotNull null
             val relativePath = VfsUtilCore.getRelativePath(luaFile, copied) ?: luaFile.name
-            SweptFile("$root/$relativePath", luaFile, tallyGuarded(context, psiFile))
+            val path = "$root/$relativePath"
+            SweptFile(path, luaFile, tallyGuarded(context, psiFile, path))
         }
     }
 
     /**
-     * MAINT-33-06. One highlight pass per file, attributed by tool id; a null id is bucketed under
-     * [CorpusMetrics.UNATTRIBUTED] **net of** that file's parse errors, because every
-     * `PsiErrorElement` also yields a null-id ERROR info and is already gated by `parseErrors`.
+     * MAINT-33-06. One highlight pass per file, one finding per highlight: attributed by tool id, or
+     * [CorpusRules.UNATTRIBUTED_HIGHLIGHT] for a null id, which [CorpusFindingCounts.inspectionHits]
+     * nets against that file's parse errors.
      */
     private fun inspectionHits(
         fixture: CodeInsightTestFixture,
         swept: List<SweptFile>,
-    ): HitSink {
-        val sink = HitSink()
-        val hits = sink.hits
-        swept.forEach { entry ->
+    ): List<CorpusFinding> =
+        swept.flatMap { entry ->
             // Deliberately catching Throwable, not Exception: BUG-390 overflows the stack inside
             // the type engine, and a single pathological file must not abort the measurement of a
             // whole corpus. The count is gated (CorpusMetrics.HIGHLIGHT_FAILURES), so a rise still
             // fails the build — the failure is recorded, never swallowed.
             @Suppress("TooGenericExceptionCaught")
             try {
-                accumulateHits(fixture, entry, sink)
+                accumulateHits(fixture, entry)
             } catch (throwable: Throwable) {
                 println("[corpus] highlight failed on ${entry.path}: ${throwable.javaClass.simpleName}")
-                hits[CorpusMetrics.HIGHLIGHT_FAILURES] = (hits[CorpusMetrics.HIGHLIGHT_FAILURES] ?: 0) + 1
+                val site = FindingSite(entry.path, null)
+                listOf(site.fileFinding(CorpusRules.HIGHLIGHT_FAILURE, throwable.javaClass.simpleName))
             }
         }
-        return sink
-    }
 
-    /**
-     * MAINT-33-10. Per-inspection counts plus, for each, the symbols it fired on most often —
-     * enough to tell a missing-definitions problem (`wx`, one huge bucket) from a resolution defect
-     * (a long tail of names the plugin should already know).
-     */
-    private class HitSink(
-        val hits: MutableMap<String, Int> = mutableMapOf(),
-        val symbols: MutableMap<String, Int> = mutableMapOf(),
-    )
-
-    /** The symbol an inspection names, e.g. `Undeclared variable 'wx'` → `wx`. */
+    /** The symbol an inspection names, e.g. `Undeclared variable 'wx'` → `wx` (MAINT-33-10). */
     private val QUOTED_SYMBOL = Regex("'([^']+)'")
 
     private fun accumulateHits(
         fixture: CodeInsightTestFixture,
         entry: SweptFile,
-        sink: HitSink,
-    ) {
-        val hits = sink.hits
+    ): List<CorpusFinding> {
         fixture.openFileInEditor(entry.file)
-        var nullIds = 0
-        fixture.doHighlighting(HighlightSeverity.WEAK_WARNING).forEach { info ->
+        val site = FindingSite(entry.path, fixture.editor.document)
+        return fixture.doHighlighting(HighlightSeverity.WEAK_WARNING).map { info ->
             val toolId = info.inspectionToolId
-            if (toolId == null) {
-                nullIds++
-            } else {
-                hits[toolId] = (hits[toolId] ?: 0) + 1
-                QUOTED_SYMBOL.find(info.description.orEmpty())?.groupValues?.get(1)?.let { symbol ->
-                    val key = "$toolId.$symbol"
-                    sink.symbols[key] = (sink.symbols[key] ?: 0) + 1
-                }
-            }
-        }
-        val unattributed = (nullIds - entry.tally.parseErrors).coerceAtLeast(0)
-        if (unattributed > 0) {
-            hits[CorpusMetrics.UNATTRIBUTED] = (hits[CorpusMetrics.UNATTRIBUTED] ?: 0) + unattributed
+            val rule = if (toolId == null) CorpusRules.UNATTRIBUTED_HIGHLIGHT else CorpusRules.inspection(toolId)
+            val description = info.description.orEmpty()
+            val finding = site.finding(rule, TextRange(info.startOffset, info.endOffset), description)
+            val symbol = if (toolId == null) null else QUOTED_SYMBOL.find(description)?.groupValues?.get(1)
+            finding.copy(symbol = symbol)
         }
     }
 
@@ -323,24 +284,39 @@ object CorpusSweep {
     private fun tallyGuarded(
         context: SweepContext,
         psiFile: PsiFile,
+        path: String,
     ): FileTally {
         val source = psiFile.text
+        val site = FindingSite(path, psiFile.viewProvider.document)
         val lex = LexerInvariants.check(source)
-        val parsed = runCatching { tally(psiFile) }
+        val parsed = runCatching { tally(psiFile, site) }
         val crash =
             lex.crash?.let { "lex:$it" }
                 ?: parsed.exceptionOrNull()?.let { "parse:${it::class.java.simpleName}" }
 
-        val base = parsed.getOrNull() ?: FileTally(parseErrors = 0, requires = 0, unresolved = 0)
+        val base = parsed.getOrNull() ?: FileTally(requires = 0, findings = emptyList())
         return base.copy(
-            roundTripFailed = lex.roundTripFailed,
-            unmergedTokens = lex.unmergedTokens,
-            crash = crash,
+            findings = base.findings + guardFindings(site, lex, crash),
             oracle = if (crash != null) null else ParseOracle.judge(context.repoRoot, source, context.entry.luaLevel),
         )
     }
 
-    private fun tally(psiFile: PsiFile): FileTally {
+    /** MAINT-35-04/-05 as findings: the crash, a failed round trip, and escaped internal tokens. */
+    private fun guardFindings(
+        site: FindingSite,
+        lex: LexerInvariants.Result,
+        crash: String?,
+    ): List<CorpusFinding> =
+        listOfNotNull(
+            crash?.let { site.fileFinding(CorpusRules.CRASH, it) },
+            site.fileFinding(CorpusRules.LEXER_ROUND_TRIP, ROUND_TRIP_MESSAGE).takeIf { lex.roundTripFailed },
+            site.fileFinding(CorpusRules.UNMERGED_TOKENS, UNMERGED_MESSAGE, lex.unmergedTokens).takeIf { it.count > 0 },
+        )
+
+    private fun tally(
+        psiFile: PsiFile,
+        site: FindingSite,
+    ): FileTally {
         // Both hosts, deliberately: `require("m")` anchors its reference on the LuaTerminalExpr,
         // `require "m"` on the enclosing LuaArgs (BUG-389 — a reference cannot hang on a bare leaf).
         // Collecting only the former is exactly the blind spot that made this metric report 3
@@ -352,24 +328,19 @@ object CorpusSweep {
             requireHosts
                 .flatMap { it.references.asIterable() }
                 .filterIsInstance<LuaRequireReference>()
-        return FileTally(
-            parseErrors = PsiTreeUtil.findChildrenOfType(psiFile, PsiErrorElement::class.java).size,
-            invalidStatements = LuaSyntaxDiagnostics.invalidStatements(psiFile).size,
-            requires = requireReferences.size,
-            unresolved = requireReferences.count { it.resolve() == null },
-            errorSites = describeParseErrors(psiFile),
-        )
-    }
-
-    /**
-     * `line:description` for each `PsiErrorElement`, so a parse regression is locatable from the
-     * baseline diff alone instead of needing a bisect over the file (BUG-392 needed exactly that).
-     */
-    private fun describeParseErrors(psiFile: PsiFile): List<String> {
-        val document = psiFile.viewProvider.document
-        return PsiTreeUtil.findChildrenOfType(psiFile, PsiErrorElement::class.java).map { error ->
-            val line = document?.getLineNumber(error.textOffset)?.plus(1) ?: 0
-            "$line:${error.errorDescription}"
-        }
+        val parseErrors =
+            PsiTreeUtil.findChildrenOfType(psiFile, PsiErrorElement::class.java).map { error ->
+                site.finding(CorpusRules.PARSE_ERROR, error.textRange, error.errorDescription)
+            }
+        val invalidStatements =
+            LuaSyntaxDiagnostics.invalidStatements(psiFile).map { statement ->
+                site.finding(CorpusRules.INVALID_STATEMENT, statement.textRange, "invalid statement")
+            }
+        val unresolved =
+            requireReferences.filter { it.resolve() == null }.map { reference ->
+                val module = reference.canonicalText
+                site.finding(CorpusRules.UNRESOLVED_REQUIRE, reference.absoluteRange, module).copy(symbol = module)
+            }
+        return FileTally(requires = requireReferences.size, findings = parseErrors + invalidStatements + unresolved)
     }
 }

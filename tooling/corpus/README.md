@@ -149,6 +149,30 @@ row blocks on a structural, `crash.*` or `highlightFailures` key, except that a 
 together, and `--offset` takes none of them. **Exit codes:** `0` no blocking row; `1` a blocking
 row; `2` inconsistent arguments.
 
+### Findings per commit (MAINT-40)
+
+Every non-attribution sweep also writes `build/corpus-findings/<member>.json`: one finding (rule,
+path, offsets, line, column, message, symbol) per hit behind the baseline's counters. A
+`-PwithCorpus` run empties that directory first, so it holds one invocation's files.
+`corpus_ctrf.py` turns them into a CTRF 0.2.0 document, one `failed` test per finding, whose
+`testId` is a fingerprint that survives rewording. The committed baselines stay the gate.
+
+- **`assemble`**: `python3 tooling/corpus/corpus_ctrf.py assemble --findings build/corpus-findings
+  --manifest tooling/corpus/corpus.json --out corpus.ctrf.json`. The same findings give the same
+  bytes. `results.environment.testEnvironment` is the run's identity, `full-<hex>` for the full
+  `'*Corpus*'` shape or `member-<name>-<hex>` for one member. Files from two JVMs, or a partial
+  set, exit `2`.
+- **`fetch`**: `corpus_ctrf.py fetch --commit origin/main --out before.ctrf.json [--like DOC]
+  [--max-depth N]` reads loom's conformance store (check `a3`, suite `corpus`) through `loom-cli`,
+  walking first-parent ancestors. It prints `fetched <sha> identity=… distance=…` and exits `0`;
+  `3` when nothing is stored within the depth (default 50); `1` on a `loom-cli` failure. `--like`
+  accepts only a document with that document's identity. Nothing is stored until the loom Manager
+  signals that the LCL-241 loom-cli is installed everywhere the store is read and loom-catalog has
+  been redeployed.
+- **`diff`**: `corpus_ctrf.py diff before.ctrf.json after.ctrf.json` prints `NEW`, `RESOLVED` and
+  per-rule `COUNT` lines, sorted, and exits `1` if any finding is new, else `0`. Documents with
+  different identities, members, `files` or `requires` print `NOT COMPARABLE: …` and exit `2`.
+
 The Python tools have unit tests:
 `python3 -m unittest discover -s tooling/corpus -p 'test_*.py'`.
 

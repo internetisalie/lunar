@@ -412,6 +412,12 @@ tasks {
                 isFailOnNoMatchingTests = false
             }
         }
+        // MAINT-40: the findings directory holds exactly one invocation's files, which is what lets
+        // tooling/corpus/corpus_ctrf.py read the run's shape from it.
+        if (project.hasProperty("withCorpus")) {
+            val corpusFindingsDir = layout.buildDirectory.dir("corpus-findings").get().asFile
+            doFirst { corpusFindingsDir.deleteRecursively() }
+        }
         // Corpus sweeps index whole pinned third-party projects (~300 files) and are far slower
         // than the routine loop, so they are opt-in: `./gradlew test -PwithCorpus`. They also need
         // the corpus fetched (tooling/corpus/fetch-corpus.py) into the out-of-repo test/ tree,

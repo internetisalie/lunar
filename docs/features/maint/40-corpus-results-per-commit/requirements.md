@@ -3,7 +3,7 @@ id: "MAINT-40"
 title: "40: Corpus Sweep Results Stored Per Commit"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -57,15 +57,15 @@ The identity is derived from the run, never typed, and comparison runs in Lunar'
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-40-01 | **Findings per hit** | M | Not Implemented | Every non-attribution sweep of a member writes `build/corpus-findings/<member>.json`, holding one finding per hit of every defect counter the baseline carries (design §4.1). It is written before the ratchet asserts. |
-| MAINT-40-02 | **Counts derived from findings** | M | Not Implemented | Every counter in `CorpusMetrics` that counts hits is computed from the findings list. A record run reproduces every committed baseline byte for byte. |
-| MAINT-40-03 | **One CTRF document** | M | Not Implemented | `corpus_ctrf.py assemble` turns one invocation's findings files into one CTRF 0.2.0 document holding one `failed` test per finding (design §4.2). A clean run has zero tests. The same inputs give the same bytes. |
-| MAINT-40-04 | **Stable fingerprint** | M | Not Implemented | Each test's `testId` is its finding's fingerprint, and its `name` contains it. It is unchanged across Lunar commits when member, rule, path, offsets and symbol are unchanged, whatever the message text. |
-| MAINT-40-05 | **Derived environment identity** | M | Not Implemented | `results.environment.testEnvironment` is computed from the sweep shape, each member's manifest comparability fields and its observed library pins (design §3.2). Nobody types it. Mixed or partial run sets are refused. |
-| MAINT-40-06 | **Store from CI** | M | Not Implemented | Once LCL-241 ships, the Gitea `corpus` job puts the document against `HEAD` as check `a3` suite `corpus`. A record that is already stored is not an error. Any other store failure fails the job. The ratchet's verdict is unchanged. Before LCL-241 ships, nothing is stored. |
-| MAINT-40-07 | **Fetch nearest ancestor** | M | Not Implemented | `corpus_ctrf.py fetch` returns the stored corpus document of the nearest first-parent ancestor that has one, optionally with a matching environment identity, within a depth bound. |
-| MAINT-40-08 | **Finding-level compare** | M | Not Implemented | `corpus_ctrf.py diff` reports newly failing tests (new findings), absent tests (resolved findings) and count changes per rule. It refuses documents whose identities differ ("not comparable", never a regression). |
-| MAINT-40-09 | **Baselines stay the gate** | M | Not Implemented | The ratchet keeps reading the committed `.baseline` files. Stored results are the attributable "before", never the gate's reference. |
+| MAINT-40-01 | **Findings per hit** | M | Full | Every non-attribution sweep of a member writes `build/corpus-findings/<member>.json`, holding one finding per hit of every defect counter the baseline carries (design §4.1). It is written before the ratchet asserts. |
+| MAINT-40-02 | **Counts derived from findings** | M | Full | Every counter in `CorpusMetrics` that counts hits is computed from the findings list. A record run reproduces every committed baseline byte for byte. |
+| MAINT-40-03 | **One CTRF document** | M | Full | `corpus_ctrf.py assemble` turns one invocation's findings files into one CTRF 0.2.0 document holding one `failed` test per finding (design §4.2). A clean run has zero tests. The same inputs give the same bytes. |
+| MAINT-40-04 | **Stable fingerprint** | M | Full | Each test's `testId` is its finding's fingerprint, and its `name` contains it. It is unchanged across Lunar commits when member, rule, path, offsets and symbol are unchanged, whatever the message text. |
+| MAINT-40-05 | **Derived environment identity** | M | Full | `results.environment.testEnvironment` is computed from the sweep shape, each member's manifest comparability fields and its observed library pins (design §3.2). Nobody types it. Mixed or partial run sets are refused. |
+| MAINT-40-06 | **Store from CI** | M | Not Implemented | The Gitea `corpus` job puts the document against `HEAD` as check `a3` suite `corpus`. A record that is already stored is not an error. Any other store failure fails the job. The ratchet's verdict is unchanged. Nothing is stored until the loom Manager signals that the LCL-241 loom-cli is installed everywhere the store is read and loom-catalog has been redeployed. |
+| MAINT-40-07 | **Fetch nearest ancestor** | M | Full | `corpus_ctrf.py fetch` returns the stored corpus document of the nearest first-parent ancestor that has one, optionally with a matching environment identity, within a depth bound. |
+| MAINT-40-08 | **Finding-level compare** | M | Full | `corpus_ctrf.py diff` reports newly failing tests (new findings), absent tests (resolved findings) and count changes per rule. It refuses documents whose identities differ ("not comparable", never a regression). |
+| MAINT-40-09 | **Baselines stay the gate** | M | Partial | The ratchet keeps reading the committed `.baseline` files. Stored results are the attributable "before", never the gate's reference. |
 | MAINT-40-10 | **Hand-run sidecar** | C | Future Work | A member-alone or hand run is stored under its own suite name. The store has one `corpus` key per commit, so until a second suite is chosen `store` refuses any run whose shape is not `full` (design §3.5). |
 
 ## Test Cases
@@ -117,9 +117,24 @@ swapped (their expected values 4, 1, 2, 3 are distinct).
 and the ratchet's code does not change. Its existing tests (`BaselineRatchetTest`) are its evidence.
 It is verified by inspection: no step of the `corpus` job reads the store before the ratchet.
 
+## Implementation Status
+
+Phases 1–3 are implemented; Phases 0 and 4 (MAINT-40-06, and -10's `store` refusal) wait on loom
+LCL-241.
+
+- **-01, -02**: `CorpusFinding.kt`, `CorpusFindingCounts.kt`, `CorpusFindingsFile.kt`, and
+  `CorpusSweep` deriving every counter through `CorpusFindingCounts.derive`. TC 2 is
+  `SweepFindingCountsTest`. TC 1 and TC 3 hold on the pinned corpus.
+- **-03, -04, -05**: `tooling/corpus/corpus_ctrf.py` `assemble`; TC 4–6 in `test_corpus_ctrf.py`. The
+  document assembled from a full run validates against the pinned CTRF 0.2.0 schema.
+- **-07, -08**: `fetch` and `diff`; TC 9–10 against the design §4.3 stub `loom-cli`.
+- **-09**: Partial. The ratchet still reads the committed baselines (`CorpusGuards.assertRatchet` is
+  unchanged). The check that no `corpus` job step reads the store before the ratchet belongs to
+  Phase 4's workflow.
+
 ## Acceptance Criteria
 
-- [ ] TC 1–6 and 9–10 pass (the Phases 1–3 PR). TC 3 prints nothing.
+- [x] TC 1–6 and 9–10 pass (the Phases 1–3 PR). TC 3 prints nothing.
 - [ ] TC 7 passes, and TC 8 holds on the first `main` push after Phase 4 (after LCL-241).
 - [ ] The CI `corpus` job is green on the Phase 4 PR, and its log shows the store outcome line.
 
@@ -135,8 +150,8 @@ It is verified by inspection: no step of the `corpus` job reads the store before
   loom-cli download) and org variables `LOOM_OBJECT_BUCKET`, `LOOM_OBJECT_ENDPOINT`: present on Gitea
   org `lunar` (2026-10-29).
 - `loom-cli` in the `corpus` job, fetched unpinned at job start (implementation-plan Phase 0).
-- **Loom LCL-241** (a suite segment in the conformance key), for Phase 0 and Phase 4 only. Until it
-  ships, no MAINT-40 record is stored (risks Gap 2.3).
+- **Loom LCL-241** (a suite segment in the conformance key), for Phase 0 and Phase 4 only:
+  nothing is stored until the loom Manager signals that the LCL-241 loom-cli is installed everywhere the store is read and loom-catalog has been redeployed (risks Gap 2.3).
 - The de-risking rows in [risks-and-gaps.md](risks-and-gaps.md) marked `todo`.
 
 ## See Also

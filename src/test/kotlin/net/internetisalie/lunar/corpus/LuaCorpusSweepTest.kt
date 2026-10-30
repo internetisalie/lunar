@@ -143,6 +143,8 @@ class LuaCorpusSweepTest : BasePlatformTestCase() {
             return
         }
 
+        // MAINT-40-01: before the ratchet, so a regressing commit still leaves its findings behind.
+        CorpusFindingsFile.write(repoRoot, name, observed)
         val baselineFile = CorpusBaseline.file(repoRoot, name)
         if (System.getProperty("lunar.corpus.record") == "true") {
             recordBaseline(baselineFile, observed)

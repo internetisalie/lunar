@@ -201,7 +201,7 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
     }
 
     /**
-     * Gated directions first, then capped — see `CorpusSweep.oracleSites` for why the order matters.
+     * Gated directions first, then capped — see `CorpusFindingCounts.oracleSites` for why the order matters.
      *
      * Only **[unexpected]** false accepts are listed: the allowlisted ones are enumerated in full,
      * with reasons, in `torture-<name>.expected-accepts`, and repeating a truncated 20 of them here
@@ -266,7 +266,7 @@ class LuaTortureCorpusTest : BasePlatformTestCase() {
     }
 
     private companion object {
-        /** Mirrors `CorpusSweep.ORACLE_SITES_CAP`: the baseline must stay a reviewable diff. */
+        /** Mirrors `CorpusFindingCounts.ORACLE_SITES_CAP`: the baseline must stay a reviewable diff. */
         const val ORACLE_SITES_CAP = 20
     }
 }

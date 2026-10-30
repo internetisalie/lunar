@@ -68,7 +68,7 @@ class BaselineRatchetTest {
      * MAINT-35-07. Every new field must survive render→parse, or this existing assertion breaks
      * the moment a field is added without a serializer.
      *
-     * `oracleSites` is capped at construction (`CorpusSweep.run`), never at render — a render-time
+     * `oracleSites` is capped at construction (`CorpusFindingCounts.oracleSites`), never at render — a render-time
      * cap is lossy and would fail exactly this test, and its truncation marker would parse back as
      * a fake disagreement site.
      */

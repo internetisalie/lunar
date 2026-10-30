@@ -23,24 +23,26 @@ folders:
 
 ## Phases
 
-Phases 1–3 need no store and no credentials, and ship as one PR now. Phases 0 and 4 are gated on
-loom LCL-241 (risks Gap 2.3, DR-10): nothing is stored before it ships.
+Phases 1–3 need no store and no credentials, and ship as one PR. Phases 0 and 4 are gated on
+loom LCL-241 (risks Gap 2.3, DR-10): nothing is stored until the loom Manager signals that the LCL-241 loom-cli is installed everywhere the store is read and loom-catalog has been redeployed.
 
 ### Phase 1: Findings and derived counts [Must]
 - **Goal**: every hit is a finding. The counters are derived from the findings, and the baselines are byte-identical.
 - **Tasks**:
-  - [ ] **Baseline control, before any code edit**: run the record command plus copy-back at the
+  - [x] **Baseline control, before any code edit**: run the record command plus copy-back at the
         base commit, then `git status --porcelain -- src/test/resources/corpus/`. If it prints
         anything, commit that re-record alone (`test(corpus): re-record baselines at <base sha>`) so
-        TC 1 and TC 3 measure only this phase.
-  - [ ] Create `CorpusFinding.kt` (`CorpusFinding`, `FindingSite`, `CorpusRules`) — design §2.1.
-  - [ ] Create `CorpusFindingCounts.kt` — design §2.2, §3.1.
-  - [ ] Edit `CorpusSweep.kt` per design §2.3, and `CorpusMetrics.kt` per §2.4. Repoint the KDoc
+        TC 1 and TC 3 measure only this phase. At `0d69c425` it printed only `zerobrane.baseline`,
+        whose sole movement was `inspection.LuaSuspiciousConcatenation` 3 → 1 (and its `symbol.` line),
+        a count that flaps between 1 and 3 run to run. Nothing was committed.
+  - [x] Create `CorpusFinding.kt` (`CorpusFinding`, `FindingSite`, `CorpusRules`) — design §2.1.
+  - [x] Create `CorpusFindingCounts.kt` — design §2.2, §3.1.
+  - [x] Edit `CorpusSweep.kt` per design §2.3, and `CorpusMetrics.kt` per §2.4. Repoint the KDoc
         that names `CorpusSweep.ORACLE_SITES_CAP` / `CorpusSweep.run` as the cap's home
         (`LuaTortureCorpusTest.kt:269`, `CorpusMetrics.kt:49`) to `CorpusFindingCounts`.
-  - [ ] Create `CorpusFindingsFile.kt` and edit `LuaCorpusSweepTest.sweepAndRatchet` — design §2.5.
-  - [ ] Edit `build.gradle.kts` — design §2.6.
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/corpus/SweepFindingCountsTest.kt` (TC 2).
+  - [x] Create `CorpusFindingsFile.kt` and edit `LuaCorpusSweepTest.sweepAndRatchet` — design §2.5.
+  - [x] Edit `build.gradle.kts` — design §2.6.
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/corpus/SweepFindingCountsTest.kt` (TC 2).
         The name avoids `Corpus`, which `SweepNamingGuardTest` reserves for the sweep classes.
 - **Exit criteria**: the unit suite is green. TC 2 is red under each of its mutants, each applied and
   reverted with the `temporary-edits` skill. The record command plus copy-back gives TC 3 (no
@@ -49,10 +51,10 @@ loom LCL-241 (risks Gap 2.3, DR-10): nothing is stored before it ships.
 ### Phase 2: CTRF assembly, identity and fingerprint [Must]
 - **Goal**: one deterministic CTRF document per invocation.
 - **Tasks**:
-  - [ ] Create `tooling/corpus/corpus_ctrf.py` with the `assemble` subcommand, `load_runs`,
+  - [x] Create `tooling/corpus/corpus_ctrf.py` with the `assemble` subcommand, `load_runs`,
         `identity_of`, `fingerprints` and `ctrf_document` — design §2.7, §3.2–§3.4, §4.2.
         `SUITE_ARGV = ()`.
-  - [ ] Create `tooling/corpus/test_corpus_ctrf.py` with TC 4, 5 and 6.
+  - [x] Create `tooling/corpus/test_corpus_ctrf.py` with TC 4, 5 and 6.
 - **Exit criteria**: the Python gate passes. Each TC 4–6 mutant is observed red. `assemble` over
   Phase 1's copied-back `build/corpus-findings/` writes a document whose `testEnvironment` starts
   `full-`, and that document passes DR-09's `jsonschema` validation against the pinned schema.
@@ -60,9 +62,9 @@ loom LCL-241 (risks Gap 2.3, DR-10): nothing is stored before it ships.
 ### Phase 3: Fetch and diff [Must]
 - **Goal**: Lunar-side lookup and comparison.
 - **Tasks**:
-  - [ ] Add `loom`, `lookup`, `fetch` and `diff` to `corpus_ctrf.py` — design §3.6, §3.7, §4.3.
-  - [ ] Add the §4.3 stub and TC 9 and 10 to `test_corpus_ctrf.py`.
-  - [ ] Add `tooling/corpus/README.md` lines for `assemble` / `fetch` / `diff`.
+  - [x] Add `loom`, `lookup`, `fetch` and `diff` to `corpus_ctrf.py` — design §3.6, §3.7, §4.3.
+  - [x] Add the §4.3 stub and TC 9 and 10 to `test_corpus_ctrf.py`.
+  - [x] Add `tooling/corpus/README.md` lines for `assemble` / `fetch` / `diff`.
 - **Exit criteria**: the Python gate passes, and each TC 9–10 mutant is observed red.
 
 ### Phase 0: `loom-cli` in the `corpus` job [Must] — gated on LCL-241
@@ -71,7 +73,7 @@ loom LCL-241 (risks Gap 2.3, DR-10): nothing is stored before it ships.
   - [ ] Run DR-10 and set `SUITE_ARGV` in `corpus_ctrf.py` from it.
   - [ ] Add the install step and the `loom-cli --version` prefix to the `corpus` job (design §2.8).
         No image change.
-  - [ ] Run DR-04 and DR-07 on a throwaway branch. Record each in its row.
+  - [x] Run DR-04 and DR-07 on a throwaway branch. Record each in its row.
 - **Exit criteria**: DR-04, DR-07 and DR-10 are `done`. Any refutation is folded back into design
   §3.5 / §4.3 before Phase 4 begins.
 
@@ -99,8 +101,8 @@ Phase 2: -03, -04, -05. Phase 3: -07, -08. Phases 0 and 4: -06, and -10's `store
 
 | Phase | Status | Priority |
 |---|---|---|
-| Phase 1: Findings and derived counts | todo | Must |
-| Phase 2: CTRF assembly | todo | Must |
-| Phase 3: Fetch and diff | todo | Must |
+| Phase 1: Findings and derived counts | done | Must |
+| Phase 2: CTRF assembly | done | Must |
+| Phase 3: Fetch and diff | done | Must |
 | Phase 0: loom-cli fetch + DR execution (after LCL-241) | todo | Must |
 | Phase 4: Store from CI (after LCL-241) | todo | Must |
