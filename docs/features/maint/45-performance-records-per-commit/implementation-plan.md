@@ -39,8 +39,8 @@ so it may wait some time after Phase 4.
 
 ### Phase 1: Workloads [Must]
 - **Tasks**:
-  - [ ] Edit `build.gradle.kts` per design §2.1.
-  - [ ] Create the test package per design §2.2, §3.1, §3.2 and §4.1.
+  - [x] Edit `build.gradle.kts` per design §2.1.
+  - [x] Create the test package per design §2.2, §3.1, §3.2 and §4.1.
 - **Exit criteria**: TC 1–4, 30–34 and 51 hold and each of their mutants is observed red. TC 51's check, run
   on a copied-back directory, is that this prints nothing:
   ```bash

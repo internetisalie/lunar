@@ -400,6 +400,16 @@ tasks {
             val corpusFindingsDir = layout.buildDirectory.dir("corpus-findings").get().asFile
             doFirst { corpusFindingsDir.deleteRecursively() }
         }
+        // MAINT-45: counted workloads get a JVM of their own (design §5, DR-02), so they run only when asked.
+        if (project.hasProperty("withPerfRecords")) {
+            val perfRecordsDir = layout.buildDirectory.dir("perf-records").get().asFile
+            doFirst { perfRecordsDir.deleteRecursively() }
+        } else {
+            filter {
+                excludeTestsMatching("*PerfRecord*")
+                isFailOnNoMatchingTests = false
+            }
+        }
         // Corpus sweeps index whole pinned third-party projects (~300 files) and are far slower
         // than the routine loop, so they are opt-in: `./gradlew test -PwithCorpus`. They also need
         // the corpus fetched (tooling/corpus/fetch-corpus.py) into the out-of-repo test/ tree,

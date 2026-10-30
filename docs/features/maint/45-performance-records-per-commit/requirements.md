@@ -3,7 +3,7 @@ id: "MAINT-45"
 title: "45: Performance Records Stored Per Commit"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -80,9 +80,9 @@ Written from sources independent of Lunar's code, then checked against prototype
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-45-01 | **Counted workloads** | M | Not Implemented | Generated workloads at several sizes for parse, type snapshot, resolve and completion each report counts of work plus elapsed time. No production file changes; counters are taken from test code and existing test-only accessors. |
-| MAINT-45-02 | **Workloads check themselves** | M | Not Implemented | Each workload runs twice in the JVM, each run preceded by a reset that empties the source root and rebuilds the stub index, so a workload's counts depend on its own fixture alone. The run fails, in every gate mode, if the work did not happen: a required counter is zero, or an output is wrong (no lookup items, an unresolved call site). Every workload has at least one required counter. A difference between the two passes is recorded and printed as `WOBBLE`, and fails only in `gating` mode (MAINT-45-15). |
-| MAINT-45-03 | **Own invocation** | M | Not Implemented | The workloads are excluded from the routine `test` run and run in a dedicated Gradle invocation, so no other test shares their JVM. |
+| MAINT-45-01 | **Counted workloads** | M | Full | Generated workloads at several sizes for parse, type snapshot, resolve and completion each report counts of work plus elapsed time. No production file changes; counters are taken from test code and existing test-only accessors. |
+| MAINT-45-02 | **Workloads check themselves** | M | Partial | Each workload runs twice in the JVM, each run preceded by a reset that empties the source root and rebuilds the stub index, so a workload's counts depend on its own fixture alone. The run fails, in every gate mode, if the work did not happen: a required counter is zero, or an output is wrong (no lookup items, an unresolved call site). Every workload has at least one required counter. A difference between the two passes is recorded and printed as `WOBBLE`, and fails only in `gating` mode (MAINT-45-15). |
+| MAINT-45-03 | **Own invocation** | M | Full | The workloads are excluded from the routine `test` run and run in a dedicated Gradle invocation, so no other test shares their JVM. |
 | MAINT-45-04 | **CTRF document** | M | Not Implemented | One CTRF 0.2.0 document per run, one test per workload, elapsed milliseconds in `duration`, counts in `extra`. |
 | MAINT-45-05 | **CPU model recorded** | M | Not Implemented | The document's environment carries the CPU model and vCPU count read from `/proc/cpuinfo`. |
 | MAINT-45-06 | **Store from `main` pushes** | M | Not Implemented | The `build` job stores the document as `a3` suite `perf` on push events only, against `HEAD`, keeping the first record of a commit. PR runs, tag builds and GitHub never store, and in `gating` mode a run with a `WOBBLE` does not store. |
