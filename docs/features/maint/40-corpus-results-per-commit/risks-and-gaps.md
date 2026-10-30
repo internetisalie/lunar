@@ -50,33 +50,26 @@ folders:
 - **Resolved by**: DR-05.
 
 ### Gap 2.3: The suite segment in the key (loom LCL-241)
-- **Question**: v0.89.0's put has no suite argument (`loom-cli artifact put conformance --help`), and
-  loom-cli `b75424c` has none in source (`grep -rni suite loom-cli/cmd loom-cli/internal` matches no
-  non-test line). A put today would occupy `a3`'s primary slot, `a3.ctrf.json` (DR-03). LCL-241
-  (`status: backlog`) adds the key `<commit>/conformance/<check>[.<suite>].<format>.json`, giving
-  `a3.corpus.ctrf.json`.
-- **What LCL-241 leaves unstated**:
-  - **The flag value.** Its acceptance criteria name a flag, `--suite`, with the value `a3.corpus`,
-    but its description says a suite name contains no period, and a second criterion refuses one.
-    The working assumption is `SUITE_ARGV = ("--suite", "corpus")`.
-  - **resolve.** LCL-241 names put and get only. `store` and `fetch` both resolve first (design
-    §3.5, §3.6); whether resolve takes a suite is not stated.
-  - **get.** LCL-241 says get takes the suite; today's `get <key>` takes the key resolve returns.
-- **Resolution**: nothing is stored until the loom Manager signals that the LCL-241 loom-cli is installed everywhere the store is read and loom-catalog has been redeployed. Phases 1–3 do not depend on it. DR-10 records
-  the shipped argv for resolve, put and get before Phase 0 begins, and sets `SUITE_ARGV`. If resolve
-  takes no suite, Phase 4 does not start; the gap goes back to loom.manager.
+- **Question**: how a put selects a suite, so that the corpus record does not occupy `a3`'s primary
+  slot, `a3.ctrf.json` (DR-03). loom-cli v0.89.0's put had no suite argument.
+- **Resolved**: loom-cli v0.90.0 ships LCL-241. `put conformance` and `resolve` take
+  `--suite <name>` (no period), and the record is stored as `<check>.<suite>.<format>.json`, here
+  `a3.corpus.ctrf.json`. `get` takes the key that resolve returns and no suite. A resolve without
+  `--suite` never sees a suite record. `SUITE_ARGV = ("--suite", "corpus")` on resolve and put.
+  loom-catalog is not required; the gate is met with loom-cli v0.90.0 released. The `corpus` job
+  installs the newest release, so it runs v0.90.0 or later.
 - **Resolved by**: DR-10.
 
 ## Technical Debt & Future Work
 
-- **TBD: the hand-run sidecar** (MAINT-40-10). It needs a second suite name beside `corpus`, and LCL-241.
+- **TBD: the hand-run sidecar** (MAINT-40-10). It needs a second suite name beside `corpus`.
 - **TBD: MAINT-37 record-sequence edit**: replace S1/S2a's re-records with `fetch`.
 - **TBD: torture member findings**. It has its own sweep and baseline shape.
 
 ## Pre-Implementation De-risking Tasks
 
 Load-bearing premises: **read** = settled by source; **runtime** = needs execution. Phases 1–3
-depend on no `todo` row. DR-10 gates Phases 0 and 4 and needs a shipped LCL-241.
+depend on no `todo` row. DR-10 gates Phases 0 and 4; it ran against loom-cli v0.90.0.
 
 | ID | Premise (kind) | Action | Status |
 |----|----------------|--------|--------|
@@ -88,7 +81,7 @@ depend on no `todo` row. DR-10 gates Phases 0 and 4 and needs a shipped LCL-241.
 | MAINT-40-00-DR-06 | Which check, format and suite carry corpus findings (owner) | Ask the maintainer (Gap 2.1). Record the answer and set `CHECK` | **done 2026-10-29: `a3`, CTRF, suite `corpus`.** Decided by the owner; matches loom's per-check format map. |
 | MAINT-40-00-DR-07 | The install step resolves and fetches loom-cli on `lunar-ci` with `LOOM_MODULES_TOKEN` as env (runtime) | Part of DR-04's throwaway branch: run the design §2.8 step, then `loom-cli --version` | **done 2026-10-29: confirmed.** Gitea Actions run 31416 on `lunar-ci` installed loom-cli `v0.89.0 (rev a375bfaf114e)` with `LOOM_MODULES_TOKEN` set from env. The subject derived as `origin=https://gitea.internetisalie.net/lunar/lunar.git`, and the 4 store env vars were present. |
 | MAINT-40-00-DR-09 | The design §4.2 document is valid CTRF 0.2.0, a zero-test document is valid, and `results.environment` admits no key but its listed ones (runtime) | `jsonschema` 4.19.2 `validate` of the §4.2 sample against `ctrf-io/ctrf` `v0.2.0` `schema/ctrf.schema.json` (sha256 `cb9bd075…6cf3`); then with `tests = []`, `summary.tests = summary.failed = 0`; then with mutations | **done 2026-10-29: confirmed.** `sample: valid`; `clean run (zero tests): valid`. Controls that must fail did: `environment.suite` → `Additional properties are not allowed ('suite' was unexpected)`; test without `duration` → `'duration' is a required property`; summary without `start` → `'start' is a required property`; `results.automationDetails` → `Additional properties are not allowed`. |
-| MAINT-40-00-DR-10 | LCL-241 as shipped: the argv that selects suite `corpus` on resolve, put and get, and the stored key (runtime) | After LCL-241 releases: `loom-cli artifact put conformance --help`, `resolve --help`, `get --help`; then DR-02's scratch put with that argv, `resolve --json` with it (expect `record.key` ending `a3.corpus.ctrf.json`) and without it (expect exit 3). Set `SUITE_ARGV` | todo (blocked on LCL-241) |
+| MAINT-40-00-DR-10 | LCL-241 as shipped: the argv that selects suite `corpus` on resolve, put and get, and the stored key (runtime) | After LCL-241 releases: `loom-cli artifact put conformance --help`, `resolve --help`, `get --help`; then DR-02's scratch put with that argv, `resolve --json` with it (expect `record.key` ending `a3.corpus.ctrf.json`) and without it (expect exit 3). Set `SUITE_ARGV` | **done 2026-10-29: confirmed.** loom-cli `v0.90.0 (rev fc25a66ed594)`, scratch subject `scratch.invalid/lunar/maint40-probe`. `put conformance <path> --commit HEAD --repo . --check a3 --suite corpus --no-item` (the path is positional; there is no `--file`): exit 0, stored `…/conformance/a3.corpus.ctrf.json`, `item=none producer=none`. `resolve --suite corpus --json`: exit 0, `checks[0].status` = `measured`, `record.key` ends `a3.corpus.ctrf.json`, `record["loom-sha256"]` = the document's sha256. `resolve` without `--suite`: exit 3, unmeasured (a suite record never fills the primary slot). `resolve` of the parent with `--suite`: exit 3. `get <record.key> --output <path>` (no `--suite` on get): exit 0, byte-identical. `--suite a.b`: exit 1, `a suite name contains no period`. Cleanup: `mc rm` wrote a delete marker only; this user cannot delete object versions. `SUITE_ARGV = ("--suite", "corpus")`. |
 | MAINT-40-00-DR-08 | Gradle exposes the `--tests` pattern to the build script (read, of the public API) | `javap -cp gradle-9.7.1/lib/plugins/gradle-testing-base-9.7.1.jar org.gradle.api.tasks.testing.TestFilter` | **done 2026-10-29: refuted.** The public interface has `getIncludePatterns`, `getExcludePatterns`, `includeTestsMatching`, `excludeTestsMatching`, `setIncludePatterns`, `setExcludePatterns`, `includeTest`, `excludeTest`, `setFailOnNoMatchingTests`, `isFailOnNoMatchingTests`, and no command-line accessor. The shape is read from the run set (design §3.2). |
 
 ## Test Case Gaps

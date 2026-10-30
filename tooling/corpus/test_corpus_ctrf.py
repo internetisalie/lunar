@@ -1,6 +1,7 @@
-"""MAINT-40 TC 4-6 and TC 9-10: corpus_ctrf.py."""
+"""MAINT-40 TC 4-7 and TC 9-10: corpus_ctrf.py."""
 import contextlib
 import copy
+import hashlib
 import io
 import json
 import os
@@ -377,8 +378,8 @@ class FetchTest(StubbedLoomTest):
         self.assertIn(f"no stored result within 2 first-parent ancestors of {self.c3}", printed)
 
     def test_TC_9_every_resolve_carries_the_suite_argv(self):
-        with mock.patch.object(corpus_ctrf, "SUITE_ARGV", ("--suite", "corpus")):
-            code, _ = self.fetch()
+        self.assertEqual(("--suite", "corpus"), corpus_ctrf.SUITE_ARGV)
+        code, _ = self.fetch()
         self.assertEqual(0, code)
         resolves = [argv for argv in self.calls() if argv[1] == "resolve"]
         self.assertEqual(3, len(resolves))
@@ -402,6 +403,77 @@ class FetchTest(StubbedLoomTest):
             code, _ = self.fetch()
         self.assertEqual(1, code)
         self.assertFalse(Path(f"{self.out}.part").exists())
+
+
+class StoreTest(StubbedLoomTest):
+    """TC 7: `store` against the stub loom-cli (design §3.5)."""
+
+    def setUp(self):
+        super().setUp()
+        self.manifest = self.tmp / "corpus.json"
+        self.manifest.write_text(json.dumps(MANIFEST), encoding="utf-8")
+        self.full = write_runs(self.tmp / "full", [m1_run(), m2_run()])
+        self.out = self.tmp / "ctrf" / "corpus.ctrf.json"
+        self.expected = ctrf_document([m1_run(), m2_run()], MANIFEST)
+
+    def store(self, findings: Path) -> tuple[int, str]:
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            code = corpus_ctrf.main(["store", "--findings", str(findings), "--manifest", str(self.manifest),
+                                     "--out", str(self.out), "--repo", "."])
+        return code, stdout.getvalue() + stderr.getvalue()
+
+    def stored(self, sha256: str) -> dict:
+        return {"exit": 0, "json": {"commit": "x", "checks": [{"check": "a3", "status": "measured", "record": {
+            "key": "k", "loom-sha256": sha256}}]}}
+
+    def puts(self) -> list[list[str]]:
+        return [argv for argv in self.calls() if argv[1] == "put"]
+
+    def test_TC_7_unmeasured_head_is_put_once_under_the_suite(self):
+        self.stage({})
+        code, printed = self.store(self.full)
+        self.assertEqual(0, code, printed)
+        self.assertEqual(self.expected, self.out.read_bytes())
+        self.assertEqual([["artifact", "put", "conformance", str(self.out), "--commit", "HEAD", "--check", "a3",
+                           "--no-item", "--repo", ".", "--suite", "corpus"]], self.puts())
+        resolve = self.calls()[0]
+        self.assertEqual(["artifact", "resolve", "--commit", "HEAD"], resolve[:4])
+        self.assertEqual(["--suite", "corpus"], resolve[-2:])
+        self.assertIn("store: ", printed)
+
+    def test_TC_7_identical_record_is_not_put_again(self):
+        self.stage({"resolve": {"HEAD": self.stored(hashlib.sha256(self.expected).hexdigest())}})
+        code, printed = self.store(self.full)
+        self.assertEqual(0, code, printed)
+        self.assertEqual([], self.puts())
+        self.assertIn("store: already stored, identical", printed)
+
+    def test_TC_7_different_record_is_kept_with_a_warning(self):
+        self.stage({"resolve": {"HEAD": self.stored("f" * 64)}})
+        code, printed = self.store(self.full)
+        self.assertEqual(0, code, printed)
+        self.assertEqual([], self.puts())
+        self.assertIn("WARNING store: HEAD already has a different a3 corpus record; kept the first", printed)
+
+    def test_TC_7_failing_resolve_fails_the_store(self):
+        self.stage({"resolve": {"HEAD": {"exit": 1}}})
+        code, printed = self.store(self.full)
+        self.assertEqual(1, code, printed)
+        self.assertEqual([], self.puts())
+
+    def test_TC_7_failing_put_fails_the_store(self):
+        self.stage({"put": {"exit": 1}})
+        code, printed = self.store(self.full)
+        self.assertEqual(1, code, printed)
+        self.assertEqual(1, len(self.puts()))
+
+    def test_TC_7_member_alone_run_is_refused_before_any_loom_call(self):
+        self.stage({})
+        code, printed = self.store(write_runs(self.tmp / "alone", [m1_run()]))
+        self.assertEqual(2, code, printed)
+        self.assertEqual([], self.calls())
+        self.assertIn("refusing to store a member run: suite corpus holds full runs only", printed)
 
 
 def finding_test(member: str, test_id: str, rule: str, uri: str, count: int = 1, line: int = 4) -> dict:

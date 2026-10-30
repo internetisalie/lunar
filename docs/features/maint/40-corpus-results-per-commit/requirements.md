@@ -62,10 +62,10 @@ The identity is derived from the run, never typed, and comparison runs in Lunar'
 | MAINT-40-03 | **One CTRF document** | M | Full | `corpus_ctrf.py assemble` turns one invocation's findings files into one CTRF 0.2.0 document holding one `failed` test per finding (design §4.2). A clean run has zero tests. The same inputs give the same bytes. |
 | MAINT-40-04 | **Stable fingerprint** | M | Full | Each test's `testId` is its finding's fingerprint, and its `name` contains it. It is unchanged across Lunar commits when member, rule, path, offsets and symbol are unchanged, whatever the message text. |
 | MAINT-40-05 | **Derived environment identity** | M | Full | `results.environment.testEnvironment` is computed from the sweep shape, each member's manifest comparability fields and its observed library pins (design §3.2). Nobody types it. Mixed or partial run sets are refused. |
-| MAINT-40-06 | **Store from CI** | M | Not Implemented | The Gitea `corpus` job puts the document against `HEAD` as check `a3` suite `corpus`. A record that is already stored is not an error. Any other store failure fails the job. The ratchet's verdict is unchanged. Nothing is stored until the loom Manager signals that the LCL-241 loom-cli is installed everywhere the store is read and loom-catalog has been redeployed. |
+| MAINT-40-06 | **Store from CI** | M | Partial | The Gitea `corpus` job puts the document against `HEAD` as check `a3` suite `corpus`. A record that is already stored is not an error. Any other store failure fails the job. The ratchet's verdict is unchanged. Needs loom-cli v0.90.0 or later (`--suite`, LCL-241). |
 | MAINT-40-07 | **Fetch nearest ancestor** | M | Full | `corpus_ctrf.py fetch` returns the stored corpus document of the nearest first-parent ancestor that has one, optionally with a matching environment identity, within a depth bound. |
 | MAINT-40-08 | **Finding-level compare** | M | Full | `corpus_ctrf.py diff` reports newly failing tests (new findings), absent tests (resolved findings) and count changes per rule. It refuses documents whose identities differ ("not comparable", never a regression). |
-| MAINT-40-09 | **Baselines stay the gate** | M | Partial | The ratchet keeps reading the committed `.baseline` files. Stored results are the attributable "before", never the gate's reference. |
+| MAINT-40-09 | **Baselines stay the gate** | M | Full | The ratchet keeps reading the committed `.baseline` files. Stored results are the attributable "before", never the gate's reference. |
 | MAINT-40-10 | **Hand-run sidecar** | C | Future Work | A member-alone or hand run is stored under its own suite name. The store has one `corpus` key per commit, so until a second suite is chosen `store` refuses any run whose shape is not `full` (design §3.5). |
 
 ## Test Cases
@@ -84,7 +84,7 @@ Each case names the mutation that turns it red. Python cases live in
 | 6 | 05 | TC 4 fixture | `identity_of` on: (a) unchanged; (b) `m1` commit changed; (c) one library version changed; (d) the `$comment` and `url` changed; (e) one file only; (f) two `jvmToken`s; (g) TC 4's manifest plus a third member `m3`, with the `m1` and `m2` files | (a) = baseline identity; (b), (c) differ; (d) equal; (e) `member-m1-<16 hex>`; (f), (g) raise `NotComparable` | whole manifest hashed (d); libraries omitted (c); token check skipped (f) |
 | 7 | 06, 10 | Stub `loom-cli` (design §4.3). Scenarios: resolve exit 3; resolve measured with the same sha256; measured with a different sha256; resolve exit 1; put exit 1; a member-alone findings dir | `store` | put called once with `["artifact","put","conformance",<doc>,"--commit","HEAD","--check","a3","--no-item","--repo",".",*SUITE_ARGV]`, exit 0; no put, exit 0; no put, `WARNING` line, exit 0; exit 1; exit 1; no loom-cli call at all, exit 2 | exit 3 treated as an error; a differing sha256 treated as a failure; `SUITE_ARGV` left off put; shape check dropped |
 | 8 | 06 | The first push to `main` after Phase 4 merges | `loom-cli artifact resolve --commit <merge sha> --check a3 --json` plus `SUITE_ARGV` | exits 0, `status` = `measured`. The fetched document's `testEnvironment` starts `full-`. The same resolve without `SUITE_ARGV` exits 3 (a3's primary slot is untouched) | the store step never runs (exit 3); the put omits the suite (second resolve exits 0) |
-| 9 | 07 | Temp repo `C1←C2←C3`, where C3 merges side commit S. Stub: C1 and S measured with corpus documents; C2 measured with a CTRF document whose `tool.name` is `other` | `fetch --commit C3`; then with `--like` naming another identity; then with `--max-depth 2` | C1's document, `distance=2`; exit 3; exit 3. Every resolve argv ends with `SUITE_ARGV` | `rev-list` without `--first-parent` (returns S); the tool-name check dropped (returns C2); `SUITE_ARGV` left off resolve (reachable once Phase 0 sets it) |
+| 9 | 07 | Temp repo `C1←C2←C3`, where C3 merges side commit S. Stub: C1 and S measured with corpus documents; C2 measured with a CTRF document whose `tool.name` is `other` | `fetch --commit C3`; then with `--like` naming another identity; then with `--max-depth 2` | C1's document, `distance=2`; exit 3; exit 3. Every resolve argv ends with `SUITE_ARGV` | `rev-list` without `--first-parent` (returns S); the tool-name check dropped (returns C2); `SUITE_ARGV` left off resolve |
 | 10 | 08 | Same identity. `after` swaps one `inspection.LuaUnusedLocal` finding for another in the same rule (count unchanged) and adds one `corpus.parseError` | `diff before after` | one `NEW` line and one `RESOLVED` line for `LuaUnusedLocal`, a `COUNT corpus.parseError 0 1` line, exit 1. Identical inputs: no output, exit 0. Different `testEnvironment`s, or different `files`: `NOT COMPARABLE` on stderr, exit 2 | comparing counts only (no `NEW`/`RESOLVED` lines for the swap); identity check dropped (exit 1 on a differing identity) |
 
 **TC 2 fixture** (`CorpusFinding`s built by a test-local helper that sets unlisted offsets to 0, line and column to 0 and message to the rule; file-level findings use `fileFinding`):
@@ -119,8 +119,8 @@ It is verified by inspection: no step of the `corpus` job reads the store before
 
 ## Implementation Status
 
-Phases 1–3 are implemented; Phases 0 and 4 (MAINT-40-06, and -10's `store` refusal) wait on loom
-LCL-241.
+Phases 0–4 are implemented. MAINT-40-06 is Partial until TC 8 holds on the first `main` push
+after merge.
 
 - **-01, -02**: `CorpusFinding.kt`, `CorpusFindingCounts.kt`, `CorpusFindingsFile.kt`, and
   `CorpusSweep` deriving every counter through `CorpusFindingCounts.derive`. TC 2 is
@@ -128,14 +128,19 @@ LCL-241.
 - **-03, -04, -05**: `tooling/corpus/corpus_ctrf.py` `assemble`; TC 4–6 in `test_corpus_ctrf.py`. The
   document assembled from a full run validates against the pinned CTRF 0.2.0 schema.
 - **-07, -08**: `fetch` and `diff`; TC 9–10 against the design §4.3 stub `loom-cli`.
-- **-09**: Partial. The ratchet still reads the committed baselines (`CorpusGuards.assertRatchet` is
-  unchanged). The check that no `corpus` job step reads the store before the ratchet belongs to
-  Phase 4's workflow.
+- **-06, -10's refusal**: `corpus_ctrf.py store` (TC 7, against the design §4.3 stub), `SUITE_ARGV`
+  from DR-10, and the Gitea `corpus` job's install, store and report steps (design §2.8). TC 8 is
+  run after merge.
+- **-09**: The ratchet still reads the committed baselines (`CorpusGuards.assertRatchet` is
+  unchanged). By inspection of `.gitea/workflows/build-plugin.yml`, no `corpus` job step reads the
+  store before the ratchet: the only `loom-cli` call before it is `loom-cli --version`. The store
+  step runs after the ratchet, and nothing it reads feeds the ratchet.
 
 ## Acceptance Criteria
 
 - [x] TC 1–6 and 9–10 pass (the Phases 1–3 PR). TC 3 prints nothing.
-- [ ] TC 7 passes, and TC 8 holds on the first `main` push after Phase 4 (after LCL-241).
+- [x] TC 7 passes.
+- [ ] TC 8 holds on the first `main` push after Phase 4 merges.
 - [ ] The CI `corpus` job is green on the Phase 4 PR, and its log shows the store outcome line.
 
 ## Non-Functional Requirements
@@ -150,9 +155,9 @@ LCL-241.
   loom-cli download) and org variables `LOOM_OBJECT_BUCKET`, `LOOM_OBJECT_ENDPOINT`: present on Gitea
   org `lunar` (2026-10-29).
 - `loom-cli` in the `corpus` job, fetched unpinned at job start (implementation-plan Phase 0).
-- **Loom LCL-241** (a suite segment in the conformance key), for Phase 0 and Phase 4 only:
-  nothing is stored until the loom Manager signals that the LCL-241 loom-cli is installed everywhere the store is read and loom-catalog has been redeployed (risks Gap 2.3).
-- The de-risking rows in [risks-and-gaps.md](risks-and-gaps.md) marked `todo`.
+- **Loom LCL-241** (a suite segment in the conformance key), for Phase 0 and Phase 4 only: met,
+  shipped in loom-cli v0.90.0 (risks Gap 2.3, DR-10).
+- The de-risking rows in [risks-and-gaps.md](risks-and-gaps.md): all `done`.
 
 ## See Also
 - Design: [design.md](design.md)

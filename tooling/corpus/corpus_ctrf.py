@@ -6,13 +6,14 @@ that directory and writes a CTRF document holding one ``failed`` test per findin
 is the finding's stable fingerprint (§3.3) and whose ``results.environment.testEnvironment`` is the
 run's derived identity (§3.2). The same findings always give the same bytes.
 
-``fetch`` reads the stored document of the nearest first-parent ancestor from loom's conformance
-store (check ``a3``, suite ``corpus``) through ``loom-cli``; ``diff`` compares two documents finding
-by finding.
+``store`` assembles, then puts the document against ``HEAD`` in loom's conformance store (check
+``a3``, suite ``corpus``) unless ``HEAD`` already has a record. ``fetch`` reads the stored document of
+the nearest first-parent ancestor through ``loom-cli``; ``diff`` compares two documents finding by
+finding.
 
 Stdlib only. Exit codes: 0 success; 1 a ``loom-cli`` failure, or ``diff`` found new findings;
-2 not comparable (mixed JVMs, a partial run set, an unknown findings schema, differing identities);
-3 ``fetch`` found no stored document.
+2 not comparable (mixed JVMs, a partial run set, an unknown findings schema, differing identities),
+or ``store`` refusing a run that is not full-shape; 3 ``fetch`` found no stored document.
 """
 import argparse
 import hashlib
@@ -30,9 +31,9 @@ SCHEMA = 1
 DEFAULT_MAX_DEPTH = 50
 EXIT_UNMEASURED = 3
 LOOM_CLI = os.environ.get("LOOM_CLI", "loom-cli")
-# The arguments that select suite `corpus` on every loom-cli verb. Empty until loom LCL-241 ships
-# a suite segment and DR-10 records its argv (risks Gap 2.3).
-SUITE_ARGV: tuple[str, ...] = ()
+# The arguments that select suite `corpus` on resolve and put (loom-cli v0.90.0, DR-10): the record
+# is stored as `a3.corpus.ctrf.json`. `get` takes the key resolve returns, so it carries none.
+SUITE_ARGV: tuple[str, ...] = ("--suite", "corpus")
 
 
 class NotComparable(Exception):
@@ -198,6 +199,29 @@ def lookup(sha: str, repo: str) -> dict | None:
     return json.loads(result.stdout)["checks"][0]["record"]
 
 
+def store(args) -> int:
+    """Put this run's document against HEAD as check ``a3`` suite ``corpus``, once (§3.5)."""
+    data = _assemble_to(args.findings, args.manifest, args.out)
+    shape = _identity(json.loads(data)).split("-", 1)[0]
+    if shape != "full":
+        print(f"refusing to store a {shape} run: suite corpus holds full runs only")
+        return 2
+    record = lookup("HEAD", args.repo)
+    if record is not None:
+        if record["loom-sha256"] == hashlib.sha256(data).hexdigest():
+            print("store: already stored, identical")
+        else:
+            print(f"WARNING store: HEAD already has a different {CHECK} corpus record; kept the first")
+        return 0
+    result = loom(["artifact", "put", "conformance", str(args.out), "--commit", "HEAD", "--check", CHECK,
+                   "--no-item", "--repo", args.repo, *SUITE_ARGV])
+    if result.returncode != 0:
+        print(f"store: put exited {result.returncode}: {_output(result)}", file=sys.stderr)
+        return 1
+    print(f"store: {result.stdout.strip()}")
+    return 0
+
+
 def _first_parents(repo: str, commit: str, depth: int) -> list[str]:
     argv = ["git", "-C", repo, "rev-list", "--first-parent", f"--max-count={depth}", commit]
     return subprocess.run(argv, capture_output=True, text=True, check=True).stdout.split()
@@ -316,6 +340,12 @@ def _parser() -> argparse.ArgumentParser:
     assembling.add_argument("--manifest", required=True)
     assembling.add_argument("--out", required=True)
     assembling.set_defaults(handler=assemble)
+    storing = commands.add_parser("store", help="assemble, then put the document against HEAD unless stored")
+    storing.add_argument("--findings", required=True)
+    storing.add_argument("--manifest", required=True)
+    storing.add_argument("--out", required=True)
+    storing.add_argument("--repo", default=".")
+    storing.set_defaults(handler=store)
     fetching = commands.add_parser("fetch", help="fetch the nearest first-parent ancestor's stored document")
     fetching.add_argument("--commit", required=True)
     fetching.add_argument("--out", required=True)

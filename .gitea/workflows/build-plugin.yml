@@ -354,7 +354,44 @@ jobs:
         # exit. So every step here funnels its assertions into one final compound test.
         # This one exists to catch the pool running a pre-0.3.0 image (no cc/python3, or no JDK 25):
         # fail here, in two lines, not five sweeps later at the ratchet.
+        #
+        # It also installs loom-cli, which the store step uses (MAINT-40). This is loom's own
+        # "install loom-cli" step (loom/.gitea/workflows/docs-lint.yml), rewritten for dash: no
+        # pipefail, and every guard is an explicit `if … exit 1`. loom-cli is UNPINNED: the newest
+        # release is resolved per job. `LOOM_CLI_VERSION` (set as a repo variable, which arrives as
+        # plain env) installs that tag instead. It is an incident override for a loom-cli release
+        # that breaks this job, never a standing pin. `LOOM_MODULES_TOKEN` (org secret) arrives as
+        # plain env too. No release asset on this forge is fetchable anonymously, and a sign-in page
+        # comes back as HTTP 200, so `tar tzf` proves the download is an archive before it is
+        # trusted. The binary goes to /usr/local/bin (pods run as root), so later steps find it on
+        # PATH. Nothing here touches the store; `loom-cli --version` in the final compound records
+        # which version ran.
         run: |
+          loom_api=https://gitea.internetisalie.net/api/v1/repos/loom/loom-cli
+          if [ -n "${LOOM_CLI_VERSION:-}" ]; then
+            echo "loom-cli ${LOOM_CLI_VERSION} (override)"
+          else
+            LOOM_CLI_VERSION=$(curl -fsSL -H "Authorization: token ${LOOM_MODULES_TOKEN:-}" "${loom_api}/releases/latest" | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4)
+            if [ -z "${LOOM_CLI_VERSION}" ]; then
+              echo "::error::could not resolve loom-cli's latest release from ${loom_api}/releases/latest" >&2
+              exit 1
+            fi
+            echo "loom-cli ${LOOM_CLI_VERSION} (resolved latest)"
+          fi
+          loom_dir=$(mktemp -d)
+          if ! curl -fsSL -o "${loom_dir}/loom-cli.tgz" -H "Authorization: token ${LOOM_MODULES_TOKEN:-}" \
+              "https://gitea.internetisalie.net/loom/loom-cli/releases/download/${LOOM_CLI_VERSION}/loom-cli-linux-amd64.tar.gz"; then
+            echo "::error::could not download loom-cli ${LOOM_CLI_VERSION}" >&2
+            exit 1
+          fi
+          if ! tar tzf "${loom_dir}/loom-cli.tgz" > /dev/null; then
+            echo "::error::the loom-cli ${LOOM_CLI_VERSION} download is not an archive (a sign-in page?)" >&2
+            exit 1
+          fi
+          if ! { tar xzf "${loom_dir}/loom-cli.tgz" -C "${loom_dir}" loom-cli && install -m 0755 "${loom_dir}/loom-cli" /usr/local/bin/loom-cli; }; then
+            echo "::error::could not install loom-cli ${LOOM_CLI_VERSION}" >&2
+            exit 1
+          fi
           java -version
           "$HOME/bin/lua" -v
           echo "GRADLE_USER_HOME=${GRADLE_USER_HOME}"
@@ -370,7 +407,7 @@ jobs:
           mkdir -p "$GRADLE_USER_HOME"
           grep -qx 'org.gradle.java.installations.auto-download=false' "$GRADLE_USER_HOME/gradle.properties" 2>/dev/null \
             || echo 'org.gradle.java.installations.auto-download=false' >> "$GRADLE_USER_HOME/gradle.properties"
-          grep -qx 'org.gradle.java.installations.auto-download=false' "$GRADLE_USER_HOME/gradle.properties" && fc-match sans >/dev/null && cc -dumpversion >/dev/null && python3 --version && /usr/lib/jvm/java-25-openjdk-amd64/bin/java -version && echo "toolchain ok (image >= 0.3.0)"
+          loom-cli --version && grep -qx 'org.gradle.java.installations.auto-download=false' "$GRADLE_USER_HOME/gradle.properties" && fc-match sans >/dev/null && cc -dumpversion >/dev/null && python3 --version && /usr/lib/jvm/java-25-openjdk-amd64/bin/java -version && echo "toolchain ok (image >= 0.3.0)"
 
       - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles, torture archive)
         # `test` is a tracked symlink to ../test; re-point it at the persistent /cache
@@ -401,15 +438,46 @@ jobs:
         # the test XMLs BEFORE exiting: the pod (and its HTML report) is gone 5 minutes
         # after the job, and Gradle does not forward test stdout to this log — the first
         # cross-machine failure (penlight, run 9733) was undiagnosable for exactly that
-        # reason. The trailing `exit 1` is the step's verdict (last-command rule).
+        # reason.
+        #
+        # Failure is RECORDED, not propagated, as `build` does it: the store step below must
+        # still run on a red ratchet, because the findings of a regressing commit are exactly
+        # the ones worth keeping. "Report corpus result" turns the sentinel into the verdict.
         run: |
-          ./gradlew test --rerun --no-daemon --stacktrace -PwithCorpus --tests '*Corpus*' && exit 0
-          echo "=== ratchet diagnostics: observed counts ==="
-          grep -rho "\[corpus:[a-z-]*\][^<]*" build/test-results/test/ 2>/dev/null | sort -u || true
-          grep -rho "\[torture:[a-z-]*\][^<]*" build/test-results/test/ 2>/dev/null | sort -u || true
-          echo "=== ratchet diagnostics: failure messages ==="
-          grep -rho 'failure message="[^"]*"' build/test-results/test/ 2>/dev/null | head -20 || true
-          exit 1
+          if ./gradlew test --rerun --no-daemon --stacktrace -PwithCorpus --tests '*Corpus*'; then
+            echo "ratchet passed"
+          else
+            echo "=== ratchet diagnostics: observed counts ==="
+            grep -rho "\[corpus:[a-z-]*\][^<]*" build/test-results/test/ 2>/dev/null | sort -u || true
+            grep -rho "\[torture:[a-z-]*\][^<]*" build/test-results/test/ 2>/dev/null | sort -u || true
+            echo "=== ratchet diagnostics: failure messages ==="
+            grep -rho 'failure message="[^"]*"' build/test-results/test/ 2>/dev/null | head -20 || true
+            touch /tmp/lunar-corpus-failed
+          fi
+
+      - name: Store findings (loom conformance, check a3 suite corpus)
+        # MAINT-40: one CTRF document per run, stored against HEAD as a3.corpus.ctrf.json.
+        # Every run of this job stores, PR runs included: a step-level ref test is unavailable
+        # on this executor, and a squash-merged PR head is never a first-parent ancestor on main,
+        # so its record pollutes no `fetch`. `store` resolves first and never re-puts, so a rerun
+        # logs "already stored, identical" or a WARNING and passes. Any other store failure is
+        # recorded and fails the job in the final step; it never changes the ratchet's verdict.
+        # The store credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, LOOM_OBJECT_BUCKET,
+        # LOOM_OBJECT_ENDPOINT) arrive as plain env, like UNITRACK_* in `build`.
+        run: |
+          python3 tooling/corpus/corpus_ctrf.py store --findings build/corpus-findings --manifest tooling/corpus/corpus.json --out build/corpus-ctrf/corpus.ctrf.json || touch /tmp/lunar-corpus-store-failed
+
+      - name: Report corpus result
+        # The deferred verdict of the ratchet and store steps. Both are reported before the
+        # verdict, so a run that is red on both says so once. The last command is the verdict.
+        run: |
+          if [ -f /tmp/lunar-corpus-failed ]; then
+            echo "::error::corpus ratchet failed — see the Corpus ratchet step above"
+          fi
+          if [ -f /tmp/lunar-corpus-store-failed ]; then
+            echo "::error::storing the corpus findings failed — see the Store findings step above"
+          fi
+          test ! -f /tmp/lunar-corpus-failed && test ! -f /tmp/lunar-corpus-store-failed && echo "corpus passed"
 
   # The RELEASE lane: builds, tests and publishes, in one job. It cannot run on lunar-ci
   # because it needs setup-java and actions/cache, which that executor does not implement.

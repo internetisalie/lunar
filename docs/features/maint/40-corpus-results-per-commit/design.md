@@ -158,9 +158,9 @@ The script uses the stdlib only. Constants: `CHECK = "a3"`, `TOOL_NAME = "lunar-
 `SPEC_VERSION = "0.2.0"`,
 `COMPARABILITY_KEYS = ("commit", "roots", "luaLevel", "moduleRoot", "target", "definitionLibraries")`,
 `SCHEMA = 1` (the findings file, §4.1), `DEFAULT_MAX_DEPTH = 50`, `EXIT_UNMEASURED = 3`,
-`LOOM_CLI = os.environ.get("LOOM_CLI", "loom-cli")`, and `SUITE_ARGV: tuple[str, ...]`, the
-arguments that select suite `corpus` on every `loom-cli` verb. It is `()` in Phases 1–3 and is set
-in Phase 0 from DR-10.
+`LOOM_CLI = os.environ.get("LOOM_CLI", "loom-cli")`, and `SUITE_ARGV = ("--suite", "corpus")`,
+the arguments that select suite `corpus` on resolve and put (loom-cli v0.90.0, DR-10). `get` takes
+the key resolve returns and no suite.
 
 | Subcommand | Arguments | Exit |
 |---|---|---|
@@ -187,12 +187,15 @@ Functions: `load_runs(dir) -> list[dict]` (sorted by `member`, refusing `schema 
   release that breaks us, not a standing pin. Download
   `…/releases/download/<tag>/loom-cli-linux-amd64.tar.gz` with `Authorization: token $LOOM_MODULES_TOKEN`
   (no release asset on this forge is anonymously fetchable), prove it is an archive with `tar tzf`
-  (a sign-in page arrives as HTTP 200), and extract `loom-cli`. `curl` is already in the image. The
-  step is dash-safe: no `pipefail`, and the token arrives as plain env, not `${{ secrets }}`.
-- **Verify toolchain** step: run the fetcher, then prefix the final compound with
+  (a sign-in page arrives as HTTP 200), and install `loom-cli` to `/usr/local/bin` (pods run as
+  root), so later steps find it on `PATH`. `curl` is already in the image. The step is dash-safe:
+  no `pipefail`, every guard is an explicit `if … exit 1` naming what failed, and the token arrives
+  as plain env, not `${{ secrets }}`. `LOOM_CLI_VERSION`, when set, arrives as a repo variable.
+- **Verify toolchain** step: run the fetcher first, then prefix the final compound with
   `loom-cli --version &&`, so the log records which version ran.
 - **Corpus ratchet** step (Phase 4): replace `&& exit 0 … exit 1` with
   `if ./gradlew …same args…; then echo "ratchet passed"; else <existing diagnostics>; touch /tmp/lunar-corpus-failed; fi`.
+  The store step therefore also runs on a red ratchet.
 - **New step "Store findings (loom conformance)"** (Phase 4 only):
   `python3 tooling/corpus/corpus_ctrf.py store --findings build/corpus-findings --manifest tooling/corpus/corpus.json --out build/corpus-ctrf/corpus.ctrf.json || touch /tmp/lunar-corpus-store-failed`
 - **New final step "Report corpus result"** (Phase 4): emits `::error::` for each sentinel present, then
@@ -302,7 +305,9 @@ because the corpus tree is pinned, and the pin is in the identity (§3.2).
      and return 0.
    - Any other exit: print the output and return 1.
 3. Run `[LOOM_CLI, "artifact", "put", "conformance", OUT, "--commit", "HEAD", "--check", CHECK, "--no-item", "--repo", repo, *SUITE_ARGV]`.
-   On exit 0, print its stdout and return 0. Otherwise return 1.
+   `OUT` is positional: put has no `--file` (loom-cli v0.90.0 `put conformance --help`). On exit 0,
+   print `store: <its stdout>` and return 0. Otherwise print `store: put exited <n>: <output>` to
+   stderr and return 1.
 
 ### 3.6 Fetch — `fetch(args)`
 
@@ -410,13 +415,15 @@ against it.
 ### 4.3 `loom-cli` (consumed by `store` and `fetch`)
 
 The fields come from loom-cli's source (`cmd/loom-cli/artifact_resolve.go:23-31`, loom-delivery
-`ListResult`). DR-03 executes them. Every resolve and put also carries `SUITE_ARGV` (§2.7).
+`ListResult`). DR-03 executes them. Every resolve and put also carries `SUITE_ARGV` (§2.7); DR-10
+executes them with it on loom-cli v0.90.0.
 
 - **resolve**: stdout `{"commit": "<sha>", "merge-base-of": …, "checks": [{"check": "a3", "status": "measured"|"unmeasured", "record": {"key": "…", "loom-sha256": "<hex>", …} | null}]}`.
   Exit 0 means measured, exit 3 unmeasured, any other exit a failure.
 - **get**: `artifact get <key> --output <new path>`. Exit 0 means the file is written and
   checksum-verified. It takes the key that resolve returned, so it needs no suite argument.
-- **put**: exit 0 means stored or already present (DR-02). Any other exit is a failure.
+- **put**: `artifact put conformance <path> --commit … --check … --no-item --repo … --suite corpus`.
+  Exit 0 means stored or already present (DR-02). Any other exit is a failure.
 - **Test stub** (`test_corpus_ctrf.py`): an executable written to a temp dir and selected through
   `LOOM_CLI`. It reads the JSON scenario named by env `STUB_LOOM`:
   `{"resolve": {"<commitish>": {"exit": 3} | {"exit": 0, "json": {…}}}, "get": {"<key>": "<source path>"}, "put": {"exit": 0}}`.
