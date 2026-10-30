@@ -2,13 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
-- **A method call's arguments are checked against the method's `---@param` types** (BUG-566). A
+- **A method call's arguments are checked against the method's `---@param` types** (BUG-566, BUG-11). A
   call such as `c:m(1, "y")` to a class method declared in another file, in a library or inherited
   from a parent class was not reported, though the same mistake in a call to a global function
   was. A call to a method declared in the same file was reported only at the method's
   declaration. Lunar now reports each wrong argument as *… is not assignable to …* on the argument
   itself, for `:` and `.` calls alike. Passing `nil`, or nothing, for an optional parameter is
-  still accepted.
+  still accepted ([0d69c425](https://github.com/internetisalie/lunar/commit/0d69c425)).
 
 - **Passing `self` explicitly to a method lines up its arguments** (BUG-8, BUG-14). A dot call of a
   method declared with `:`, such as `Base.init(self, opts)` or `self.super.add(self, plugin)` in
@@ -19,7 +19,7 @@
   the right parameters. A dot call that leaves the receiver out, such as `c.add("x")`, is now
   reported as *Too few arguments* when the method has a required parameter. A method whose
   parameters are all optional can still be passed where a `function` or `fun()` is expected and
-  called with no arguments.
+  called with no arguments ([18618d8f](https://github.com/internetisalie/lunar/commit/18618d8f), [d6bee9eb](https://github.com/internetisalie/lunar/commit/d6bee9eb)).
 
 - **A doc comment followed by a blank line no longer documents the next declaration** (BUG-9).
   A `---@class`, `---@type`, `---@param` or other LuaCATS block separated by a blank line from the
@@ -29,13 +29,13 @@
   ends the block, and a detached `---@class` is a class with only its own `@field`s. This also
   affects hover documentation, inlay and parameter hints, and *Generate doc*, which is now offered
   for such a declaration. The first time the updated plugin opens a project it rebuilds the
-  project's Lua index.
+  project's Lua index ([2bfae0aa](https://github.com/internetisalie/lunar/commit/2bfae0aa)).
 
 - **A string used with method calls is a string** (BUG-553). A value with no known type, such as an
   unannotated parameter or the result of an unresolved call, was treated as a table once it was
   called with `:`, so `x:sub(1, 1)` followed by `"a" .. x` was reported as *Suspicious
   concatenation*. A `..` or arithmetic use now outranks method and field uses when Lunar infers the
-  value's type, so the warning no longer fires and the value is shown as `string` (or `number`).
+  value's type, so the warning no longer fires and the value is shown as `string` (or `number`) ([72cd1a99](https://github.com/internetisalie/lunar/commit/72cd1a99)).
 
 - **Only the module name in a `require` call is a require** (BUG-550). In
   `require("lazy.stats").track("LazyDone")`, the string passed to `track` was also treated as a
@@ -44,7 +44,7 @@
   auto-import. A chain that ends in a field, such as `local t = require("x").f` or
   `print(require("x").f)`, had no navigation on `"x"` at all. Lunar now treats only the
   argument of the call made directly on `require` as a module name. The first time the updated
-  plugin opens a project it rebuilds the project's Lua index.
+  plugin opens a project it rebuilds the project's Lua index ([bbbc28c1](https://github.com/internetisalie/lunar/commit/bbbc28c1)).
 
 - **A method's optional parameter is optional** (BUG-554). A call that omitted a parameter
   declared `---@param hl? string` on a class method, such as `self:append("Tasks: ")` against
