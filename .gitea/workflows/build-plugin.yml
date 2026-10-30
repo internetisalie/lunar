@@ -99,7 +99,7 @@ jobs:
           # corpus = a PR touches the gate's own machinery, so the lane is exercised
           # PRE-merge on exactly the changes most likely to break it (BUG-415).
           CORPUS=false
-          if echo "$CHANGED" | grep -qE '^tooling/corpus/|^tooling/ci-image/|^src/test/resources/corpus/|^src/test/kotlin/net/internetisalie/lunar/corpus/|^src/main/resources/definitions/|^\.gitea/workflows/build-plugin\.yml$'; then
+          if echo "$CHANGED" | grep -qE '^tooling/corpus/|^tooling/ctrf/|^tooling/ci/|^tooling/ci-image/|^src/test/resources/corpus/|^src/test/kotlin/net/internetisalie/lunar/corpus/|^src/main/resources/definitions/|^\.gitea/workflows/build-plugin\.yml$'; then
             CORPUS=true
           fi
           # code = any changed file that is neither under docs/ nor a *.md.
@@ -181,6 +181,13 @@ jobs:
             || echo 'org.gradle.java.installations.auto-download=false' >> "$GRADLE_USER_HOME/gradle.properties"
           grep -x 'org.gradle.java.installations.auto-download=false' "$GRADLE_USER_HOME/gradle.properties" && /usr/lib/jvm/java-25-openjdk-amd64/bin/java -version && echo "jdk25 ok"
 
+      - name: Install loom-cli
+        # For the store step after the unit tests (MAINT-48): see tooling/ci/install-loom-cli.sh.
+        # A failure is RECORDED in the store sentinel, never propagated, so it cannot cost the
+        # build, lint or suite their run; "Report lint + test result" turns it into the verdict.
+        run: |
+          sh tooling/ci/install-loom-cli.sh || touch /tmp/lunar-unit-store-failed
+
       # No -PpluginVersion, and no version-derivation step. This lane never builds a tag,
       # so the derived value was always just gradle.properties' own pluginVersion —
       # passing it back in is a no-op (build.gradle.kts: version = pluginVersion).
@@ -231,6 +238,18 @@ jobs:
           ./gradlew test --rerun --no-daemon --stacktrace -PexcludeExternalFixtureTests \
             || touch /tmp/lunar-tests-failed
 
+      - name: Store unit-test results (loom conformance, check a3)
+        # MAINT-48: one CTRF document per run, stored against HEAD as a3's primary record (no
+        # suite; the corpus job stores under suite corpus). It runs on a red suite too, because
+        # the test step records its failure in a sentinel: a red commit's results are a baseline
+        # as well. `store` refuses a partial (--tests) run and a run with no XML, resolves first
+        # and never re-puts, so a rerun logs "already stored, identical" or a WARNING and passes.
+        # Every run of this job stores, PR runs included, for the reason the corpus job gives.
+        # Any store failure is recorded and fails the job in the final step; it never changes
+        # the test verdict. The store credentials arrive as plain env, like UNITRACK_* below.
+        run: |
+          python3 tooling/ctrf/junit_ctrf.py store --results build/test-results/test --filter build/test-results/test-filter.json --out build/unit-ctrf/unit.ctrf.json || touch /tmp/lunar-unit-store-failed
+
       - name: Kover XML coverage report (JaCoCo format)
         continue-on-error: true
         # Reuses the coverage data the test step produced. EVERY Test task must be
@@ -279,10 +298,10 @@ jobs:
             "$@" \
             -F "sourceManifest=@sources.txt"
 
-      # The deferred verdict from the lint and test steps. Last, so coverage and analytics
+      # The deferred verdict from the lint, test and store steps. Last, so coverage and analytics
       # have already been collected from the failing run — the point of doing it this way.
       #
-      # BOTH are reported before exiting, rather than exiting at the first: a run that is
+      # ALL are reported before exiting, rather than exiting at the first: a run that is
       # red on formatting AND on tests should say so once, not hide the second behind a
       # re-run. `continue-on-error` is NOT used on either step, as that would mark them
       # succeeded and let a genuine failure through as a green build.
@@ -297,8 +316,9 @@ jobs:
             echo "::error::unit tests failed — see the Unit tests step above"
             verdict=1
           fi
+          if [ -f /tmp/lunar-unit-store-failed ]; then echo "::error::storing the unit-test results failed — see the Install loom-cli and Store unit-test results steps"; verdict=1; fi
           if [ "$verdict" -ne 0 ]; then exit 1; fi
-          echo "ktlintCheck and unit tests passed"
+          echo "ktlintCheck and unit tests passed; unit-test results stored"
 
   # The corpus gate (BUG-415): the ratchet that catches semantic regressions across pinned
   # real-world projects (MAINT-33/35) finally has a trigger that is not "when someone
@@ -355,43 +375,9 @@ jobs:
         # This one exists to catch the pool running a pre-0.3.0 image (no cc/python3, or no JDK 25):
         # fail here, in two lines, not five sweeps later at the ratchet.
         #
-        # It also installs loom-cli, which the store step uses (MAINT-40). This is loom's own
-        # "install loom-cli" step (loom/.gitea/workflows/docs-lint.yml), rewritten for dash: no
-        # pipefail, and every guard is an explicit `if … exit 1`. loom-cli is UNPINNED: the newest
-        # release is resolved per job. `LOOM_CLI_VERSION` (set as a repo variable, which arrives as
-        # plain env) installs that tag instead. It is an incident override for a loom-cli release
-        # that breaks this job, never a standing pin. `LOOM_MODULES_TOKEN` (org secret) arrives as
-        # plain env too. No release asset on this forge is fetchable anonymously, and a sign-in page
-        # comes back as HTTP 200, so `tar tzf` proves the download is an archive before it is
-        # trusted. The binary goes to /usr/local/bin (pods run as root), so later steps find it on
-        # PATH. Nothing here touches the store; `loom-cli --version` in the final compound records
-        # which version ran.
+        # It also installs loom-cli for the store step (MAINT-40): see tooling/ci/install-loom-cli.sh.
         run: |
-          loom_api=https://gitea.internetisalie.net/api/v1/repos/loom/loom-cli
-          if [ -n "${LOOM_CLI_VERSION:-}" ]; then
-            echo "loom-cli ${LOOM_CLI_VERSION} (override)"
-          else
-            LOOM_CLI_VERSION=$(curl -fsSL -H "Authorization: token ${LOOM_MODULES_TOKEN:-}" "${loom_api}/releases/latest" | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4)
-            if [ -z "${LOOM_CLI_VERSION}" ]; then
-              echo "::error::could not resolve loom-cli's latest release from ${loom_api}/releases/latest" >&2
-              exit 1
-            fi
-            echo "loom-cli ${LOOM_CLI_VERSION} (resolved latest)"
-          fi
-          loom_dir=$(mktemp -d)
-          if ! curl -fsSL -o "${loom_dir}/loom-cli.tgz" -H "Authorization: token ${LOOM_MODULES_TOKEN:-}" \
-              "https://gitea.internetisalie.net/loom/loom-cli/releases/download/${LOOM_CLI_VERSION}/loom-cli-linux-amd64.tar.gz"; then
-            echo "::error::could not download loom-cli ${LOOM_CLI_VERSION}" >&2
-            exit 1
-          fi
-          if ! tar tzf "${loom_dir}/loom-cli.tgz" > /dev/null; then
-            echo "::error::the loom-cli ${LOOM_CLI_VERSION} download is not an archive (a sign-in page?)" >&2
-            exit 1
-          fi
-          if ! { tar xzf "${loom_dir}/loom-cli.tgz" -C "${loom_dir}" loom-cli && install -m 0755 "${loom_dir}/loom-cli" /usr/local/bin/loom-cli; }; then
-            echo "::error::could not install loom-cli ${LOOM_CLI_VERSION}" >&2
-            exit 1
-          fi
+          if ! sh tooling/ci/install-loom-cli.sh; then exit 1; fi
           java -version
           "$HOME/bin/lua" -v
           echo "GRADLE_USER_HOME=${GRADLE_USER_HOME}"

@@ -65,7 +65,7 @@ commit's own test results.
 | MAINT-48-05 | **Store from CI** | M | Partial | The Gitea `build` job puts the document against `HEAD` as `a3`, no suite, after the unit tests, whether they passed or failed. An existing record is not an error. A partial (`--tests`) run or a run with no XML is refused. A store failure fails the job and never changes the test verdict. |
 | MAINT-48-06 | **Fetch a baseline** | M | Full | `junit_ctrf.py fetch --commit C` returns the unit-test record of the nearest first-parent ancestor of `C` whose code is identical to `C`'s, and exits 3 when there is none (design §3.6). |
 | MAINT-48-07 | **Compare by test** | M | Full | `junit_ctrf.py diff` lists newly failing, newly skipped, newly passing, added, removed and out-of-set tests and the executed counts over the tests both sets run. A test only one side's filter selects is never reported as added or removed. Exit 1 on a new failure or a passed test now skipped, 4 on an executed-count drop, 2 when not comparable (design §3.8). |
-| MAINT-48-08 | **One home for store plumbing** | M | Partial | `corpus_ctrf.py` and `junit_ctrf.py` share `tooling/ctrf/loom_store.py`; both jobs share `tooling/ci/install-loom-cli.sh`. MAINT-40's tests pass with no assertion changed. |
+| MAINT-48-08 | **One home for store plumbing** | M | Full | `corpus_ctrf.py` and `junit_ctrf.py` share `tooling/ctrf/loom_store.py`; both jobs share `tooling/ci/install-loom-cli.sh`. MAINT-40's tests pass with no assertion changed. |
 
 ## Test Cases
 

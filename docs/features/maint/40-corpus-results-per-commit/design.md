@@ -181,16 +181,8 @@ Functions: `load_runs(dir) -> list[dict]` (sorted by `member`, refusing `schema 
 
 ### 2.8 CI: the `corpus` job (`.gitea/workflows/build-plugin.yml:323`)
 
-- **`loom-cli`, unpinned, fetched per job** (Phase 0), the fleet's own install step copied from
-  `loom/.gitea/workflows/docs-lint.yml` ("install loom-cli"). With `LOOM_CLI_VERSION` unset, resolve
-  the tag from `GET /api/v1/repos/loom/loom-cli/releases/latest`; set, it is an override for a
-  release that breaks us, not a standing pin. Download
-  `…/releases/download/<tag>/loom-cli-linux-amd64.tar.gz` with `Authorization: token $LOOM_MODULES_TOKEN`
-  (no release asset on this forge is anonymously fetchable), prove it is an archive with `tar tzf`
-  (a sign-in page arrives as HTTP 200), and install `loom-cli` to `/usr/local/bin` (pods run as
-  root), so later steps find it on `PATH`. `curl` is already in the image. The step is dash-safe:
-  no `pipefail`, every guard is an explicit `if … exit 1` naming what failed, and the token arrives
-  as plain env, not `${{ secrets }}`. `LOOM_CLI_VERSION`, when set, arrives as a repo variable.
+- **`loom-cli`, unpinned, fetched per job** (Phase 0), by `tooling/ci/install-loom-cli.sh`, which
+  both lunar-ci jobs share (MAINT-48 design §2.5). The script's header records the install recipe.
 - **Verify toolchain** step: run the fetcher first, then prefix the final compound with
   `loom-cli --version &&`, so the log records which version ran.
 - **Corpus ratchet** step (Phase 4): replace `&& exit 0 … exit 1` with

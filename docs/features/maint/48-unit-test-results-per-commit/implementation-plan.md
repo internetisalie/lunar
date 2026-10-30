@@ -57,12 +57,17 @@ gate that consumes the record is MAINT-50.
 
 ### Phase 4: Store from CI [Must]
 - **Tasks**:
-  - [ ] Create `tooling/ci/install-loom-cli.sh`, edit the `corpus` job and its comment, and extend
+  - [x] Create `tooling/ci/install-loom-cli.sh`, edit the `corpus` job and its comment, and extend
         the `changes` job's CORPUS regex (design §2.5).
-  - [ ] In MAINT-40's `design.md` §2.8, cut the first bullet's install recipe to a pointer to
+  - [x] In MAINT-40's `design.md` §2.8, cut the first bullet's install recipe to a pointer to
         `tooling/ci/install-loom-cli.sh` (MAINT-48 design §2.5).
-  - [ ] Edit the Gitea `build` job (design §2.6). Leave `build-release` and `.github/` unchanged.
-  - [ ] TC 9, both commits, on one throwaway branch; delete the branch and its PR afterwards.
+  - [x] Edit the Gitea `build` job (design §2.6). Leave `build-release` and `.github/` unchanged.
+  - [x] TC 9, both commits, on one throwaway branch; delete the branch and its PR afterwards.
+- **Evidence**: PR #129 (`86224b15`): `build` stored `a3.ctrf.json` and passed; `corpus` logged
+  `loom-cli v0.93.0` from the script and passed; `grep -c releases/latest` prints 0 (TC 12). TC 9 on
+  PR #130 (closed, branch deleted): commit `2aa2e0e9` logged `store: stored …/a3.ctrf.json` and only
+  the unit-test `::error::`; commit `80802602` passed its tests, logged `loom-cli: resolve HEAD
+  exited 1: … chdir /nonexistent …` and only the store `::error::`.
   - [ ] After merge: TC 10 on the merge commit.
 - **Exit criteria**: the PR's `build` job is green and its log has a `store:` line; its `corpus` job
   (the PR touches `build-plugin.yml`, so `changes` selects it) is green and logs the loom-cli version.
@@ -85,4 +90,4 @@ Phase 1: MAINT-48-01. Phase 2: -08 (the Python half). Phase 3: -02, -03, -04, -0
 | Phase 1: Test-set sidecar | done | Must |
 | Phase 2: Shared store plumbing | done | Must |
 | Phase 3: Converter, fetch and diff | done | Must |
-| Phase 4: Store from CI | todo | Must |
+| Phase 4: Store from CI | in_progress | Must |
