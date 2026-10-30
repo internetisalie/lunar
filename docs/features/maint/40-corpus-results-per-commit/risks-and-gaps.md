@@ -18,6 +18,9 @@ folders:
   `highlightFailures = 0` (every committed baseline today), but it is unmeasured for findings.
 - **Mitigation**: `store` resolves first and never re-puts (design §3.5). Only the concurrent race
   reaches a second put. DR-02 measures what that put does.
+- **Observed**: a manual rerun of the `corpus` job for merge commit `69084a72` logged
+  `store: already stored, identical`, so a rerun with no findings reproduces the record byte for
+  byte.
 
 ### Risk 1.2: The executor's checkout does not derive the repository identity a developer's clone derives
 - **Impact**: CI stores under a subject that `fetch` on a developer clone never resolves. The

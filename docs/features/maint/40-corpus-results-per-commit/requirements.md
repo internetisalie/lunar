@@ -3,7 +3,7 @@ id: "MAINT-40"
 title: "40: Corpus Sweep Results Stored Per Commit"
 type: "feature"
 parent_id: "MAINT"
-status: "in_progress"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -119,8 +119,7 @@ It is verified by inspection: no step of the `corpus` job reads the store before
 
 ## Implementation Status
 
-Phases 0–4 are implemented. MAINT-40-06 is Partial until TC 8 holds on the first `main` push
-after merge.
+Phases 0–4 are implemented, and TC 8 holds on `main`.
 
 - **-01, -02**: `CorpusFinding.kt`, `CorpusFindingCounts.kt`, `CorpusFindingsFile.kt`, and
   `CorpusSweep` deriving every counter through `CorpusFindingCounts.derive`. TC 2 is
@@ -129,8 +128,8 @@ after merge.
   document assembled from a full run validates against the pinned CTRF 0.2.0 schema.
 - **-07, -08**: `fetch` and `diff`; TC 9–10 against the design §4.3 stub `loom-cli`.
 - **-06, -10's refusal**: `corpus_ctrf.py store` (TC 7, against the design §4.3 stub), `SUITE_ARGV`
-  from DR-10, and the Gitea `corpus` job's install, store and report steps (design §2.8). TC 8 is
-  run after merge.
+  from DR-10, and the Gitea `corpus` job's install, store and report steps (design §2.8). TC 8 holds on merge commit `69084a72`: `resolve --suite corpus`
+  reports it measured, at `…/69084a72…/conformance/a3.corpus.ctrf.json`.
 - **-09**: The ratchet still reads the committed baselines (`CorpusGuards.assertRatchet` is
   unchanged). By inspection of `.gitea/workflows/build-plugin.yml`, no `corpus` job step reads the
   store before the ratchet: the only `loom-cli` call before it is `loom-cli --version`. The store
@@ -140,8 +139,8 @@ after merge.
 
 - [x] TC 1–6 and 9–10 pass (the Phases 1–3 PR). TC 3 prints nothing.
 - [x] TC 7 passes.
-- [ ] TC 8 holds on the first `main` push after Phase 4 merges.
-- [ ] The CI `corpus` job is green on the Phase 4 PR, and its log shows the store outcome line.
+- [x] TC 8 holds on the first `main` push after Phase 4 merges.
+- [x] The CI `corpus` job is green on the Phase 4 PR, and its log shows the store outcome line.
 
 ## Non-Functional Requirements
 

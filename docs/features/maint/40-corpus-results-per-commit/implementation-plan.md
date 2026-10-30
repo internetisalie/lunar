@@ -83,9 +83,9 @@ Phases 1–3 need no store and no credentials, and ship as one PR. Phases 0 and 
   - [x] Add `store` to `corpus_ctrf.py` — design §3.5. Add TC 7.
   - [x] Edit the Gitea `corpus` job — design §2.8. Leave `.github/workflows/build-plugin.yml` unchanged.
   - [x] Add the `store` line to `tooling/corpus/README.md`.
-  - [ ] The PR's `corpus` job is green and its log has a `store:` line.
-  - [ ] After merge: TC 8 on the merge commit.
-  - [ ] After merge: a manual rerun of that `corpus` job; record its store line in risks Risk 1.1.
+  - [x] The PR's `corpus` job is green and its log has a `store:` line.
+  - [x] After merge: TC 8 on the merge commit.
+  - [x] After merge: a manual rerun of that `corpus` job; record its store line in risks Risk 1.1.
 - **Exit criteria**: TC 7 passes and its mutants are observed red; TC 9 passes with the Phase 0
   `SUITE_ARGV`. The PR's `corpus` job is green and its log has a `store:` line. After merge, TC 8
   holds on the merge commit. A manual rerun of that job logs `already stored, identical` or the
@@ -98,7 +98,7 @@ Phase 2: -03, -04, -05. Phase 3: -07, -08. Phases 0 and 4: -06, and -10's `store
 
 ## Verification Tasks
 
-- [ ] `CHANGELOG.md`: none. The feature has no user-facing change.
+- [x] `CHANGELOG.md`: none. The feature has no user-facing change.
 
 ## Task Summary
 
