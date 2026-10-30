@@ -12,7 +12,9 @@ from pathlib import Path
 from unittest import mock
 
 import corpus_ctrf
+import loom_store
 from corpus_ctrf import NotComparable, ctrf_document, fingerprints, identity_of, load_runs
+from loom_stub import STUB
 
 TOKEN = "11111111-2222-3333-4444-555555555555"
 
@@ -242,32 +244,6 @@ class IdentityTest(unittest.TestCase):
             load_runs(tmp)
 
 
-STUB = """#!/usr/bin/env python3
-import json, os, shutil, sys
-scenario_path = os.environ["STUB_LOOM"]
-argv = sys.argv[1:]
-with open(scenario_path + ".calls", "a", encoding="utf-8") as calls:
-    calls.write(json.dumps(argv) + "\\n")
-scenario = json.load(open(scenario_path, encoding="utf-8"))
-verb = argv[1]
-if verb == "resolve":
-    answer = scenario.get("resolve", {}).get(argv[argv.index("--commit") + 1], {"exit": 3})
-    if "json" in answer:
-        print(json.dumps(answer["json"]))
-    sys.exit(answer["exit"])
-if verb == "get":
-    source = scenario.get("get", {}).get(argv[2])
-    if source is None:
-        print("no such key", file=sys.stderr)
-        sys.exit(1)
-    shutil.copyfile(source, argv[argv.index("--output") + 1])
-    sys.exit(0)
-if verb == "put":
-    sys.exit(scenario.get("put", {}).get("exit", 0))
-sys.exit(1)
-"""
-
-
 def git(repo: Path, *args: str) -> str:
     env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.invalid",
                GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.invalid", GIT_CONFIG_GLOBAL=os.devnull,
@@ -307,7 +283,7 @@ class StubbedLoomTest(unittest.TestCase):
         stub.write_text(STUB, encoding="utf-8")
         stub.chmod(0o755)
         self.scenario = self.tmp / "scenario.json"
-        patcher = mock.patch.object(corpus_ctrf, "LOOM_CLI", str(stub))
+        patcher = mock.patch.object(loom_store, "LOOM_CLI", str(stub))
         patcher.start()
         self.addCleanup(patcher.stop)
         env = mock.patch.dict(os.environ, {"STUB_LOOM": str(self.scenario)})

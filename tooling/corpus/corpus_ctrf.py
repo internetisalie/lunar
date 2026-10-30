@@ -18,10 +18,12 @@ or ``store`` refusing a run that is not full-shape; 3 ``fetch`` found no stored 
 import argparse
 import hashlib
 import json
-import os
-import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "ctrf"))
+import loom_store  # noqa: E402
+from loom_store import EXIT_UNMEASURED, LoomError  # noqa: E402
 
 CHECK = "a3"
 TOOL_NAME = "lunar-corpus-sweep"
@@ -29,8 +31,6 @@ SPEC_VERSION = "0.2.0"
 COMPARABILITY_KEYS = ("commit", "roots", "luaLevel", "moduleRoot", "target", "definitionLibraries")
 SCHEMA = 1
 DEFAULT_MAX_DEPTH = 50
-EXIT_UNMEASURED = 3
-LOOM_CLI = os.environ.get("LOOM_CLI", "loom-cli")
 # The arguments that select suite `corpus` on resolve and put (loom-cli v0.90.0, DR-10): the record
 # is stored as `a3.corpus.ctrf.json`. `get` takes the key resolve returns, so it carries none.
 SUITE_ARGV: tuple[str, ...] = ("--suite", "corpus")
@@ -38,10 +38,6 @@ SUITE_ARGV: tuple[str, ...] = ("--suite", "corpus")
 
 class NotComparable(Exception):
     """The runs, or two documents, cannot be compared or combined. Never a regression."""
-
-
-class LoomError(Exception):
-    """``loom-cli`` failed for a reason other than "unmeasured"."""
 
 
 def load_runs(directory) -> list[dict]:
@@ -181,22 +177,8 @@ def assemble(args) -> int:
     return 0
 
 
-def loom(argv) -> subprocess.CompletedProcess:
-    return subprocess.run([LOOM_CLI, *argv], capture_output=True, text=True, check=False)
-
-
-def _output(result: subprocess.CompletedProcess) -> str:
-    return (result.stdout + result.stderr).strip()
-
-
-def lookup(sha: str, repo: str) -> dict | None:
-    """The stored ``a3`` corpus record of ``sha``: the resolve ``record``, or None when unmeasured."""
-    result = loom(["artifact", "resolve", "--commit", sha, "--check", CHECK, "--repo", repo, "--json", *SUITE_ARGV])
-    if result.returncode == EXIT_UNMEASURED:
-        return None
-    if result.returncode != 0:
-        raise LoomError(f"resolve {sha} exited {result.returncode}: {_output(result)}")
-    return json.loads(result.stdout)["checks"][0]["record"]
+def _slot(repo: str) -> loom_store.Slot:
+    return loom_store.Slot(CHECK, SUITE_ARGV, repo, "corpus")
 
 
 def store(args) -> int:
@@ -206,39 +188,11 @@ def store(args) -> int:
     if shape != "full":
         print(f"refusing to store a {shape} run: suite corpus holds full runs only")
         return 2
-    record = lookup("HEAD", args.repo)
-    if record is not None:
-        if record["loom-sha256"] == hashlib.sha256(data).hexdigest():
-            print("store: already stored, identical")
-        else:
-            print(f"WARNING store: HEAD already has a different {CHECK} corpus record; kept the first")
-        return 0
-    result = loom(["artifact", "put", "conformance", str(args.out), "--commit", "HEAD", "--check", CHECK,
-                   "--no-item", "--repo", args.repo, *SUITE_ARGV])
-    if result.returncode != 0:
-        print(f"store: put exited {result.returncode}: {_output(result)}", file=sys.stderr)
-        return 1
-    print(f"store: {result.stdout.strip()}")
-    return 0
-
-
-def _first_parents(repo: str, commit: str, depth: int) -> list[str]:
-    argv = ["git", "-C", repo, "rev-list", "--first-parent", f"--max-count={depth}", commit]
-    return subprocess.run(argv, capture_output=True, text=True, check=True).stdout.split()
+    return loom_store.store_once(_slot(args.repo), Path(args.out), data)
 
 
 def _identity(doc: dict) -> str | None:
     return doc["results"].get("environment", {}).get("testEnvironment")
-
-
-def _get(record: dict, part: Path) -> dict:
-    """Download ``record`` to ``part`` and parse it. Raises LoomError, leaving no ``part`` behind."""
-    part.unlink(missing_ok=True)
-    result = loom(["artifact", "get", record["key"], "--output", str(part)])
-    if result.returncode != 0:
-        part.unlink(missing_ok=True)
-        raise LoomError(f"get {record['key']} exited {result.returncode}: {_output(result)}")
-    return json.loads(part.read_text(encoding="utf-8"))
 
 
 def _wanted(like) -> str | None:
@@ -249,18 +203,16 @@ def _wanted(like) -> str | None:
 
 def fetch(args) -> int:
     """The nearest first-parent ancestor's stored corpus document, within ``--max-depth`` (§3.6)."""
-    out, part, want = Path(args.out), Path(f"{args.out}.part"), _wanted(args.like)
-    for distance, sha in enumerate(_first_parents(args.repo, args.commit, args.max_depth)):
-        record = lookup(sha, args.repo)
-        if record is None:
-            continue
-        doc = _get(record, part)
-        identity = _identity(doc)
-        if doc["results"].get("tool", {}).get("name") != TOOL_NAME or (want is not None and identity != want):
-            part.unlink()
-            continue
-        part.replace(out)
-        print(f"fetched {sha} identity={identity} distance={distance}")
+    want = _wanted(args.like)
+
+    def accept(doc: dict) -> bool:
+        return doc["results"].get("tool", {}).get("name") == TOOL_NAME and (want is None or _identity(doc) == want)
+
+    shas = loom_store.first_parents(args.repo, args.commit, args.max_depth)
+    hit = loom_store.fetch_first(_slot(args.repo), shas, loom_store.Wanted(Path(args.out), accept))
+    if hit is not None:
+        sha, distance, doc = hit
+        print(f"fetched {sha} identity={_identity(doc)} distance={distance}")
         return 0
     print(f"no stored result within {args.max_depth} first-parent ancestors of {args.commit}")
     return EXIT_UNMEASURED

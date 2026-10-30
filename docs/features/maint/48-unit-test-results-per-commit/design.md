@@ -100,13 +100,18 @@ class Slot:
     repo: str                              # "--repo" value, default "."
     label: str                             # used in messages: "corpus", "unit-test"
 
+@dataclass(frozen=True)
+class Wanted:
+    out: Path                              # where fetch_first writes the accepted document
+    accept: Callable[[dict], bool]         # which fetched documents to keep
+
 def loom(argv: list[str]) -> subprocess.CompletedProcess          # moved verbatim
 def output(result: subprocess.CompletedProcess) -> str             # moved verbatim (was _output)
 def lookup(slot: Slot, sha: str) -> dict | None                    # §3.5 step 2 of MAINT-40, slot's check and suite
 def store_once(slot: Slot, out: Path, data: bytes) -> int          # MAINT-40 §3.5 steps 2-3
 def first_parents(repo: str, commit: str, depth: int) -> list[str] # moved verbatim (was _first_parents)
 def get(record: dict, part: Path) -> dict                          # moved verbatim (was _get)
-def fetch_first(slot: Slot, shas: list[str], out: Path, accept: Callable[[dict], bool]) -> tuple[str, int, dict] | None
+def fetch_first(slot: Slot, shas: list[str], wanted: Wanted) -> tuple[str, int, dict] | None
 ```
 
 - `lookup` runs `[LOOM_CLI, "artifact", "resolve", "--commit", sha, "--check", slot.check, "--repo",
@@ -119,7 +124,7 @@ def fetch_first(slot: Slot, shas: list[str], out: Path, accept: Callable[[dict],
   "--check", slot.check, "--no-item", "--repo", slot.repo, *slot.suite_argv]`; exit 0 → print
   `store: <stdout stripped>`, return 0; else print `store: put exited <n>: <output>` to stderr, return 1.
   With `label = "corpus"` every message is byte-identical to today's.
-- `fetch_first`: first `out.parent.mkdir(parents=True, exist_ok=True)`, because `loom-cli get`
+- `fetch_first` (`out` and `accept` are `wanted`'s, bundled to keep it within three arguments): first `out.parent.mkdir(parents=True, exist_ok=True)`, because `loom-cli get`
   does not create a missing parent (DR-09). This is the one behaviour change for corpus: its fetch
   used to fail when the parent was missing. Then, for `distance, sha in enumerate(shas)`: `record = lookup(slot, sha)`; `None` →
   continue; `doc = get(record, Path(f"{out}.part"))`; if not `accept(doc)` → unlink the part,
@@ -164,7 +169,7 @@ imported by both test files, patching `loom_store.LOOM_CLI`.
 - `store`: keep assembly and the shape refusal; replace from `record = lookup(...)` to the end with
   `return loom_store.store_once(_slot(args.repo), Path(args.out), data)`.
 - `fetch`: keep `want` and the messages; call
-  `loom_store.fetch_first(_slot(args.repo), loom_store.first_parents(args.repo, args.commit, args.max_depth), out, accept)`
+  `loom_store.fetch_first(_slot(args.repo), loom_store.first_parents(args.repo, args.commit, args.max_depth), Wanted(out, accept))`
   with `accept(doc) = doc["results"].get("tool", {}).get("name") == TOOL_NAME and (want is None or _identity(doc) == want)`.
   On a hit print `fetched {sha} identity={_identity(doc)} distance={distance}`, return 0.
 - `test_corpus_ctrf.py`: `STUB` moves to `loom_stub.py` (imported after `corpus_ctrf`, which put
@@ -212,7 +217,9 @@ The `changes` job's CORPUS regex (`build-plugin.yml:102`) gains `^tooling/ctrf/|
 2. `outcome`: the first child present among `failure`, `error`, `skipped`, in that order, gives
    `status` = `failed`, `failed`, `skipped` and `raw` = the tag name; none gives `passed`, `None`.
    `message` = the child's `message` attribute if non-empty, else the first line of its text
-   stripped, else `""`; then truncated to `MESSAGE_CAP` characters. A passed case has `""`.
+   stripped, else `""`; then stripped, with every line break and the whitespace around it replaced by
+   one space (Gradle writes a multi-line message as `&#10;`, and `diff` prints one line per test);
+   then truncated to `MESSAGE_CAP` characters. A passed case has `""`.
 3. Each case is `{"classname", "method": name attribute, "file": path.name, "status", "raw",
    "message", "duration": round(float(time attribute or "0") * 1000)}`.
 
@@ -270,9 +277,10 @@ runs, and MAINT-40 DR-02 measured that a differing put is refused.
 
 1. `shas = loom_store.first_parents(repo, commit, depth)`.
 2. Keep the longest prefix of `shas` whose every element `s` satisfies: every line of
-   `git -C repo diff --name-only s commit` matches `DOCS_ONLY_PATH`. `shas[0]` is `commit` itself and always
+   `git -C repo diff --no-renames --name-only s commit` matches `DOCS_ONLY_PATH` (with rename detection a
+   move from `src/` to `docs/` would list only its docs path). `shas[0]` is `commit` itself and always
    qualifies. Stop at the first `s` that fails: an ancestor that differs in code is not a baseline.
-3. `hit = loom_store.fetch_first(slot, prefix, Path(args.out), accept)` with
+3. `hit = loom_store.fetch_first(slot, prefix, Wanted(Path(args.out), accept))` with
    `accept(doc) = doc["results"].get("tool", {}).get("name") == TOOL_NAME`.
 4. Hit: print `fetched {sha} identity={testEnvironment} distance={distance}`, return 0. Miss: print
    `no unit-test record for a code-identical first-parent ancestor of {commit} (searched {len(prefix)})`,

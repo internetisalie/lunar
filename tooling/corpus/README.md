@@ -179,6 +179,9 @@ path, offsets, line, column, message, symbol) per hit behind the baseline's coun
   per-rule `COUNT` lines, sorted, and exits `1` if any finding is new, else `0`. Documents with
   different identities, members, `files` or `requires` print `NOT COMPARABLE: …` and exit `2`.
 
+The `loom-cli` calls behind `store` and `fetch` live in `tooling/ctrf/loom_store.py`, which the
+unit-test results tool (`tooling/ctrf/junit_ctrf.py`, MAINT-48) shares.
+
 The Python tools have unit tests:
 `python3 -m unittest discover -s tooling/corpus -p 'test_*.py'`.
 

@@ -22,7 +22,9 @@ folders:
 - **Impact**: a Gradle upgrade that renames `DefaultTestFilter.getCommandLineIncludePatterns` makes
   the safe cast or the call fail, and a `--tests` run would read as a full one.
 - **Likelihood**: low per upgrade; the build fails to compile the script if the method is removed,
-  which is loud, and the safe cast covers a type change.
+  which is loud, and the safe cast covers a type change. `DefaultTestFilter` is imported at the top
+  of `build.gradle.kts`, so removing or moving the class breaks script compilation for every task,
+  not only `test`.
 - **Mitigation**: TC 1's (a) expectation fails on any such upgrade, and CI never passes `--tests`, so
   the stored records are unaffected.
 

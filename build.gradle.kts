@@ -1,4 +1,6 @@
 
+import groovy.json.JsonOutput
+import org.gradle.api.internal.tasks.testing.filter.DefaultTestFilter
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
@@ -440,6 +442,25 @@ tasks {
                 excludeTestsMatching("*AnnotatedFixtureSweepTest")
                 isFailOnNoMatchingTests = false
             }
+        }
+        // MAINT-48: the patterns this invocation actually filtered on, for tooling/ctrf/junit_ctrf.py.
+        // Outside test-results/test/, whose contents the task's report replaces (MAINT-48 DR-02).
+        val testFilterFile = layout.buildDirectory.file("test-results/test-filter.json").get().asFile
+        outputs.file(testFilterFile)
+        doFirst {
+            val effectiveFilter = (this as Test).filter
+            val commandLinePatterns = (effectiveFilter as? DefaultTestFilter)?.commandLineIncludePatterns.orEmpty()
+            testFilterFile.parentFile.mkdirs()
+            testFilterFile.writeText(
+                JsonOutput.toJson(
+                    mapOf(
+                        "schema" to 1,
+                        "excludePatterns" to effectiveFilter.excludePatterns.sorted(),
+                        "includePatterns" to effectiveFilter.includePatterns.sorted(),
+                        "commandLineIncludePatterns" to commandLinePatterns.sorted(),
+                    ),
+                ) + "\n",
+            )
         }
         // Rewrite the recorded baselines instead of gating on them, for when a sweep legitimately
         // moves (corpus re-pinned, or the plugin got better).

@@ -28,17 +28,17 @@ gate that consumes the record is MAINT-50.
 
 ### Phase 1: Test-set sidecar [Must]
 - **Tasks**:
-  - [ ] Edit `build.gradle.kts` per design §2.1, with its two imports.
+  - [x] Edit `build.gradle.kts` per design §2.1, with its two imports.
 - **Exit criteria**: TC 1 (a), (b) and (c) hold on copied-back sidecars, and each TC 1 mutant is
   observed red. The unit suite has no failing test that the pre-edit run lacked, and ktlintCheck passes.
 
 ### Phase 2: Shared store plumbing [Must]
 - **Tasks**:
-  - [ ] Before editing: run the corpus Python gate and save its output.
-  - [ ] Create `tooling/ctrf/loom_store.py` (design §2.2) and `tooling/ctrf/loom_stub.py` (`STUB`,
+  - [x] Before editing: run the corpus Python gate and save its output.
+  - [x] Create `tooling/ctrf/loom_store.py` (design §2.2) and `tooling/ctrf/loom_stub.py` (`STUB`,
         moved verbatim from `test_corpus_ctrf.py`).
-  - [ ] Edit `corpus_ctrf.py` and `test_corpus_ctrf.py` per design §2.4.
-  - [ ] In MAINT-40's `design.md` §2.7, replace the moved names in the "Functions:" sentence with a
+  - [x] Edit `corpus_ctrf.py` and `test_corpus_ctrf.py` per design §2.4.
+  - [x] In MAINT-40's `design.md` §2.7, replace the moved names in the "Functions:" sentence with a
         pointer to `tooling/ctrf/loom_store.py` (MAINT-48 design §2.2). In its §4.3 "Test stub"
         bullet, change `test_corpus_ctrf.py` to `tooling/ctrf/loom_stub.py`. In its §2.7 "Constants:"
         sentence, move `EXIT_UNMEASURED` and `LOOM_CLI` out to the same pointer.
@@ -46,11 +46,11 @@ gate that consumes the record is MAINT-50.
 
 ### Phase 3: Converter, fetch and diff [Must]
 - **Tasks**:
-  - [ ] Create `tooling/ctrf/junit_ctrf.py` (design §2.3, §3.1–§3.8, §4.3).
-  - [ ] Create `tooling/ctrf/test_junit_ctrf.py` with TC 2–8, using `loom_stub.STUB`.
-  - [ ] Create `tooling/ctrf/README.md`: one usage line per subcommand. In
+  - [x] Create `tooling/ctrf/junit_ctrf.py` (design §2.3, §3.1–§3.8, §4.3).
+  - [x] Create `tooling/ctrf/test_junit_ctrf.py` with TC 2–8, 13 and 14, using `loom_stub.STUB`.
+  - [x] Create `tooling/ctrf/README.md`: one usage line per subcommand. In
         `tooling/corpus/README.md` ("Findings per commit"), note that loom calls live in `tooling/ctrf/loom_store.py`.
-- **Exit criteria**: the Python gates pass, and every TC 2–8 mutant is observed red. Then, on the
+- **Exit criteria**: the Python gates pass, and every TC 2–8, 13 and 14 mutant is observed red. Then, on the
   builder, run the unit suite, copy back `build/test-results/test/` and the sidecar, `assemble`
   them, and validate the document with `jsonschema` 4.19.2 against the pinned schema (DR-05's
   command). Run `assemble` twice and `cmp` the outputs.
@@ -82,7 +82,7 @@ Phase 1: MAINT-48-01. Phase 2: -08 (the Python half). Phase 3: -02, -03, -04, -0
 
 | Phase | Status | Priority |
 |---|---|---|
-| Phase 1: Test-set sidecar | todo | Must |
-| Phase 2: Shared store plumbing | todo | Must |
-| Phase 3: Converter, fetch and diff | todo | Must |
+| Phase 1: Test-set sidecar | done | Must |
+| Phase 2: Shared store plumbing | done | Must |
+| Phase 3: Converter, fetch and diff | done | Must |
 | Phase 4: Store from CI | todo | Must |

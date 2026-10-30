@@ -157,10 +157,10 @@ from it.
 The script uses the stdlib only. Constants: `CHECK = "a3"`, `TOOL_NAME = "lunar-corpus-sweep"`,
 `SPEC_VERSION = "0.2.0"`,
 `COMPARABILITY_KEYS = ("commit", "roots", "luaLevel", "moduleRoot", "target", "definitionLibraries")`,
-`SCHEMA = 1` (the findings file, §4.1), `DEFAULT_MAX_DEPTH = 50`, `EXIT_UNMEASURED = 3`,
-`LOOM_CLI = os.environ.get("LOOM_CLI", "loom-cli")`, and `SUITE_ARGV = ("--suite", "corpus")`,
+`SCHEMA = 1` (the findings file, §4.1), `DEFAULT_MAX_DEPTH = 50`, and `SUITE_ARGV = ("--suite", "corpus")`,
 the arguments that select suite `corpus` on resolve and put (loom-cli v0.90.0, DR-10). `get` takes
-the key resolve returns and no suite.
+the key resolve returns and no suite. `EXIT_UNMEASURED` and `LOOM_CLI` live in
+`tooling/ctrf/loom_store.py` (MAINT-48 design §2.2).
 
 | Subcommand | Arguments | Exit |
 |---|---|---|
@@ -171,11 +171,11 @@ the key resolve returns and no suite.
 
 Functions: `load_runs(dir) -> list[dict]` (sorted by `member`, refusing `schema != 1`),
 `identity_of(runs, manifest) -> str`, `fingerprints(member, findings) -> list[tuple[str, dict]]`,
-`ctrf_document(runs, manifest) -> bytes`, `loom(argv) -> subprocess.CompletedProcess`,
-`lookup(sha, repo) -> dict | None` (§3.5 step 2: the resolve `record` on exit 0, None on exit 3,
-`LoomError` on any other exit), `store(args) -> int`, `fetch(args) -> int`,
-`diff(before, after) -> tuple[list[str], int]`, and `main(argv) -> int`. Exceptions:
-`NotComparable` and `LoomError` (`main` prints either; it returns 2 and 1 respectively). Tests run as
+`ctrf_document(runs, manifest) -> bytes`, `store(args) -> int`, `fetch(args) -> int`,
+`diff(before, after) -> tuple[list[str], int]`, and `main(argv) -> int`. The `loom-cli` calls
+(`loom`, `lookup`, the store-once and first-parent fetch walks) and `LoomError` live in
+`tooling/ctrf/loom_store.py` (MAINT-48 design §2.2). Exceptions: `NotComparable` and `LoomError`
+(`main` prints either; it returns 2 and 1 respectively). Tests run as
 `cd tooling/corpus && python3 -m unittest test_corpus_ctrf`, the precedent of
 `test_attribute_delta.py`.
 
@@ -424,7 +424,7 @@ executes them with it on loom-cli v0.90.0.
   checksum-verified. It takes the key that resolve returned, so it needs no suite argument.
 - **put**: `artifact put conformance <path> --commit … --check … --no-item --repo … --suite corpus`.
   Exit 0 means stored or already present (DR-02). Any other exit is a failure.
-- **Test stub** (`test_corpus_ctrf.py`): an executable written to a temp dir and selected through
+- **Test stub** (`tooling/ctrf/loom_stub.py`): an executable written to a temp dir and selected through
   `LOOM_CLI`. It reads the JSON scenario named by env `STUB_LOOM`:
   `{"resolve": {"<commitish>": {"exit": 3} | {"exit": 0, "json": {…}}}, "get": {"<key>": "<source path>"}, "put": {"exit": 0}}`.
   It appends each argv as one JSON line to `<STUB_LOOM>.calls`, copies `get` sources to `--output`,
