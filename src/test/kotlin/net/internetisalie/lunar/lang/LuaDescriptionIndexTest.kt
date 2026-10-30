@@ -8,6 +8,7 @@ import net.internetisalie.lunar.lang.indexing.LuaDescriptionIndex
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import java.io.File
 
 @RunWith(JUnit4::class)
 class LuaDescriptionIndexTest : BasePlatformTestCase() {
@@ -135,51 +136,61 @@ class LuaDescriptionIndexTest : BasePlatformTestCase() {
         assertEquals(file.text.indexOf("local function getX"), record.offset)
     }
 
+    /**
+     * Regression guardrail: the description index of a pinned, LuaCATS-heavy corpus member stays under
+     * MAX_BYTES_PER_LINE bytes per line of that member (measured in MAINT-49 DR-02).
+     */
     @Test
     fun testIndexRealWorldProjectAndMeasureSize() {
-        val testProjectDir = java.io.File(System.getProperty("user.dir"), "test")
-        assertTrue("Test project directory does not exist: ${testProjectDir.absolutePath}", testProjectDir.exists())
+        val memberDir = File(System.getProperty("user.dir"), SIZE_MEMBER)
+        assertTrue("corpus not fetched: $SIZE_MEMBER (tooling/corpus/fetch-corpus.py)", memberDir.isDirectory)
 
-        var totalLoc = 0
-        var fileCount = 0
-
-        testProjectDir.walkTopDown().forEach { file ->
-            if (file.isFile && file.extension == "lua") {
-                val content = file.readText()
-                val relativePath = file.relativeTo(testProjectDir).path
-                myFixture.addFileToProject(relativePath, content)
-                totalLoc += content.lineSequence().count()
-                fileCount++
-            }
-        }
-
-        val scope = GlobalSearchScope.allScope(project)
-        val index = FileBasedIndex.getInstance()
-        val keys = index.getAllKeys(LuaDescriptionIndex.KEY, project)
-
-        var totalEntries = 0
-        var estimatedSizeBytes = 0
-
-        for (key in keys) {
-            val values = index.getValues(LuaDescriptionIndex.KEY, key, scope)
-            val keySize = key.toByteArray(Charsets.UTF_8).size + 2
-            estimatedSizeBytes += keySize
-
-            for (value in values) {
-                totalEntries++
-                val valueSize = value.toByteArray(Charsets.UTF_8).size + 2
-                estimatedSizeBytes += valueSize
-            }
-        }
-
-        // Regression guardrail: the description index must stay under 500 KB per 10k LOC. The
-        // vendored test project measures ~6 bytes/LOC, so this leaves ~9x headroom and trips only
-        // on a genuine index-size blowup.
-        val limitBytes = (totalLoc / 10000.0) * 500 * 1024
-        assertTrue(
-            "Estimated size of index ($estimatedSizeBytes bytes) exceeds limit ($limitBytes bytes) " +
-                "for $totalLoc LOC across $fileCount files ($totalEntries entries)",
-            estimatedSizeBytes < limitBytes,
+        val totalLines = addLuaFiles(memberDir)
+        assertEquals(
+            "$SIZE_MEMBER is not the pinned checkout the budget was measured on; re-measure (MAINT-49 DR-02)",
+            PINNED_LINES,
+            totalLines,
         )
+
+        val bytes = projectIndexBytes()
+        val limit = totalLines * MAX_BYTES_PER_LINE
+        assertTrue(
+            "Estimated size of index ($bytes bytes) exceeds limit ($limit bytes) for $totalLines lines of $SIZE_MEMBER",
+            bytes < limit,
+        )
+    }
+
+    private fun addLuaFiles(root: File): Int {
+        var totalLines = 0
+        root.walkTopDown().filter { it.isFile && it.extension == "lua" }.forEach { file ->
+            val text = file.readText()
+            myFixture.addFileToProject(file.relativeTo(root).path, text)
+            totalLines += text.lineSequence().count()
+        }
+        return totalLines
+    }
+
+    private fun projectIndexBytes(): Int {
+        val index = FileBasedIndex.getInstance()
+        val scope = GlobalSearchScope.projectScope(project)
+        var bytes = 0
+        for (key in index.getAllKeys(LuaDescriptionIndex.KEY, project)) {
+            val values = index.getValues(LuaDescriptionIndex.KEY, key, scope)
+            if (values.isEmpty()) continue
+            bytes += key.toByteArray(Charsets.UTF_8).size + 2
+            for (value in values) {
+                bytes += value.toByteArray(Charsets.UTF_8).size + 2
+                DescriptionRecord.parseAll(value).forEach { record ->
+                    assertFalse("bundled definition counted: ${record.fileUrl}", record.fileUrl.startsWith("jar:"))
+                }
+            }
+        }
+        return bytes
+    }
+
+    private companion object {
+        const val SIZE_MEMBER = "test/corpus/lazynvim"
+        const val PINNED_LINES = 14_327
+        const val MAX_BYTES_PER_LINE = 10
     }
 }

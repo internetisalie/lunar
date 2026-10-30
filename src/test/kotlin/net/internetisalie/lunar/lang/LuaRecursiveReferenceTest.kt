@@ -100,7 +100,11 @@ class LuaRecursiveReferenceTest : BasePlatformTestCase() {
 
     @Test
     fun testLuacheckParserRecursiveCall() {
-        val virtualFile = myFixture.copyFileToProject("test/luacheck/src/luacheck/parser.lua", "luacheck/parser.lua")
+        val virtualFile =
+            myFixture.copyFileToProject(
+                "test/corpus/luacheck/src/luacheck/parser.lua",
+                "luacheck/parser.lua",
+            )
         myFixture.configureFromExistingVirtualFile(virtualFile)
 
         // Find "parse_subexpression" call at line 621 (1-based)

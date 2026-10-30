@@ -19,11 +19,11 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
 - **Goal**: the two tests that read hand-placed files read pinned corpus members. Needs nothing from
   TOOLING-09.
 - **Tasks**:
-  - [ ] `LuaRecursiveReferenceTest`: the path edit — design §2.1.
-  - [ ] `LuaDescriptionIndexTest`: new `testIndexRealWorldProjectAndMeasureSize`, `addLuaFiles`,
+  - [x] `LuaRecursiveReferenceTest`: the path edit — design §2.1.
+  - [x] `LuaDescriptionIndexTest`: new `testIndexRealWorldProjectAndMeasureSize`, `addLuaFiles`,
         `projectIndexBytes`, companion constants (`SIZE_MEMBER`, `PINNED_LINES`,
         `MAX_BYTES_PER_LINE`), KDoc — design §2.2, §3.2.
-  - [ ] `tooling/corpus/corpus.json` NB strings and `tooling/corpus/README.md` `Note on test/luacheck` —
+  - [x] `tooling/corpus/corpus.json` NB strings and `tooling/corpus/README.md` `Note on test/luacheck` —
         design §2.9 rows 1–2.
 - **Exit criteria**: requirements cases 2–6 (the mutants of cases 3, 5 and 6 each run once on the
   builder and reverted); full suite green. CI still excludes the classes, so the builder is the only runner.
@@ -80,7 +80,7 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
 | MAINT-49-09 | S | Phases 1, 2, 3 (design §2.9, per row above) |
 
 ## Verification Tasks
-- [ ] Phase 1: builder `test --rerun --no-build-cache --tests '*LuaRecursiveReferenceTest' --tests '*LuaDescriptionIndexTest'`,
+- [x] Phase 1: builder `test --rerun --no-build-cache --tests '*LuaRecursiveReferenceTest' --tests '*LuaDescriptionIndexTest'`,
       then the mutants of cases 3, 5 and 6 one at a time on the same pattern (expect red at the
       assertion each case names), each reverted with the `temporary-edits` skill — cases 3–6.
 - [ ] Phase 2: builder `--tests '*FetchLuacScriptTest' --tests '*ParseOracleTest'`; case 12 run locally
@@ -94,6 +94,6 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Read the pinned corpus | todo | Must |
+| Phase 1: Read the pinned corpus | done | Must |
 | Phase 2: Download `luac` | todo | Must |
 | Phase 3: Provision in CI and drop the exclusion | todo | Must |

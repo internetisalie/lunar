@@ -234,9 +234,3 @@ unsupported entry above is a Lua-syntax file, so association is close to free.
 
 Groups unclaimed purely because the headless fixture lacks the bundled Markdown/YAML plugins
 (`md`, `yml`, `sh`, `png`, …) are noise, not findings.
-
-## Note on `test/luacheck`
-
-Unrelated to this corpus. It is a clone of the internal `glimmer/luacheck` fork carrying commits
-that do not exist upstream, and belongs to `LuaRecursiveReferenceTest`. The corpus fetches its own
-`test/corpus/luacheck` pinned to upstream `lunarmodules/luacheck` v1.2.0.
