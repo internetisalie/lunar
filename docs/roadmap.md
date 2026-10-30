@@ -152,6 +152,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-40 | Corpus sweep results stored per commit — one CTRF failed test per finding, stored as loom `a3` suite `corpus` with an environment-derived identity, so a "before" is a fetch, not a re-record | in_progress | M | loom LCL-241 *(store step only)* | — | ✓ |
 | MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | todo | M | MAINT-40 | — | ✓ |
 | MAINT-46 | Ticket IDs minted by `loom-cli id mint` after a scripted backfill of every used number, so concurrent sessions never pick the same ID | todo | S | — | — | ✓ |
+| MAINT-47 | Other IDE families — decide which are supported, add each to `verifyPlugin`, resolve the hard coverage/JSON dependencies, and check each live once | todo | M | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
 | BUG-462 | The package detail card strands its loading placeholders, and its description and dependency regions never render | todo | S | — | — | ✓ |
