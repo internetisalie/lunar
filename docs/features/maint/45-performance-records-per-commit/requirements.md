@@ -41,9 +41,11 @@ shared runner. Both premises have changed: routine CI now runs on the `lunar-ci`
 - **Store from CI.** The `build` job on the `lunar-ci` pool stores each push to `main` as a
   conformance record for that commit (`loom-cli artifact put conformance`). Tag builds on the
   shared pool and the GitHub workflow do not store: their hosts differ, and GitHub's runners are
-  too small to be representative.
-- **Compare on PRs.** A PR run fetches the record at its merge-base with `main`
-  (`loom-cli artifact resolve --merge-base-with`) and diffs against it. A count that rises fails
+  too small to be representative. The record needs a suite of its own (`--suite`), because
+  [[MAINT-48]] stores the unit-test results as `a3`'s primary record.
+- **Compare on PRs.** A PR run fetches the record of the nearest code-identical first-parent
+  ancestor of its merge-base with `main`, as [[MAINT-48]] design §3.6 does (docs-only pushes store
+  nothing, so the merge-base itself often has no record), and diffs against it. A count that rises fails
   the PR unless the change accepts it; a timing is reported, never gated, with large increases
   flagged.
 - **Compare over time.** A small report walks first-parent `main`, or the release tags, resolves
@@ -61,7 +63,7 @@ shared runner. Both premises have changed: routine CI now runs on the `lunar-ci`
 ## Relationship to neighbouring work
 
 - **Depends on [[MAINT-40]]**, which wires the per-commit store into CI for the corpus sweep's
-  SARIF findings and fixes the environment-derived suite naming. This feature reuses both.
+  findings (as CTRF) and fixes the environment-derived suite naming. This feature reuses both.
 - **Answers [[MAINT-38]] tier 3** (MAINT-38-09) on the changed premises above. MAINT-38's JFR
   recipe stays the tool for diagnosing a regression this feature detects.
 - The existing wall-clock tests under `performance/` can become workloads here, which would retire
