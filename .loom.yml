@@ -1,0 +1,12 @@
+# Read by `loom-cli pr land` from the PR's base branch.
+profile:
+  project:
+    name: lunar
+  repository:
+    forge:
+      identities:
+        implementer:
+          login: internetisalie
+      merge:
+        method: squash
+        deleteBranch: true
