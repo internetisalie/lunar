@@ -52,12 +52,12 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
 ### Phase 3: Provision in CI and drop the exclusion [Must] — PR 3
 - **Goal**: every CI suite lane runs the four classes.
 - **Tasks**:
-  - [ ] Gitea `build`: provisioning step, store guard, report line — design §2.5.
-  - [ ] Gitea `build-release` and GitHub `build`: the provisioning step — design §2.6 Phase 3
+  - [x] Gitea `build`: provisioning step, store guard, report line — design §2.5.
+  - [x] Gitea `build-release` and GitHub `build`: the provisioning step — design §2.6 Phase 3
         paragraph.
-  - [ ] Remove the filter block and every `-PexcludeExternalFixtureTests`; rename the test steps —
+  - [x] Remove the filter block and every `-PexcludeExternalFixtureTests`; rename the test steps —
         design §2.7.
-  - [ ] Remaining prose: design §2.9 rows 5–7.
+  - [x] Remaining prose: design §2.9 rows 5–7.
 - **Exit criteria**: requirements cases 1, 14, 17 and 19 on the PR's Gitea runs and tree; case 15 on
   a throwaway PR branched from PR 3, closed unmerged after the observation; full suite green on the
   builder. **After merge:** case 16's GitHub half on the first GitHub `build` run on `main` (GitHub
@@ -95,5 +95,5 @@ builder, `test --rerun --no-build-cache`, read from its log, never piped through
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Read the pinned corpus | done | Must |
-| Phase 2: Download `luac` | in_progress | Must |
-| Phase 3: Provision in CI and drop the exclusion | todo | Must |
+| Phase 2: Download `luac` | done | Must |
+| Phase 3: Provision in CI and drop the exclusion | in_progress | Must |

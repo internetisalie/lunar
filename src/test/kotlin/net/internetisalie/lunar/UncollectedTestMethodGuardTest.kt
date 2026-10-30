@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
  * run and never reported as skipped. This test fails the build if one exists.
  *
  * It reads the compiled test classes (the code source of this very class), so it also covers
- * classes the Gradle filters skip at run time (`*Corpus*`, `-PexcludeExternalFixtureTests`).
+ * classes the Gradle filters skip at run time (`*Corpus*`).
  */
 class UncollectedTestMethodGuardTest {
     @Test

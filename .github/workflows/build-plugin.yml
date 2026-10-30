@@ -95,6 +95,15 @@ jobs:
           ln -sf "$(command -v lua5.4)" "$HOME/bin/lua"
           "$HOME/bin/lua" -v
 
+      - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles, torture archive)
+        # MAINT-49: the external-fixture classes run in this lane too; a fetch failure fails the job.
+        run: |
+          rm -f test
+          mkdir -p test
+          python3 tooling/corpus/fetch-corpus.py
+          python3 tooling/corpus/fetch-luac.py
+          python3 tooling/corpus/fetch-torture.py
+
       - name: Build plugin (compile + distributable zip)
         run: ./gradlew buildPlugin --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
 
@@ -105,9 +114,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: ./gradlew verifyPlugin --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
 
-      - name: Unit tests (excludes :integrationTest and out-of-repo fixture tests)
-        # `test` does not trigger :integrationTest (a separate task). -PexcludeExternalFixtureTests
-        # skips the two tests that read the out-of-repo test/ fixture tree, which a CI checkout lacks.
+      - name: Unit tests (excludes :integrationTest)
+        # `test` does not trigger :integrationTest (a separate task).
         #
         # --rerun: the SUITE MUST ACTUALLY EXECUTE. The actions/cache step above restores
         # ~/.gradle/caches, and with it Gradle's build cache — so on unchanged inputs `:test`
@@ -124,7 +132,7 @@ jobs:
         #
         # Scoped to this task rather than --no-build-cache, which would also stop compile
         # being served from cache — the thing the actions/cache step exists to make fast.
-        run: ./gradlew test --rerun --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
+        run: ./gradlew test --rerun --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
 
       # The formatting gate (BUG-445). ktlintCheck ALONE — never `ktlintFormat ktlintCheck`:
       # the format pass rewrites the very files the check then reads, so that pairing CANNOT

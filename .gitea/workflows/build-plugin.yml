@@ -188,6 +188,16 @@ jobs:
         run: |
           sh tooling/ci/install-loom-cli.sh || touch /tmp/lunar-unit-store-failed
 
+      - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles, torture archive)
+        # MAINT-49: the external-fixture classes need test/. Same re-point as the corpus job, so a
+        # warm VM shares its stamped fixtures. Failure is RECORDED, as the test step does it: the
+        # build, lint and suite still run, the store step refuses, and the final step fails the job.
+        run: |
+          mkdir -p /cache/lunar/test
+          rm -f test
+          ln -sfn /cache/lunar/test test
+          python3 tooling/corpus/fetch-corpus.py && python3 tooling/corpus/fetch-luac.py && python3 tooling/corpus/fetch-torture.py && echo "fixtures ok" || touch /tmp/lunar-fixtures-failed
+
       # No -PpluginVersion, and no version-derivation step. This lane never builds a tag,
       # so the derived value was always just gradle.properties' own pluginVersion —
       # passing it back in is a no-op (build.gradle.kts: version = pluginVersion).
@@ -212,7 +222,7 @@ jobs:
           ./gradlew ktlintCheck --no-daemon --stacktrace \
             || touch /tmp/lunar-ktlint-failed
 
-      - name: Unit tests (excludes :integrationTest and out-of-repo fixture tests)
+      - name: Unit tests (excludes :integrationTest)
         # Failure is RECORDED, not propagated, so the coverage + analytics steps below
         # still run on a red build — that is what `if: always()` bought on the standard
         # runner, and step-level `if:` is rejected here. The job is failed deliberately
@@ -235,7 +245,7 @@ jobs:
         # served from cache, and on a fresh checkout that is the only thing making it
         # fast (UP-TO-DATE cannot help — /workspace/build is new every job).
         run: |
-          ./gradlew test --rerun --no-daemon --stacktrace -PexcludeExternalFixtureTests \
+          ./gradlew test --rerun --no-daemon --stacktrace \
             || touch /tmp/lunar-tests-failed
 
       - name: Store unit-test results (loom conformance, check a3)
@@ -248,7 +258,11 @@ jobs:
         # Any store failure is recorded and fails the job in the final step; it never changes
         # the test verdict. The store credentials arrive as plain env, like UNITRACK_* below.
         run: |
-          python3 tooling/ctrf/junit_ctrf.py store --results build/test-results/test --filter build/test-results/test-filter.json --out build/unit-ctrf/unit.ctrf.json || touch /tmp/lunar-unit-store-failed
+          if [ -f /tmp/lunar-fixtures-failed ]; then
+            echo "not storing: the pinned fixtures were not provisioned, so this run is not this commit's result"
+          else
+            python3 tooling/ctrf/junit_ctrf.py store --results build/test-results/test --filter build/test-results/test-filter.json --out build/unit-ctrf/unit.ctrf.json || touch /tmp/lunar-unit-store-failed
+          fi
 
       - name: Kover XML coverage report (JaCoCo format)
         continue-on-error: true
@@ -257,7 +271,7 @@ jobs:
         # omission silently RUNS that suite here.
         run: >-
           ./gradlew koverXmlReport -x test -x integrationTest -x redisIntegrationTest
-          --no-daemon --stacktrace -PexcludeExternalFixtureTests
+          --no-daemon --stacktrace
 
       - name: Ingest into UniTrack
         continue-on-error: true
@@ -317,6 +331,7 @@ jobs:
             verdict=1
           fi
           if [ -f /tmp/lunar-unit-store-failed ]; then echo "::error::storing the unit-test results failed — see the Install loom-cli and Store unit-test results steps"; verdict=1; fi
+          if [ -f /tmp/lunar-fixtures-failed ]; then echo "::error::provisioning the pinned fixtures failed — see the Provision pinned fixtures step"; verdict=1; fi
           if [ "$verdict" -ne 0 ]; then exit 1; fi
           echo "ktlintCheck and unit tests passed; unit-test results stored"
 
@@ -546,6 +561,15 @@ jobs:
           ln -sf "$(command -v lua5.4)" "$HOME/bin/lua"
           "$HOME/bin/lua" -v
 
+      - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles, torture archive)
+        # MAINT-49: the external-fixture classes run in this lane too; a fetch failure fails the job.
+        run: |
+          rm -f test
+          mkdir -p test
+          python3 tooling/corpus/fetch-corpus.py
+          python3 tooling/corpus/fetch-luac.py
+          python3 tooling/corpus/fetch-torture.py
+
       - name: Build plugin (compile + distributable zip)
         run: ./gradlew buildPlugin --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
 
@@ -555,15 +579,14 @@ jobs:
         # cold per-VM pool should not pay on every push.
         run: ./gradlew verifyPlugin --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
 
-      - name: Unit tests (excludes :integrationTest and out-of-repo fixture tests)
-        # `test` does not trigger :integrationTest (a separate task). -PexcludeExternalFixtureTests
-        # skips the two tests that read the out-of-repo test/ fixture tree, which a CI checkout lacks.
+      - name: Unit tests (excludes :integrationTest)
+        # `test` does not trigger :integrationTest (a separate task).
         #
         # --rerun for the same reason as the `build` job above, and it matters MORE here:
         # this is the lane that cuts a release. A `:test` served FROM-CACHE would let a
         # tag be published on a suite that never executed. Scoped to this task, so
         # compile is still cache-served.
-        run: ./gradlew test --rerun --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
+        run: ./gradlew test --rerun --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
 
       # UniTrack test-analytics ingest (glimmer-docs G-014/G-015). Non-fatal — never breaks
       # the build/release. Reuses the coverage data the test step produced (Kover instruments
@@ -581,7 +604,7 @@ jobs:
         run: >-
           ./gradlew koverXmlReport -x test -x integrationTest -x redisIntegrationTest
           --no-daemon --stacktrace
-          -PpluginVersion=${{ steps.version.outputs.version }} -PexcludeExternalFixtureTests
+          -PpluginVersion=${{ steps.version.outputs.version }}
 
       - name: Ingest into UniTrack
         if: always()

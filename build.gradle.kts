@@ -394,26 +394,6 @@ tasks {
                 isFailOnNoMatchingTests = false
             }
         }
-        // CI checkouts lack the out-of-repo `test/` fixture tree (a tracked symlink → ../test that
-        // the gce-builder rsyncs in with -L). When it is absent these two tests fail at setup, so
-        // CI passes -PexcludeExternalFixtureTests to skip them; they stay covered on the local
-        // builder, which has the fixtures.
-        if (project.hasProperty("excludeExternalFixtureTests")) {
-            filter {
-                excludeTestsMatching("*LuaRecursiveReferenceTest")
-                excludeTestsMatching("*LuaDescriptionIndexTest")
-                // MAINT-35: ParseOracleTest needs the pinned luac binaries under test/luac/,
-                // built by tooling/corpus/fetch-luac.py into the same out-of-repo tree. The plan
-                // assumed CI would run that fetch; building five Lua releases adds ~2 min to every
-                // push, so it is excluded here instead and the decision is recorded in the feature's
-                // risks-and-gaps (R9) rather than made silently.
-                excludeTestsMatching("*ParseOracleTest")
-                // TYPE-12: the member-file goldens read real files from the pinned corpus under the
-                // same out-of-repo test/ tree, so they run on the builder and not in CI.
-                excludeTestsMatching("*LuaTypeGoldenMemberFilesTest")
-                isFailOnNoMatchingTests = false
-            }
-        }
         // MAINT-40: the findings directory holds exactly one invocation's files, which is what lets
         // tooling/corpus/corpus_ctrf.py read the run's shape from it.
         if (project.hasProperty("withCorpus")) {

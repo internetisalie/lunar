@@ -8,8 +8,7 @@ import com.intellij.util.indexing.FileBasedIndex
 /**
  * BUG-503: one description-index value holds every record for one token in one file, so a token
  * shared by enough documented declarations produces a value over the 65535-byte limit of
- * `DataOutput.writeUTF`. Kept out of [net.internetisalie.lunar.lang.LuaDescriptionIndexTest]
- * because CI skips that class under `-PexcludeExternalFixtureTests`.
+ * `DataOutput.writeUTF`.
  */
 class LuaDescriptionIndexValueSizeTest : BasePlatformTestCase() {
     fun testAValueOver64KbRoundTrips() {

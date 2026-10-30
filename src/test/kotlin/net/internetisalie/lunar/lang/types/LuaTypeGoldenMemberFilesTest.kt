@@ -4,7 +4,7 @@ import net.internetisalie.lunar.BaseDocumentTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
-/** TYPE-12-03/-04 over real pinned-corpus files; needs the out-of-repo test/ tree, so not run in CI. */
+/** TYPE-12-03/-04 over real pinned-corpus files. */
 class LuaTypeGoldenMemberFilesTest : BaseDocumentTest() {
     @Test
     fun everyMemberFileMatchesItsGolden() {

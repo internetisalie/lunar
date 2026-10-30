@@ -91,7 +91,7 @@ archive digest".
 ### 2.5 Gitea `build` job (`.gitea/workflows/build-plugin.yml`)
 New step between "Install loom-cli" (`:184-189`) and the `# No -PpluginVersion` comment (`:191`):
 ```yaml
-      - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles)
+      - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles, torture archive)
         # MAINT-49: the external-fixture classes need test/. Same re-point as the corpus job, so a
         # warm VM shares its stamped fixtures. Failure is RECORDED, as the test step does it: the
         # build, lint and suite still run, the store step refuses, and the final step fails the job.
@@ -99,7 +99,7 @@ New step between "Install loom-cli" (`:184-189`) and the `# No -PpluginVersion` 
           mkdir -p /cache/lunar/test
           rm -f test
           ln -sfn /cache/lunar/test test
-          python3 tooling/corpus/fetch-corpus.py && python3 tooling/corpus/fetch-luac.py && echo "fixtures ok" || touch /tmp/lunar-fixtures-failed
+          python3 tooling/corpus/fetch-corpus.py && python3 tooling/corpus/fetch-luac.py && python3 tooling/corpus/fetch-torture.py && echo "fixtures ok" || touch /tmp/lunar-fixtures-failed
 ```
 The last line is one command list, so its status is the step's verdict (`:371-375`) and the fetchers'
 exits reach it. "Store unit-test results" (`:250-251`) becomes:
@@ -128,13 +128,14 @@ in the suite those lanes run. Neither workflow installs `python3` today; the Git
 
 **Phase 3:** both get the same new step directly after that step:
 ```yaml
-      - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles)
+      - name: Provision pinned fixtures (corpus checkouts, definition archives, luac oracles, torture archive)
         # MAINT-49: the external-fixture classes run in this lane too; a fetch failure fails the job.
         run: |
           rm -f test
           mkdir -p test
           python3 tooling/corpus/fetch-corpus.py
           python3 tooling/corpus/fetch-luac.py
+          python3 tooling/corpus/fetch-torture.py
 ```
 These runners execute `run:` under `bash -e`, so a failing fetcher fails the step and the job.
 Neither lane stores records (MAINT-48 Out of Scope), so no store guard is needed. Equivalent in
