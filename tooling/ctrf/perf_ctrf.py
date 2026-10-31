@@ -9,6 +9,7 @@ puts the document against ``HEAD`` as check ``a3`` suite ``perf``, once. A ``pul
 record of the nearest code-identical ancestor of its merge-base and diffs the counts against it. Any
 other event stores and compares nothing. ``tooling/perf/gate-mode`` decides whether a wobble or a rise
 can fail the run. ``stability`` walks ``main``'s records and says when gating may be turned on.
+``series`` prints each workload's counts and timings across ``main`` or the release tags, in commit order.
 
 Stdlib only. Exit codes: 0 success; 1 a ``loom-cli`` or ``git`` failure, or a wobble or an unaccepted
 rise in ``gating`` mode; 2 not comparable (no records, a foreign record schema, a missing or unknown
@@ -42,6 +43,7 @@ TIMING_FLOOR_MS = 300
 STABILITY_PAIRS = 5
 STABILITY_CROSS_MODEL_PAIRS = 1
 STABILITY_MAX_DEPTH = 400
+WORK_DIR = "build/perf-series"
 CPUINFO = "/proc/cpuinfo"
 REPORT_ONLY = "report-only"
 GATING = "gating"
@@ -460,10 +462,10 @@ def walk_pair(repo: str, walk: Walk, record: tuple[str, dict]) -> bool:
     return True
 
 
-def _record_at(slot: Slot, sha: str, work: str) -> dict | None:
-    """The perf record stored for exactly ``sha``, or None (a docs-only or unbuilt commit)."""
+def _record_among(slot: Slot, shas: list[str], work: str) -> dict | None:
+    """The first perf record stored for any of ``shas``, or None (docs-only or unbuilt commits)."""
     scratch = Path(work, "record.json")
-    hit = loom_store.fetch_first(slot, [sha], Wanted(scratch, _is_perf))
+    hit = loom_store.fetch_first(slot, shas, Wanted(scratch, _is_perf))
     scratch.unlink(missing_ok=True)
     return None if hit is None else hit[2]
 
@@ -507,10 +509,45 @@ def stability(args) -> int:
         raise NotComparable("shallow checkout: the walk would stop silently at its boundary")
     walk = Walk()
     for sha in loom_store.first_parents(args.repo, args.first_parent, args.max_depth):
-        doc = _record_at(slot, sha, args.work)
+        doc = _record_among(slot, [sha], args.work)
         if doc is not None and not _fold(args.repo, walk, (sha, doc)):
             break
     return _verdict(walk)
+
+
+def _tag_points(repo: str, depth: int) -> list[tuple[str, list[str]]]:
+    """Each release tag, oldest first, and the commits holding its code: a tag may sit on a docs-only commit."""
+    tags = _git(repo, ["tag", "--list", "v*", "--sort=creatordate"]).split()
+    return [(tag, code_identical_first_parents(repo, tag, depth)) for tag in tags]
+
+
+def _series_points(args) -> list[tuple[str, list[str]]]:
+    """(label, the commits to search) for each point of the series, oldest first."""
+    if args.tags:
+        return _tag_points(args.repo, args.max_depth)
+    shas = loom_store.first_parents(args.repo, args.first_parent, args.max_depth)
+    return [(sha, [sha]) for sha in reversed(shas)]
+
+
+def _series_rows(point: tuple[int, str], doc: dict) -> list[tuple]:
+    """(workload, counter, position, label, value) rows; a duration row also carries the CPU model."""
+    position, label = point
+    tests = doc["results"]["tests"]
+    counts = [(test["name"], counter, position, label, value)
+              for test in tests for counter, value in test["extra"]["counts"].items()]
+    return counts + [(test["name"], "duration", position, label, test["duration"], _model(doc)) for test in tests]
+
+
+def series(args) -> int:
+    """Print every workload's values in commit order, so drift no single PR shows is visible (design §3.7)."""
+    slot = slot_for(args.repo)
+    found = [(label, _record_among(slot, shas, args.work)) for label, shas in _series_points(args)]
+    rows = [row for position, (label, doc) in enumerate(found) if doc is not None
+            for row in _series_rows((position, label), doc)]
+    for row in sorted(rows, key=lambda row: row[:3]):
+        print("\t".join(str(value) for value in row[:2] + row[3:]))
+    print(f"unmeasured\t{sum(doc is None for _, doc in found)}")
+    return 0
 
 
 def _add_assemble(commands):
@@ -552,15 +589,26 @@ def _add_stability(commands):
     judging = commands.add_parser("stability", help="whether main's records show gating can be turned on")
     judging.add_argument("--first-parent", required=True)
     judging.add_argument("--max-depth", type=int, default=STABILITY_MAX_DEPTH)
-    judging.add_argument("--work", default="build/perf-series")
+    judging.add_argument("--work", default=WORK_DIR)
     judging.add_argument("--repo", default=".")
     judging.set_defaults(handler=stability)
+
+
+def _add_series(commands):
+    reporting = commands.add_parser("series", help="each workload's values across main or the release tags")
+    selector = reporting.add_mutually_exclusive_group(required=True)
+    selector.add_argument("--first-parent")
+    selector.add_argument("--tags", action="store_true")
+    reporting.add_argument("--max-depth", type=int, default=DEFAULT_MAX_DEPTH)
+    reporting.add_argument("--work", default=WORK_DIR)
+    reporting.add_argument("--repo", default=".")
+    reporting.set_defaults(handler=series)
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
-    for add in (_add_assemble, _add_ci, _add_fetch_and_diff, _add_stability):
+    for add in (_add_assemble, _add_ci, _add_fetch_and_diff, _add_stability, _add_series):
         add(commands)
     return parser
 

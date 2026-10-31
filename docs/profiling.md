@@ -136,8 +136,10 @@ flag.
 
 ## What this recipe does not do
 
-- **No CI perf-regression harness.** Wall-clock budgets on a shared runner are flaky, and a flaky
-  gate is worse than none. Deferred deliberately ([[MAINT-38]] tier 3).
+- **No wall-clock gate in CI.** Wall-clock budgets on a shared runner are flaky, and a flaky gate is
+  worse than none ([[MAINT-38]] tier 3). [[MAINT-45]] records counts of work per commit instead. To
+  see drift across `main` or the release tags, run `perf_ctrf.py series` (`tooling/ctrf/README.md`),
+  then use this recipe to find the frames behind what it shows.
 - **No in-repo timing instrumentation.** Attribution in Lunar's own terms — snapshot builds, index
   queries, resolutions — is [[MAINT-38]] tier 2, and only earns its cost where JFR's frame-level view
   proves insufficient.

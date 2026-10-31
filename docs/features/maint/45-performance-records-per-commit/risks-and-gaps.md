@@ -144,9 +144,23 @@ three JVMs (below, DR-01). Its command is `test --rerun --no-build-cache --tests
 
 | MAINT-45-00-DR-22 | A depth-1 checkout on `lunar-ci` can deepen and read lazily with `GITEA_TOKEN` (runtime) | A probe in PR 142, run 31846, job 45269, on the executor's depth-1 checkout, git 2.47.3, with `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader GIT_CONFIG_VALUE_0="Authorization: token $GITEA_TOKEN"` in the environment (`GITEA_TOKEN` is in the job env, 40 characters) | **done on `lunar-ci`, by the supervisor.** `git ls-remote origin HEAD` 0; `git fetch -q --unshallow --filter=blob:none origin refs/heads/main` 0; `git merge-base FETCH_HEAD HEAD` 0; the lazy `git show FETCH_HEAD~5:tooling/ctrf/README.md` 0. The event is `pull_request` and the base ref `main`. `perf_ctrf.git_env` builds exactly that environment for the fetch and the lazy read, and TC 64-67 show it reaches git through the environment and never an argv. `loom-cli artifact get` from a pod is shown by DR-12's PR runs. |
 | MAINT-45-00-DR-12 | A rise fails a real job in `gating`, and nothing does in `report-only` (runtime) | One CI mutant on PR 143: `gate-mode` set to `gating` and `builder.mark().drop()` added to `LuaParserUtil.parseSuffixedExpr` (`48d90746`), then reverted by commit (`578acff9`) | **done on `lunar-ci`, by the supervisor.** Mutant: run 31849, job 45278, failure; `perf: gate-mode gating`, `baseline 55c7f0a2… distance=0`, five `RISE` rows on `marks` (`parse-flat-500` 95123 → 99525, `parse-flat-2000` 380423 → 398025, `parse-callbacks-8` 630 → 658, `parse-callbacks-12` 914 → 954, `parse-parens-12` 336 → 353), and the final step's `::error::`. Reverted: run 31852, job 45284, success, `gate-mode report-only`, no `RISE`. Unmutated run 31847, job 45273, printed the same baseline line, so `artifact get` works from a pod. The mutant run also failed `LuaRenameConflictTest.testCancellationIsCheckedPerFileNameRefNotPerCollisionsCall`, which passed in both other runs; whether the mutant caused that or the test is flaky is not established. |
+| MAINT-45-00-DR-13 | `series` reads real records and prints them in commit order (runtime) | `perf_ctrf.py series --first-parent main` from this host with store credentials, at `main` = `3b4c819b`, with the default depth of 50. `LOOM_CLI` pointed at a wrapper that logged each call and refused all but `artifact resolve` and `artifact get` | **done on three records.** Exit 0, 178 lines, ending `unmeasured\t47`: the wrapper logged 50 `resolve` and 3 `get` calls on this run and no other verb. The head is below. Records at `55c7f0a2`, `a6131cdc` and `3b4c819b`, oldest first, all on `Intel(R) Xeon(R) CPU @ 2.80GHz`. None of the 43 count series moved across the 16 workloads, and no path in `COUNT_PATHS` differs between those commits. 14 of the 16 duration series moved; the largest spread was 40 ms (`completion-global-800`, 310, 270, 306). Three records on one CPU model say nothing about the cross-host premise, which `stability` measures. |
 
-Rows the plan fills during delivery: **DR-13** (Phase 4's
-first series output) and **DR-17** (the `stability` output that opens Phase 5). A figure that exists only
+DR-13's output, head:
+
+```text
+completion-crossfile-200	duration	55c7f0a2e29fc5f03fd8bec4bdead1035edaa7b2	195	Intel(R) Xeon(R) CPU @ 2.80GHz
+completion-crossfile-200	duration	a6131cdc649127db4f4e8fee29271d125fcbb17c	190	Intel(R) Xeon(R) CPU @ 2.80GHz
+completion-crossfile-200	duration	3b4c819b9892428d4b9d370f5b4bbf3684de2a8f	187	Intel(R) Xeon(R) CPU @ 2.80GHz
+completion-crossfile-200	stub:lunar.global.decl	55c7f0a2e29fc5f03fd8bec4bdead1035edaa7b2	254
+completion-crossfile-200	stub:lunar.global.decl	a6131cdc649127db4f4e8fee29271d125fcbb17c	254
+completion-crossfile-200	stub:lunar.global.decl	3b4c819b9892428d4b9d370f5b4bbf3684de2a8f	254
+completion-crossfile-200	stub:lunar.luacats.class	55c7f0a2e29fc5f03fd8bec4bdead1035edaa7b2	1
+completion-crossfile-200	stub:lunar.luacats.class	a6131cdc649127db4f4e8fee29271d125fcbb17c	1
+completion-crossfile-200	stub:lunar.luacats.class	3b4c819b9892428d4b9d370f5b4bbf3684de2a8f	1
+```
+
+The plan fills **DR-17** during delivery, with the `stability` output that opens Phase 5. A figure that exists only
 after a phase merges, such as DR-04's `lunar-ci` duration, goes in the next phase's PR.
 
 ## Test Case Gaps

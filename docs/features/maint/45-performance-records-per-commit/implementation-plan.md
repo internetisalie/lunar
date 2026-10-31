@@ -91,8 +91,8 @@ so it may wait some time after Phase 4.
 
 ### Phase 4: Series report [Should]
 - **Tasks**:
-  - [ ] Add `series` (design §3.7) and TC 28–29.
-  - [ ] Add a `tooling/ctrf/README.md` line, and a pointer in `docs/profiling.md`.
+  - [x] Add `series` (design §3.7) and TC 28–29.
+  - [x] Add a `tooling/ctrf/README.md` line, and a pointer in `docs/profiling.md`.
 - **Exit criteria**: the Python gate passes and each mutant is observed red. Run once locally with
   store credentials over `main`, and paste the head of its output into DR-13.
 

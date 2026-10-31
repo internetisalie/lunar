@@ -1,4 +1,4 @@
-"""MAINT-45 TC 5-27, 35-50 and 52-73: perf_ctrf.py."""
+"""MAINT-45 TC 5-29, 35-50 and 52-73: perf_ctrf.py."""
 import contextlib
 import dataclasses
 import io
@@ -902,6 +902,105 @@ class StabilityTest(StubbedLoomTest):
         code, printed = self.stability(clone)
         self.assertEqual(2, code)
         self.assertIn("NOT COMPARABLE", printed)
+
+
+class SeriesTest(PullRequestFixture):
+    """TC 28-29. `self.m1` is commit A."""
+
+    def setUp(self):
+        super().setUp()
+        self.work = self.tmp / "work"
+
+    def series(self, *selector: str) -> tuple[int, str]:
+        code, printed, refused = quietly(["series", *selector, "--repo", str(self.origin.path),
+                                          "--work", str(self.work)])
+        return code, printed + refused
+
+    def tag(self, name: str, date: str = "2026-01-01T00:00:00Z"):
+        with mock.patch.dict(os.environ, {"GIT_COMMITTER_DATE": date}):
+            git(self.origin.path, "tag", "-a", "-m", name, name)
+
+    def test_TC_28_values_print_in_commit_order_per_workload_and_counter(self):
+        a = self.m1
+        self.origin.commit({"docs/b.md": "b"})
+        c = self.origin.commit({"src/a.kt": "two"})
+        self.publish({a: doc_of((Measured("w", duration=40, counts={"marks": 100, "advances": 9}),
+                                 Measured("n", marks=7, duration=11)), "X"),
+                      c: doc_of((Measured("w", duration=41, counts={"marks": 90, "advances": 8}),
+                                 Measured("n", marks=6, duration=12)), "Y")})
+        code, printed = self.series("--first-parent", c)
+        self.assertEqual(0, code, printed)
+        self.assertEqual([f"n\tduration\t{a}\t11\tX", f"n\tduration\t{c}\t12\tY",
+                          f"n\tmarks\t{a}\t7", f"n\tmarks\t{c}\t6",
+                          f"w\tadvances\t{a}\t9", f"w\tadvances\t{c}\t8",
+                          f"w\tduration\t{a}\t40\tX", f"w\tduration\t{c}\t41\tY",
+                          f"w\tmarks\t{a}\t100", f"w\tmarks\t{c}\t90",
+                          "unmeasured\t1"], printed.splitlines())
+        self.assertEqual([], self.puts())
+        self.assertEqual([], list(self.work.iterdir()))
+
+    def test_TC_28_the_depth_bounds_the_walk(self):
+        a = self.m1
+        self.origin.commit({"docs/b.md": "b"})
+        c = self.origin.commit({"src/a.kt": "two"})
+        self.publish({a: single(100), c: single(90)})
+        code, printed = self.series("--first-parent", c, "--max-depth", "2")
+        self.assertEqual(0, code, printed)
+        self.assertNotIn(a, printed)
+        self.assertIn(f"w\tmarks\t{c}\t90\n", printed)
+        self.assertIn("unmeasured\t1\n", printed)
+
+    def test_TC_28_a_record_of_another_tool_is_unmeasured(self):
+        foreign = single()
+        foreign["results"]["tool"]["name"] = "lunar-unit-tests"
+        self.publish({self.m1: foreign})
+        code, printed = self.series("--first-parent", self.m1)
+        self.assertEqual((0, "unmeasured\t1\n"), (code, printed))
+
+    def test_TC_28_a_failed_lookup_exits_one(self):
+        self.stage({"resolve": {self.m1: {"exit": 1}}})
+        code, printed = self.series("--first-parent", self.m1)
+        self.assertEqual(1, code)
+        self.assertIn("loom-cli:", printed)
+
+    def test_TC_28_exactly_one_selector_is_required(self):
+        for selector in ((), ("--tags", "--first-parent", "HEAD")):
+            with self.subTest(selector=selector), self.assertRaises(SystemExit) as refused:
+                self.series(*selector)
+            self.assertEqual(2, refused.exception.code)
+
+    def test_TC_29_a_tag_on_a_docs_only_commit_reports_the_record_of_its_code(self):
+        self.origin.commit({"docs/b.md": "b"})
+        self.tag("v1")
+        self.publish({self.m1: single(100)})
+        code, printed = self.series("--tags")
+        self.assertEqual(0, code, printed)
+        self.assertEqual(["w\tduration\tv1\t46\tX", "w\tmarks\tv1\t100", "unmeasured\t0"], printed.splitlines())
+
+    def test_TC_29_a_tag_whose_code_differs_from_the_record_is_unmeasured(self):
+        self.origin.commit({"src/a.kt": "two"})
+        self.tag("v1")
+        self.publish({self.m1: single(100)})
+        code, printed = self.series("--tags")
+        self.assertEqual((0, "unmeasured\t1\n"), (code, printed))
+
+    def test_TC_29_the_depth_bounds_a_tags_walk(self):
+        self.origin.commit({"docs/b.md": "b"})
+        self.tag("v1")
+        self.publish({self.m1: single(100)})
+        code, printed = self.series("--tags", "--max-depth", "1")
+        self.assertEqual((0, "unmeasured\t1\n"), (code, printed))
+
+    def test_TC_29_tags_print_in_creation_order_and_only_release_tags_count(self):
+        self.tag("v2", "2026-01-01T00:00:00Z")
+        self.tag("other", "2026-01-02T00:00:00Z")
+        newer = self.origin.commit({"src/a.kt": "two"})
+        self.tag("v1", "2026-01-03T00:00:00Z")
+        self.publish({self.m1: single(100), newer: single(90)})
+        code, printed = self.series("--tags")
+        self.assertEqual(0, code, printed)
+        self.assertEqual(["w\tduration\tv2\t46\tX", "w\tduration\tv1\t46\tX", "w\tmarks\tv2\t100",
+                          "w\tmarks\tv1\t90", "unmeasured\t0"], printed.splitlines())
 
 
 if __name__ == "__main__":
