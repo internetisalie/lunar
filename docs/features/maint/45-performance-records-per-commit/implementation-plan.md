@@ -74,11 +74,11 @@ so it may wait some time after Phase 4.
 
 ### Phase 3: Compare on PRs [Must]
 - **Tasks**:
-  - [ ] Add `diff`, `fetch`, `read_accepted`, `accepted_at`, `own_entries`, `deepen`, `baseline`, `compare`
+  - [x] Add `diff`, `fetch`, `read_accepted`, `accepted_at`, `own_entries`, `deepen`, `baseline`, `compare`
         and `ci`'s step 6 (design §3.4–§3.6). Create `tooling/perf/accepted-increases.json`.
-  - [ ] Add `stability` (design §3.8), and `tooling/ctrf/README.md` lines for this phase's subcommands.
-  - [ ] Add TC 9–27, 39–50 and 52–60 to `test_perf_ctrf.py`.
-  - [ ] In MAINT-38's `requirements.md`, change the MAINT-38-09 row's description to point at MAINT-45.
+  - [x] Add `stability` (design §3.8), and `tooling/ctrf/README.md` lines for this phase's subcommands.
+  - [x] Add TC 9–27, 39–50, 52–60 and 64–73 to `test_perf_ctrf.py`.
+  - [x] In MAINT-38's `requirements.md`, change the MAINT-38-09 row's description to point at MAINT-45.
 - **Exit criteria**: the Python gate passes and each mutant of those test cases is observed red. This
   PR's own run prints `perf: gate-mode report-only`, a `baseline` line and a diff with no `RISE`.
   `tooling/perf/gate-mode` still holds `report-only` at merge.

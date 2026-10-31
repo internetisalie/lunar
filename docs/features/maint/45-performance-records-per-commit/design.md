@@ -183,7 +183,7 @@ Functions: `read_records(directory) -> list[dict]`, `read_cpu(path) -> dict`,
 `count_differences(newer, older) -> list[str]`, `same_count_code(repo, older, newer) -> bool`,
 `credit_pair(credit, pair, head)`, `waiting_lines(head, credit) -> list[str]`,
 `walk_pair(repo, walk, record) -> bool`, `timing_lines(before, after) -> list[str]`,
-`baseline(slot, shas, out) -> tuple[str, int, dict] | None`, `deepen(repo, base_ref)`,
+`baseline(slot, shas, out) -> tuple[str, int, dict] | None`, `git_env() -> dict`, `deepen(repo, base_ref)`,
 `compare(args, slot, after) -> int`, `gate(mode, moved) -> int`, `slot_for(repo) -> Slot`, `ci(args) -> int`,
 `stability(args) -> int`, `series(args) -> int`, `main(argv) -> int`.
 `main` maps `NotComparable` to exit 2 (`NOT COMPARABLE: <reason>` on stderr), and `LoomError` and
@@ -222,7 +222,7 @@ before "Report lint + test result". It must follow both, because this `test` inv
 ```
 
 No `uses:`, step `if:`, `${{ }}` or bashism; the `if` is a shell `if` (MAINT-40 design §2.8).
-`GITHUB_EVENT_NAME` and `GITHUB_BASE_REF` are plain env (DR-08).
+`GITHUB_EVENT_NAME` and `GITHUB_BASE_REF` are plain env (DR-08). `GITEA_TOKEN` is plain env too; the step does not name it. `perf_ctrf.py` hands it to git alone, in `git_env()`, as `GIT_CONFIG_COUNT=1`, `GIT_CONFIG_KEY_0=http.extraHeader` and `GIT_CONFIG_VALUE_0=Authorization: token <token>`, so it is on no argv. The repository refuses anonymous access (DR-06, DR-22).
 
 **"Report lint + test result"**: before `if [ "$verdict" -ne 0 ]`, add
 `if [ -f /tmp/lunar-perf-failed ]; then echo "::error::performance records failed, or a count moved in gating mode — see the Performance records step"; verdict=1; fi`.
@@ -344,8 +344,9 @@ text. `parse_accepted(text)` raises `NotComparable` on `json.JSONDecodeError`, o
 integer `from` and `to` with `to > from`. Otherwise it returns `accepted`.
 
 `accepted_at(repo, commit, path)`: `git -C repo ls-tree --name-only {commit} -- {path}`; empty output
-returns `[]`; otherwise `parse_accepted` of `git -C repo show {commit}:{path}`, `check=True`. Both read
-the merge-base's blob through the promisor remote `deepen` registers (DR-15).
+returns `[]`; otherwise `parse_accepted` of `git -C repo show {commit}:{path}`, `check=True`, run through
+`_remote_git` because it fetches the blob lazily from the promisor remote `deepen` registers (DR-15, DR-22).
+A git failure prints git's own stderr, with the token replaced by `***`, and exits 1.
 
 `own_entries(current, previous) = [e for e in current if e not in previous]`, comparing whole entries.
 So an entry applies only on the PR that adds it. Editing any field of a retained entry makes it a new
@@ -386,7 +387,7 @@ each bind `slot = slot_for(repo)` first.
 `compare(args, slot, after)`:
 
 1. `current = read_accepted(Path(repo, args.accepted))`.
-2. `deepen(repo, base_ref)`:
+2. `deepen(repo, base_ref)`, through `_remote_git`, which runs git with `git_env()` (§2.5; the token is set only when `GITEA_TOKEN` is):
    `argv = ["git", "-C", repo, "fetch", "-q"]`; if `git -C repo rev-parse --is-shallow-repository`
    prints `true`, add `--unshallow`; add `--filter=blob:none origin <HEAD sha> +refs/heads/{base_ref}:refs/remotes/origin/{base_ref}`;
    run with `check=True`. Empty `base_ref` raises `NotComparable`. DR-06 executed this form.

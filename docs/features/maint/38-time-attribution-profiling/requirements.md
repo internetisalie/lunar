@@ -43,7 +43,7 @@ keys a snapshot **consumed**, which is a cache-correctness question, not a timin
 | MAINT-38-06 | A written recipe, in the repository | M | Full | [`docs/profiling.md`](../../../profiling.md): record, retrieve, read, and the live-JVM (`jcmd`/`jstack`) path for a sandbox IDE that never goes through the `test` task. |
 | MAINT-38-07 | Tier 1 answers BUG-473's open fork | M | Full | The capability is only real if it answers the question it was built for: is `buildSnapshot` internally superlinear, or is the `CachedValuesManager` entry thrashing? Recorded verdict and evidence live in BUG-473's report. |
 | MAINT-38-08 | In-repo timing instrumentation | C | Future Work | Tier 2. Deferred; see the table above. |
-| MAINT-38-09 | CI perf-regression harness | W | Future Work | Tier 3. Not recommended now. |
+| MAINT-38-09 | CI perf-regression harness | W | Future Work | Tier 3. Answered by [[MAINT-45]]: a count gate, not a wall-clock one, on the premises that changed since. |
 
 ## Scope
 
