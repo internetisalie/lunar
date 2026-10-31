@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -85,6 +86,7 @@ def quietly(argv: list[str]) -> tuple[int, str, str]:
 class Workspace(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.filter = write_filter(self.tmp / "test-filter.json", FILTER)
 
     def assemble(self, results: Path, name: str, sidecar: Path | None = None) -> tuple[int, bytes, str]:
@@ -391,6 +393,7 @@ def after_doc(t1: str = "failed", tx: str = "passed", t3: str = "passed") -> dic
 class DiffTest(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
 
     def run_diff(self, before: dict, after: dict) -> tuple[int, list[str], str]:
         paths = []

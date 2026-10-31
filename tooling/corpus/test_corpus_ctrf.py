@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -103,6 +104,7 @@ def assemble(directory: Path, manifest_path: Path, out: Path) -> bytes:
 class AssembleTest(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.manifest = self.tmp / "corpus.json"
         self.manifest.write_text(json.dumps(MANIFEST), encoding="utf-8")
 
@@ -156,6 +158,7 @@ def ids_of(manifest_path, directory, out):
 class FingerprintTest(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.manifest = self.tmp / "corpus.json"
         self.manifest.write_text(json.dumps(MANIFEST), encoding="utf-8")
         self.finding = copy.deepcopy(M1_FINDINGS[1])
@@ -237,6 +240,7 @@ class IdentityTest(unittest.TestCase):
 
     def test_load_runs_sorts_by_member_and_refuses_other_schemas(self):
         tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
         write_runs(tmp, [m2_run(), m1_run()])
         self.assertEqual(["m1", "m2"], [r["member"] for r in load_runs(tmp)])
         (tmp / "m3.json").write_text(json.dumps(dict(run_file("m3", []), schema=2)), encoding="utf-8")
@@ -279,6 +283,7 @@ class StubbedLoomTest(unittest.TestCase):
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         stub = self.tmp / "loom-cli"
         stub.write_text(STUB, encoding="utf-8")
         stub.chmod(0o755)
@@ -461,6 +466,7 @@ def finding_test(member: str, test_id: str, rule: str, uri: str, count: int = 1,
 class DiffTest(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.before = ctrf("full-x", [finding_test("m1", "id-old", "inspection.LuaUnusedLocal", "a.lua"),
                                       finding_test("m1", "id-keep", "corpus.crash", "b.lua")])
         self.after = ctrf("full-x", [finding_test("m1", "id-new", "inspection.LuaUnusedLocal", "c.lua", line=9),
