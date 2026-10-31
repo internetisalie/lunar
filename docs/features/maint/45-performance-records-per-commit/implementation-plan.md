@@ -54,13 +54,13 @@ so it may wait some time after Phase 4.
 
 ### Phase 2: Store from `main` [Must]
 - **Tasks**:
-  - [ ] Create `tooling/ctrf/perf_ctrf.py` (`assemble`, `read_mode`, `wobble_lines`, `gate`, and `ci`'s
+  - [x] Create `tooling/ctrf/perf_ctrf.py` (`assemble`, `read_mode`, `wobble_lines`, `gate`, and `ci`'s
         steps 1–5, with no step 6, so every event but `push` takes step 5; design §2.3, §3.3, §3.6, §4.2) and
-        `tooling/ctrf/test_perf_ctrf.py` with TC 5–8 and 35–38.
-  - [ ] Create `tooling/perf/gate-mode` holding `report-only` (design §2.4).
-  - [ ] Add the "Performance records" step and the report line (design §2.5, Gitea) and the header
+        `tooling/ctrf/test_perf_ctrf.py` with TC 5–8, 35–38 and 61–63.
+  - [x] Create `tooling/perf/gate-mode` holding `report-only` (design §2.4).
+  - [x] Add the "Performance records" step and the report line (design §2.5, Gitea) and the header
         line (GitHub).
-  - [ ] Add `tooling/ctrf/README.md` lines for the subcommands.
+  - [x] Add `tooling/ctrf/README.md` lines for the subcommands.
 - **Exit criteria**: the Python gate passes and each mutant of those test cases is observed red. `assemble` of a
   copied-back Phase 1 run validates against the schema MAINT-40 design §4.2 pins, downloaded from that tag and
   path to `build/ctrf.schema.json` and checked with `sha256sum` against that hash (DR-07). This exits 0:

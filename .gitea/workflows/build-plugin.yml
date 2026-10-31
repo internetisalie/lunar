@@ -312,6 +312,19 @@ jobs:
             "$@" \
             -F "sourceManifest=@sources.txt"
 
+      - name: Performance records (MAINT-45)
+        # After the ingest: this invocation replaces build/test-results/test/. --rerun for the reason
+        # the Unit tests step gives. The routing is inside perf_ctrf.py ci: a push stores, a PR compares.
+        # tooling/perf/gate-mode decides whether a rise or a wobble can fail: never edit this step for
+        # that. Keep the `|| touch`: without it the step's own exit aborts the job script before the
+        # final step (DR-14). Any failure is recorded and fails the job in the final step.
+        run: |
+          if ./gradlew test --rerun --no-daemon --stacktrace -PwithPerfRecords --tests '*PerfRecord*'; then
+            python3 tooling/ctrf/perf_ctrf.py ci --records build/perf-records --out build/perf-ctrf/perf.ctrf.json --accepted tooling/perf/accepted-increases.json --gate-mode tooling/perf/gate-mode --event "$GITHUB_EVENT_NAME" --base-ref "${GITHUB_BASE_REF:-}" || touch /tmp/lunar-perf-failed
+          else
+            touch /tmp/lunar-perf-failed
+          fi
+
       # The deferred verdict from the lint, test and store steps. Last, so coverage and analytics
       # have already been collected from the failing run — the point of doing it this way.
       #
@@ -332,6 +345,7 @@ jobs:
           fi
           if [ -f /tmp/lunar-unit-store-failed ]; then echo "::error::storing the unit-test results failed — see the Install loom-cli and Store unit-test results steps"; verdict=1; fi
           if [ -f /tmp/lunar-fixtures-failed ]; then echo "::error::provisioning the pinned fixtures failed — see the Provision pinned fixtures step"; verdict=1; fi
+          if [ -f /tmp/lunar-perf-failed ]; then echo "::error::performance records failed, or a count moved in gating mode — see the Performance records step"; verdict=1; fi
           if [ "$verdict" -ne 0 ]; then exit 1; fi
           echo "ktlintCheck and unit tests passed; unit-test results stored"
 

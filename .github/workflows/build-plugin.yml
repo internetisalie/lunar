@@ -30,6 +30,7 @@ name: Build Plugin
 #     release. GitHub-hosted runners always have one, so there is nothing to escape and no `act-ci`
 #     label to escape to. The jobs are equivalent in effect — both publish the tested artifact.
 #   - verifyPlugin runs on tags via a step `if:`; Gitea runs it in the tag-only build-release job. Same effect.
+#   - no performance records (MAINT-45): the gate needs the store and lunar-ci's fixed host class.
 #
 # The env-fragile :integrationTest (real GoLand via IDE-Starter) and parser/lexer regeneration are
 # NOT run here — same as the Gitea variant.
