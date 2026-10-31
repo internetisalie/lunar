@@ -1,8 +1,10 @@
 package net.internetisalie.lunar.refactoring.rename
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.impl.CoreProgressManager
 import com.intellij.openapi.progress.impl.ProgressManagerImpl
+import com.intellij.openapi.progress.util.StandardProgressIndicatorBase
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -13,6 +15,8 @@ import net.internetisalie.lunar.lang.psi.LuaNameRef
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -364,6 +368,23 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
         )
     }
 
+    /**
+     * BUG-18 — the three differential cases above are only as good as their counter, and the counter
+     * must not depend on what other threads are doing. Before the fix this forced 0 checks every
+     * time; in the suite the same state arose by chance and failed
+     * [testCancellationIsCheckedPerFileNameRefNotPerCollisionsCall] intermittently.
+     */
+    @Test
+    fun testCheckCountIsUnchangedByACancelledIndicatorOnAnotherThread() {
+        myFixture.configureByText("a.lua", "local <caret>x = 1\nprint(x)\n")
+        val target = renameTargetAtCaret("aNameNothingElseDeclares")
+
+        val undisturbed = detectorCancellationChecks(target, emptyList())
+        val disturbed = whileAnotherThreadIsUnderACancelledIndicator { detectorCancellationChecks(target, emptyList()) }
+
+        assertEquals("the detector's check count must not depend on other threads", undisturbed, disturbed)
+    }
+
     /** The declaration under the caret, as the detector's own input record. */
     private fun renameTargetAtCaret(newName: String): LuaRenameTarget {
         val caretLeaf =
@@ -383,10 +404,17 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
 
     /**
      * How many `ProgressManager.checkCanceled()` calls one `collisions` run makes **from the
-     * detector itself**. `ProgressManagerImpl`'s check-canceled hook is the only observation point
-     * that does not require the indicator to be cancelled: with no cancelled indicator on the
-     * thread, `CoreProgressManager.doCheckCanceled` takes its `ONLY_HOOKS` branch and an ordinary
-     * counting `ProgressIndicator` would never be consulted at all.
+     * detector itself**, counted by a check-canceled hook.
+     *
+     * **The live indicator is what makes the count deterministic (BUG-18).** The hook is only
+     * reached directly on `CoreProgressManager.doCheckCanceled`'s `ONLY_HOOKS` branch, and which
+     * branch runs is a JVM-wide static: while *any* thread is under a cancelled indicator every
+     * thread takes `INDICATOR_PLUS_HOOKS`, which calls just the current thread's indicator. With
+     * none on this thread the check vanishes uncounted, and the fixture's own background work (code
+     * vision, non-blocking read actions) was measured sitting under cancelled indicators. A
+     * [StandardProgressIndicatorBase] runs the hooks from its own `checkCanceled`, so each check is
+     * counted once on either branch. `EmptyProgressIndicator` would not do: its `checkCanceled` is
+     * final and runs no hooks.
      */
     private fun detectorCancellationChecks(
         target: LuaRenameTarget,
@@ -400,9 +428,42 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
             }
         val progressManager = ProgressManager.getInstance() as ProgressManagerImpl
         progressManager.runWithHook(hook) {
-            LuaRenameConflictDetector.collisions(target, usages)
+            progressManager.runProcess(
+                { LuaRenameConflictDetector.collisions(target, usages) },
+                StandardProgressIndicatorBase(),
+            )
         }
         return checks.get()
+    }
+
+    /**
+     * Runs [measurement] while a pooled thread sits under a cancelled indicator, which is the state
+     * that flips `CoreProgressManager`'s check-canceled behaviour for every thread in the JVM.
+     */
+    private fun <T> whileAnotherThreadIsUnderACancelledIndicator(measurement: () -> T): T {
+        val cancelled = CountDownLatch(1)
+        val finished = CountDownLatch(1)
+        val indicator = StandardProgressIndicatorBase()
+        val worker =
+            ApplicationManager.getApplication().executeOnPooledThread {
+                val holdUntilFinished =
+                    Runnable {
+                        indicator.cancel()
+                        cancelled.countDown()
+                        finished.await(HOLD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    }
+                ProgressManager.getInstance().runProcess(holdUntilFinished, indicator)
+            }
+        try {
+            assertTrue(
+                "the pooled thread never reached its cancelled indicator",
+                cancelled.await(HOLD_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+            )
+            return measurement()
+        } finally {
+            finished.countDown()
+            worker.get(HOLD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        }
     }
 
     /**
@@ -450,5 +511,6 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
         const val DETECTOR = "net.internetisalie.lunar.refactoring.rename.LuaRenameConflictDetector"
         const val PROGRESS_PACKAGE = "com.intellij.openapi.progress"
         const val FRAME_SEARCH_DEPTH = 20L
+        const val HOLD_TIMEOUT_SECONDS = 30L
     }
 }
