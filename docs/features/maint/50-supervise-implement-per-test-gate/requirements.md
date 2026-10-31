@@ -3,7 +3,7 @@ id: "MAINT-50"
 title: "50: Supervise-Implement Per-Test Gate"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "done"
 priority: "high"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -41,15 +41,15 @@ provides `junit_ctrf.py fetch` and `diff`. This feature makes the skill use them
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-50-01 | **Baseline by fetch** | M | Not Implemented | Step 2 fetches the record for the merge-base and spends no builder time on the unit suite when one exists. |
-| MAINT-50-02 | **Builder fallback** | M | Not Implemented | When `fetch` exits 3 the suite runs once on the builder and is assembled into the same baseline file, green or red. Any other non-zero exit stops the run. |
-| MAINT-50-03 | **Run classification** | M | Not Implemented | Every builder suite run is classed from its log. A document is written for `green` and `red`, never otherwise, and no earlier document survives a failed step. A run and its copy-back hold one lock. |
-| MAINT-50-04 | **Per-test phase verdict** | M | Not Implemented | A phase passes only if a real `diff` of a document measured at the HEAD under review, from a clean tree, has no new failure and no unaccounted loss of a test. A disputed failure is pre-existing only if that test, by name, fails at the merge-base. |
-| MAINT-50-05 | **Planned removals accumulate** | M | Not Implemented | A loss is accounted for only if a phase up to and including the current one plans it. The baseline moves only when the merge-base does, and then it is rebuilt. |
-| MAINT-50-06 | **One warning set** | M | Not Implemented | Baseline and phases count Kotlin warnings from one cold task set that compiles every source set `build` compiles and runs no test task. `ktlintCheck`'s violations are counted beside it. |
-| MAINT-50-07 | **Skill edit applied, judge frozen** | M | Not Implemented | `SKILL.md` carries design §4 exactly, nothing else in it changes, and the gate runs the copy frozen from `origin/main`. |
-| MAINT-50-08 | **Integration stays in the gate** | M | Not Implemented | Each phase runs `:integrationTest` once, with no `:test`, and stops unless Gradle succeeds. |
-| MAINT-50-09 | **Tests run in CI** | M | Not Implemented | `build` on both platforms runs `test_unit_gate`. |
+| MAINT-50-01 | **Baseline by fetch** | M | Full | Step 2 fetches the record for the merge-base and spends no builder time on the unit suite when one exists. |
+| MAINT-50-02 | **Builder fallback** | M | Full | When `fetch` exits 3 the suite runs once on the builder and is assembled into the same baseline file, green or red. Any other non-zero exit stops the run. |
+| MAINT-50-03 | **Run classification** | M | Full | Every builder suite run is classed from its log. A document is written for `green` and `red`, never otherwise, and no earlier document survives a failed step. A run and its copy-back hold one lock. |
+| MAINT-50-04 | **Per-test phase verdict** | M | Full | A phase passes only if a real `diff` of a document measured at the HEAD under review, from a clean tree, has no new failure and no unaccounted loss of a test. A disputed failure is pre-existing only if that test, by name, fails at the merge-base. |
+| MAINT-50-05 | **Planned removals accumulate** | M | Full | A loss is accounted for only if a phase up to and including the current one plans it. The baseline moves only when the merge-base does, and then it is rebuilt. |
+| MAINT-50-06 | **One warning set** | M | Full | Baseline and phases count Kotlin warnings from one cold task set that compiles every source set `build` compiles and runs no test task. `ktlintCheck`'s violations are counted beside it. |
+| MAINT-50-07 | **Skill edit applied, judge frozen** | M | Full | `SKILL.md` carries design §4 exactly, nothing else in it changes, and the gate runs the copy frozen from `origin/main`. |
+| MAINT-50-08 | **Integration stays in the gate** | M | Full | Each phase runs `:integrationTest` once, with no `:test`, and stops unless Gradle succeeds. |
+| MAINT-50-09 | **Tests run in CI** | M | Full | `build` on both platforms runs `test_unit_gate`. |
 
 ## Test Cases
 
@@ -85,8 +85,8 @@ every entry goes red (DR-07). Rows 19–22 and 24 run by hand or in CI, as state
 
 ## Acceptance Criteria
 
-- [ ] Every test case above passes, and `mutants_unit_gate.py` reports `bad 0`.
-- [ ] `SKILL.md` matches design §4, and a tracked commit records the feature closed.
+- [x] Every test case above passes, and `mutants_unit_gate.py` reports `bad 0`.
+- [x] `SKILL.md` matches design §4, and a tracked commit records the feature closed.
 
 ## Non-Functional Requirements
 

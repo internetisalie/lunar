@@ -32,16 +32,16 @@ code, so `build-plugin.yml` on the PR is Phase 1's gate. Any probe edit uses `te
 ### Phase 2: Apply the skill edit and close [Must]
 - **Goal**: the skill carries design §4.
 - **Tasks**:
-  - [ ] Run TC 20 with credentials loaded in a subshell.
-  - [ ] Snapshot `/home/mini/Documents/src/lua/lunar/.agents/skills/supervise-implement/SKILL.md` to
+  - [x] Run TC 20 with credentials loaded in a subshell.
+  - [x] Snapshot `/home/mini/Documents/src/lua/lunar/.agents/skills/supervise-implement/SKILL.md` to
     `~/.cache/claude-scratch/lunar/maint-50-tc/SKILL.before.md`.
-  - [ ] Edit that path per design §4.1–§4.5. Make the edit in that path: `.agents` in a worktree is a
+  - [x] Edit that path per design §4.1–§4.5. Make the edit in that path: `.agents` in a worktree is a
     symlink to it.
-  - [ ] Run TC 21 and TC 24, then walk TC 19 on a throwaway branch.
-  - [ ] In `docs/features/maint/requirements.md`, set the MAINT-50 row to **Full**; in
+  - [x] Run TC 21 and TC 24, then walk TC 19 on a throwaway branch.
+  - [x] In `docs/features/maint/requirements.md`, set the MAINT-50 row to **Full**; in
     `docs/roadmap.md`, delete the MAINT-50 row; set this feature's `requirements.md` `status: done`
     and its Status column to Full.
-  - [ ] Commit the docs: `docs(maint-50): the supervise-implement gate is per test`.
+  - [x] Commit the docs: `docs(maint-50): the supervise-implement gate is per test`.
 - **Exit criteria**: TCs 19–21 and 24 pass; `python3 scripts/lint_docs.py docs` reports 0 errors; the commit's
   tree holds every doc named above.
 
