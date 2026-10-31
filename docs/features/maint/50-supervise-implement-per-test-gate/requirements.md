@@ -109,7 +109,7 @@ Evidence measured on 2026-10-30 at `cf6cdf15`, under its MAINT-48 IDs:
 | ID | Premise (kind) | Action | Status |
 |----|----------------|--------|--------|
 | MAINT-48-00-DR-08 | Which agents run a baseline step (read) | `grep -n -i baseline .claude/agents/supervisor.md .agents/agents/supervisor.md` | **done.** No match; only `supervise-implement` step 2 records a baseline (`SKILL.md:28-33`). |
-| MAINT-48-00-DR-12 | A test's status on `lunar-ci` matches its status on the builder (runtime; the risk below) | After TC 10: `( set -a; . ~/.config/loom/loom.artifacts.env; set +a; python3 tooling/ctrf/junit_ctrf.py fetch --commit <TC 10's sha> --out build/unit-ci/before.ctrf.json )`. In a worktree at that sha under `~/.cache/claude-worktrees/`, `run "test --rerun --no-build-cache"`, copy back and `assemble` to `build/unit-ci/after.ctrf.json` (the design §2.7 gate commands with `unit-ci`), then `diff` | **todo: gates Phase 5.** Pass: `diff` exits 0 and prints no `STATUS`, `NEWLY_*` or `REMOVED` line. Any other line is an environment difference: file it as a bug, and Phase 5 waits until it is fixed, or until its class is entered in the "Classes known to differ" list in design §2.7 (otherwise `<none>`). |
+| MAINT-48-00-DR-12 | A test's status on `lunar-ci` matches its status on the builder (runtime; the risk below) | After TC 10: `( set -a; . ~/.config/loom/loom.artifacts.env; set +a; python3 tooling/ctrf/junit_ctrf.py fetch --commit <TC 10's sha> --out build/unit-ci/before.ctrf.json )`. In a worktree at that sha under `~/.cache/claude-worktrees/`, `run "test --rerun --no-build-cache"`, copy back and `assemble` to `build/unit-ci/after.ctrf.json` (the design §2.7 gate commands with `unit-ci`), then `diff` | **done at `831f3cb3`: confirmed for one commit.** `fetch` printed `distance=0`; the builder run was `BUILD SUCCESSFUL in 10m 31s`. `diff` exited 0 and printed only `EXECUTED	3447	3447`, so no `STATUS`, `NEWLY_*` or `REMOVED` line and no class for the "Classes known to differ" list in design §2.7. |
 | MAINT-48-00-DR-13 | Which tasks give the step-2 build baseline without running a test (runtime) | On the builder: `build --dry-run`; `build -x test -x integrationTest -x redisIntegrationTest -x koverVerify --dry-run`; then a real `assemble testClasses lintDocs` | **done.** `build` schedules `:test`, `:integrationTest`, `:redisIntegrationTest`, `:koverVerify`, `:buildPlugin` and `:lintDocs`. The `-x` form also drops `:compileTestKotlin`, so test-source warnings would no longer be counted, and it is rejected. `assemble testClasses lintDocs` ran `:compileKotlin`, `:compileJava`, `:compileTestKotlin`, `:testClasses` and `:lintDocs`, no test task, `BUILD SUCCESSFUL in 1s` (compiles up to date). |
 
 rsync 3.4.1 into `w/results/` exits 11 (`mkdir … failed: No such file or directory`) when `w/` is
@@ -121,11 +121,10 @@ The risk the draft was built around:
 ### Risk: a test that fails on the builder but passes on `lunar-ci`
 - **Impact**: the baseline comes from CI and the phase run from the builder, so an environment-only
   failure reads as `NEWLY_FAILING` and fails a phase that broke nothing.
-- **Likelihood**: medium, and not yet measured. MAINT-48 DR-06 compared two *builder* runs, one with CI's
+- **Likelihood**: low at one commit (DR-12). MAINT-48 DR-06 compared two *builder* runs, one with CI's
   filter, so it says nothing about the `lunar-ci` image (its JDK, fonts, Lua, `$HOME`). BUG-539
   shows the two environments do differ in ways a green builder suite cannot see.
-- **Mitigation**: DR-12 measures it before the gate depends on it. Until it does,
-  and after it, the draft's dispute rule reruns the class at the merge-base on the
+- **Mitigation**: the draft's dispute rule reruns the class at the merge-base on the
   builder, which settles any single case.
 
 ## Not established
@@ -138,8 +137,6 @@ The risk the draft was built around:
   `build` runs. Which task set both the baseline and each phase use for their warning counts.
 - **c. Baseline per feature, gate per phase.** How REMOVED and skipped lines left by an earlier
   phase's deliberate deletions count at a later phase's gate.
-- **d. lunar-ci against the builder (DR-12).** A per-test comparison of the two at one commit. It
-  needs MAINT-48's first stored record, fetched with credentials loaded.
 
 ## Dependencies
 
