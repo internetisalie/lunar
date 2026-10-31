@@ -363,9 +363,9 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (12205,12207)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
 (12216,12217)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
 (12218,12219)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
-(12223,12229)|LuaNameRefImpl|fun(t)|1e100756a5dbf13e
-(12223,12229)|LuaVarImpl|fun(t)|1e100756a5dbf13e
-(12223,12240)|LuaFuncCallImpl|fun()|41e00cd8587a7e43
+(12223,12229)|LuaNameRefImpl|fun(t)|d6564bd040e3f869
+(12223,12229)|LuaVarImpl|fun(t)|d6564bd040e3f869
+(12223,12240)|LuaFuncCallImpl|function|c2c105416789ed52
 (12230,12234)|LuaNameRefImpl|{ ... }|859e51d928354397
 (12230,12239)|LuaVarImpl|undefined|31a5442b7fa53ce1
 (12234,12239)|LuaIndexExprImpl|undefined|31a5442b7fa53ce1
@@ -1428,8 +1428,8 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (18334,18374)|LuaLocalVarDeclImpl|boolean|c322feed17a09ce6
 (18340,18342)|LuaNameRefImpl|boolean|c322feed17a09ce6
 (18344,18345)|LuaNameRefImpl|{ ... }|ad724609c3af250b
-(18348,18353)|LuaNameRefImpl|fun(f, ...)|a6a300f6c2e99ed0
-(18348,18353)|LuaVarImpl|fun(f, ...)|a6a300f6c2e99ed0
+(18348,18353)|LuaNameRefImpl|fun(f, ...)|189254a2ae25f14f
+(18348,18353)|LuaVarImpl|fun(f, ...)|189254a2ae25f14f
 (18348,18374)|LuaFuncCallImpl|boolean|c322feed17a09ce6
 (18354,18371)|LuaNameRefImpl|fun(s, US)|1e0916d0ece715da
 (18354,18371)|LuaVarImpl|fun(s, US)|1e0916d0ece715da
@@ -1843,9 +1843,9 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (468,482)|LuaVarSuffixImpl|fun(p, p)|21ff89c7a7c4a542
 (4842,4843)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
 (4844,4845)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
-(4849,4855)|LuaNameRefImpl|fun(t)|1e100756a5dbf13e
-(4849,4855)|LuaVarImpl|fun(t)|1e100756a5dbf13e
-(4849,4903)|LuaFuncCallImpl|fun()|41e00cd8587a7e43
+(4849,4855)|LuaNameRefImpl|fun(t)|d6564bd040e3f869
+(4849,4855)|LuaVarImpl|fun(t)|d6564bd040e3f869
+(4849,4903)|LuaFuncCallImpl|function|c2c105416789ed52
 (485,490)|LuaNameRefImpl|any|2bc227d2d21e7785
 (485,508)|LuaVarImpl|fun(p)|27d2d1c3bc1c4795
 (485,719)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1

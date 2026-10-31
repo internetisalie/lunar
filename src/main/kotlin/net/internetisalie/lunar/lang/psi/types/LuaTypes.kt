@@ -142,6 +142,7 @@ class LuaTypesSnapshot(
             LuaGraphType.String -> LuaPrimitiveType.STRING
             is LuaGraphType.Table -> tableToLuaType(type, visited)
             is LuaGraphType.Function -> {
+                if (type.anySignature) return LuaPrimitiveType.FUNCTION
                 // Placeholder BEFORE recursing, as tableToLuaType does. MAINT-25-02 made tables
                 // cycle-safe this way and left functions registering only on the way out, so a
                 // function type reachable from its own parameter or return recursed until the stack

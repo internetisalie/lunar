@@ -2,6 +2,15 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **`function` means any function** (BUG-15). A value declared with the bare `function` type was
+  treated as a function with no parameters. Passing a function with required parameters to a
+  `---@param fn function` was reported as *Too few arguments*, and calling such a value with
+  arguments as *Too many arguments*. Lunar now accepts any function there, and accepts any arguments
+  when calling one, including after `type(x) == "function"`. The result of such a call is no longer
+  treated as `nil`, which also stopped false reports on `coroutine.wrap` iterators. `fun()` still
+  means no parameters. Diagnostics, hints and hover show these values as `function` rather than
+  `fun()`.
+
 - **A method call's arguments are checked against the method's `---@param` types** (BUG-566, BUG-11). A
   call such as `c:m(1, "y")` to a class method declared in another file, in a library or inherited
   from a parent class was not reported, though the same mistake in a call to a global function

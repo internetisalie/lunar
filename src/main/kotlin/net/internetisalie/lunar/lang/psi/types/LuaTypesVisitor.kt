@@ -1614,7 +1614,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 "boolean" to { LuaGraphType.Boolean },
                 "nil" to { LuaGraphType.Nil },
                 "table" to { LuaGraphType.Table() },
-                "function" to { LuaGraphType.Function(emptyList(), emptyList()) },
+                "function" to { LuaGraphType.Function.bare() },
                 "thread" to { LuaGraphType.Any },
                 "userdata" to { LuaGraphType.Any },
             )

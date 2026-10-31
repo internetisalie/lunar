@@ -51,6 +51,12 @@ sealed class LuaGraphType {
          * aligns a value with a demand by this flag (BUG-8).
          */
         val implicitSelf: kotlin.Boolean = false,
+        /**
+         * True for the bare `function` type, which names any function and says nothing about its
+         * parameters (BUG-15). An empty [params] cannot say that: `fun()`, a call with no arguments
+         * and `function() end` all have one too, and each of those does mean zero.
+         */
+        val anySignature: kotlin.Boolean = false,
     ) : LuaGraphType() {
         data class Parameter(
             val node: VariableNode,
@@ -58,6 +64,11 @@ sealed class LuaGraphType {
             val isOptional: kotlin.Boolean = false,
             val isVararg: kotlin.Boolean = false,
         )
+
+        companion object {
+            /** The bare `function` type: see [anySignature]. */
+            fun bare(): Function = Function(emptyList(), emptyList(), anySignature = true)
+        }
     }
 
     data class Table(
@@ -193,6 +204,7 @@ sealed class LuaGraphType {
             // is what users understand, and what DuplicateNilAssignabilityTest pins.
             is Trait -> inferredAs.displayName()
             is Function -> {
+                if (anySignature) return "function"
                 val paramsStr =
                     params.joinToString(", ") { param ->
                         val name = param.name ?: if (param.isVararg) "..." else "p"
@@ -259,7 +271,7 @@ sealed class LuaGraphType {
                 LuaPrimitiveType.STRING -> String
                 LuaPrimitiveType.VOID -> Nil
                 LuaPrimitiveType.UNKNOWN -> Undefined
-                LuaPrimitiveType.FUNCTION -> Function(emptyList(), emptyList())
+                LuaPrimitiveType.FUNCTION -> Function.bare()
                 LuaPrimitiveType.TABLE -> Table()
                 LuaPrimitiveType.INTEGER -> Number
 

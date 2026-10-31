@@ -916,7 +916,7 @@ class LuaTypeGraph {
         use: LuaGraphType.Function,
     ): Int {
         val required = value.params.count { !it.isOptional && !it.isVararg }
-        if (required == 0) return 0
+        if (required == 0 || use.anySignature) return 0
         return (required + receiverDelta(value, use)).coerceAtLeast(0)
     }
 
@@ -924,7 +924,7 @@ class LuaTypeGraph {
         value: LuaGraphType.Function,
         use: LuaGraphType.Function,
     ): Int =
-        if (value.params.any { it.isVararg }) {
+        if (value.anySignature || value.params.any { it.isVararg }) {
             Int.MAX_VALUE
         } else {
             (value.params.size + receiverDelta(value, use)).coerceAtLeast(0)
