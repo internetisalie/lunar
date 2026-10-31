@@ -17,15 +17,15 @@ code, so `build-plugin.yml` on the PR is Phase 1's gate. Any probe edit uses `te
 ### Phase 1: Script, tests and CI step [Must]
 - **Goal**: `unit_gate.sh` on `main`, so the skill can freeze it.
 - **Tasks**:
-  - [ ] From the proof branch (design §2), bring `tooling/ctrf/unit_gate.sh` (mode 755) and
+  - [x] From the proof branch (design §2), bring `tooling/ctrf/unit_gate.sh` (mode 755) and
     `test_unit_gate.py` onto a feature branch unchanged:
     `git checkout proof/maint-50-gate -- tooling/ctrf/unit_gate.sh tooling/ctrf/test_unit_gate.py`.
     Leave `mutants_unit_gate.py` on the proof branch.
-  - [ ] Add design §5's step to both workflows.
-  - [ ] Add to `tooling/ctrf/README.md` a `# Supervise-implement gate (MAINT-50)` section naming the
+  - [x] Add design §5's step to both workflows.
+  - [x] Add to `tooling/ctrf/README.md` a `# Supervise-implement gate (MAINT-50)` section naming the
     subcommands and `Tests: cd tooling/ctrf && python3 -m unittest test_unit_gate`.
-  - [ ] Run the tests, then from a proof-branch worktree `python3 tooling/ctrf/mutants_unit_gate.py`.
-  - [ ] Open the PR with message `feat(maint-50): the supervise-implement gate script`.
+  - [x] Run the tests, then from a proof-branch worktree `python3 tooling/ctrf/mutants_unit_gate.py`.
+  - [x] Open the PR with message `feat(maint-50): the supervise-implement gate script`.
 - **Exit criteria**: requirements TCs 3–18, 22 and 23 pass; mutants print `bad 0 of` with no `SURVIVED`;
   the PR's CI is green and it merges.
 

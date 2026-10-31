@@ -105,6 +105,12 @@ jobs:
           python3 tooling/corpus/fetch-luac.py
           python3 tooling/corpus/fetch-torture.py
 
+      # MAINT-50: the supervise-implement gate's own tests. A broken judge makes the run moot,
+      # so this fails the job at once. Fake builder and fake rsync; needs only bash, flock, git, awk, python3.
+      - name: Gate script tests
+        run: |
+          cd tooling/ctrf && python3 -m unittest test_unit_gate
+
       - name: Build plugin (compile + distributable zip)
         run: ./gradlew buildPlugin --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
 

@@ -25,3 +25,19 @@ Tests: `cd tooling/ctrf && python3 -m unittest test_junit_ctrf`.
 - **`series`**: `python3 tooling/ctrf/perf_ctrf.py series (--first-parent origin/main | --tags) [--max-depth N] [--work DIR] [--repo .]`. Prints each workload's values oldest first, sorted by workload and counter, tab separated: `<workload> <counter> <label> <value>`, and `<workload> duration <label> <ms> <cpu model>`, then `unmeasured <n>`. `--first-parent` labels each commit by its sha and reads that commit's record alone; `--tags` labels each `v*` tag, in creation order, and reads the record of its nearest code-identical first-parent ancestor. `--max-depth` (default 50) bounds each walk. Read-only against the store. Needs the store credentials and full history; it does not refuse a shallow checkout, so there the walk stops at the boundary. It writes only a scratch file under `--work`.
 
 Tests: `cd tooling/ctrf && python3 -m unittest test_perf_ctrf`.
+
+# Supervise-implement gate (MAINT-50)
+
+`unit_gate.sh` is the judge the `supervise-implement` skill runs per phase: it classes a builder run, assembles a per-test document, and compares it with the merge-base's record from `junit_ctrf.py`. Bash plus `junit_ctrf.py` beside it; run from a checkout's root. Exit `2` on too few arguments or a missing input (`REFUSED: …`).
+
+- **`suite <backend> <dir> <name> [gradle args]`**: refuses a dirty tree, then under the builder lock runs `test --rerun --no-build-cache`, classes it, copies results back and assembles `<dir>/<name>.ctrf.json` with `<name>.head`. Prints `class=<class>`; exit `0` green, `10` red, `20` anything else. Needs `$BLD` and `$RSH`.
+- **`judge <before> <after> <planned> <diff>`**: requires `<after>.head` to equal `HEAD`, writes the `diff` output to `<diff>`, then `verdict`.
+- **`verdict <planned> <diff>`**: `PASS` (`0`), `FAIL` with the lines (`1`), or refused (`2`).
+- **`class <log>`**: prints `green`, `red`, `infra-compile`, `infra-transport` or `infra-other`.
+- **`count <backend> <dir>`**: cold, test-free `assemble` task set plus `ktlintCheck`; prints `warnings=<n>` and `violations=<n>`.
+- **`integration <backend> <dir>`**: `integrationTest --rerun --no-build-cache`; `0` on `BUILD SUCCESSFUL`, else `20`.
+- **`failures <document>`**: one failed testId per line.
+- **`fresh <dir>`**: `0` when `<dir>` holds `before.ctrf.json` and a `base_commit` equal to the merge-base with `origin/main`, else `1`.
+- **`wait <backend>`**: polls `./gradlew --status` on the builder until no daemon is `BUSY`; `20` at the limit.
+
+Tests: `cd tooling/ctrf && python3 -m unittest test_unit_gate`. `build-plugin.yml` runs them in `build` on both platforms.
