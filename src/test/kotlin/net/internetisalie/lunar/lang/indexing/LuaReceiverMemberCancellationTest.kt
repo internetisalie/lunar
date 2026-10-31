@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.impl.CoreProgressManager
 import com.intellij.openapi.progress.impl.ProgressManagerImpl
 import com.intellij.psi.search.GlobalSearchScope
 import net.internetisalie.lunar.definitions.LibraryRootTestCase
+import net.internetisalie.lunar.testutil.CheckCanceledProbe
 
 /**
  * COMP-09 §4.9 — the `ProgressManager.checkCanceled()` at the head of each `processValues` callback,
@@ -24,12 +25,14 @@ import net.internetisalie.lunar.definitions.LibraryRootTestCase
  * separated from the next by a visit and the counts strictly increase. That is a difference of
  * exactly one probe per callback, and it does not depend on the cancellation ever firing.
  *
- * The instrument is a `CheckCanceledHook`, not a `ProgressIndicator`: `EmptyProgressIndicator` and
- * `ProgressIndicatorBase` declare `isCanceled`/`checkCanceled` final, and a non-standard indicator is
- * pinged from a background thread every `CHECK_CANCELED_DELAY_MILLIS` (`CoreProgressManager:143`),
+ * The instrument is a `CheckCanceledHook`, not a counting `ProgressIndicator`: `EmptyProgressIndicator`
+ * and `ProgressIndicatorBase` declare `isCanceled`/`checkCanceled` final, and a non-standard indicator
+ * is pinged from a background thread every `CHECK_CANCELED_DELAY_MILLIS` (`CoreProgressManager:143`),
  * which would corrupt the count. Registering a hook flips `ourCheckCanceledBehavior` to
- * `ONLY_HOOKS` (`CoreProgressManager:872`) so that **every** `ProgressManager.checkCanceled()` on
- * this thread reaches it — which is precisely the call the plugin makes.
+ * `ONLY_HOOKS` (`CoreProgressManager:872`) so that every `ProgressManager.checkCanceled()` reaches it
+ * — **but only while no thread in the JVM is under a cancelled indicator** (BUG-20). The door
+ * therefore runs under a live `StandardProgressIndicatorBase` ([CheckCanceledProbe]), which runs the
+ * hooks itself and so reaches this one on either branch.
  *
  * Measured on gce-builder 2026-08-09, three declaring files, probes filtered to those taken after the
  * first visit: **`[1, 1, 2, 2, 3]` with the line, `[1, 2, 3]` without it**. The platform alone
@@ -53,15 +56,31 @@ class LuaReceiverMemberCancellationTest : LibraryRootTestCase() {
     }
 
     /**
+     * BUG-20 — the probe must see the same shape when another thread is under a cancelled indicator,
+     * which the fixture's own background work arranges by chance. Without the live indicator the
+     * trace is empty here and the shape assertion fails.
+     */
+    fun testTheUnionDoorProbeIsUnchangedByACancelledIndicatorOnAnotherThread() {
+        seedThreeDeclaringFiles()
+        val disturbed = CheckCanceledProbe.whileAnotherThreadIsUnderACancelledIndicator { probeUnionDoor() }
+        assertProbedTwiceWithinOneCallback("membersIn under a cancelled indicator elsewhere", disturbed)
+    }
+
+    /**
      * [Probed.trace] carries the visited-file count at every `checkCanceled()` on this thread. The
      * leading run of zeroes is the platform's own work before the first callback — its length moves
      * run to run, which is why the assertion is on the shape of the tail and never on a probe index.
+     *
+     * Probes that see the final file count are left out: under a live indicator (BUG-20) the platform
+     * adds a probe after the last callback, which repeats that count with or without the plugin's
+     * line and would make the repeat test vacuous. Every earlier count is separated from the next by
+     * a callback, so a repeat among them can only come from the plugin's probe.
      */
     private fun assertProbedTwiceWithinOneCallback(
         door: String,
         probed: Probed,
     ) {
-        val duringWork = probed.trace.filter { it >= 1 }
+        val duringWork = probed.trace.filter { it in 1 until probed.files }
         println("COMP-09 §4.9 $door: files=${probed.files} probes-after-first-visit=$duringWork")
         assertEquals("the fixture must give $door more than one file to read", DECLARING_FILES, probed.files)
         assertTrue(
@@ -86,9 +105,11 @@ class LuaReceiverMemberCancellationTest : LibraryRootTestCase() {
         hookable.addCheckCanceledHook(hook)
         val files =
             try {
-                runReadAction {
-                    LuaReceiverMemberIndex.membersIn(RECEIVER, project, GlobalSearchScope.allScope(project))
-                    LuaReceiverMemberWork.files
+                CheckCanceledProbe.underLiveIndicator {
+                    runReadAction {
+                        LuaReceiverMemberIndex.membersIn(RECEIVER, project, GlobalSearchScope.allScope(project))
+                        LuaReceiverMemberWork.files
+                    }
                 }
             } finally {
                 hookable.removeCheckCanceledHook(hook)

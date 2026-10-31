@@ -35,6 +35,7 @@ import net.internetisalie.lunar.lang.psi.LuaLabelRef
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.refactoring.LuaNamesValidator
 import net.internetisalie.lunar.settings.LuaRefactoringSettings
+import net.internetisalie.lunar.testutil.CheckCanceledProbe
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -1085,6 +1086,20 @@ class LuaRenameTest : BasePlatformTestCase() {
     }
 
     /**
+     * BUG-20 — the count behind [testCancellationIsCheckedPerUsageNotPerRename] must not depend on
+     * what other threads are doing. The rename runs under a `PotemkinProgress` that delegates, and
+     * while any thread is under a cancelled indicator that indicator ran the hook twice per check.
+     */
+    @Test
+    fun testProcessorCheckCountIsUnchangedByACancelledIndicatorOnAnotherThread() {
+        val undisturbed = processorChecksWhileRenamingWith(3)
+        val disturbed =
+            CheckCanceledProbe.whileAnotherThreadIsUnderACancelledIndicator { processorChecksWhileRenamingWith(3) }
+
+        assertEquals("the processor's check count must not depend on other threads", undisturbed, disturbed)
+    }
+
+    /**
      * Runs the registered rename under [hook] and returns whatever escaped, or `null`.
      *
      * `ProgressManagerImpl.runWithHook` is void, so the verdict is carried out in a holder rather
@@ -1158,17 +1173,19 @@ class LuaRenameTest : BasePlatformTestCase() {
     /**
      * True when the innermost frame below this test's own hook and the platform's progress plumbing
      * is [LuaRenameProcessor] — i.e. the processor called `checkCanceled` itself, rather than some
-     * platform routine running underneath it doing so.
+     * platform routine running underneath it doing so. A repeat of the same check by the rename
+     * indicator's delegate is not a second call (BUG-20).
      */
     private fun calledDirectlyByTheProcessor(): Boolean =
-        StackWalker.getInstance().walk { frames ->
-            frames
-                .limit(FRAME_SEARCH_DEPTH)
-                .filter { !it.className.startsWith(javaClass.name) && !it.className.startsWith(PROGRESS_PACKAGE) }
-                .findFirst()
-                .map { it.className == PROCESSOR }
-                .orElse(false)
-        }
+        !CheckCanceledProbe.isRepeatByIndicatorDelegate() &&
+            StackWalker.getInstance().walk { frames ->
+                frames
+                    .limit(FRAME_SEARCH_DEPTH)
+                    .filter { !it.className.startsWith(javaClass.name) && !it.className.startsWith(PROGRESS_PACKAGE) }
+                    .findFirst()
+                    .map { it.className == PROCESSOR }
+                    .orElse(false)
+            }
 
     /**
      * Drives the registered rename end to end and returns whatever it threw, or `null` if it

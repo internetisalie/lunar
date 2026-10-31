@@ -1,10 +1,8 @@
 package net.internetisalie.lunar.refactoring.rename
 
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.impl.CoreProgressManager
 import com.intellij.openapi.progress.impl.ProgressManagerImpl
-import com.intellij.openapi.progress.util.StandardProgressIndicatorBase
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.BaseRefactoringProcessor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -12,11 +10,10 @@ import com.intellij.usageView.UsageInfo
 import net.internetisalie.lunar.LuaBundle
 import net.internetisalie.lunar.lang.psi.LuaDeclarationSite
 import net.internetisalie.lunar.lang.psi.LuaNameRef
+import net.internetisalie.lunar.testutil.CheckCanceledProbe
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -380,7 +377,10 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
         val target = renameTargetAtCaret("aNameNothingElseDeclares")
 
         val undisturbed = detectorCancellationChecks(target, emptyList())
-        val disturbed = whileAnotherThreadIsUnderACancelledIndicator { detectorCancellationChecks(target, emptyList()) }
+        val disturbed =
+            CheckCanceledProbe.whileAnotherThreadIsUnderACancelledIndicator {
+                detectorCancellationChecks(target, emptyList())
+            }
 
         assertEquals("the detector's check count must not depend on other threads", undisturbed, disturbed)
     }
@@ -412,7 +412,7 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
      * thread takes `INDICATOR_PLUS_HOOKS`, which calls just the current thread's indicator. With
      * none on this thread the check vanishes uncounted, and the fixture's own background work (code
      * vision, non-blocking read actions) was measured sitting under cancelled indicators. A
-     * [StandardProgressIndicatorBase] runs the hooks from its own `checkCanceled`, so each check is
+     * [CheckCanceledProbe.underLiveIndicator] runs the hooks from its own `checkCanceled`, so each check is
      * counted once on either branch. `EmptyProgressIndicator` would not do: its `checkCanceled` is
      * final and runs no hooks.
      */
@@ -428,42 +428,9 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
             }
         val progressManager = ProgressManager.getInstance() as ProgressManagerImpl
         progressManager.runWithHook(hook) {
-            progressManager.runProcess(
-                { LuaRenameConflictDetector.collisions(target, usages) },
-                StandardProgressIndicatorBase(),
-            )
+            CheckCanceledProbe.underLiveIndicator { LuaRenameConflictDetector.collisions(target, usages) }
         }
         return checks.get()
-    }
-
-    /**
-     * Runs [measurement] while a pooled thread sits under a cancelled indicator, which is the state
-     * that flips `CoreProgressManager`'s check-canceled behaviour for every thread in the JVM.
-     */
-    private fun <T> whileAnotherThreadIsUnderACancelledIndicator(measurement: () -> T): T {
-        val cancelled = CountDownLatch(1)
-        val finished = CountDownLatch(1)
-        val indicator = StandardProgressIndicatorBase()
-        val worker =
-            ApplicationManager.getApplication().executeOnPooledThread {
-                val holdUntilFinished =
-                    Runnable {
-                        indicator.cancel()
-                        cancelled.countDown()
-                        finished.await(HOLD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                    }
-                ProgressManager.getInstance().runProcess(holdUntilFinished, indicator)
-            }
-        try {
-            assertTrue(
-                "the pooled thread never reached its cancelled indicator",
-                cancelled.await(HOLD_TIMEOUT_SECONDS, TimeUnit.SECONDS),
-            )
-            return measurement()
-        } finally {
-            finished.countDown()
-            worker.get(HOLD_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        }
     }
 
     /**
@@ -511,6 +478,5 @@ class LuaRenameConflictTest : BasePlatformTestCase() {
         const val DETECTOR = "net.internetisalie.lunar.refactoring.rename.LuaRenameConflictDetector"
         const val PROGRESS_PACKAGE = "com.intellij.openapi.progress"
         const val FRAME_SEARCH_DEPTH = 20L
-        const val HOLD_TIMEOUT_SECONDS = 30L
     }
 }

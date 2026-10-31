@@ -34,6 +34,7 @@ import net.internetisalie.lunar.platform.target.Target
 import net.internetisalie.lunar.refactoring.rename.LuaColonMethodRename.Spelling
 import net.internetisalie.lunar.refactoring.rename.LuaColonMethodRename.Undecided
 import net.internetisalie.lunar.settings.LuaProjectSettings
+import net.internetisalie.lunar.testutil.CheckCanceledProbe
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -612,6 +613,21 @@ class LuaColonMethodRenameTest : BasePlatformTestCase() {
                 "but cost ${large - small}, so the scan walks whole files without offering to stop",
             large - small >= 30,
         )
+    }
+
+    /**
+     * BUG-20 — the counter behind [cancellationIsCheckedPerOccurrenceNotPerScanCall] must not depend
+     * on what other threads are doing. Without the live indicator this reads 0 under a cancelled
+     * indicator on another thread.
+     */
+    @Test
+    fun theScanCheckCountIsUnchangedByACancelledIndicatorOnAnotherThread() {
+        myFixture.configureByText("a.lua", "local t = {}\nfunction t:m() end\nt:m()\n")
+
+        val undisturbed = scanCancellationChecks()
+        val disturbed = CheckCanceledProbe.whileAnotherThreadIsUnderACancelledIndicator { scanCancellationChecks() }
+
+        assertEquals("the scan's check count must not depend on other threads", undisturbed, disturbed)
     }
 
     // ------------------------------------------------- Phase 2: the rename, end to end
@@ -1499,9 +1515,10 @@ class LuaColonMethodRenameTest : BasePlatformTestCase() {
 
     /**
      * How many `ProgressManager.checkCanceled()` calls one scan makes **from the scan itself**.
-     * `ProgressManagerImpl`'s hook is the only observation point that does not require a cancelled
-     * indicator: with none on the thread, `CoreProgressManager.doCheckCanceled` takes its
-     * `ONLY_HOOKS` branch and a counting `ProgressIndicator` would never be consulted.
+     * `ProgressManagerImpl`'s hook is the observation point, and the scan runs under a live
+     * indicator so that every check reaches it on either `CoreProgressManager.doCheckCanceled`
+     * branch (BUG-18, BUG-20; see [CheckCanceledProbe]). With none on the thread, a cancelled
+     * indicator on any other thread would hide the scan's checks from the hook.
      */
     private fun scanCancellationChecks(): Int {
         val declaration = methodDeclarationLeaf("m")
@@ -1515,7 +1532,7 @@ class LuaColonMethodRenameTest : BasePlatformTestCase() {
             }
         val progressManager = ProgressManager.getInstance() as ProgressManagerImpl
         progressManager.runWithHook(hook) {
-            LuaColonMethodRename.undecidedOccurrences(target, usages)
+            CheckCanceledProbe.underLiveIndicator { LuaColonMethodRename.undecidedOccurrences(target, usages) }
         }
         return checks.get()
     }

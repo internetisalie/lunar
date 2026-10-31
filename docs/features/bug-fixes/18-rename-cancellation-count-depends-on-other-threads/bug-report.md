@@ -89,7 +89,7 @@ In the 200-instance probe, the count under an indicator was `4,14` every time, i
 the old count failed 27 times. Eight natural runs of `refactoring.*` passed with the fix.
 
 ## 7. Same Exposure Elsewhere
-Not changed here. `LuaColonMethodRenameTest.scanCancellationChecks` has the same shape as the old helper
+Not changed here; BUG-20 fixes all three. `LuaColonMethodRenameTest.scanCancellationChecks` has the same shape as the old helper
 (a hook, no indicator, a differential threshold), so it can fail the same way.
 `LuaReceiverMemberCancellationTest.probeUnionDoor` also counts with a hook and no indicator. Neither
 has been seen to fail. `LuaRenameTest.renameUnderHook` also uses a hook, and was not analysed.
