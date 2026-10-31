@@ -27,13 +27,13 @@ provides `junit_ctrf.py fetch` and `diff`. This feature makes the skill use them
   runs only when no record exists.
 - Each phase is judged test by test against that one baseline, on a red run as well as a green one.
 - The warning count comes from one task set that runs no tests, used by baseline and phases alike.
-- The phase gate keeps exercising `:integrationTest`, by plain Gradle success.
+- The phase gate keeps exercising `:integrationTest` and, since [[BUG-17]], `:redisIntegrationTest`, by
+  plain Gradle success.
 
 ### Out of Scope
 - **The `supervisor` agent**: it has no baseline step (MAINT-48-00-DR-08).
 - **MAINT-48's tooling** (`fetch`, `diff`, their line semantics and exit codes): used as is.
 - **`.claude/agents/reviewer.md` and `implementer.md`**: not edited (design §7).
-- **`:redisIntegrationTest`**: outside the gate until [[BUG-17]] is fixed.
 - **Detecting deleted integration tests**: `integration` sees only Gradle's success, so a phase that
   deletes them is not caught.
 
@@ -71,7 +71,7 @@ every entry goes red (DR-07). Rows 19–22 and 24 run by hand or in CI, as state
 | 11 | 03 | A fake builder and `rsync` that try `flock -n` and test `/proc/self/fd/9` | Lock busy in both; fd 9 closed in the child | lock removed; freed before copy-back; fd inherited |
 | 12 | 03 | `--status` output: none running; `BUSY` twice then none; dead `shell`; other text; `BUSY` at the limit | exit 0; exit 0 after three polls; 20; 20; 20 | each branch reads idle; `BUSY` ignored; deadline dropped |
 | 13 | 06 | Canned warnings log; a log showing `> Task :test` | `warnings=2`, `violations=0`, argv has `--rerun-tasks --no-build-cache` and both integration class tasks; exit 20 | cold flags dropped; set narrowed; test-task check dropped |
-| 14 | 08 | Canned green; red, killed, transport | exit 0 with argv exactly `run integrationTest --rerun --no-build-cache`; exit 20 each | `--rerun` dropped; red tolerated |
+| 14 | 08 | Canned green; red, killed, transport | exit 0 with argv exactly `run integrationTest --rerun redisIntegrationTest --rerun --no-build-cache`; exit 20 each | `--rerun` dropped; red tolerated |
 | 15 | 06 | ktlint log with a `/w/a.kt:8:48: …` line; a failed log with none | `violations=1`; exit 20 | tool failure tolerated |
 | 16 | 04 | A document where `p.A.other` failed and `p.A.disputed` passed | `failures` prints only `p.A.other`, so the dispute lookup `grep -Fx p.A.disputed` finds nothing though a test in the class failed | `failures` lists everything |
 | 17 | 05 | Baseline dir empty; `base_commit` only; both; then `origin/main` moved | `fresh` exits 1, 1, 0, 1 | merge-base or record ignored |

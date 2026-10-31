@@ -115,7 +115,8 @@ integration() {
   mkdir -p "$dir"
   lock "$backend"
   rm -f "$dir/integration.log"
-  gradle "$backend" "$dir/integration.log" integrationTest --rerun --no-build-cache
+  # --rerun binds to the task before it, so each task needs its own.
+  gradle "$backend" "$dir/integration.log" integrationTest --rerun redisIntegrationTest --rerun --no-build-cache
   grep -q "$OK_SUCCESS" "$dir/integration.log" || stop "$dir/integration.log"
 }
 

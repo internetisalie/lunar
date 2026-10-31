@@ -59,11 +59,14 @@ sourceSets {
         compileClasspath += sourceSets.main.get().output
         runtimeClasspath += sourceSets.main.get().output
     }
-    // Redis Docker integration tests — excluded from the default `build`/`test` gates (RISK-R10).
-    // Run explicitly via `./gradlew redisIntegrationTest`.
+    // Redis Docker integration tests — excluded from the `test` gate (RISK-R10).
     create("redisIntegrationTest") {
         compileClasspath += sourceSets.main.get().output + sourceSets.test.get().compileClasspath
-        runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().runtimeClasspath
+        // The test source set's compile classpath is what carries the platform jars here: IJPGP
+        // adds them to the `test` task, not to its runtimeClasspath, and these JUnit4 tests load
+        // main classes that need them (BUG-17).
+        runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().runtimeClasspath +
+            sourceSets.test.get().compileClasspath
     }
 }
 
@@ -480,8 +483,8 @@ tasks {
         }
     }
 
-    // Redis Docker integration tests — NOT wired into `build`, `test`, or `check` (RISK-R10 / design §7).
-    // Run explicitly: `./gradlew redisIntegrationTest`.
+    // Redis Docker integration tests — not part of `test` (RISK-R10 / design §7), but `build` runs them:
+    // `check` depends on `koverVerify`, and Kover depends on every Test task.
     // Fails loudly (not skip) when Docker is unavailable — see RedisIntegrationTest.assertDockerAvailable().
     register<Test>("redisIntegrationTest") {
         group = "verification"

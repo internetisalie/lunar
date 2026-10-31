@@ -35,7 +35,7 @@ Tests: `cd tooling/ctrf && python3 -m unittest test_perf_ctrf`.
 - **`verdict <planned> <diff>`**: `PASS` (`0`), `FAIL` with the lines (`1`), or refused (`2`).
 - **`class <log>`**: prints `green`, `red`, `infra-compile`, `infra-transport` or `infra-other`.
 - **`count <backend> <dir>`**: cold, test-free `assemble` task set plus `ktlintCheck`; prints `warnings=<n>` and `violations=<n>`.
-- **`integration <backend> <dir>`**: `integrationTest --rerun --no-build-cache`; `0` on `BUILD SUCCESSFUL`, else `20`.
+- **`integration <backend> <dir>`**: `integrationTest --rerun redisIntegrationTest --rerun --no-build-cache`; `0` on `BUILD SUCCESSFUL`, else `20`.
 - **`failures <document>`**: one failed testId per line.
 - **`fresh <dir>`**: `0` when `<dir>` holds `before.ctrf.json` and a `base_commit` equal to the merge-base with `origin/main`, else `1`.
 - **`wait <backend>`**: polls `./gradlew --status` on the builder until no daemon is `BUSY`; `20` at the limit.

@@ -44,8 +44,8 @@ None open. Each question from the filed scope is answered by a DR row below and 
 
 ## Technical Debt & Future Work
 
-- **`:redisIntegrationTest` returns to the gate when BUG-17 is fixed.** Until then, and for
-  `:integrationTest` always, a phase that deletes such tests is not caught.
+- **`:redisIntegrationTest` and `:integrationTest` are gated by Gradle success alone**, so a phase
+  that deletes such tests is not caught.
 
 ## Pre-Implementation De-risking Tasks
 

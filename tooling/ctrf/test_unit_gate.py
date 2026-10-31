@@ -241,7 +241,8 @@ class Gate(unittest.TestCase):
 
     def test_tc14_integration_is_plain_gradle_success(self):
         self.assertEqual(0, self.gate("integration", "libvirt", self.d)[0])
-        self.assertEqual("run integrationTest --rerun --no-build-cache\n", (self.fake / "runs").read_text())
+        self.assertEqual("run integrationTest --rerun redisIntegrationTest --rerun --no-build-cache\n",
+                         (self.fake / "runs").read_text())
         for log in (RED_LOG, KILLED, TRANSPORT):
             (self.fake / "log").write_text(log)
             (self.fake / "run-count").write_text("99")
