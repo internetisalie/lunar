@@ -3,7 +3,7 @@ id: "MAINT-50"
 title: "50: Supervise-Implement Per-Test Gate"
 type: "feature"
 parent_id: "MAINT"
-status: "todo"
+status: "planned"
 priority: "high"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -11,133 +11,94 @@ folders:
 
 # MAINT-50: Supervise-Implement Per-Test Gate
 
-## The gap
+## Overview
 
-Every feature's gate is judged against a baseline. The `supervise-implement` skill's step 2 records
-that baseline by running the full unit suite on the builder before work starts: about 14 minutes,
-on the same single-tenant VM the work then needs. The result is a count, so a phase that fixes one
-test and breaks another compares equal. [[MAINT-48]] stores CI's per-test results for each commit
-and provides `junit_ctrf.py fetch` and `diff`. Nothing in the skill uses them yet.
+Every feature's gate is judged against a baseline. Step 2 of the `supervise-implement` skill records
+that baseline by running the full unit suite on the builder before work starts: 10 to 14 minutes, on
+the same single-tenant VM the work then needs. The result is a count, so a phase that fixes one test
+and breaks another compares equal. [[MAINT-48]] stores CI's per-test results for each commit and
+provides `junit_ctrf.py fetch` and `diff`. This feature makes the skill use them.
 
 ## Scope
 
-- **Baseline by fetch.** The skill's step 2 fetches MAINT-48's record for the branch's merge-base
-  with `main`. It runs the suite only when no record exists.
-- **Judge each phase per test.** The phase gate is `junit_ctrf.py diff` of the baseline against the
-  phase's run. No test that passes in the baseline may fail, be skipped or disappear unless the
-  phase's plan says so.
-- **Stop paying for tests in the build baseline.** The step-2 warning count comes from a task set
-  that runs no tests.
+### In Scope
+- `tooling/ctrf/unit_gate.sh`, its tests, and a CI step that runs them.
+- The baseline is a fetch of MAINT-48's record for the branch's merge-base with `main`. The suite
+  runs only when no record exists.
+- Each phase is judged test by test against that one baseline, on a red run as well as a green one.
+- The warning count comes from one task set that runs no tests, used by baseline and phases alike.
+- The phase gate keeps exercising `:integrationTest`, by plain Gradle success.
 
-## Out of Scope
-
-- **The `supervisor` agent**: it has no baseline step (DR-08 below).
+### Out of Scope
+- **The `supervisor` agent**: it has no baseline step (MAINT-48-00-DR-08).
 - **MAINT-48's tooling** (`fetch`, `diff`, their line semantics and exit codes): used as is.
+- **`.claude/agents/reviewer.md` and `implementer.md`**: not edited (design §7).
+- **`:redisIntegrationTest`**: outside the gate until [[BUG-17]] is fixed.
+- **Detecting deleted integration tests**: `integration` sees only Gradle's success, so a phase that
+  deletes them is not caught.
 
-## Starting material
+## Functional Requirements
 
-This draft of the skill edit was written while planning MAINT-48 and moved here unreviewed. Its last
-review (MAINT-48 round 3) failed on the open questions below. Section numbers in it (§2.1, §3.8) are
-MAINT-48 design's; "design §2.7" and "Phase 5" mean this draft and the phase that applies it. Its DR-12 and DR-13 are the evidence rows below.
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| MAINT-50-01 | **Baseline by fetch** | M | Not Implemented | Step 2 fetches the record for the merge-base and spends no builder time on the unit suite when one exists. |
+| MAINT-50-02 | **Builder fallback** | M | Not Implemented | When `fetch` exits 3 the suite runs once on the builder and is assembled into the same baseline file, green or red. Any other non-zero exit stops the run. |
+| MAINT-50-03 | **Run classification** | M | Not Implemented | Every builder suite run is classed from its log. A document is written for `green` and `red`, never otherwise, and no earlier document survives a failed step. A run and its copy-back hold one lock. |
+| MAINT-50-04 | **Per-test phase verdict** | M | Not Implemented | A phase passes only if a real `diff` of a document measured at the HEAD under review, from a clean tree, has no new failure and no unaccounted loss of a test. A disputed failure is pre-existing only if that test, by name, fails at the merge-base. |
+| MAINT-50-05 | **Planned removals accumulate** | M | Not Implemented | A loss is accounted for only if a phase up to and including the current one plans it. The baseline moves only when the merge-base does, and then it is rebuilt. |
+| MAINT-50-06 | **One warning set** | M | Not Implemented | Baseline and phases count Kotlin warnings from one cold task set that compiles every source set `build` compiles and runs no test task. `ktlintCheck`'s violations are counted beside it. |
+| MAINT-50-07 | **Skill edit applied, judge frozen** | M | Not Implemented | `SKILL.md` carries design §4 exactly, nothing else in it changes, and the gate runs the copy frozen from `origin/main`. |
+| MAINT-50-08 | **Integration stays in the gate** | M | Not Implemented | Each phase runs `:integrationTest` once, with no `:test`, and stops unless Gradle succeeds. |
+| MAINT-50-09 | **Tests run in CI** | M | Not Implemented | `build` on both platforms runs `test_unit_gate`. |
 
-`.agents/skills/supervise-implement/SKILL.md` is gitignored (`.gitignore:13`, `/.agents/`). Phase 5
-makes these changes and no others:
+## Test Cases
 
-- `SKILL.md:11`: `test_failures: Y` becomes `unit_baseline: <fetched sha and distance, or "builder run">`.
-- `SKILL.md:30`: `tooling/gce-builder/gce-builder.sh run build 2>&1 | tail -20` becomes
-  `tooling/gce-builder/gce-builder.sh run "assemble testClasses lintDocs"`. `build` also runs
-  `:test`, `:integrationTest`, `:redisIntegrationTest` and kover (DR-13), so keeping it would keep
-  the 14 minutes this feature removes. The new set compiles main and test sources and runs no test
-  task (DR-13). The warnings it reports come from the same compile tasks.
-- `SKILL.md:31`: the line `tooling/gce-builder/gce-builder.sh run test 2>&1 | tail -20` is deleted.
-- `SKILL.md:32`: `| tail -20` is dropped, because it hides the exit status.
-- `SKILL.md:33`: "the warning, failure, and violation integers" becomes "the warning and violation
-  integers"; the unit-test baseline is the document below.
-- Step 2 gains the block below, appended verbatim.
+Rows 3–18 and 23 are the `test_tcNN_*` methods of `tooling/ctrf/test_unit_gate.py` (run:
+`cd tooling/ctrf && python3 -m unittest test_unit_gate`), which drive a fake builder with canned log
+text. Each of those rows' mutants is a named entry in `mutants_unit_gate.py` on `proof/maint-50-gate`, and
+every entry goes red (DR-07). Rows 19–22 and 24 run by hand or in CI, as stated in the plan.
 
-`$BLD`/`$RSH` are defined in MAINT-37's implementation plan ("Copying results back from the
-builder"). The block names that section rather than copying it. Each numbered command is one Bash
-call, because shell state does not persist between calls.
+| # | Req | Given | Then | Red under |
+|---|-----|-------|------|-----------|
+| 3 | 03 | Canned logs: green, red, compile failure, dead JVM, killed client, transport, empty | `class` prints `green`, `red`, `infra-compile`, `infra-other`, `infra-other`, `infra-transport`, `infra-transport` | red marker widened to `':test'` or to `^BUILD FAILED` |
+| 4 | 04 | Each failure line alone; `ADDED passed` + `NEWLY_PASSING`; empty list | exit 1 quoting the line; exit 0 | any alternative dropped |
+| 5 | 04 | `REMOVED`, `NEWLY_SKIPPED`, `STATUS failed->skipped`, `OUT_OF_SET before`; `OUT_OF_SET after passed`; empty list | exit 1 each; exit 0 | any alternative dropped; `OUT_OF_SET` either side |
+| 6 | 05 | `NEWLY_SKIPPED p.A.keep`, `REMOVED p.B.one`, `REMOVED p.C.two`; lists `p.A.keep`+`p.B.`; those + `p.C.two`; `p.A.kee`…; `B.`… | exit 1 on `p.C.two` only; exit 0; exit 1 on `p.A.keep`; exit 1 on `p.B.one` | substring match; prefix without the dot |
+| 7 | 04 | `after` missing, truncated, or lacking `results.environment`; zero tests on both sides; missing list | exit 2 each | `EXECUTED` check removed (PASS on a crash); `[1-9]` widened; list check removed |
+| 8 | 04 | `after.head` naming an older commit than HEAD | exit 2, `not HEAD` | head check removed |
+| 9 | 02 | Canned green, then red | exit 0, document and `.head` written; exit 10, document written; Gradle argv exact | `--rerun` dropped; head not recorded |
+| 10 | 03 | An existing document, then compile failure, transport, killed client, dead results `rsync`, dead filter `rsync`, no XML | exit 20 and no document, each | `rm` removed; results `rsync` or `assemble` failure ignored. The filter `rsync`'s check has no mutant: `rm` plus `assemble` already catch it |
+| 11 | 03 | A fake builder and `rsync` that try `flock -n` and test `/proc/self/fd/9` | Lock busy in both; fd 9 closed in the child | lock removed; freed before copy-back; fd inherited |
+| 12 | 03 | `--status` output: none running; `BUSY` twice then none; dead `shell`; other text; `BUSY` at the limit | exit 0; exit 0 after three polls; 20; 20; 20 | each branch reads idle; `BUSY` ignored; deadline dropped |
+| 13 | 06 | Canned warnings log; a log showing `> Task :test` | `warnings=2`, `violations=0`, argv has `--rerun-tasks --no-build-cache` and both integration class tasks; exit 20 | cold flags dropped; set narrowed; test-task check dropped |
+| 14 | 08 | Canned green; red, killed, transport | exit 0 with argv exactly `run integrationTest --rerun --no-build-cache`; exit 20 each | `--rerun` dropped; red tolerated |
+| 15 | 06 | ktlint log with a `/w/a.kt:8:48: …` line; a failed log with none | `violations=1`; exit 20 | tool failure tolerated |
+| 16 | 04 | A document where `p.A.other` failed and `p.A.disputed` passed | `failures` prints only `p.A.other`, so the dispute lookup `grep -Fx p.A.disputed` finds nothing though a test in the class failed | `failures` lists everything |
+| 17 | 05 | Baseline dir empty; `base_commit` only; both; then `origin/main` moved | `fresh` exits 1, 1, 0, 1 | merge-base or record ignored |
+| 18 | 07 | No arguments; unknown name; too few; unset `$BLD`, `$RSH`; missing document; missing log | exit 2 each | `$BLD`/`$RSH` check removed; `class` log check removed |
+| 19 | 05 | Walk-through at a live branch: rebase after a baseline; run Baseline from item 1 per design §6 | `fresh` 1 before, 0 after; `before.ctrf.json` is the new merge-base's; `planned-removals.txt` unchanged | `base_commit` written before item 5 (an interrupted baseline reads fresh) |
+| 20 | 01, 02 | Credentials loaded | `fetch --commit c9eb7512` exit 0 `distance=1`; `fetch --commit cf6cdf15` exit 3 | each commit swapped |
+| 21 | 07 | Snapshot of `SKILL.md` before the edit | `diff <snapshot> SKILL.md \| grep -E '^[0-9]' \| sed -E 's/[acd].*//' \| tr '\n' ' '` prints `11 29,33 55 65 67 77 82 `; each `text` block of design §4 is a substring; `grep -c -E 'test_failures\|tail -20\|run build' SKILL.md` prints `0` | an extra hunk; a block altered; the edit not applied |
+| 22 | 09 | Phase 1's PR | The `Gate script tests` step passes in the `build` job's log | step absent |
+| 23 | 04 | Tree with a modified tracked file; a staged one; an untracked one; only a gitignored one | exit 2, `REFUSED:`, no Gradle run, each of the first three; exit 0 on the last | check removed; untracked ignored; gitignored counted |
+| 24 | 07 | Design §4.2 item 2's chain with `<file>` naming a path absent from `origin/main`; then with `git show` of an empty blob | non-zero, each; the prior frozen copy unchanged | `test -s` dropped; `&&` chain broken |
 
-```text
-- Unit-test baseline (MAINT-48), per test, not a count:
-  0. `grep -q test-filter.json build.gradle.kts`. Exit 1 means the branch predates MAINT-48
-     Phase 1 and its runs write no sidecar: rebase it onto origin/main before starting, or stop and
-     report. There is no fallback to a failure count.
-  1. `git fetch origin main` then `git merge-base HEAD origin/main`; call the printed sha $BASE.
-  2. `( set -a; . ~/.config/loom/loom.artifacts.env; set +a; python3 tooling/ctrf/junit_ctrf.py fetch --commit <$BASE> --out build/unit-baseline/before.ctrf.json )`.
-     Never print the env file's values.
-     - exit 0: the baseline is that file. Record its `fetched <sha> identity=<set> distance=<n>` line.
-     - exit 3 (no record for a code-identical ancestor): run the suite once on the builder,
-       `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache"`; after BUILD SUCCESSFUL,
-       `mkdir -p build/unit-baseline/results`, then
-       `rsync -az --delete -e "$RSH" "$BLD"/build/test-results/test/ build/unit-baseline/results/`, then
-       `rsync -az -e "$RSH" "$BLD"/build/test-results/test-filter.json build/unit-baseline/test-filter.json`, then
-       `python3 tooling/ctrf/junit_ctrf.py assemble --results build/unit-baseline/results --filter build/unit-baseline/test-filter.json --out build/unit-baseline/before.ctrf.json`.
-     - any other exit: stop and report the output; dispatch nothing.
-- Phase test gate: the phase's suite run is
-  `tooling/gce-builder/gce-builder.sh run "test --rerun --no-build-cache"`, never a cached or
-  `--tests` run. After BUILD SUCCESSFUL:
-  `mkdir -p build/unit-gate/results` (rsync creates only the last missing directory, and nothing
-  else creates build/unit-gate/), then
-  `rsync -az --delete -e "$RSH" "$BLD"/build/test-results/test/ build/unit-gate/results/`, then
-  `rsync -az -e "$RSH" "$BLD"/build/test-results/test-filter.json build/unit-gate/test-filter.json`, then
-  `python3 tooling/ctrf/junit_ctrf.py assemble --results build/unit-gate/results --filter build/unit-gate/test-filter.json --out build/unit-gate/after.ctrf.json`, then
-  `python3 tooling/ctrf/junit_ctrf.py diff build/unit-baseline/before.ctrf.json build/unit-gate/after.ctrf.json`.
-     - At exit 0, 1 and 4 alike, every REMOVED, NEWLY_SKIPPED and `STATUS\t…->skipped` line must
-       name a test that the phase's plan deletes or disables. Any other such line is a FAIL.
-     - exit 0: PASS unless the rule above fails.
-     - exit 1: FAIL if there is any NEWLY_FAILING, `ADDED\tfailed` or `OUT_OF_SET\tafter\tfailed`
-       line; quote them all. If NEWLY_SKIPPED lines are the only cause, the rule above decides.
-       A line the implementer disputes as environmental (the baseline ran on lunar-ci, the branch
-       on the builder), or one in a class on the list below, is settled by running that class at
-       $BASE on the builder. Run it from a worktree at $BASE under ~/.cache/claude-worktrees/,
-       where the tracked `test -> ../test` link resolves; anywhere else the link dangles and the
-       external-fixture classes fail. The command is
-       `run "test --rerun --no-build-cache --tests '<class>'"`. If the class fails there too, the
-       failure is pre-existing; if it passes there, the FAIL stands.
-       Classes known to differ between lunar-ci and the builder (DR-12): <none>.
-     - exit 4: the executed count fell. The rule above decides.
-     - exit 2: stop and report; the documents are not comparable.
-```
+## Acceptance Criteria
 
-In step 6, item 3's "Verify that new failure metrics do not exceed your recorded baseline
-constraints" gains: "For tests, the verdict is the `diff` exit above, not a failure count."
+- [ ] Every test case above passes, and `mutants_unit_gate.py` reports `bad 0`.
+- [ ] `SKILL.md` matches design §4, and a tracked commit records the feature closed.
 
-Evidence measured on 2026-10-30 at `cf6cdf15`, under its MAINT-48 IDs:
+## Non-Functional Requirements
 
-| ID | Premise (kind) | Action | Status |
-|----|----------------|--------|--------|
-| MAINT-48-00-DR-08 | Which agents run a baseline step (read) | `grep -n -i baseline .claude/agents/supervisor.md .agents/agents/supervisor.md` | **done.** No match; only `supervise-implement` step 2 records a baseline (`SKILL.md:28-33`). |
-| MAINT-48-00-DR-12 | A test's status on `lunar-ci` matches its status on the builder (runtime; the risk below) | After TC 10: `( set -a; . ~/.config/loom/loom.artifacts.env; set +a; python3 tooling/ctrf/junit_ctrf.py fetch --commit <TC 10's sha> --out build/unit-ci/before.ctrf.json )`. In a worktree at that sha under `~/.cache/claude-worktrees/`, `run "test --rerun --no-build-cache"`, copy back and `assemble` to `build/unit-ci/after.ctrf.json` (the design §2.7 gate commands with `unit-ci`), then `diff` | **done at `831f3cb3`: confirmed for one commit.** `fetch` printed `distance=0`; the builder run was `BUILD SUCCESSFUL in 10m 31s`. `diff` exited 0 and printed only `EXECUTED	3447	3447`, so no `STATUS`, `NEWLY_*` or `REMOVED` line and no class for the "Classes known to differ" list in design §2.7. |
-| MAINT-48-00-DR-13 | Which tasks give the step-2 build baseline without running a test (runtime) | On the builder: `build --dry-run`; `build -x test -x integrationTest -x redisIntegrationTest -x koverVerify --dry-run`; then a real `assemble testClasses lintDocs` | **done.** `build` schedules `:test`, `:integrationTest`, `:redisIntegrationTest`, `:koverVerify`, `:buildPlugin` and `:lintDocs`. The `-x` form also drops `:compileTestKotlin`, so test-source warnings would no longer be counted, and it is rejected. `assemble testClasses lintDocs` ran `:compileKotlin`, `:compileJava`, `:compileTestKotlin`, `:testClasses` and `:lintDocs`, no test task, `BUILD SUCCESSFUL in 1s` (compiles up to date). |
-
-rsync 3.4.1 into `w/results/` exits 11 (`mkdir … failed: No such file or directory`) when `w/` is
-missing, and exits 0 when `w/` exists or after `mkdir -p w/results`. The draft's gate `mkdir -p`
-rests on this.
-
-The risk the draft was built around:
-
-### Risk: a test that fails on the builder but passes on `lunar-ci`
-- **Impact**: the baseline comes from CI and the phase run from the builder, so an environment-only
-  failure reads as `NEWLY_FAILING` and fails a phase that broke nothing.
-- **Likelihood**: low at one commit (DR-12). MAINT-48 DR-06 compared two *builder* runs, one with CI's
-  filter, so it says nothing about the `lunar-ci` image (its JDK, fonts, Lua, `$HOME`). BUG-539
-  shows the two environments do differ in ways a green builder suite cannot see.
-- **Mitigation**: the draft's dispute rule reruns the class at the merge-base on the
-  builder, which settles any single case.
-
-## Not established
-
-- **a. Copy-back after a red run.** The draft copies results back only after BUILD SUCCESSFUL, but
-  any failing test ends in BUILD FAILED, because the suite does not set `ignoreFailures`. How to
-  tell test failures from compile or transport failures, and copy back in the test-failure case.
-- **b. One task set for warnings.** `assemble testClasses lintDocs` skips
-  `:compileIntegrationTest*`, `:compileRedisIntegrationTest*` and `:buildSearchableOptions`, which
-  `build` runs. Which task set both the baseline and each phase use for their warning counts.
-- **c. Baseline per feature, gate per phase.** How REMOVED and skipped lines left by an earlier
-  phase's deliberate deletions count at a later phase's gate.
+No builder time is spent on the unit suite at step 2 when a record exists. `count` and `integration`
+cost about a minute and a half each (DR-03, DR-07, DR-09).
 
 ## Dependencies
 
 - [[MAINT-48]] merged and storing records from CI.
+
+## See Also
+
+- Design: [design.md](design.md)
+- Plan: [implementation-plan.md](implementation-plan.md)
+- Risks: [risks-and-gaps.md](risks-and-gaps.md)

@@ -127,6 +127,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
 | TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog; includes the ZeroBrane corpus `wxlua` pin (TARGET-10-12, ex-MAINT-37 Phase 5) | **in_progress** | C | — | — | ✓ |
 | BUG-541 | The zerobrane corpus sweep's `LuaSuspiciousConcatenation` count flickers 19/17 between runs once members are pinned to their real target | todo | S | BUG-515 *(done)* | found in BUG-515 planning: `menu_project.lua:96`/`:136` `nil`-operand hits present in some runs only; main steady at 19; cause not established | ✓ |
+| BUG-17 | `redisIntegrationTest` fails with `NoClassDefFoundError: com/intellij/openapi/Disposable`, which also reds `build` on the builder | todo | S | — | MAINT-50 can return it to the phase gate; found planning MAINT-50 | ✓ |
 | BUG-516 | A stdlib file method does not resolve through a `---@type File` receiver: `io.stdout:close()` finds no declaration | todo | S | — | — | ✓ |
 | BUG-518 | A deprecated field assignment never warns: the Deprecated API inspection reads no tag on `pkg.x = value` | todo | S | — | found in BUG-513: `---@deprecated` above `pkg.x = 1` gives no warning on a read, global or local; a deprecated function does | ✓ |
 | BUG-519 | A definition library's type snapshots are never pinned, so they rebuild after every edit (stdlib globals such as `error` count as rescued) | todo | S | — | found in TARGET-11 DR-08: all 9 rebuilt Neovim snapshots `pinnable=false`; mechanism read from code; other libraries not measured; does not gate TARGET-11 | ✓ |
@@ -149,7 +150,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
 | BUG-15 | A bare `function` type demands a function with no parameters | todo | S | — | found planning BUG-14; predates BUG-8 | ✓ |
 | BUG-16 | An unresolved member of a union parameter type is dropped from the demand | todo | S | — | found planning BUG-11 | ✓ |
-| MAINT-50 | Supervise-implement per-test gate — the skill's baseline is a fetch of MAINT-48's merge-base record and each phase is judged by its `diff`, not a fresh full-suite count | todo | M | MAINT-48 | — | ✓ |
+| MAINT-50 | Supervise-implement per-test gate — the skill's baseline is a fetch of MAINT-48's merge-base record and each phase is judged by its `diff`, not a fresh full-suite count | planned | M | MAINT-48 | — | ✓ |
 | MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | planned | M | MAINT-40, MAINT-48 | — | ✓ |
 | MAINT-46 | Ticket IDs minted by `loom-cli id mint` after a scripted backfill of every used number, so concurrent sessions never pick the same ID | todo | S | — | — | ✓ |
 | MAINT-47 | Other IDE families — decide which are supported, add each to `verifyPlugin`, resolve the hard coverage/JSON dependencies, and check each live once | todo | M | — | — | ✓ |
