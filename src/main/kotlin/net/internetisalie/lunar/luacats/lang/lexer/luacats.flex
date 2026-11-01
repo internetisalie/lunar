@@ -126,8 +126,32 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
 }
 
 <TAG_CAST> {
-    {NAME}                  { return LCATS_NAME; }
     {PLUS}|{MINUS}          { return LCATS_SYMBOL; }
+}
+
+<TAG_FIELD> {
+    "private"               { return LCATS_KEYWORD; }
+    "protected"             { return LCATS_KEYWORD; }
+    "public"                { return LCATS_KEYWORD; }
+}
+
+<TAG_RETURN> {
+    {POUND}                 { yybegin(COMMENT_DATA); return LCATS_SYMBOL; }
+}
+
+<TAG_TYPE> {
+    "fun"                   { return LCATS_KEYWORD; }
+}
+
+// Every tag that takes a type reads it here, so a type form works in all of them or none. A rule
+// above wins over a rule here on an equal match, and `.` must stay below all of them.
+<TAG_CAST, TAG_FIELD, TAG_PARAM, TAG_RETURN, TAG_TYPE> {
+    {NUMBER}                { return LCATS_NUMBER; }
+    {NAME}                  { return LCATS_NAME; }
+    {ELLIPSIS}              { return LCATS_SYMBOL; }
+    {CODE}                  { return LCATS_CODE; }
+    {STRINGD}               { return LCATS_STRING; }
+    {STRINGS}               { return LCATS_STRING; }
     {TYPES}                 { return LCATS_SYMBOL; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
@@ -158,19 +182,6 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
-<TAG_FIELD> {
-    "private"               { return LCATS_KEYWORD; }
-    "protected"             { return LCATS_KEYWORD; }
-    "public"                { return LCATS_KEYWORD; }
-    {NUMBER}                { return LCATS_NUMBER; }
-    {NAME}                  { return LCATS_NAME; }
-    {ELLIPSIS}              { return LCATS_SYMBOL; }
-    {STRINGD}               { return LCATS_STRING; }
-    {STRINGS}               { return LCATS_STRING; }
-    {TYPES}                 { return LCATS_SYMBOL; }
-    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
-}
-
 <TAG_META> {
     {NAME}                  { return LCATS_NAME; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
@@ -188,24 +199,6 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 
-<TAG_PARAM> {
-    {NAME}                  { return LCATS_NAME; }
-    {ELLIPSIS}              { return LCATS_SYMBOL; }
-    {CODE}                  { return LCATS_CODE; }
-    {TYPES}                 { return LCATS_SYMBOL; }
-    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
-}
-
-<TAG_RETURN> {
-    {NAME}                  { return LCATS_NAME; }
-    {ELLIPSIS}              { return LCATS_SYMBOL; }
-    {STRINGD}               { return LCATS_STRING; }
-    {STRINGS}               { return LCATS_STRING; }
-    {TYPES}                 { return LCATS_SYMBOL; }
-    {POUND}                 { yybegin(COMMENT_DATA); return LCATS_SYMBOL; }
-    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
-}
-
 <TAG_SEE> {
     {NAME}                  { return LCATS_NAME; }
     {PERIOD}                { return LCATS_SYMBOL; }
@@ -217,18 +210,6 @@ STRINGV=("5.1"|"5.2"|"5.3"|"5.4"|"JIT")
 
 <TAG_SOURCE> {
     {NOT_WHITESPACE}+       { return LCATS_STRING; }
-    .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
-}
-
-<TAG_TYPE> {
-    // Needs support for other lua language literals
-    "fun"                   { return LCATS_KEYWORD; }
-    {NUMBER}                { return LCATS_NUMBER; }
-    {NAME}                  { return LCATS_NAME; }
-    {STRINGD}               { return LCATS_STRING; }
-    {STRINGS}               { return LCATS_STRING; }
-    {ELLIPSIS}              { return LCATS_SYMBOL; }
-    {TYPES}                 { return LCATS_SYMBOL; }
     .                       { yybegin(COMMENT_DATA); return LCATS_TEXT; }
 }
 

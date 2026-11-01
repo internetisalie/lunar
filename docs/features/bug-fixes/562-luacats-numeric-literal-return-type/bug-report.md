@@ -3,7 +3,7 @@ id: "BUG-562"
 title: "A numeric-literal `@return` type (`@return 1|2`) is a LuaCATS parse error"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -11,7 +11,7 @@ folders:
 
 # BUG-562: A numeric-literal `@return` type (`---@return 1|2`) is a LuaCATS parse error
 
-A deferred finding of the LuaCATS grammar batch ([[BUG-542-BATCH]] §8). A bug report: root cause not investigated.
+A deferred finding of the LuaCATS grammar batch ([[BUG-542-BATCH]] §8).
 
 ## 1. Reproduction
 
@@ -28,3 +28,7 @@ function f() end
 
 ## 3. Context
 - **Same class as** [[BUG-543]] (`@field` had no `{NUMBER}` rule).
+
+## 4. Root Cause and Fix
+`<TAG_RETURN>` had no number rule. Fixed with [[BUG-559]]'s shared type rules, and covered by
+`LuaCatsTypeFormsTest`.

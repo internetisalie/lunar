@@ -61,5 +61,8 @@ object CorpusRules {
     const val HIGHLIGHT_FAILURE = "corpus.highlightFailure"
     const val UNATTRIBUTED_HIGHLIGHT = "corpus.unattributedHighlight"
 
+    /** A `@param` read as prose. Keyed as an inspection so a type form that stops parsing moves a count. */
+    val LDOC_PARAM_FALLBACK = inspection("LdocParamFallback")
+
     fun inspection(toolId: String): String = "${CorpusBaseline.INSPECTION_PREFIX}$toolId"
 }

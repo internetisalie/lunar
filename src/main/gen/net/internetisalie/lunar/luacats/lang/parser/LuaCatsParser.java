@@ -1676,7 +1676,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // (NAME | NUMBER | STRING | (!(',' returnTypeDescriptor) SYMBOL) | TEXT)+
+  // (NAME | NUMBER | STRING | CODE | (!(',' returnTypeDescriptor) SYMBOL) | TEXT)+
   public static boolean returnDescription(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "returnDescription")) return false;
     boolean result_;
@@ -1691,7 +1691,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return result_;
   }
 
-  // NAME | NUMBER | STRING | (!(',' returnTypeDescriptor) SYMBOL) | TEXT
+  // NAME | NUMBER | STRING | CODE | (!(',' returnTypeDescriptor) SYMBOL) | TEXT
   private static boolean returnDescription_0(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "returnDescription_0")) return false;
     boolean result_;
@@ -1699,36 +1699,37 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     result_ = consumeToken(builder_, NAME);
     if (!result_) result_ = consumeToken(builder_, NUMBER);
     if (!result_) result_ = consumeToken(builder_, STRING);
-    if (!result_) result_ = returnDescription_0_3(builder_, level_ + 1);
+    if (!result_) result_ = consumeToken(builder_, CODE);
+    if (!result_) result_ = returnDescription_0_4(builder_, level_ + 1);
     if (!result_) result_ = consumeToken(builder_, TEXT);
     exit_section_(builder_, marker_, null, result_);
     return result_;
   }
 
   // !(',' returnTypeDescriptor) SYMBOL
-  private static boolean returnDescription_0_3(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "returnDescription_0_3")) return false;
+  private static boolean returnDescription_0_4(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnDescription_0_4")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
-    result_ = returnDescription_0_3_0(builder_, level_ + 1);
+    result_ = returnDescription_0_4_0(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, SYMBOL);
     exit_section_(builder_, marker_, null, result_);
     return result_;
   }
 
   // !(',' returnTypeDescriptor)
-  private static boolean returnDescription_0_3_0(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "returnDescription_0_3_0")) return false;
+  private static boolean returnDescription_0_4_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnDescription_0_4_0")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NOT_);
-    result_ = !returnDescription_0_3_0_0(builder_, level_ + 1);
+    result_ = !returnDescription_0_4_0_0(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }
 
   // ',' returnTypeDescriptor
-  private static boolean returnDescription_0_3_0_0(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "returnDescription_0_3_0_0")) return false;
+  private static boolean returnDescription_0_4_0_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "returnDescription_0_4_0_0")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
     result_ = consumeToken(builder_, ",");

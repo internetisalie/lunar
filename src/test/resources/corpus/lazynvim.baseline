@@ -4,6 +4,7 @@ parseErrors=0
 requires=205
 unresolvedRequires=3
 library.neovim=779c36969e31080503be2dfccbcc3f999e289606
+inspection.LdocParamFallback=1
 inspection.LuaDeprecatedApi=6
 inspection.LuaReturnTypeMismatch=29
 inspection.LuaShadowingVariable=1

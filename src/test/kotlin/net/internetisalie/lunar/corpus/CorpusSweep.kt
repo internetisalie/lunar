@@ -15,6 +15,7 @@ import net.internetisalie.lunar.lang.LuaRequireReference
 import net.internetisalie.lunar.lang.psi.LuaArgs
 import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import net.internetisalie.lunar.lang.syntax.LuaSyntaxDiagnostics
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsLdocParamTag
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import java.io.File
 
@@ -341,6 +342,13 @@ object CorpusSweep {
                 val module = reference.canonicalText
                 site.finding(CorpusRules.UNRESOLVED_REQUIRE, reference.absoluteRange, module).copy(symbol = module)
             }
-        return FileTally(requires = requireReferences.size, findings = parseErrors + invalidStatements + unresolved)
+        val proseParams =
+            PsiTreeUtil.findChildrenOfType(psiFile, LuaCatsLdocParamTag::class.java).map { tag ->
+                site.finding(CorpusRules.LDOC_PARAM_FALLBACK, tag.textRange, tag.text)
+            }
+        return FileTally(
+            requires = requireReferences.size,
+            findings = parseErrors + invalidStatements + unresolved + proseParams,
+        )
     }
 }

@@ -3,7 +3,7 @@ id: "BUG-563"
 title: "A vararg `fun(...)` type in a `@cast` is read as a class named `fun`"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -11,7 +11,7 @@ folders:
 
 # BUG-563: A vararg `fun(...)` type in a `---@cast` is read as a class named `fun`
 
-Found while implementing [[BUG-514]], which added `...` to the `@type`/`@field` lexer states but not to `@cast`'s. A bug report: root cause not investigated.
+Found while implementing [[BUG-514]], which added `...` to the `@type`/`@field` lexer states but not to `@cast`'s.
 
 ## 1. Reproduction
 
@@ -29,3 +29,7 @@ print(x)
 
 ## 3. Context
 - **Possibly relevant, not established**: `<TAG_CAST>` (`luacats.flex`) has no `{ELLIPSIS}` rule.
+
+## 4. Root Cause and Fix
+`<TAG_CAST>` had no `...` rule. Fixed with [[BUG-559]]'s shared type rules, and covered by
+`LuaCatsTypeFormsTest`.

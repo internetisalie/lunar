@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Every LuaCATS tag reads the same type forms** (BUG-559, BUG-562, BUG-563). String and number
+  literals, backticked generics and `fun(...)` were each accepted by some of `@param`, `@return`,
+  `@field`, `@type` and `@cast` but not others. `---@param k "a"|"b"` silently lost the parameter's
+  type, `---@return 1|2` was a parse error, and `---@cast x fun(...)` read as a class named `fun`.
+  All of these tags now accept the same forms.
+
 - **A function-typed parameter of a global from another file is checked** (BUG-19). With
   `---@param fn fun()` on a global declared in another file or a library, `take(1)` or passing a
   function with required parameters went unreported, though the same mistake was reported in one

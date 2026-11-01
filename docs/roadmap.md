@@ -140,11 +140,8 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-556 | A bracket-keyed `---@field [k] T` is a required member named `"[k]"`, which no constructor can supply | todo | S | — | found triaging the LuaCATS grammar batch: 21 lazy.nvim hits (`[1]`); reproduces on `8e7a48f2` | ✓ |
 | BUG-557 | A comment block with several `@class` tags and a trailing `@type` checks the next statement against every class | todo | S | — | found triaging the LuaCATS grammar batch: 18 lazy.nvim hits at `pkg/init.lua:30`, 1 of them added; reproduces on `8e7a48f2` | ✓ |
 | BUG-558 | A `@class` declaration's own table (`local M = {}`) is checked for every required instance field | todo | S | — | found triaging the LuaCATS grammar batch: net +2 lazy.nvim hits; the pattern predates it | ✓ |
-| BUG-559 | A string-literal `@param` type (`---@param k "a"\|"b"`) silently becomes an LDoc tag | todo | S | — | deferred from the LuaCATS grammar batch (§8) | ✓ |
 | BUG-560 | The `[]` after a parenthesised LuaCATS type (`(A\|B)[]`) is read as prose | todo | C | — | deferred from the LuaCATS grammar batch (§8) | ✓ |
 | BUG-561 | The bundled Lua 5.1 stubs spell literals `'"nil"'` and varargs `fun(...any)`, which no lexer state reads as intended | todo | C | — | deferred from the LuaCATS grammar batch (§8); see BUG-514 | ✓ |
-| BUG-562 | A numeric-literal `@return` type (`---@return 1\|2`) is a LuaCATS parse error | todo | C | — | deferred from the LuaCATS grammar batch (§8) | ✓ |
-| BUG-563 | A vararg `fun(...)` type in a `---@cast` is read as a class named `fun` | todo | C | — | found implementing BUG-514 | ✓ |
 | BUG-564 | A local declared without a value and assigned inside a `while` loop is reported as an unused local, though it is read | todo | S | — | found triaging BUG-554's corpus movement: 2 lazy.nvim hits (`to`, `url`) that a false *Too few arguments* ERROR had hidden | ✓ |
 | BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
 | BUG-21 | A later reassignment reaches an earlier argument's demand | todo | S | — | found fixing BUG-19: three zerobrane hits | ✓ |
