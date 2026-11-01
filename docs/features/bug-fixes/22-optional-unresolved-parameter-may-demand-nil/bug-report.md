@@ -3,7 +3,7 @@ id: "BUG-22"
 title: "An optional parameter of an unresolved type may demand nil on the declared path"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

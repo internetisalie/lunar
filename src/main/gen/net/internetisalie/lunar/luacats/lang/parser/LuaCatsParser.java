@@ -840,14 +840,14 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // (<<ArgName argumentName>> '?'? <<ArgSymbol (':')>> <<ArgType optionalType>>)
-  //                             | <<ArgName ('...')>>
+  //                             | <<ArgName ('...')>> <<ArgType optionalType>>?
   //                             | <<ArgType optionalType>>
   public static boolean functionSignatureArgument(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "functionSignatureArgument")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, FUNCTION_SIGNATURE_ARGUMENT, "<function signature argument>");
     result_ = functionSignatureArgument_0(builder_, level_ + 1);
-    if (!result_) result_ = ArgName(builder_, level_ + 1, LuaCatsParser::functionSignatureArgument_1_0);
+    if (!result_) result_ = functionSignatureArgument_1(builder_, level_ + 1);
     if (!result_) result_ = ArgType(builder_, level_ + 1, LuaCatsParser::optionalType);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
@@ -883,14 +883,32 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return result_;
   }
 
+  // <<ArgName ('...')>> <<ArgType optionalType>>?
+  private static boolean functionSignatureArgument_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureArgument_1")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = ArgName(builder_, level_ + 1, LuaCatsParser::functionSignatureArgument_1_0_0);
+    result_ = result_ && functionSignatureArgument_1_1(builder_, level_ + 1);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
   // ('...')
-  private static boolean functionSignatureArgument_1_0(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "functionSignatureArgument_1_0")) return false;
+  private static boolean functionSignatureArgument_1_0_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureArgument_1_0_0")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
     result_ = consumeToken(builder_, "...");
     exit_section_(builder_, marker_, null, result_);
     return result_;
+  }
+
+  // <<ArgType optionalType>>?
+  private static boolean functionSignatureArgument_1_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "functionSignatureArgument_1_1")) return false;
+    ArgType(builder_, level_ + 1, LuaCatsParser::optionalType);
+    return true;
   }
 
   /* ********************************************************** */
@@ -2005,7 +2023,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '(' unionType ')' | unionType
+  // '(' unionType ')' '[]'? | unionType
   public static boolean type(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "type")) return false;
     boolean result_;
@@ -2016,7 +2034,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return result_;
   }
 
-  // '(' unionType ')'
+  // '(' unionType ')' '[]'?
   private static boolean type_0(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "type_0")) return false;
     boolean result_;
@@ -2024,8 +2042,16 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     result_ = consumeToken(builder_, "(");
     result_ = result_ && unionType(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, ")");
+    result_ = result_ && type_0_3(builder_, level_ + 1);
     exit_section_(builder_, marker_, null, result_);
     return result_;
+  }
+
+  // '[]'?
+  private static boolean type_0_3(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "type_0_3")) return false;
+    consumeToken(builder_, "[]");
+    return true;
   }
 
   /* ********************************************************** */

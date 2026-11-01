@@ -3,7 +3,7 @@ id: "BUG-560"
 title: "The `[]` after a parenthesised LuaCATS type (`(A|B)[]`) is read as prose, so the array is lost"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

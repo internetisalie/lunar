@@ -93,7 +93,7 @@ _ENV = _G
 ---Returns a string describing the type of its only argument
 ---Possible return values: "nil", "boolean", "number", "string", "table", "function", "thread", "userdata"
 ---@param v any
----@return '"nil"'|'"boolean"'|'"number"'|'"string"'|'"table"'|'"function"'|'"thread"'|'"userdata"'
+---@return "nil"|"boolean"|"number"|"string"|"table"|"function"|"thread"|"userdata"
 function type(v) end
 
 ---Converts argument e to a number with optional base
@@ -134,13 +134,13 @@ function xpcall(f, err, ...) end
 function error(message, level) end
 
 ---Controls garbage collection behavior
----@overload fun(opt: '"stop"'): nil
----@overload fun(opt: '"restart"'): nil
----@overload fun(opt: '"collect"'): nil
----@overload fun(opt: '"count"'): integer, integer
----@overload fun(opt: '"step"', arg: integer): boolean
----@overload fun(opt: '"setpause"', arg: integer): integer
----@overload fun(opt: '"setstepmul"', arg: integer): integer
+---@overload fun(opt: "stop"): nil
+---@overload fun(opt: "restart"): nil
+---@overload fun(opt: "collect"): nil
+---@overload fun(opt: "count"): integer, integer
+---@overload fun(opt: "step", arg: integer): boolean
+---@overload fun(opt: "setpause", arg: integer): integer
+---@overload fun(opt: "setstepmul", arg: integer): integer
 ---@param opt string "stop"|"restart"|"collect"|"count"|"step"|"setpause"|"setstepmul"
 ---@param arg? integer
 ---@return any
@@ -189,7 +189,7 @@ function rawequal(a, b) end
 ---Loads Lua code from reader function
 ---@param reader fun(): string|nil
 ---@param chunkname? string
----@param mode? '"b"'|'"t"'|'"bt"'
+---@param mode? "b"|"t"|"bt"
 ---@param env? table
 ---@return function|nil, string|nil
 function load(reader, chunkname, mode, env) end
@@ -198,13 +198,13 @@ function load(reader, chunkname, mode, env) end
 ---@overload fun(): function
 ---@overload fun(filename: string): function|nil
 ---@param filename? string
----@param mode? '"b"'|'"t"'|'"bt"'
+---@param mode? "b"|"t"|"bt"
 ---@param env? table
 ---@return function|nil, string|nil
 function loadfile(filename, mode, env) end
 
 ---Selects arguments after index
----@param index integer|'"#"'
+---@param index integer|"#"
 ---@vararg any
 ---@return ...
 function select(index, ...) end

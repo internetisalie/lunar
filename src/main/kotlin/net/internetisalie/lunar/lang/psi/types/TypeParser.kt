@@ -32,7 +32,10 @@ object TypeParser {
     private fun parseType(
         type: LuaCatsType,
         context: PsiElement,
-    ): LuaType = parseUnionType(type.unionType, context)
+    ): LuaType {
+        val parsed = parseUnionType(type.unionType, context)
+        return if (type.lastChild.text == "[]") LuaArrayType(parsed) else parsed
+    }
 
     private fun parseUnionType(
         unionType: LuaCatsUnionType,
@@ -104,8 +107,17 @@ object TypeParser {
         }
         distinctType.literalTableType?.let { return parseTableLiteral(it, context) }
         distinctType.functionSignatureType?.let { return parseFunctionSignature(it, context) }
+        distinctType.literalType?.let { return literalValueType(it.text) }
         return LuaPrimitiveType.UNKNOWN
     }
+
+    /** No literal type exists, so `"a"|"b"` widens to the type of its values. */
+    private fun literalValueType(literal: String): LuaType =
+        when {
+            literal == "true" || literal == "false" -> LuaPrimitiveType.BOOLEAN
+            literal.first().isDigit() -> LuaPrimitiveType.NUMBER
+            else -> LuaPrimitiveType.STRING
+        }
 
     private fun parseTableLiteral(
         tableLiteral: LuaCatsLiteralTableType,

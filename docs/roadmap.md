@@ -140,8 +140,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-556 | A bracket-keyed `---@field [k] T` is a required member named `"[k]"`, which no constructor can supply | todo | S | — | found triaging the LuaCATS grammar batch: 21 lazy.nvim hits (`[1]`); reproduces on `8e7a48f2` | ✓ |
 | BUG-557 | A comment block with several `@class` tags and a trailing `@type` checks the next statement against every class | todo | S | — | found triaging the LuaCATS grammar batch: 18 lazy.nvim hits at `pkg/init.lua:30`, 1 of them added; reproduces on `8e7a48f2` | ✓ |
 | BUG-558 | A `@class` declaration's own table (`local M = {}`) is checked for every required instance field | todo | S | — | found triaging the LuaCATS grammar batch: net +2 lazy.nvim hits; the pattern predates it | ✓ |
-| BUG-560 | The `[]` after a parenthesised LuaCATS type (`(A\|B)[]`) is read as prose | todo | C | — | deferred from the LuaCATS grammar batch (§8) | ✓ |
-| BUG-561 | The bundled Lua 5.1 stubs spell literals `'"nil"'` and varargs `fun(...any)`, which no lexer state reads as intended | todo | C | — | deferred from the LuaCATS grammar batch (§8); see BUG-514 | ✓ |
 | BUG-564 | A local declared without a value and assigned inside a `while` loop is reported as an unused local, though it is read | todo | S | — | found triaging BUG-554's corpus movement: 2 lazy.nvim hits (`to`, `url`) that a false *Too few arguments* ERROR had hidden | ✓ |
 | BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
 | BUG-21 | A later reassignment reaches an earlier argument's demand | todo | S | — | found fixing BUG-19: three zerobrane hits | ✓ |
@@ -152,7 +150,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-52 | One rule for how an unknown behaves in a union and a demand | todo | S | — | — | ✓ |
 | MAINT-53 | Resolve members through the receiver's type, not its text — covers BUG-508, BUG-512, BUG-516 | todo | L | — | needs planning | ✓ |
 | MAINT-54 | Inject known type errors into the corpus to measure what the checker silently skips | todo | M | — | could reopen the redesign question | ✓ |
-| BUG-22 | An optional parameter of an unresolved type may demand nil on the declared path | todo | S | — | found in the type system survey, not executed | ✓ |
 | TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |

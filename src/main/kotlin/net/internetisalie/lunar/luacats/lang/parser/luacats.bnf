@@ -174,7 +174,7 @@ versionComparison ::= '<' | '>'
 
 /// Types
 
-type ::= '(' unionType ')' | unionType
+type ::= '(' unionType ')' '[]'? | unionType
 unionType ::= arrayType { '|' arrayType }*
 arrayType ::= distinctType '[]'?
 distinctType ::=
@@ -196,7 +196,7 @@ tableLiteralEntry ::= (simpleType | fieldKeyDescriptor) '?'? ':' optionalType
 functionSignatureType ::= 'async'? 'fun' '(' functionSignatureArguments? ')' functionSignatureReturnType?
 private functionSignatureArguments ::= functionSignatureArgument { ',' functionSignatureArgument }*
 functionSignatureArgument ::= (<<ArgName argumentName>> '?'? <<ArgSymbol (':')>> <<ArgType optionalType>>)
-                            | <<ArgName ('...')>>
+                            | <<ArgName ('...')>> <<ArgType optionalType>>?
                             | <<ArgType optionalType>>
 private argumentName ::= NAME | '...'
 functionSignatureReturnType ::= <<ArgSymbol (':')>> <<ArgType functionReturnTypes>>

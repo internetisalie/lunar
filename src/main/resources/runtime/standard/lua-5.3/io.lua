@@ -54,7 +54,7 @@ function File:flush() end
 ---Seeks to position in file
 ---whence: "set" (absolute), "cur" (current), "end" (from end)
 ---Returns new position or nil on error
----@param whence? '"set"'|'"cur"'|'"end"'
+---@param whence? "set"|"cur"|"end"
 ---@param offset? integer
 ---@return integer|nil
 function File:seek(whence, offset) end
@@ -74,7 +74,7 @@ function File:iseof() end
 ---Returns file handle or nil + error message
 ---@overload fun(filename: string): File|nil, string|nil
 ---@param filename string
----@param mode? '"r"'|'"w"'|'"a"'|'"r+"'|'"w+"'|'"a+"'|'"rb"'|'"wb"'|'"ab"'|'"r+b"'|'"w+b"'|'"a+b"'
+---@param mode? "r"|"w"|"a"|"r+"|"w+"|"a+"|"rb"|"wb"|"ab"|"r+b"|"w+b"|"a+b"
 ---@return File|nil, string|nil
 function io.open(filename, mode) end
 
@@ -115,7 +115,7 @@ function io.flush() end
 ---Sets buffering mode for output file
 ---mode: "full" (buffered), "line" (line-buffered), "no" (unbuffered)
 ---@param file File
----@param mode '"full"'|'"line"'|'"no"'
+---@param mode "full"|"line"|"no"
 ---@param size? integer
 function io.setvbuf(file, mode, size) end
 
@@ -132,7 +132,7 @@ function io.lines(filename) end
 ---System-dependent, may not be available
 ---@overload fun(prog: string): File
 ---@param prog string
----@param mode? '"r"'|'"w"'
+---@param mode? "r"|"w"
 ---@return File|nil, string|nil
 function io.popen(prog, mode) end
 
@@ -144,7 +144,7 @@ function io.tmpfile() end
 ---Returns string describing type of object
 ---Returns "file" for open files, "closed file" for closed files, nil otherwise
 ---@param obj any
----@return '"file"'|'"closed file"'|nil
+---@return "file"|"closed file"|nil
 function io.type(obj) end
 
 ---Standard input file

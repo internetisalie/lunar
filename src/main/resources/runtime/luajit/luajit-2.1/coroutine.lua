@@ -45,7 +45,7 @@ function coroutine.running() end
 
 ---Returns coroutine status: "suspended", "running", "normal", "dead"
 ---@param co thread
----@return '"suspended"'|'"running"'|'"normal"'|'"dead"'
+---@return "suspended"|"running"|"normal"|"dead"
 function coroutine.status(co) end
 
 ---Creates iterator that resumes coroutine on each call

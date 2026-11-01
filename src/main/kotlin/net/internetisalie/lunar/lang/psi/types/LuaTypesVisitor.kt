@@ -1093,12 +1093,15 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     }
 
     /** BUG-552: a `?` parameter accepts nil, so its demand is `T|nil`, the same as `---@param p T|nil`. */
-    private fun demandTypeOf(param: LuaGraphType.Function.Parameter): LuaGraphType =
-        if (param.isOptional) {
-            LuaGraphType.Union.create(listOf(param.node.read, LuaGraphType.Nil))
+    private fun demandTypeOf(param: LuaGraphType.Function.Parameter): LuaGraphType {
+        val declared = param.node.read
+        // BUG-22: `Undefined | nil` canonicalizes to `nil`, which would demand nil of an unknown type.
+        return if (param.isOptional && declared != LuaGraphType.Undefined) {
+            LuaGraphType.Union.create(listOf(declared, LuaGraphType.Nil))
         } else {
-            param.node.read
+            declared
         }
+    }
 
     /**
      * Whether [type] embeds graph nodes, and therefore cannot safely be used as a demand here.

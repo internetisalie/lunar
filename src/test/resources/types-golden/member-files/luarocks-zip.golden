@@ -343,7 +343,7 @@
 (11864,11906)|LuaLocalVarDeclImpl|{ ... }|67b8d62ee6120ee7
 (11870,11872)|LuaNameRefImpl|{ ... }|67b8d62ee6120ee7
 (11874,11881)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
-(11884,11886)|LuaNameRefImpl|any | { ... }|1643e98d3db0ca0f
+(11884,11886)|LuaNameRefImpl|any | { ... }|b0c5d34500419854
 (11884,11891)|LuaVarImpl|fun(p, p)|cd8a94b13b035aad
 (11884,11906)|LuaFuncCallImpl|{ ... }|67b8d62ee6120ee7
 (11886,11891)|LuaIndexExprImpl|fun(p, p)|cd8a94b13b035aad
@@ -366,9 +366,9 @@
 (11992,12022)|LuaFuncCallImpl|nil|c29dbb21ea416764
 (12019,12021)|LuaNameRefImpl|{ ... }|67b8d62ee6120ee7
 (12019,12021)|LuaVarImpl|{ ... }|67b8d62ee6120ee7
-(12029,12033)|LuaNameRefImpl|fun(v)|80ff9bb0da223f51
-(12029,12033)|LuaVarImpl|fun(v)|80ff9bb0da223f51
-(12029,12044)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(12029,12033)|LuaNameRefImpl|fun(v)|ef324d97d0d6df5d
+(12029,12033)|LuaVarImpl|fun(v)|ef324d97d0d6df5d
+(12029,12044)|LuaFuncCallImpl|string|e87ba97e700edac9
 (12029,12056)|LuaBinOpExprImpl|boolean|c322feed17a09ce6
 (1203,1222)|LuaLocalVarDeclImpl|fun(data, mode) | fun(data, mode)|ce35622e78228a80
 (12034,12043)|LuaNameRefImpl|string|e87ba97e700edac9
@@ -575,7 +575,7 @@
 (13264,13308)|LuaLocalVarDeclImpl|{ ... }|260d7a2c2799e5d9
 (13270,13272)|LuaNameRefImpl|{ ... }|260d7a2c2799e5d9
 (13274,13282)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
-(13285,13287)|LuaNameRefImpl|any | { ... }|1643e98d3db0ca0f
+(13285,13287)|LuaNameRefImpl|any | { ... }|b0c5d34500419854
 (13285,13292)|LuaVarImpl|fun(p, p)|cd8a94b13b035aad
 (13285,13308)|LuaFuncCallImpl|{ ... }|260d7a2c2799e5d9
 (13287,13292)|LuaIndexExprImpl|fun(p, p)|cd8a94b13b035aad
@@ -779,7 +779,7 @@
 (1610,1619)|LuaVarSuffixImpl|{ ... }|e6faac7e333b6c9e
 (1626,1634)|LuaTerminalExprImpl|string|e87ba97e700edac9
 (1644,1753)|LuaFuncDeclImpl|fun(data, mode)|037a84814105dfbb
-(165,210)|LuaLocalVarDeclImpl|any | { ... }|1643e98d3db0ca0f
+(165,210)|LuaLocalVarDeclImpl|any | { ... }|b0c5d34500419854
 (1667,1671)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
 (1673,1677)|LuaNameRefImpl|string|e87ba97e700edac9
 (1685,1746)|LuaFinalStatementImpl|any[] | string | { ... }|b78d2e64b9437b4b
@@ -790,7 +790,7 @@
 (1696,1705)|LuaVarSuffixImpl|fun(p, p, p, p)|22ea910fb0c46103
 (1706,1710)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
 (1706,1710)|LuaVarImpl|undefined|31a5442b7fa53ce1
-(171,173)|LuaNameRefImpl|any | { ... }|1643e98d3db0ca0f
+(171,173)|LuaNameRefImpl|any | { ... }|b0c5d34500419854
 (1712,1714)|LuaUnOpExprImpl|number|d23f1804b4c91c9f
 (1713,1714)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
 (1716,1719)|LuaTerminalExprImpl|nil|c29dbb21ea416764
@@ -803,7 +803,7 @@
 (176,186)|LuaNameRefImpl|{ ... }|482e22964a8534e8
 (176,186)|LuaVarImpl|{ ... }|482e22964a8534e8
 (176,204)|LuaBinOpExprImpl|undefined|31a5442b7fa53ce1
-(176,210)|LuaBinOpExprImpl|any | { ... }|1643e98d3db0ca0f
+(176,210)|LuaBinOpExprImpl|any | { ... }|b0c5d34500419854
 (1783,1787)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
 (1789,1793)|LuaNameRefImpl|string|e87ba97e700edac9
 (1801,1855)|LuaFinalStatementImpl|any[] | string | { ... }|b78d2e64b9437b4b
@@ -853,8 +853,8 @@
 (2066,2067)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
 (2069,2075)|LuaNameRefImpl|number|d23f1804b4c91c9f
 (2069,2075)|LuaVarImpl|number|d23f1804b4c91c9f
-(208,210)|LuaNameRefImpl|{ ... }|ea4be1e720248445
-(208,210)|LuaVarImpl|{ ... }|ea4be1e720248445
+(208,210)|LuaNameRefImpl|{ ... }|d3565603ca3fa859
+(208,210)|LuaVarImpl|{ ... }|d3565603ca3fa859
 (2085,2107)|LuaLocalVarDeclImpl|number|d23f1804b4c91c9f
 (2091,2095)|LuaNameRefImpl|number|d23f1804b4c91c9f
 (2098,2101)|LuaNameRefImpl|number|d23f1804b4c91c9f
@@ -1401,7 +1401,7 @@
 (479,484)|LuaVarImpl|{ ... }|4c519cec7b715842
 (4807,4810)|LuaNameRefImpl|{ ... }|eb9ce91dce18ef72
 (4807,4810)|LuaVarImpl|{ ... }|eb9ce91dce18ef72
-(4813,4815)|LuaNameRefImpl|any | { ... }|1643e98d3db0ca0f
+(4813,4815)|LuaNameRefImpl|any | { ... }|b0c5d34500419854
 (4813,4820)|LuaVarImpl|fun(p, p)|cd8a94b13b035aad
 (4813,4850)|LuaFuncCallImpl|{ ... }|eb9ce91dce18ef72
 (4815,4820)|LuaIndexExprImpl|fun(p, p)|cd8a94b13b035aad
@@ -1507,8 +1507,8 @@
 (5482,5486)|LuaTerminalExprImpl|boolean|c322feed17a09ce6
 (5488,5491)|LuaNameRefImpl|string|e87ba97e700edac9
 (5488,5491)|LuaVarImpl|string|e87ba97e700edac9
-(550,556)|LuaNameRefImpl|fun(index, ...)|608720a6540c998e
-(550,556)|LuaVarImpl|fun(index, ...)|608720a6540c998e
+(550,556)|LuaNameRefImpl|fun(index, ...)|5f85d9d822737df9
+(550,556)|LuaVarImpl|fun(index, ...)|5f85d9d822737df9
 (550,566)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
 (5500,7082)|LuaLocalFuncDeclImpl|fun(self)|82e0cb37c5a93d28
 (5531,5535)|LuaNameRefImpl|{ ... }|8ae82b2ffecf350a
@@ -1554,7 +1554,7 @@
 (5784,5786)|LuaNameRefImpl|{ ... }|47ad52d924ec3ce9
 (5784,5786)|LuaVarImpl|{ ... }|47ad52d924ec3ce9
 (5784,5819)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
-(579,596)|LuaLocalVarDeclImpl|fun(v)|80ff9bb0da223f51
+(579,596)|LuaLocalVarDeclImpl|fun(v)|ef324d97d0d6df5d
 (5793,5811)|LuaNameRefImpl|fun(num, nbytes)|92467b0065f35e1f
 (5793,5811)|LuaVarImpl|fun(num, nbytes)|92467b0065f35e1f
 (5793,5818)|LuaFuncCallImpl|string|e87ba97e700edac9
@@ -1566,7 +1566,7 @@
 (5835,5853)|LuaNameRefImpl|fun(num, nbytes)|92467b0065f35e1f
 (5835,5853)|LuaVarImpl|fun(num, nbytes)|92467b0065f35e1f
 (5835,5859)|LuaFuncCallImpl|string|e87ba97e700edac9
-(585,589)|LuaNameRefImpl|fun(v)|80ff9bb0da223f51
+(585,589)|LuaNameRefImpl|fun(v)|ef324d97d0d6df5d
 (5854,5855)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
 (5857,5858)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
 (5867,5869)|LuaNameRefImpl|{ ... }|47ad52d924ec3ce9
@@ -1583,8 +1583,8 @@
 (5917,5935)|LuaNameRefImpl|fun(num, nbytes)|92467b0065f35e1f
 (5917,5935)|LuaVarImpl|fun(num, nbytes)|92467b0065f35e1f
 (5917,5962)|LuaFuncCallImpl|string|e87ba97e700edac9
-(592,596)|LuaNameRefImpl|fun(v)|80ff9bb0da223f51
-(592,596)|LuaVarImpl|fun(v)|80ff9bb0da223f51
+(592,596)|LuaNameRefImpl|fun(v)|ef324d97d0d6df5d
+(592,596)|LuaVarImpl|fun(v)|ef324d97d0d6df5d
 (5936,5939)|LuaNameRefImpl|{ ... }|22e15d8d18222323
 (5936,5958)|LuaVarImpl|number|d23f1804b4c91c9f
 (5939,5958)|LuaIndexExprImpl|number|d23f1804b4c91c9f
@@ -1812,14 +1812,14 @@
 (7130,7132)|LuaNameRefImpl|{ ... }|d4bf3841d348ce60
 (7135,7137)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635
 (7142,7144)|LuaNameRefImpl|{ ... }|d4bf3841d348ce60
-(7142,7154)|LuaVarImpl|File | nil|35bdb0d4941df573
-(7144,7154)|LuaIndexExprImpl|File | nil|35bdb0d4941df573
-(7144,7154)|LuaVarSuffixImpl|File | nil|35bdb0d4941df573
-(7157,7159)|LuaNameRefImpl|any | { ... }|1643e98d3db0ca0f
-(7157,7164)|LuaVarImpl|fun(filename, mode)|5121555a5bfd1412
-(7157,7194)|LuaFuncCallImpl|File | nil|35bdb0d4941df573
-(7159,7164)|LuaIndexExprImpl|fun(filename, mode)|5121555a5bfd1412
-(7159,7164)|LuaVarSuffixImpl|fun(filename, mode)|5121555a5bfd1412
+(7142,7154)|LuaVarImpl|File | nil|6e994bbf5a609cf1
+(7144,7154)|LuaIndexExprImpl|File | nil|6e994bbf5a609cf1
+(7144,7154)|LuaVarSuffixImpl|File | nil|6e994bbf5a609cf1
+(7157,7159)|LuaNameRefImpl|any | { ... }|b0c5d34500419854
+(7157,7164)|LuaVarImpl|fun(filename, mode?)|3f73fa9da9e768db
+(7157,7194)|LuaFuncCallImpl|File | nil|6e994bbf5a609cf1
+(7159,7164)|LuaIndexExprImpl|fun(filename, mode?)|3f73fa9da9e768db
+(7159,7164)|LuaVarSuffixImpl|fun(filename, mode?)|3f73fa9da9e768db
 (7165,7167)|LuaNameRefImpl|any|2bc227d2d21e7785
 (7165,7181)|LuaVarImpl|fun(p)|d26de18369311d13
 (7165,7187)|LuaFuncCallImpl|string|e87ba97e700edac9

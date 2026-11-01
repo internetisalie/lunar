@@ -89,7 +89,7 @@ _VERSION = "Lua 5.1"
 ---Returns a string describing the type of its only argument
 ---Possible return values: "nil", "boolean", "number", "string", "table", "function", "thread", "userdata"
 ---@param v any
----@return '"nil"'|'"boolean"'|'"number"'|'"string"'|'"table"'|'"function"'|'"thread"'|'"userdata"'
+---@return "nil"|"boolean"|"number"|"string"|"table"|"function"|"thread"|"userdata"
 function type(v) end
 
 ---Converts argument e to a number with optional base
@@ -199,7 +199,7 @@ function loadfile(filename, mode, env) end
 function loadstring(chunk, chunkname) end
 
 ---Selects arguments after index
----@param index integer|'"#"'
+---@param index integer|"#"
 ---@vararg any
 ---@return any ...
 function select(index, ...) end

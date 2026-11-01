@@ -3,7 +3,7 @@ id: "BUG-561"
 title: "The bundled Lua 5.1 stubs spell literals `'\"nil\"'` and varargs `fun(...any)`, which no LuaCATS lexer state reads as intended"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

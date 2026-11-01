@@ -501,9 +501,9 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (13071,13080)|LuaVarImpl|string|e87ba97e700edac9
 (13075,13080)|LuaIndexExprImpl|string|e87ba97e700edac9
 (13075,13080)|LuaVarSuffixImpl|string|e87ba97e700edac9
-(13088,13092)|LuaNameRefImpl|fun(v)|fb7f17316c45182f
-(13088,13092)|LuaVarImpl|fun(v)|fb7f17316c45182f
-(13088,13095)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(13088,13092)|LuaNameRefImpl|fun(v)|2a915558f61c94d3
+(13088,13092)|LuaVarImpl|fun(v)|2a915558f61c94d3
+(13088,13095)|LuaFuncCallImpl|string|e87ba97e700edac9
 (13088,13107)|LuaBinOpExprImpl|boolean|c322feed17a09ce6
 (13093,13094)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
 (13093,13094)|LuaVarImpl|undefined|31a5442b7fa53ce1
@@ -592,8 +592,8 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (13730,13733)|LuaVarImpl|undefined|31a5442b7fa53ce1
 (13737,13738)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
 (13737,13738)|LuaVarImpl|undefined|31a5442b7fa53ce1
-(1379,1385)|LuaNameRefImpl|fun(index, ...)|608720a6540c998e
-(1379,1385)|LuaVarImpl|fun(index, ...)|608720a6540c998e
+(1379,1385)|LuaNameRefImpl|fun(index, ...)|5f85d9d822737df9
+(1379,1385)|LuaVarImpl|fun(index, ...)|5f85d9d822737df9
 (1379,1394)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
 (13844,13920)|LuaLocalFuncDeclImpl|fun(w)|e4659a464aca9b9b
 (1386,1389)|LuaTerminalExprImpl|string|e87ba97e700edac9
@@ -1166,8 +1166,8 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (17081,17084)|LuaVarImpl|number|d23f1804b4c91c9f
 (17085,17088)|LuaNameRefImpl|string | nil | any|5c782a6b07ad8959
 (17085,17088)|LuaVarImpl|string | nil | any|5c782a6b07ad8959
-(1709,1715)|LuaNameRefImpl|fun(index, ...)|608720a6540c998e
-(1709,1715)|LuaVarImpl|fun(index, ...)|608720a6540c998e
+(1709,1715)|LuaNameRefImpl|fun(index, ...)|5f85d9d822737df9
+(1709,1715)|LuaVarImpl|fun(index, ...)|5f85d9d822737df9
 (1709,1722)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
 (1709,1730)|LuaBinOpExprImpl|boolean|c322feed17a09ce6
 (17150,17161)|LuaLocalVarDeclImpl|{ ... }|6da22ac644f38981
@@ -1438,9 +1438,9 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (18382,18388)|LuaUnOpExprImpl|boolean|c322feed17a09ce6
 (18386,18388)|LuaNameRefImpl|boolean|c322feed17a09ce6
 (18386,18388)|LuaVarImpl|boolean|c322feed17a09ce6
-(1840,1844)|LuaNameRefImpl|fun(v)|fb7f17316c45182f
-(1840,1844)|LuaVarImpl|fun(v)|fb7f17316c45182f
-(1840,1847)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(1840,1844)|LuaNameRefImpl|fun(v)|2a915558f61c94d3
+(1840,1844)|LuaVarImpl|fun(v)|2a915558f61c94d3
+(1840,1847)|LuaFuncCallImpl|string|e87ba97e700edac9
 (1840,1859)|LuaBinOpExprImpl|boolean|c322feed17a09ce6
 (18411,18412)|LuaNameRefImpl|{ ... }|ad724609c3af250b
 (18411,18412)|LuaVarImpl|{ ... }|ad724609c3af250b
@@ -1477,9 +1477,9 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (1918,1922)|LuaIndexExprImpl|boolean|c322feed17a09ce6
 (1918,1922)|LuaVarSuffixImpl|boolean|c322feed17a09ce6
 (1925,1929)|LuaTerminalExprImpl|boolean|c322feed17a09ce6
-(1945,1949)|LuaNameRefImpl|fun(v)|fb7f17316c45182f
-(1945,1949)|LuaVarImpl|fun(v)|fb7f17316c45182f
-(1945,1952)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(1945,1949)|LuaNameRefImpl|fun(v)|2a915558f61c94d3
+(1945,1949)|LuaVarImpl|fun(v)|2a915558f61c94d3
+(1945,1952)|LuaFuncCallImpl|string|e87ba97e700edac9
 (1945,1963)|LuaBinOpExprImpl|boolean|c322feed17a09ce6
 (1950,1951)|LuaNameRefImpl|{ ... }|efe044adfecfb6a8
 (1950,1951)|LuaVarImpl|{ ... }|efe044adfecfb6a8
@@ -1630,8 +1630,8 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (2658,2691)|LuaTerminalExprImpl|string|e87ba97e700edac9
 (2658,2700)|LuaBinOpExprImpl|string|e87ba97e700edac9
 (268,300)|LuaLocalVarDeclImpl|any|2bc227d2d21e7785
-(2693,2697)|LuaNameRefImpl|fun(v)|fb7f17316c45182f
-(2693,2697)|LuaVarImpl|fun(v)|fb7f17316c45182f
+(2693,2697)|LuaNameRefImpl|fun(v)|2a915558f61c94d3
+(2693,2697)|LuaVarImpl|fun(v)|2a915558f61c94d3
 (2693,2700)|LuaFuncCallImpl|string|e87ba97e700edac9
 (2698,2699)|LuaNameRefImpl|{ ... }|efe044adfecfb6a8
 (2698,2699)|LuaVarImpl|{ ... }|efe044adfecfb6a8
@@ -1690,9 +1690,9 @@ HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|Lu
 (3096,3103)|LuaNameRefImpl|fun()|06b33049764880ef
 (3096,3103)|LuaVarImpl|fun()|06b33049764880ef
 (3096,3105)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
-(3117,3121)|LuaNameRefImpl|fun(v)|fb7f17316c45182f
-(3117,3121)|LuaVarImpl|fun(v)|fb7f17316c45182f
-(3117,3125)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
+(3117,3121)|LuaNameRefImpl|fun(v)|2a915558f61c94d3
+(3117,3121)|LuaVarImpl|fun(v)|2a915558f61c94d3
+(3117,3125)|LuaFuncCallImpl|string|e87ba97e700edac9
 (3117,3136)|LuaBinOpExprImpl|boolean|c322feed17a09ce6
 (3122,3124)|LuaNameRefImpl|undefined|31a5442b7fa53ce1
 (3122,3124)|LuaVarImpl|undefined|31a5442b7fa53ce1

@@ -43,5 +43,22 @@ class LuaUnresolvedUnionMemberTest : BasePlatformTestCase() {
         assertTrue(errors(call("---@param opts? string | {buffer: boolean}")).isNotEmpty())
 
     @Test
+    fun testOptionalUnresolvedParameterOfALibraryCallAcceptsATable() {
+        myFixture.addFileToProject("lib.lua", "---@param opts? Unres.ns\nfunction take(opts) end\n")
+        assertEquals(emptyList<String>(), errors("take({})\n"))
+    }
+
+    @Test
+    fun testStringLiteralParameterAcceptsAString() =
+        assertEquals(emptyList<String>(), errors("""local f = io.open("x", "r")"""))
+
+    @Test
+    fun testStringLiteralParameterRejectsANumber() = assertTrue(errors("""local f = io.open("x", 1)""").isNotEmpty())
+
+    @Test
+    fun testArrayOfParenthesisedUnionRejectsAString() =
+        assertTrue(errors("---@param p (string|number)[]\nlocal function f(p) end\nf(\"x\")\n").isNotEmpty())
+
+    @Test
     fun testUnionOfScalarsStillReports() = assertTrue(errors(call("---@param opts string | number")).isNotEmpty())
 }

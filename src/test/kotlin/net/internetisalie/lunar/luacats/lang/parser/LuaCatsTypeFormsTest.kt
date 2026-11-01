@@ -11,7 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
-/** Every type form reads the same in every tag that takes a type (BUG-559, BUG-562, BUG-563). */
+/** Every type form reads the same in every tag that takes a type (BUG-559 to BUG-563). */
 @RunWith(JUnit4::class)
 class LuaCatsTypeFormsTest : BasePlatformTestCase() {
     private val forms =
@@ -26,7 +26,10 @@ class LuaCatsTypeFormsTest : BasePlatformTestCase() {
             "string[]",
             "string|nil",
             "Box<string>",
+            "(string|number)[]",
             "fun()",
+            "fun(...any)",
+            "fun(...string): number",
             "fun(a: string): number",
             "fun(...)",
             "fun(a?: string, ...): number",

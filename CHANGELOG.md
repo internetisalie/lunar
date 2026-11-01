@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Literal types and the remaining LuaCATS forms are read as types** (BUG-22, BUG-560, BUG-561).
+  `"a"|"b"`, `1|2` and `true` now read as string, number and boolean, so `io.open("x", 1)` is
+  reported. `(A|B)[]` keeps its array and `fun(...any)` its vararg type. An optional parameter of
+  an unknown type accepts any argument rather than only nil. The bundled stubs use these forms, so
+  their signatures show `mode?` where they showed `mode`.
+
 - **Every LuaCATS tag reads the same type forms** (BUG-559, BUG-562, BUG-563). String and number
   literals, backticked generics and `fun(...)` were each accepted by some of `@param`, `@return`,
   `@field`, `@type` and `@cast` but not others. `---@param k "a"|"b"` silently lost the parameter's
