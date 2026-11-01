@@ -3,7 +3,7 @@ id: "MAINT-46"
 title: "46: Ticket IDs Minted by loom"
 type: "feature"
 parent_id: "MAINT"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -36,8 +36,10 @@ was abandoned.
   `claims/ticket/v1/lunar/BUG/<digits>`. Decide whose credentials mint, and get that prefix granted.
 - **Skills.** `report-bug` and `plan-bug` mint instead of choosing a number.
 
-## Not established
+## Decisions
 
-- Whether existing unpadded IDs (`BUG-8`) and mint's padded output (`BUG-008`) can coexist, or the
-  card's range must be chosen so no padding occurs.
-- Whether the backfill's `filed` / `unfiled` / `burned` kinds need distinguishing for Lunar.
+- `.loom.yml` declares `^(BUG)-[0-9]{3}$`, so mint prints `BUG-023`. Lunar's directories and references
+  stay unpadded, so the leading zeros are dropped when the ID is written down: `BUG-23`.
+- Filed numbers are claimed `filed`, numbers known only from a reference `unfiled`. Nothing was
+  needed as `burned`.
+- Minting uses `~/.config/loom/loom.artifacts.env`, not the `lunar-ci` user.

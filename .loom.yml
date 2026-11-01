@@ -2,6 +2,8 @@
 profile:
   project:
     name: lunar
+    repository: lunar/lunar
+    subPath: ""
   repository:
     forge:
       identities:
@@ -10,3 +12,6 @@ profile:
       merge:
         method: squash
         deleteBranch: true
+dialect:
+  identity:
+    pattern: '^(BUG)-[0-9]{3}$'

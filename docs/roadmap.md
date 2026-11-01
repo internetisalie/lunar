@@ -140,7 +140,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
 | BUG-21 | A later reassignment reaches an earlier argument's demand | todo | S | — | found fixing BUG-19: three zerobrane hits | ✓ |
 | MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | planned | M | MAINT-40, MAINT-48 | — | ✓ |
-| MAINT-46 | Ticket IDs minted by `loom-cli id mint` after a scripted backfill of every used number, so concurrent sessions never pick the same ID | todo | S | — | — | ✓ |
 | MAINT-47 | Other IDE families — decide which are supported, add each to `verifyPlugin`, resolve the hard coverage/JSON dependencies, and check each live once | todo | M | — | — | ✓ |
 | MAINT-51 | One declared signature — one function for both checking paths, one optional rule, and `detachedDemand` merged with TYPE-14's copy | todo | M | — | before TYPE-14 | ✓ |
 | MAINT-52 | One rule for how an unknown behaves in a union and a demand | todo | S | — | — | ✓ |
