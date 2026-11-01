@@ -1053,11 +1053,43 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         if (!positionsAreUnambiguous(declared, argExprs.size)) return
         argExprs.forEachIndexed { index, argExpr ->
             val param = declared.params.getOrNull(index)?.takeUnless { it.isVararg } ?: return@forEachIndexed
-            val declaredType = demandTypeOf(param)
-            if (carriesGraphNodes(declaredType)) return@forEachIndexed
+            val declaredType = detachedDemand(demandTypeOf(param)) ?: return@forEachIndexed
             val argNode = firstNode(unwrapExpression(argExpr)) ?: return@forEachIndexed
             graph.addEdge(argNode, graph.use(argExpr, declaredType, declaredDemand = true))
         }
+    }
+
+    /** [type] with its functions copied onto fresh nodes, or null if it holds a table (BUG-19). */
+    private fun detachedDemand(type: LuaGraphType): LuaGraphType? =
+        when (type) {
+            is LuaGraphType.Function -> detachedFunction(type)
+            is LuaGraphType.Table -> null
+            is LuaGraphType.Array -> detachedDemand(type.elementType)?.let { LuaGraphType.Array(it) }
+            is LuaGraphType.Union -> {
+                val members = type.types.map { detachedDemand(it) }
+                if (null in members) null else LuaGraphType.Union.create(members.filterNotNull())
+            }
+            else -> type
+        }
+
+    /**
+     * A copy that keeps the signature's parameters and leaves out its returns: `fun()` has a `nil`
+     * return node, and a callback's return value is not an error against it.
+     */
+    private fun detachedFunction(declared: LuaGraphType.Function): LuaGraphType.Function =
+        declared.copy(
+            params = declared.params.map { it.copy(node = detachedParamNode(it.node)) },
+            returns = emptyList(),
+        )
+
+    /** A fresh node of [shared]'s type, untyped when that type would carry the shared nodes along. */
+    private fun detachedParamNode(shared: VariableNode): VariableNode {
+        val fresh = graph.variable(shared.element)
+        val type = shared.read
+        if (!carriesGraphNodes(type)) {
+            graph.addEdge(graph.value(shared.element, type), fresh)
+        }
+        return fresh
     }
 
     /** BUG-552: a `?` parameter accepts nil, so its demand is `T|nil`, the same as `---@param p T|nil`. */
@@ -1078,10 +1110,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
      * `ExpectedCallbackResolverTest.testTableSortComparatorSlotResolves` going red when the
      * comparator slot picked up one call's lambda.
      *
-     * So BUG-425 checks scalar contracts only. A `---@param cb fun(...)` or `---@param w wxWindow`
-     * is still unchecked; doing those needs a demand built from a *copy* of the declared type, which
-     * is a larger change than this bug. TYPE-10's `propagateExpectedLambdaParams` already covers the
-     * callback case for inference, which is the part users see.
+     * [detachedDemand] copies function types instead (BUG-19). A `---@param w wxWindow` is still
+     * unchecked, because a class table cannot be copied so cheaply.
      */
     private fun carriesGraphNodes(type: LuaGraphType): Boolean =
         when (type) {
