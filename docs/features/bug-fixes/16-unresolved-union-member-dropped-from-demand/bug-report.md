@@ -3,7 +3,7 @@ id: "BUG-16"
 title: "An unresolved member of a union parameter type is dropped from the demand"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -11,7 +11,7 @@ folders:
 
 # BUG-16: An unresolved member of a union parameter type is dropped from the demand
 
-Found while planning [[BUG-11]]. Observed only; root cause not investigated.
+Found while planning [[BUG-11]].
 
 ## 1. Reproduction
 
@@ -38,3 +38,17 @@ f({ pattern = "x" })
 - No lazynvim corpus hit has this shape; vim stubs that do not resolve would produce it.
 - [[BUG-11]] is the cross-file, optional-parameter form, where the whole type becomes unknown
   instead. That bug lives in BUG-566's code; this one is on main.
+
+## 4. Root Cause
+`LuaGraphType.fromLuaType` turns an unresolved `LuaTypeReference` into `LuaPrimitiveType.UNKNOWN` and
+so `Undefined`. `Union.create` then drops that arm (`LuaTypeAlgebra.simplify`), because `Undefined`
+means "no information" there. The union that remains is stricter than the one written. A bare
+unresolved type stays `Undefined`, which `checkCompatibility` ignores, so only the union form reports.
+
+## 5. Fix Strategy
+In the `LuaUnionType` branch of `fromLuaType`, an `Undefined` member becomes `Any`. An `Any` arm
+survives canonicalization and makes the union gradual (BUG-397), and structural arms stay beside it.
+
+## 6. Test Strategy
+`LuaUnresolvedUnionMemberTest` covers the optional and required forms and an unresolved member beside
+a scalar, all three red before the fix. Two controls with fully resolved unions must keep reporting.

@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A union with an unresolved member accepts what that member might be** (BUG-16). With
+  `---@param opts? Missing.Type | {buffer: boolean}` and no definition of `Missing.Type`, passing
+  another table was reported as not assignable, because the unresolved member was dropped from the
+  union. Lunar now treats that member as unknown and reports nothing, as it already did for a lone
+  unresolved type.
+
 - **`function` means any function** (BUG-15). A value declared with the bare `function` type was
   treated as a function with no parameters. Passing a function with required parameters to a
   `---@param fn function` was reported as *Too few arguments*, and calling such a value with

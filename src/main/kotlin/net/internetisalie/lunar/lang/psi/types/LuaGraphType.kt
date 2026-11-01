@@ -318,7 +318,14 @@ sealed class LuaGraphType {
                 is LuaUnionType -> {
                     val result = Union(emptySet())
                     visited[type] = result
-                    val memberTypes = type.types.map { fromLuaType(it, graph, visited) }.toSet()
+                    // An unresolved member could be anything. `Undefined` would vanish in
+                    // `Union.create`, leaving a stricter union than was written (BUG-16); an
+                    // `Any` arm survives and makes the union gradual.
+                    val memberTypes =
+                        type.types
+                            .map { fromLuaType(it, graph, visited) }
+                            .map { if (it == Undefined) Any else it }
+                            .toSet()
                     val finalUnion = Union.create(memberTypes)
                     visited[type] = finalUnion
                     finalUnion
