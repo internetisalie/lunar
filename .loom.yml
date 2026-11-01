@@ -8,7 +8,7 @@ profile:
     forge:
       identities:
         implementer:
-          login: internetisalie
+          login: lunar-agent-implementer
       merge:
         method: squash
         deleteBranch: true
