@@ -2,6 +2,7 @@ package net.internetisalie.lunar.lang.psi.types
 
 import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsParamTag
 
 /**
@@ -68,7 +69,7 @@ object LuaTypeGraphBridge {
         val classTag = cats.getClassTagList().firstOrNull()
 
         val typeName =
-            typeTag?.argType?.text?.trim()
+            typeTag?.let(LuaCatsDeclarations::typeName)
                 ?: classTag?.argType?.text?.trim()
                 ?: return
 
@@ -89,9 +90,14 @@ object LuaTypeGraphBridge {
 
         // Create a UseNode constraint that represents the variable's declared type.
         // The constraint validates that values flowing into this variable are assignable to the declared type.
-        val useNode = graph.use(element, graphType, declaredDemand = true)
+        val demand = if (typeTag == null) declaringTableDemand(graphType) else graphType
+        val useNode = graph.use(element, demand, declaredDemand = true)
         graph.addEdge(variable, useNode)
     }
+
+    /** The table a `@class` annotates is the class, not an instance: it need hold no field (BUG-558). */
+    private fun declaringTableDemand(classType: LuaGraphType): LuaGraphType =
+        if (classType is LuaGraphType.Table) classType.copy(isExact = false) else classType
 
     /**
      * Processes `@param` annotations and adds flow edges from annotated types into each
@@ -151,7 +157,7 @@ object LuaTypeGraphBridge {
         paramTag: LuaCatsParamTag,
         graphType: LuaGraphType,
     ): LuaGraphType =
-        if (paramTag.argSymbol?.text == "?" && graphType !is LuaGraphType.Generic) {
+        if (LuaCatsDeclarations.isOptionalParam(paramTag) && graphType !is LuaGraphType.Generic) {
             LuaGraphType.Union.create(listOf(graphType, LuaGraphType.Nil))
         } else {
             graphType

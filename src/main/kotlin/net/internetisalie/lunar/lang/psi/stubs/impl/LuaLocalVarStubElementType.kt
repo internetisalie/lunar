@@ -26,8 +26,7 @@ class LuaLocalVarStubElementType(
             catsComment
                 ?.getTypeTagList()
                 ?.firstOrNull()
-                ?.argType
-                ?.text
+                ?.let(LuaCatsDeclarations::typeName)
         val classTag = catsComment?.getClassTagList()?.firstOrNull()
         val className = classTag?.argType?.text
         // BUG-402: stored as a LIST. Flattening to `parentTypes.text` forced the reader to re-split

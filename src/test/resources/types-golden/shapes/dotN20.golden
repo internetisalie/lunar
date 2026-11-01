@@ -1,7 +1,6 @@
 # lunar type golden v1
 # source-sha256 c75bbd6ddc80bbdbe00d5e42f6d15f813a76e5dac8a8e6f0c84e07db5e613dd3
 [errors]
-ERROR|Missing required field 'name'|(44,46)|LuaTableConstructorImpl
 HYPOTHESIS|{ ... } | D is not assignable to { ... }|(108,113)|LuaIndexExprImpl
 HYPOTHESIS|{ ... } | D is not assignable to { ... }|(122,127)|LuaIndexExprImpl
 HYPOTHESIS|{ ... } | D is not assignable to { ... }|(136,141)|LuaIndexExprImpl

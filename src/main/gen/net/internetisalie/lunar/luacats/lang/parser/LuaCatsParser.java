@@ -587,7 +587,8 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // tupleType
+  // parenthesizedType
+  //     | tupleType
   //     | dictionaryType
   //     | literalTableType
   //     | functionSignatureType
@@ -599,7 +600,8 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(builder_, level_, "distinctType")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, DISTINCT_TYPE, "<distinct type>");
-    result_ = tupleType(builder_, level_ + 1);
+    result_ = parenthesizedType(builder_, level_ + 1);
+    if (!result_) result_ = tupleType(builder_, level_ + 1);
     if (!result_) result_ = dictionaryType(builder_, level_ + 1);
     if (!result_) result_ = literalTableType(builder_, level_ + 1);
     if (!result_) result_ = functionSignatureType(builder_, level_ + 1);
@@ -1656,6 +1658,19 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // '(' unionType ')'
+  public static boolean parenthesizedType(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "parenthesizedType")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _NONE_, PARENTHESIZED_TYPE, "<parenthesized type>");
+    result_ = consumeToken(builder_, "(");
+    result_ = result_ && unionType(builder_, level_ + 1);
+    result_ = result_ && consumeToken(builder_, ")");
+    exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  /* ********************************************************** */
   // '@private' description?
   public static boolean privateTag(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "privateTag")) return false;
@@ -2023,35 +2038,14 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '(' unionType ')' '[]'? | unionType
+  // unionType
   public static boolean type(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "type")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, TYPE, "<type>");
-    result_ = type_0(builder_, level_ + 1);
-    if (!result_) result_ = unionType(builder_, level_ + 1);
+    result_ = unionType(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
-  }
-
-  // '(' unionType ')' '[]'?
-  private static boolean type_0(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "type_0")) return false;
-    boolean result_;
-    Marker marker_ = enter_section_(builder_);
-    result_ = consumeToken(builder_, "(");
-    result_ = result_ && unionType(builder_, level_ + 1);
-    result_ = result_ && consumeToken(builder_, ")");
-    result_ = result_ && type_0_3(builder_, level_ + 1);
-    exit_section_(builder_, marker_, null, result_);
-    return result_;
-  }
-
-  // '[]'?
-  private static boolean type_0_3(PsiBuilder builder_, int level_) {
-    if (!recursion_guard_(builder_, level_, "type_0_3")) return false;
-    consumeToken(builder_, "[]");
-    return true;
   }
 
   /* ********************************************************** */

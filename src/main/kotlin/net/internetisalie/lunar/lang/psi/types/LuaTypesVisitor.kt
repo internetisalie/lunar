@@ -12,6 +12,7 @@ import com.intellij.psi.util.elementType
 import net.internetisalie.lunar.lang.psi.*
 import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 import net.internetisalie.lunar.platform.target.RuntimeLibraryProvider
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
@@ -1224,11 +1225,11 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 firstNode(unwrapped) as? VariableNode ?: graph.variable(v)
             }
 
-        val cats = getAllCatsComments(o)
-        cats.forEach { cat ->
-            varNodes.firstOrNull()?.let {
-                LuaTypeGraphBridge.injectTypeAnnotation(cat, o, it, graph, o)
-            }
+        // BUG-557: a statement takes the nearest annotation; `@class` blocks above it only declare.
+        val cat = getAllCatsComments(o).lastOrNull { it.typeTagList.isNotEmpty() || it.classTagList.isNotEmpty() }
+        val target = varNodes.firstOrNull()
+        if (cat != null && target != null) {
+            LuaTypeGraphBridge.injectTypeAnnotation(cat, o, target, graph, o)
         }
 
         graph.flowList(rhsNodes, varNodes)
@@ -1572,7 +1573,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                             ?: catsParams.getOrNull(index)
 
                     val paramName = matchingCat?.argName?.text ?: astName
-                    val isOptional = matchingCat?.argSymbol?.text == "?"
+                    val isOptional = matchingCat?.let(LuaCatsDeclarations::isOptionalParam) == true
 
                     LuaGraphType.Function.Parameter(paramNode, paramName, isOptional, false)
                 } ?: emptyList()

@@ -58,6 +58,7 @@ public interface LuaCatsElementTypes {
   IElementType PARAMETERIZED_NAME = new LuaCatsElementType("PARAMETERIZED_NAME");
   IElementType PARAMETER_NAME = new LuaCatsElementType("PARAMETER_NAME");
   IElementType PARAM_TAG = new LuaCatsElementType("PARAM_TAG");
+  IElementType PARENTHESIZED_TYPE = new LuaCatsElementType("PARENTHESIZED_TYPE");
   IElementType PARENT_TYPES = new LuaCatsElementType("PARENT_TYPES");
   IElementType PRIVATE_TAG = new LuaCatsElementType("PRIVATE_TAG");
   IElementType PROTECTED_TAG = new LuaCatsElementType("PROTECTED_TAG");
@@ -240,6 +241,9 @@ public interface LuaCatsElementTypes {
       }
       else if (type == PARAM_TAG) {
         return new LuaCatsParamTagImpl(node);
+      }
+      else if (type == PARENTHESIZED_TYPE) {
+        return new LuaCatsParenthesizedTypeImpl(node);
       }
       else if (type == PARENT_TYPES) {
         return new LuaCatsParentTypesImpl(node);

@@ -27,6 +27,7 @@ class LuaCatsTypeFormsTest : BasePlatformTestCase() {
             "string|nil",
             "Box<string>",
             "(string|number)[]",
+            "(string)|nil",
             "fun()",
             "fun(...any)",
             "fun(...string): number",

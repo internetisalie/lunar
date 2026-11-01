@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Class declarations ask less of tables** (BUG-555, BUG-556, BUG-557, BUG-558). `---@field u
+  string?`, `---@type T?` and `---@param p T?` now admit nil, as `u?` and `p?` do. A keyed field such
+  as `---@field [string] number` is not required of a table. A `@class` block above a statement no
+  longer annotates a statement with its own `@type`, and the table a `@class` annotates need not
+  hold the class's fields. `(A)|B` now keeps `B`.
+
 - **Literal types and the remaining LuaCATS forms are read as types** (BUG-22, BUG-560, BUG-561).
   `"a"|"b"`, `1|2` and `true` now read as string, number and boolean, so `io.open("x", 1)` is
   reported. `(A|B)[]` keeps its array and `fun(...any)` its vararg type. An optional parameter of

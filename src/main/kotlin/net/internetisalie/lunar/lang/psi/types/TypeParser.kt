@@ -32,10 +32,7 @@ object TypeParser {
     private fun parseType(
         type: LuaCatsType,
         context: PsiElement,
-    ): LuaType {
-        val parsed = parseUnionType(type.unionType, context)
-        return if (type.lastChild.text == "[]") LuaArrayType(parsed) else parsed
-    }
+    ): LuaType = parseUnionType(type.unionType, context)
 
     private fun parseUnionType(
         unionType: LuaCatsUnionType,
@@ -74,6 +71,7 @@ object TypeParser {
         distinctType: LuaCatsDistinctType,
         context: PsiElement,
     ): LuaType {
+        distinctType.parenthesizedType?.let { return parseUnionType(it.unionType, context) }
         distinctType.builtinType?.let {
             val name = it.text
             return LuaPrimitiveType.PRIMITIVES[name] ?: LuaPrimitiveType.UNKNOWN

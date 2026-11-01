@@ -29,7 +29,10 @@ cfgfn, err = pcall(cfgfn, style)
 - **Actual**: *boolean is not assignable to union function | number* on lines 513, 519 and 520.
 
 ## 3. Context
-- The boolean is `pcall`'s result, assigned after the call. A variable's writes appear to reach a
-  demand regardless of order. This is an inference from the code, not a measurement.
+- The boolean is `pcall`'s result, assigned after the call. Each variable has one `VariableElement`,
+  which collects every write, and `checkTypes` crosses all of them with every demand, so order is
+  not modelled. Read from the code.
+- The fix is flow-sensitive reads, which is [[ANALYSIS-07]]. An order check on this path alone would
+  be one more special case on the demand seam, so this waits for that feature.
 - These three hits appeared when [[BUG-19]] began checking function-typed demands, and are in
   `zerobrane.baseline`. Whether a scalar demand reports the same shape was not measured.

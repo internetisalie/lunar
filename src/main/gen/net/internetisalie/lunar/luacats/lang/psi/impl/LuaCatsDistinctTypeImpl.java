@@ -77,6 +77,12 @@ public class LuaCatsDistinctTypeImpl extends LuaCatsBaseElement implements LuaCa
 
   @Override
   @Nullable
+  public LuaCatsParenthesizedType getParenthesizedType() {
+    return findChildByClass(LuaCatsParenthesizedType.class);
+  }
+
+  @Override
+  @Nullable
   public LuaCatsTupleType getTupleType() {
     return findChildByClass(LuaCatsTupleType.class);
   }

@@ -3,7 +3,7 @@ id: "BUG-557"
 title: "A comment block holding several `@class` tags and a trailing `@type` checks the next statement against every class in it"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

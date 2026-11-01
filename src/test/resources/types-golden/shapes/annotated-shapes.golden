@@ -6,9 +6,6 @@ ERROR|LunarFixtureShape | LunarFixtureShape | { ... } is not assignable to Lunar
 ERROR|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(856,906)|LuaLocalVarDeclImpl
 ERROR|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(862,874)|LuaNameRefImpl
 ERROR|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(877,906)|LuaFuncCallImpl
-ERROR|Missing required field 'height'|(736,738)|LuaTableConstructorImpl
-ERROR|Missing required field 'width'|(466,468)|LuaTableConstructorImpl
-ERROR|Missing required field 'width'|(736,738)|LuaTableConstructorImpl
 HYPOTHESIS|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(554,640)|LuaFuncDeclImpl
 HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(p, p)|(877,906)|LuaFuncCallImpl
 HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(p, p)|(894,897)|LuaIndexExprImpl

@@ -3,7 +3,7 @@ id: "BUG-556"
 title: "A bracket-keyed `@field [k] T` is a required member named `\"[k]\"`, which no table constructor can supply"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

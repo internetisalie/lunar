@@ -32,6 +32,9 @@ public interface LuaCatsDistinctType extends PsiElement {
   LuaCatsParameterizedName getParameterizedName();
 
   @Nullable
+  LuaCatsParenthesizedType getParenthesizedType();
+
+  @Nullable
   LuaCatsTupleType getTupleType();
 
 }

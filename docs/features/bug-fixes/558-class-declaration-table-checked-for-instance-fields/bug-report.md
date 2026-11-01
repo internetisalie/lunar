@@ -3,7 +3,7 @@ id: "BUG-558"
 title: "A `@class` declaration's own table (`local M = {}`) is checked for every required instance field, inherited ones included"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

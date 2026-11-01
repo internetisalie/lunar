@@ -50,10 +50,16 @@ object LuaCatsDeclarations {
     fun fieldMember(tag: LuaCatsFieldTag): FieldMember {
         val declared = declaredDescriptor(tag)
         val declaredType = tag.argType.text
-        if (!declared.endsWith("?")) return FieldMember(declared, declaredType, tag)
+        // A key describes entries a table may hold, so no table has to supply it (BUG-556).
+        val isKeyed = tag.fieldDescriptor.argName == null
+        val isOptional = declared.endsWith("?") || isKeyed || hasOptionalMark(tag.description)
+        if (!isOptional) return FieldMember(declared, declaredType, tag)
         // An optional field is not merely named without the marker — its type admits nil (BUG-401).
         return FieldMember(declared.removeSuffix("?"), "($declaredType) | nil", tag)
     }
+
+    /** A tag's top-level type stops before `T?`, so the `?` opens its description (BUG-555). */
+    fun hasOptionalMark(description: LuaCatsDescription?): Boolean = description?.text?.startsWith("?") == true
 
     /**
      * The field name as **written**, marker included — what quick-doc should render, matching LuaLS.
@@ -92,13 +98,22 @@ object LuaCatsDeclarations {
         val isOptional: Boolean,
     )
 
+    /** The type string a `@type` declares. */
+    fun typeName(tag: LuaCatsTypeTag): String {
+        val declared = tag.argType.text.trim()
+        return if (hasOptionalMark(tag.description)) "($declared) | nil" else declared
+    }
+
+    /** `@param p? T` and `@param p T?` both let a call omit `p`. */
+    fun isOptionalParam(tag: LuaCatsParamTag): Boolean = tag.argSymbol?.text == "?" || hasOptionalMark(tag.description)
+
     /**
      * Every `@param` on [comment], in declaration order. A repeated name keeps its first position
      * and its last tag, which is the order and the winner the former name → type map had.
      */
     fun params(comment: LuaCatsComment): List<ParamDecl> =
         comment.paramTagList
-            .map { ParamDecl(it.argName?.text ?: "", it.argType.text, it.argSymbol?.text == "?") }
+            .map { ParamDecl(it.argName?.text ?: "", it.argType.text, isOptionalParam(it)) }
             .associateBy { it.name }
             .values
             .toList()

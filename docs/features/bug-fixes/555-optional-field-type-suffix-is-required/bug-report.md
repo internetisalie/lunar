@@ -3,7 +3,7 @@ id: "BUG-555"
 title: "A `@field name T?` field is required: the trailing `?` does not make the type admit nil"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

@@ -207,6 +207,10 @@ public class LuaCatsVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitParenthesizedType(@NotNull LuaCatsParenthesizedType o) {
+    visitPsiElement(o);
+  }
+
   public void visitPrivateTag(@NotNull LuaCatsPrivateTag o) {
     visitPsiElement(o);
   }

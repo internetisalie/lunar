@@ -59,7 +59,7 @@ class LuaCatsDeclarationsTest : BasePlatformTestCase() {
     fun testKeyedFieldIsNamedByItsKey() {
         val fields = fieldsOf("---@class C\n---@field [string] number\nlocal C = {}\n")
         assertEquals("[string]", fields[0].name)
-        assertEquals("number", fields[0].typeName)
+        assertEquals("(number) | nil", fields[0].typeName)
     }
 
     /** BUG-543: an optional key is read like an optional name: marker dropped, nil admitted. */
