@@ -25,13 +25,15 @@ module cannot load Lunar at all.
 
 ## Scope
 
-- **Decide which families are supported.** At least IntelliJ IDEA (Community and Ultimate),
-  PyCharm, CLion, RustRover and WebStorm are candidates. Record the decision, and make the
-  project description and the marketplace description match it.
+- **Supported families.** CLion and RustRover join GoLand: Lua embeds naturally in C and Rust
+  projects. IntelliJ IDEA follows at a lower priority, since Java is less of a fit now that Kotlin
+  fills that role. PyCharm and WebStorm are out, because their languages are already dynamic and
+  would not meaningfully benefit from Lua integration. Make the project description and the
+  marketplace description match this.
 - **Verify every supported family.** Add each one to `pluginVerification.ides` at the
   `pluginSinceBuild` floor and the current line, so `verifyPlugin` reports missing dependencies
   and binary incompatibilities in each.
-- **The hard dependencies.** Establish which candidate IDEs lack the coverage or JSON module. For
+- **The hard dependencies.** Establish which supported IDEs lack the coverage or JSON module. For
   each one that does, either make the dependency optional (moving the features that need it into
   an optional config file), or leave that family unsupported.
 - **A live check per supported family**: Lunar loads, a `.lua` file gets Lunar highlighting and

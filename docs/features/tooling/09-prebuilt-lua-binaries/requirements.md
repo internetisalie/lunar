@@ -29,25 +29,25 @@ the MAINT-35 parse oracle, which is why CI excludes `ParseOracleTest` ([[MAINT-4
 
 ## Scope
 
-- **A build repository of our own.** A public repository under `internetisalie` that builds
-  `lua` and `luac` from checksummed lua.org tarballs, statically linked, for one release per
-  minor version: 5.1.5, 5.2.4, 5.3.6, 5.4.8 and 5.5.0 (the feed's alias targets). Platforms:
-  Linux x86_64 and arm64 (musl, static), Windows x86_64 (MinGW), macOS x86_64 and arm64.
-  Written from scratch rather than forked: `dyne/luabinaries` takes the same approach but
-  declares no license for its build scripts. No UPX compression.
+- **A build repository of our own.** The public repository `internetisalie/lua-prebuilt` builds
+  `lua` and `luac` from checksummed lua.org tarballs, statically linked, for every PUC version
+  the feed offers. Platforms: Linux x86_64 and arm64 (musl, static), Windows x86_64 (MinGW),
+  macOS x86_64 and arm64. Written from scratch rather than forked: `dyne/luabinaries` takes the
+  same approach but declares no license for its build scripts. No UPX compression.
+- **Offered means published.** A PUC version appears in the feed only with a prebuilt asset for
+  all five platforms, so the provisioning dialogs need no filtering. A version that cannot be
+  built leaves the feed, and a feed test fails on a PUC version with a missing asset. Building
+  every offered version on Linux x86_64 comes first, to find out which ones survive.
 - **Releases.** Each release is tagged, carries a `SHA256SUMS` per platform and a `LICENSE`
   holding the Lua and musl notices (MIT requires the notice with every copy), and is smoke-tested
   on each platform: `lua -v`, and `luac -p` on a sample file.
-- **Feed assets.** Add `single-binary` assets for `lua` and `luac` to the five alias-target
-  versions, pinned to a release tag and each file's sha256. Older patch releases stay source-only.
-  Replace the SourceForge Windows 5.4.2 entry.
+- **Feed assets.** Add `single-binary` assets for `lua` and `luac` to every offered PUC version,
+  pinned to a release tag and each file's sha256. Replace the SourceForge Windows 5.4.2 entry.
 - **Linux x86_64 first.** The parse oracle needs only Linux x86_64 `luac`, so that target ships
   in the first release and unblocks [[MAINT-49]]; the other platforms can follow.
 
 ## Not established
 
-- **The repository's name and home.** GitHub, so users' IDEs can reach it; the Gitea instance is
-  LAN-facing.
 - **macOS deployment target.** `MACOSX_DEPLOYMENT_TARGET` decides the oldest macOS the binaries
   run on; the runners are macOS 15.
 - **C modules.** A static `lua` built without dlopen cannot `require` C rocks. Whether a
