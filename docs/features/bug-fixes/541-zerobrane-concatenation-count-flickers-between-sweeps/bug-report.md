@@ -39,6 +39,11 @@ target. Reported here without a root cause.
 - Unknown whether the fix introduces the nondeterminism or only exposes an existing one. The
   BUG-515 planner names the type of `ide.config.default.interpreter`, a global table assembled
   across several files, as the candidate.
+- **The baseline holds the high reading on purpose.** BUG-15's re-record (`2382558c`) stored the low
+  one (`inspection.LuaSuspiciousConcatenation=1`, `symbol.LuaSuspiciousConcatenation.nil=1`), and
+  from MAINT-52 (`d0668b6f`) on, `lunar-ci`'s corpus job read 3 on every main push while the libvirt
+  builder read 1, so main went red. Recording the high value makes a low run read as `IMPROVED`;
+  re-record it high until this bug is fixed.
 - BUG-515 records the zerobrane baseline at 19, so a 17 run reads as `IMPROVED` and passes. The
   ratchet stays green, but the nondeterminism remains.
 - Evidence (scratch, not durable): the BUG-515 planning runs' highlight dumps
