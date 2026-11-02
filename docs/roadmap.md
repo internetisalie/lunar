@@ -138,7 +138,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | planned | M | MAINT-40, MAINT-48 | — | ✓ |
 | MAINT-47 | Other IDE families — decide which are supported, add each to `verifyPlugin`, resolve the hard coverage/JSON dependencies, and check each live once | todo | M | — | — | ✓ |
 | MAINT-51 | One declared signature — one function for both checking paths, one optional rule, and `detachedDemand` merged with TYPE-14's copy | todo | M | — | before TYPE-14 | ✓ |
-| MAINT-52 | One rule for how an unknown behaves in a union and a demand | planned | S | — | one phase, one PR | ✓ |
 | BUG-25 | A local's reaching definitions show `any` beside a scalar instead of `any` (`---@type Unres\|string` `local z = 1` shows `number \| any`) | todo | C | — | found planning MAINT-52 (Gap 2.1); display only | ✓ |
 | BUG-26 | A local assigned `cond and <unknown>` is shown with the type demanded of it | todo | C | — | found planning MAINT-52 (Gap 2.2); the display path of BUG-553 *(done)* | ✓ |
 | BUG-27 | `LuaPrimitiveType.UNKNOWN` carries several meanings, so no producer can be re-spelled alone | todo | C | — | found planning MAINT-52 (Risk 1.1); prerequisite for spelling "cannot model" as `any` at the producers | ✓ |

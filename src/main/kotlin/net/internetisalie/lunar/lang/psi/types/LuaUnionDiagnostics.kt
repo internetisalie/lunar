@@ -62,7 +62,7 @@ object LuaUnionDiagnostics {
         val valueKeys = value.getMembers().keys
         return member
             .getMembers()
-            .filter { (key, node) -> key !in valueKeys && !isOptional(node.read) }
+            .filter { (key, node) -> key !in valueKeys && !LuaTypeAlgebra.isOptional(node.read) }
             .keys
             .toList()
     }
@@ -72,13 +72,5 @@ object LuaUnionDiagnostics {
             missing.isEmpty() -> "incompatible fields"
             missing.size == 1 -> "missing field '${missing.first()}'"
             else -> "missing fields ${missing.joinToString(", ") { "'$it'" }}"
-        }
-
-    /** A field is optional when its demanded type is a union containing nil, or is the bottom sentinel. */
-    private fun isOptional(type: LuaGraphType): Boolean =
-        when (type) {
-            is LuaGraphType.Union -> type.types.any { it == LuaGraphType.Nil }
-            LuaGraphType.Undefined -> true
-            else -> false
         }
 }

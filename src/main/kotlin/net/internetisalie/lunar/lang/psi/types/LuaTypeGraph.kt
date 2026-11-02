@@ -822,7 +822,7 @@ class LuaTypeGraph {
             val valueNode = value.getMembers()[key]
             if (valueNode != null) {
                 if (!isCompatible(valueNode.write, useNode.read, ctx)) return false
-            } else if (!isOptional(useNode.read)) {
+            } else if (!LuaTypeAlgebra.isOptional(useNode.read)) {
                 return false
             }
         }
@@ -975,19 +975,12 @@ class LuaTypeGraph {
                 val isRequired = use.isExact && !isMethodOnClass
 
                 // If the field is missing, it's only an error if it's required (non-optional).
-                if (!isOptional(readType) && isRequired) {
+                if (!LuaTypeAlgebra.isOptional(readType) && isRequired) {
                     addError(ElementError(valueElement, "Missing required field '$key'", ErrorSeverity.ERROR))
                 }
             }
         }
     }
-
-    private fun isOptional(type: LuaGraphType): Boolean =
-        when (type) {
-            is LuaGraphType.Union -> type.types.any { it == LuaGraphType.Nil }
-            LuaGraphType.Undefined -> true
-            else -> false
-        }
 
     private fun isNominallyCompatible(
         value: LuaGraphType.Table,

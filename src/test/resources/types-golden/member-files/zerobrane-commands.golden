@@ -9,14 +9,6 @@ HYPOTHESIS|Too few arguments: expected at least 4, got 3|(24950,24994)|LuaFuncCa
 HYPOTHESIS|Too few arguments: expected at least 4, got 3|(7902,7933)|LuaFuncCallImpl
 HYPOTHESIS|Too few arguments: expected at least 4, got 3|(8252,8283)|LuaFuncCallImpl
 HYPOTHESIS|Too few arguments: expected at least 4, got 3|(9944,9969)|LuaFuncCallImpl
-HYPOTHESIS|nil | { ... } is not assignable to { ... }|(30780,30782)|LuaNameRefImpl
-HYPOTHESIS|nil | { ... } is not assignable to { ... }|(30785,30816)|LuaFuncCallImpl
-HYPOTHESIS|nil | { ... } is not assignable to { ... }|(30855,30863)|LuaIndexExprImpl
-HYPOTHESIS|nil | { ... } is not assignable to { ... }|(30870,30878)|LuaIndexExprImpl
-HYPOTHESIS|nil | { ... } is not assignable to { ... }|(30917,30920)|LuaNameRefImpl
-HYPOTHESIS|nil | { ... } is not assignable to { ... }|(30923,30962)|LuaFuncCallImpl
-HYPOTHESIS|nil | { ... } is not assignable to { ... }|(31017,31025)|LuaIndexExprImpl
-HYPOTHESIS|nil | { ... } is not assignable to { ... }|(31033,31041)|LuaIndexExprImpl
 [elements]
 (10002,10029)|LuaTerminalExprImpl|string|e87ba97e700edac9
 (10038,10042)|LuaNameRefImpl|{ ... }|2297849ed36c26d7

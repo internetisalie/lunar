@@ -3,7 +3,7 @@ id: "MAINT-52"
 title: "52: One Unknown Rule"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "done"
 priority: "low"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -53,11 +53,11 @@ candidate rules and DR-03 measured the chosen one on the full suite and the corp
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-52-01 | **The union rule** | M | Not Implemented | `LuaTypeAlgebra.canonicalize` turns an `Undefined` member beside other members into an `Any` arm. `Undefined` alone stays `Undefined`. |
-| MAINT-52-02 | **Conversions only where the rule cannot reach** | M | Not Implemented | The design §2 deletions are made, BUG-16's conversion covers only the all-unresolved union, and every TC naming this requirement holds. |
-| MAINT-52-03 | **An `any` field is optional** | M | Not Implemented | A table missing a field the class declares as `any` gets no *Missing required field*, and a union's closest-match reason does not list that field as missing. |
-| MAINT-52-04 | **Known demands still report** | M | Not Implemented | Resolved optional parameters, resolved unions and required fields of a known type report as before. |
-| MAINT-52-05 | **Corpus moves only as measured** | S | Not Implemented | Baselines and type goldens move by DR-03's deltas and no others. |
+| MAINT-52-01 | **The union rule** | M | Full | `LuaTypeAlgebra.canonicalize` turns an `Undefined` member beside other members into an `Any` arm. `Undefined` alone stays `Undefined`. |
+| MAINT-52-02 | **Conversions only where the rule cannot reach** | M | Full | The design §2 deletions are made, BUG-16's conversion covers only the all-unresolved union, and every TC naming this requirement holds. |
+| MAINT-52-03 | **An `any` field is optional** | M | Full | A table missing a field the class declares as `any` gets no *Missing required field*, and a union's closest-match reason does not list that field as missing. |
+| MAINT-52-04 | **Known demands still report** | M | Full | Resolved optional parameters, resolved unions and required fields of a known type report as before. |
+| MAINT-52-05 | **Corpus moves only as measured** | S | Full | Baselines and type goldens move by DR-03's deltas and no others. |
 
 ## Test Cases
 

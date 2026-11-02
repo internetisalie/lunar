@@ -275,9 +275,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 // a comment stating the principle; it was simply never applied to the position a
                 // single-expression RHS always occupies.
                 //
-                // `Any`, not `Undefined`: `LuaTypeAlgebra.simplify` and `resolveWrite`'s `flatten`
-                // both drop `Undefined` from a union, which would restore exactly today's behaviour
-                // and fix nothing. `Any` already survives both and already makes a union gradual.
+                // `Any`, not `Undefined`: `resolveWrite`'s `flatten` drops `Undefined`, which would
+                // restore exactly today's behaviour and fix nothing. `Any` survives it and already
+                // makes a union gradual.
                 if (nodes.isEmpty()) {
                     result.add(graph.value(expr, LuaGraphType.Any))
                 } else {
@@ -703,19 +703,11 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                     // surviving arm is the left's falsy part alone, so `value and f(...)` with an
                     // un-inferable `f` collapsed to a bare `nil` and every use of the result was
                     // reported — 40 corpus false positives, worse than the imprecision being fixed.
-                    // BUG-441: `Any`, not `Undefined`, when the LEFT operand is unmodellable.
-                    // `Union.create` canonicalizes an `Undefined` arm away (`LuaTypeAlgebra.simplify`
-                    // filters it, and `truthyPart`'s own KDoc says so), so `wx.thing or "s"` collapsed
-                    // to a bare `string` and the unknown half of the expression was gone by the time
-                    // anything could act on it. `Any` survives the same canonicalization and already
-                    // makes a union gradual, so the arm reaches `checkTypes` where it belongs.
                     val carriedPart = if (op == "and") falsyPart(leftType) else truthyPart(leftType)
-                    val carried =
-                        if (carriedPart == LuaGraphType.Undefined) LuaGraphType.Any else carriedPart
                     if (rightType == LuaGraphType.Undefined) {
                         LuaGraphType.Undefined
                     } else {
-                        LuaGraphType.Union.create(setOf(carried, rightType))
+                        LuaGraphType.Union.create(setOf(carriedPart, rightType))
                     }
                 }
                 else -> LuaGraphType.Any
@@ -728,10 +720,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
      *
      * `boolean` goes unconditionally, not just when another arm remains. Without literal types
      * there is no way to say "`true`", and the arm the engine would keep is `false` — which by
-     * definition never reaches the left-hand result. Keeping it "when nothing else remains" was
-     * tried and left all 312 corpus false positives in place, because the informative arms of a
-     * `cond and x or y` chain are frequently `Undefined` and `Union.create` drops those first, so
-     * the boolean was the last arm standing exactly where it was most wrong.
+     * definition never reaches the left-hand result.
      *
      * The cost is `flag or default` reporting only `default`'s type. That is under-reporting, which
      * is the posture BUG-419 chose deliberately.
@@ -744,7 +733,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
     /**
      * The arms of [type] that fail Lua's truthiness test. `nil` and `false` are the only ones, so a
-     * type with neither contributes nothing to `a and b` — the result is then just `b`.
+     * type with neither yields `Undefined`, which `Union.create` turns into an `Any` arm beside `b`.
      */
     private fun falsyPart(type: LuaGraphType): LuaGraphType {
         val arms = if (type is LuaGraphType.Union) type.types else setOf(type)
@@ -1094,15 +1083,12 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     }
 
     /** BUG-552: a `?` parameter accepts nil, so its demand is `T|nil`, the same as `---@param p T|nil`. */
-    private fun demandTypeOf(param: LuaGraphType.Function.Parameter): LuaGraphType {
-        val declared = param.node.read
-        // BUG-22: `Undefined | nil` canonicalizes to `nil`, which would demand nil of an unknown type.
-        return if (param.isOptional && declared != LuaGraphType.Undefined) {
-            LuaGraphType.Union.create(listOf(declared, LuaGraphType.Nil))
+    private fun demandTypeOf(param: LuaGraphType.Function.Parameter): LuaGraphType =
+        if (param.isOptional) {
+            LuaGraphType.Union.create(listOf(param.node.read, LuaGraphType.Nil))
         } else {
-            declared
+            param.node.read
         }
-    }
 
     /**
      * Whether [type] embeds graph nodes, and therefore cannot safely be used as a demand here.

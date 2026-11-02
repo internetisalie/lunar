@@ -86,9 +86,9 @@ class LuaTypeAlgebraTest {
     }
 
     @Test
-    fun `undefined is dropped unless it is the only member`() {
+    fun `undefined beside other members is unknown`() {
         val mixed = LuaTypeAlgebra.canonicalize(listOf(LuaGraphType.String, LuaGraphType.Undefined))
-        assertEquals(LuaGraphType.String, mixed)
+        assertEquals(LuaGraphType.Any, mixed)
 
         val solo = LuaTypeAlgebra.canonicalize(listOf(LuaGraphType.Undefined))
         assertEquals(LuaGraphType.Undefined, solo)

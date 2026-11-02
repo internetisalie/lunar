@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **An unknown type is treated the same in a union and in a demand** (MAINT-52). A table is no longer
+  reported for missing a field the class declares as `any`, and an argument to an in-file function's
+  `---@param o? unknown` is no longer reported as not assignable to `nil`.
+
 - **A member resolves through its receiver's type** (BUG-508, BUG-516). `M.clear()` now goes to the
   `function M.clear` of the table `M` holds, including a required module's, and no longer to every
   file's `function M.clear`, so a library's deprecated member no longer flags a project's own function.

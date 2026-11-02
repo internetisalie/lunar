@@ -15,7 +15,11 @@ sealed class LuaGraphType {
     /** ⊤ (top type). Every value is assignable to ANY. */
     data object Any : LuaGraphType()
 
-    /** ⊥ (bottom type). UNDEFINED is assignable to every type. Represents uninferred/unknown. */
+    /**
+     * ⊥ (bottom type). UNDEFINED is assignable to every type. No information: nothing has been
+     * inferred. Beside other union members it means the engine cannot tell, and becomes `Any`
+     * ([LuaTypeAlgebra.canonicalize]).
+     */
     data object Undefined : LuaGraphType()
 
     data object Nil : LuaGraphType()
@@ -318,15 +322,11 @@ sealed class LuaGraphType {
                 is LuaUnionType -> {
                     val result = Union(emptySet())
                     visited[type] = result
-                    // An unresolved member could be anything. `Undefined` would vanish in
-                    // `Union.create`, leaving a stricter union than was written (BUG-16); an
-                    // `Any` arm survives and makes the union gradual.
-                    val memberTypes =
-                        type.types
-                            .map { fromLuaType(it, graph, visited) }
-                            .map { if (it == Undefined) Any else it }
-                            .toSet()
-                    val finalUnion = Union.create(memberTypes)
+                    val memberTypes = type.types.map { fromLuaType(it, graph, visited) }.toSet()
+                    val created = Union.create(memberTypes)
+                    // A declared union none of whose members resolves is still a declaration: `Any`, not
+                    // the "no information" `Undefined` that `Union.create` keeps for it (BUG-16).
+                    val finalUnion = if (created == Undefined) Any else created
                     visited[type] = finalUnion
                     finalUnion
                 }
@@ -416,11 +416,9 @@ sealed class LuaGraphType {
         /**
          * A declared signature's parameter node (BUG-566). Its demand is marked declared, so an
          * argument wired into it at a call reports at ERROR tier, at the argument. An optional
-         * parameter of a known type also accepts `nil` (BUG-552); an unresolved one keeps its
-         * `Undefined` demand, because `Undefined | nil` canonicalizes to `nil` (BUG-11). Do not
-         * move this demand to the call site: `addError` de-duplicates on element and message, so
-         * the existing HYPOTHESIS would shadow it, and bypassing this node breaks generic binding,
-         * which flows through the same edge.
+         * parameter also accepts `nil` (BUG-552). Do not move this demand to the call site:
+         * `addError` de-duplicates on element and message, so the existing HYPOTHESIS would shadow
+         * it, and bypassing this node breaks generic binding, which flows through the same edge.
          */
         private fun declaredParamNodeFor(
             param: LuaParameter,
@@ -431,7 +429,7 @@ sealed class LuaGraphType {
             val paramNode = graph.variable(anchor)
             val graphType = fromLuaType(param.type, graph, visited)
             paramNode.upSet.add(graph.value(paramNode.element, graphType))
-            val acceptsNil = param.isOptional && graphType != Undefined
+            val acceptsNil = param.isOptional
             val demand = if (acceptsNil) Union.create(listOf(graphType, Nil)) else graphType
             paramNode.downSet.add(graph.use(paramNode.element, demand, declaredDemand = true))
             return paramNode
