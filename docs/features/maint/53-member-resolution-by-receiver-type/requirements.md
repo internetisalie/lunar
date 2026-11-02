@@ -3,7 +3,7 @@ id: "MAINT-53"
 title: "53: Member Resolution by Receiver Type"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -45,12 +45,12 @@ DR-02 (cost), DR-03 (recursion).
 | MAINT-53-02 | **A function-name segment is not a usage** | M | Full | `m` in `function t:m()` or `function t.m()` never resolves to a global `m`. BUG-490. |
 | MAINT-53-03 | **A member is never a variable** | M | Full | A member name or function-name segment does not resolve to a local, a bare global, or a file-scope binding of a required or platform file. BUG-512 (B), (C). |
 | MAINT-53-04 | **A bare name is not a method** | M | Full | A bare `close()` does not resolve to a required module's `M:close`. BUG-512 (A). |
-| MAINT-53-05 | **The receiver's type wins** | M | Not Implemented | A dot member whose receiver type declares it resolves to that declaration only. BUG-508. |
-| MAINT-53-06 | **Suffixed colon calls resolve** | M | Not Implemented | `a.b:m()` resolves through the type of `a.b`, and never through text. BUG-516. |
-| MAINT-53-07 | **No cross-file text for a constructed local** | M | Not Implemented | With no typed target, a member of `local M = {}` keeps same-file text matches only. BUG-508. |
-| MAINT-53-08 | **Text stays the fallback** | M | Not Implemented | Any other member with no typed target resolves through the text path as Phase 2 leaves it (design §3.2). |
-| MAINT-53-09 | **No typed lookup inside the file's own build** | M | Not Implemented | While a file's snapshot is under construction, a dot member in it resolves through the text path and a suffixed colon call resolves to nothing. Neither answer is cached. |
-| MAINT-53-10 | **Corpus moves only as measured** | S | Not Implemented | Baselines move by the DR-05 per-phase deltas and no others. |
+| MAINT-53-05 | **The receiver's type wins** | M | Full | A dot member whose receiver type declares it resolves to that declaration only. BUG-508. |
+| MAINT-53-06 | **Suffixed colon calls resolve** | M | Full | `a.b:m()` resolves through the type of `a.b`, and never through text. BUG-516. |
+| MAINT-53-07 | **No cross-file text for a constructed local** | M | Full | With no typed target, a member of `local M = {}` keeps same-file text matches only. BUG-508. |
+| MAINT-53-08 | **Text stays the fallback** | M | Full | Any other member with no typed target resolves through the text path as Phase 2 leaves it (design §3.2). |
+| MAINT-53-09 | **No typed lookup inside the file's own build** | M | Full | While a file's snapshot is under construction, a dot member in it resolves through the text path and a suffixed colon call resolves to nothing. Neither answer is cached. |
+| MAINT-53-10 | **Corpus moves only as measured** | S | Full | Baselines move by the DR-05 per-phase deltas and no others. |
 
 ## Test Cases
 

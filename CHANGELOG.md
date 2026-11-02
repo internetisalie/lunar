@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A member resolves through its receiver's type** (BUG-508, BUG-516). `M.clear()` now goes to the
+  `function M.clear` of the table `M` holds, including a required module's, and no longer to every
+  file's `function M.clear`, so a library's deprecated member no longer flags a project's own function.
+  `io.stdout:close()` and any colon call on a typed field such as `a.b:m()` resolve to the method the
+  receiver's type declares. A member of a local initialised from a table constructor matches only
+  declarations in the same file; any other member whose receiver has no type resolves by name as before.
+
 - **A member name is never resolved as a variable** (BUG-490, BUG-512). `m` in `function t:m()` or
   `function t.m()` is no longer counted as a usage of a global function `m`. A member such as
   `config.timeout` no longer binds to a local function `timeout`, or to a global function or a

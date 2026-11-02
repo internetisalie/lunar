@@ -100,6 +100,38 @@ class LuaDeprecatedBareNameThroughRequireTest {
         }
     }
 
+    /**
+     * MAINT-53 TC-22: a member of a `require`d module resolves through the module's returned type, so
+     * another module's same-named (and deprecated) member is not a target.
+     *
+     * **Mutation**: delete `requiredModuleType`'s call in `headType`, or skip `typedTargets`; both
+     * `M.clear` declarations resolve.
+     */
+    @Test
+    fun aMemberOfARequiredModuleResolvesToThatModulesDeclaration() {
+        runInEdtAndWait {
+            myFixture.addFileToProject(
+                "codelens.lua",
+                "local M = {}\n---@deprecated\nfunction M.clear(client_id, bufnr) end\nreturn M\n",
+            )
+            myFixture.addFileToProject("manage.lua", "local M = {}\nfunction M.clear(plugins) end\nreturn M\n")
+            val main = myFixture.addFileToProject("main.lua", "local M = require(\"manage\")\nM.clear()\n")
+            myFixture.configureFromExistingVirtualFile(main.virtualFile)
+
+            val clear =
+                PsiTreeUtil.findChildrenOfType(myFixture.file, LuaNameRef::class.java).single {
+                    it.text ==
+                        "clear"
+                }
+            val targets = (clear.reference as PsiPolyVariantReference).multiResolve(false).mapNotNull { it.element }
+
+            assertEquals(
+                listOf("manage.lua:function M.clear(plugins) end"),
+                targets.map { "${it.containingFile.name}:${it.text}" },
+            )
+        }
+    }
+
     private fun tableKeyTargetsByLine(): Map<Int, List<String>> =
         PsiTreeUtil
             .findChildrenOfType(myFixture.file, LuaNameRef::class.java)

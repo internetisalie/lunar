@@ -84,15 +84,15 @@ Judge the diff against that phase's row in DR-05's baseline table:
 ### Phase 3: Typed resolution (BUG-508, BUG-516) [Must]
 - **Goal**: members resolve through the receiver's type.
 - **Tasks**:
-  - [ ] Create `lang/psi/LuaMemberResolution.kt` — design §2.1, §3.4 to §3.6.
-  - [ ] Edit `lang/LuaNameReference.kt` — design §3.7, including the `declarationIdentifier` KDoc.
-  - [ ] Add TC-09, TC-11 to TC-16, TC-18, TC-23 and TC-24 as `LuaMemberResolutionTest`
+  - [x] Create `lang/psi/LuaMemberResolution.kt` — design §2.1, §3.4 to §3.6.
+  - [x] Edit `lang/LuaNameReference.kt` — design §3.7, including the `declarationIdentifier` KDoc.
+  - [x] Add TC-09, TC-11 to TC-16, TC-18, TC-23 and TC-24 as `LuaMemberResolutionTest`
     (`IndexedBasePlatformTestCase`) under `src/test/kotlin/.../lang/`. TC-13 sets the target as
     [[BUG-516]] §1 does.
-  - [ ] Add TC-22 as a test in `LuaDeprecatedBareNameThroughRequireTest`.
-  - [ ] Replace the "References resolve by qualified name from receiver TEXT" lesson in
+  - [x] Add TC-22 as a test in `LuaDeprecatedBareNameThroughRequireTest`.
+  - [x] Replace the "References resolve by qualified name from receiver TEXT" lesson in
     `.agents/AGENTS.md`.
-  - [ ] Run the gate and commit the recording. Move BUG-508, BUG-516 and MAINT-53 to `done` and delete
+  - [x] Run the gate and commit the recording. Move BUG-508, BUG-516 and MAINT-53 to `done` and delete
     their roadmap rows.
 - **Exit criteria**: TC-09, TC-11 to TC-16, TC-18, TC-19 and TC-22 to TC-24 pass; `LuaTypeGraphRootResolutionBudgetTest`,
   `LuaColonCallCrossFileFanOutTest` and `LuaResolveCacheTest` pass unchanged; Go to Declaration on
@@ -117,8 +117,8 @@ Judge the diff against that phase's row in DR-05's baseline table:
 
 ## Verification Tasks
 
-- [ ] Mutation-prove each TC named in a phase with the `mutation-proof` skill, using the mutation in
+- [x] Mutation-prove each TC named in a phase with the `mutation-proof` skill, using the mutation in
   `requirements.md`.
-- [ ] `ktlintCheck` alone after each phase.
-- [ ] After each phase, set the Status column of the requirements it delivers (coverage table above) to
+- [x] `ktlintCheck` alone after each phase.
+- [x] After each phase, set the Status column of the requirements it delivers (coverage table above) to
   Full.

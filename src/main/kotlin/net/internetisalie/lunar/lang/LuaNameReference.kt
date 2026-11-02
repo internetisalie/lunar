@@ -20,11 +20,13 @@ import net.internetisalie.lunar.lang.psi.LuaFuncNameMethod
 import net.internetisalie.lunar.lang.psi.LuaFuncNameProperty
 import net.internetisalie.lunar.lang.psi.LuaIndexExpr
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaMemberResolution
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaResolveUtil
 import net.internetisalie.lunar.lang.psi.LuaVar
 import net.internetisalie.lunar.lang.psi.LuaVarList
 import net.internetisalie.lunar.lang.psi.LuaVarSuffix
+import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 import net.internetisalie.lunar.project.PlatformLibraryIndex
 import org.jetbrains.annotations.VisibleForTesting
 import java.util.concurrent.atomic.AtomicInteger
@@ -48,21 +50,54 @@ class LuaNameReference(
      * every colon call in that file resolving to nothing. Bypassing the cache costs 2 `WRITE` and 1
      * `READ` root resolutions over 160 consecutive resolutions — BUG-473's `RootMemo` absorbs the
      * repeats (design §3.6 decision 2).
+     *
+     * MAINT-53 holds a dot member to the same rule: while its file's snapshot is under construction it
+     * resolves by text, uncached, so the typed lookup never nests inside the build (TC-18) and a
+     * mid-build answer never outlives it. A suffixed colon call answers nothing in that state (TC-24).
      */
     override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> {
         val hostElement = myElement ?: return ResolveResult.EMPTY_ARRAY
-        if (LuaColonCallResolution.isColonCallMemberName(hostElement)) {
-            val target =
-                LuaColonCallResolution.declarationLeafOf(hostElement)
-                    ?: return ResolveResult.EMPTY_ARRAY
-            return arrayOf(PsiElementResolveResult(target))
+        if (LuaColonCallResolution.isColonCallMemberName(hostElement)) return colonCallResults(hostElement)
+        if (LuaMemberResolution.isMemberName(hostElement) &&
+            LuaTypesVisitor.isSnapshotUnderConstruction(hostElement.containingFile)
+        ) {
+            return resolveByText(incompleteCode)
         }
         return ResolveCache
             .getInstance(hostElement.project)
             .resolveWithCaching(this, RESOLVER, /* needToPreventRecursion = */ false, incompleteCode)
     }
 
+    private fun colonCallResults(hostElement: PsiElement): Array<ResolveResult> {
+        val nameRef = hostElement as? LuaNameRef ?: return ResolveResult.EMPTY_ARRAY
+        if (LuaMemberResolution.isSuffixedColonCall(nameRef)) {
+            if (LuaTypesVisitor.isSnapshotUnderConstruction(nameRef.containingFile)) return ResolveResult.EMPTY_ARRAY
+            return resolveResultsOf(LuaMemberResolution.typedTargets(nameRef))
+        }
+        val target = LuaColonCallResolution.declarationLeafOf(hostElement) ?: return ResolveResult.EMPTY_ARRAY
+        return arrayOf(PsiElementResolveResult(target))
+    }
+
+    /**
+     * The receiver's type answers first for a member name; the text path answers only where the type
+     * declares nothing (MAINT-53-08). A member of a local initialised from a table constructor keeps
+     * same-file text matches only: no other file's `M` is that table (MAINT-53-07).
+     */
     private fun doMultiResolve(incompleteCode: Boolean): Array<ResolveResult> {
+        val nameRef = myElement as? LuaNameRef
+        if (nameRef == null || !LuaMemberResolution.isMemberName(nameRef)) return resolveByText(incompleteCode)
+        val typed = LuaMemberResolution.typedTargets(nameRef)
+        if (typed.isNotEmpty()) return resolveResultsOf(typed)
+        val textResults = resolveByText(incompleteCode)
+        if (!LuaMemberResolution.isConstructedLocalHead(nameRef)) return textResults
+        val hostFile = nameRef.containingFile
+        return textResults.filter { it.element?.containingFile == hostFile }.toTypedArray()
+    }
+
+    private fun resolveResultsOf(targets: List<PsiElement>): Array<ResolveResult> =
+        targets.map { PsiElementResolveResult(it) as ResolveResult }.toTypedArray()
+
+    private fun resolveByText(incompleteCode: Boolean): Array<ResolveResult> {
         RESOLVE_INVOCATIONS.incrementAndGet() // TC-03 observation seam: counts un-cached compute entries.
         val element = myElement ?: return emptyArray()
         val results = mutableListOf<ResolveResult>()
@@ -315,6 +350,10 @@ class LuaNameReference(
      * with `referenceName` taken from a `LuaNameRef`'s IDENTIFIER text, which is never empty. The
      * reasoning lived nowhere in the code before REFACT-01 Phase 2; a grammar change that lets an
      * empty name be indexed is what invalidates it.
+     *
+     * MAINT-53 adds a second source: `LuaMemberResolution.typedTargets` returns a [LuaFuncDecl] from
+     * `LuaMemberDeclarations.declarationOf` for a member found by `resolveMember(nameRef.text)`, so its
+     * name is the reference's non-empty text as well.
      */
     private fun declarationIdentifier(decl: PsiElement): PsiElement? =
         when (decl) {
@@ -357,7 +396,7 @@ class LuaNameReference(
         private val RESOLVER =
             ResolveCache.PolyVariantResolver<LuaNameReference> { ref, incomplete -> ref.doMultiResolve(incomplete) }
 
-        /** TC-03 observation seam: counts entries into [doMultiResolve] (the un-cached compute path). */
+        /** TC-03 observation seam: counts entries into [resolveByText] (the un-cached text path). */
         @VisibleForTesting
         internal val RESOLVE_INVOCATIONS = AtomicInteger()
     }

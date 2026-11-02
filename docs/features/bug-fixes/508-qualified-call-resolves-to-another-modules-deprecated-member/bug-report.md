@@ -3,7 +3,7 @@ id: "BUG-508"
 title: "`M.clear()` resolves to every file's `function M.clear`, including a library module's file-local `M`, so a deprecated library member flags a project's own function"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

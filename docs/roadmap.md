@@ -125,12 +125,10 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
 | TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog; includes the ZeroBrane corpus `wxlua` pin (TARGET-10-12, ex-MAINT-37 Phase 5) | **in_progress** | C | — | — | ✓ |
 | BUG-541 | The zerobrane corpus sweep's `LuaSuspiciousConcatenation` count flickers 19/17 between runs once members are pinned to their real target | todo | S | BUG-515 *(done)* | found in BUG-515 planning: `menu_project.lua:96`/`:136` `nil`-operand hits present in some runs only; main steady at 19; cause not established | ✓ |
-| BUG-516 | A stdlib file method does not resolve through a `---@type File` receiver: `io.stdout:close()` finds no declaration | todo | S | — | — | ✓ |
 | BUG-518 | A deprecated field assignment never warns: the Deprecated API inspection reads no tag on `pkg.x = value` | todo | S | — | found in BUG-513: `---@deprecated` above `pkg.x = 1` gives no warning on a read, global or local; a deprecated function does | ✓ |
 | BUG-519 | A definition library's type snapshots are never pinned, so they rebuild after every edit (stdlib globals such as `error` count as rescued) | todo | S | — | found in TARGET-11 DR-08: all 9 rebuilt Neovim snapshots `pinnable=false`; mechanism read from code; other libraries not measured; does not gate TARGET-11 | ✓ |
 | BUG-505 | `function a.b.c()` members never complete under `a.b.` — the receiver-member index drops two-separator function names | todo | S | — | completes `vim.api.*` / `vim.fn.*` (TARGET-11-08) | ✓ |
 | BUG-507 | A table reached through a field (`---@type`d field, field bound to `require`, nested constructor) offers no members | todo | M | — | completes `vim.uv.*`, `vim.fs.*`, `vim.log.levels.*` (TARGET-11-08) | ✓ |
-| BUG-508 | A qualified call (`M.clear()`) also resolves to a library module's same-named member, so a deprecated library `M.clear` flags the project's own | todo | S | — | removes the residual deprecated-API hits on lazy.nvim with Neovim enabled | ✓ |
 | TYPE-14 | Generics — the LuaLS closed baseline (nested positions, cross-file callees, methods, generic classes, grammar) plus a constraint's bound in the body | **planned** | **M** | TYPE-05 *(done)*, TYPE-10 *(done)*, TYPE-13 *(done)*, MAINT-34 *(done)* | closes BUG-420 | needs a parser regen (local-only) |
 | BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | **TYPE-14** *(Phase 5 closes it — do not fix twice)* | — | ✓ |
 | BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |
@@ -145,7 +143,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-26 | A local assigned `cond and <unknown>` is shown with the type demanded of it | todo | C | — | found planning MAINT-52 (Gap 2.2); the display path of BUG-553 *(done)* | ✓ |
 | BUG-27 | `LuaPrimitiveType.UNKNOWN` carries several meanings, so no producer can be re-spelled alone | todo | C | — | found planning MAINT-52 (Risk 1.1); prerequisite for spelling "cannot model" as `any` at the producers | ✓ |
 | BUG-28 | A second `@class` tag in the same comment block gives its fields to the first class | todo | S | — | found planning MAINT-52 (DR-04 probe d1) | ✓ |
-| MAINT-53 | Resolve members through the receiver's type, not its text — covers BUG-508, BUG-516 | planned | L | — | three phases, one PR each | ✓ |
 | MAINT-54 | Inject known type errors into the corpus to measure what the checker silently skips | todo | M | — | could reopen the redesign question | ✓ |
 | TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |

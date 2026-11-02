@@ -3,7 +3,7 @@ id: "BUG-516"
 title: "A stdlib file method does not resolve through a receiver typed File, so io.stdout:close() finds no declaration"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
