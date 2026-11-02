@@ -140,7 +140,11 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | planned | M | MAINT-40, MAINT-48 | — | ✓ |
 | MAINT-47 | Other IDE families — decide which are supported, add each to `verifyPlugin`, resolve the hard coverage/JSON dependencies, and check each live once | todo | M | — | — | ✓ |
 | MAINT-51 | One declared signature — one function for both checking paths, one optional rule, and `detachedDemand` merged with TYPE-14's copy | todo | M | — | before TYPE-14 | ✓ |
-| MAINT-52 | One rule for how an unknown behaves in a union and a demand | todo | S | — | — | ✓ |
+| MAINT-52 | One rule for how an unknown behaves in a union and a demand | planned | S | — | one phase, one PR | ✓ |
+| BUG-25 | A local's reaching definitions show `any` beside a scalar instead of `any` (`---@type Unres\|string` `local z = 1` shows `number \| any`) | todo | C | — | found planning MAINT-52 (Gap 2.1); display only | ✓ |
+| BUG-26 | A local assigned `cond and <unknown>` is shown with the type demanded of it | todo | C | — | found planning MAINT-52 (Gap 2.2); the display path of BUG-553 *(done)* | ✓ |
+| BUG-27 | `LuaPrimitiveType.UNKNOWN` carries several meanings, so no producer can be re-spelled alone | todo | C | — | found planning MAINT-52 (Risk 1.1); prerequisite for spelling "cannot model" as `any` at the producers | ✓ |
+| BUG-28 | A second `@class` tag in the same comment block gives its fields to the first class | todo | S | — | found planning MAINT-52 (DR-04 probe d1) | ✓ |
 | MAINT-53 | Resolve members through the receiver's type, not its text — covers BUG-508, BUG-516 | planned | L | — | three phases, one PR each | ✓ |
 | MAINT-54 | Inject known type errors into the corpus to measure what the checker silently skips | todo | M | — | could reopen the redesign question | ✓ |
 | TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
