@@ -42,14 +42,16 @@ class LuaJsonSchemaCompletionTest : BasePlatformTestCase() {
         )
     }
 
+    // The association goes after super.tearDown(): removing it first re-types the still-open
+    // test.testcfg, and the fixture's teardown then touches its invalidated PSI (BUG-30).
     override fun tearDown() {
         try {
+            super.tearDown()
+        } finally {
             val fileTypeManager = FileTypeManager.getInstance()
             WriteAction.run<RuntimeException> {
                 fileTypeManager.removeAssociatedExtension(LuaFileType, "testcfg")
             }
-        } finally {
-            super.tearDown()
         }
     }
 

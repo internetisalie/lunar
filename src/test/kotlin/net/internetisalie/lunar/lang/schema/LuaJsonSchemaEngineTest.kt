@@ -53,13 +53,17 @@ class LuaJsonSchemaEngineTest : BasePlatformTestCase() {
         myFixture.enableInspections(LuaJsonSchemaComplianceInspection())
     }
 
+    // The associations go after super.tearDown(), for the reason LuaJsonSchemaCompletionTest gives (BUG-30).
     override fun tearDown() {
-        val fileTypeManager = FileTypeManager.getInstance()
-        WriteAction.run<RuntimeException> {
-            fileTypeManager.removeAssociatedExtension(LuaFileType, "testcfg")
-            fileTypeManager.removeAssociatedExtension(LuaFileType, "testret")
+        try {
+            super.tearDown()
+        } finally {
+            val fileTypeManager = FileTypeManager.getInstance()
+            WriteAction.run<RuntimeException> {
+                fileTypeManager.removeAssociatedExtension(LuaFileType, "testcfg")
+                fileTypeManager.removeAssociatedExtension(LuaFileType, "testret")
+            }
         }
-        super.tearDown()
     }
 
     @Test
