@@ -142,11 +142,13 @@ intellijPlatform {
         // so guard it rather than let patchPluginXml fail.
         changeNotes = providers.gradleProperty("pluginVersion").map { pluginVersion ->
             with(changelog) {
-                renderItem(
-                    (getOrNull(pluginVersion) ?: runCatching { getUnreleased() }.getOrNull() ?: getLatest())
-                        .withHeader(false)
-                        .withEmptySections(false),
-                    Changelog.OutputType.HTML,
+                fitChangeNotes(
+                    renderItem(
+                        (getOrNull(pluginVersion) ?: runCatching { getUnreleased() }.getOrNull() ?: getLatest())
+                            .withHeader(false)
+                            .withEmptySections(false),
+                        Changelog.OutputType.HTML,
+                    ),
                 )
             }
         }
@@ -199,6 +201,27 @@ intellijPlatform {
 intellijPlatformTesting.runIde.register("runIde261") {
     type = IntelliJPlatformType.GoLand
     version = "2026.1.3"
+}
+
+// plugin.xml rejects a <change-notes> longer than 65535 characters (BUG-29), and a milestone block
+// outgrows that as its patches add entries. Keep the newest whole entries and link the rest.
+fun fitChangeNotes(html: String): String {
+    val limit = 65_000
+    if (html.length <= limit) return html
+    val footer = "<p>Earlier changes: <a href=\"https://github.com/internetisalie/lunar/blob/main/CHANGELOG.md\">CHANGELOG.md</a></p>"
+    val budget = limit - footer.length - "</ul>".length
+    var depth = 0
+    var cut = -1
+    for (tag in Regex("</?(ul|ol|li)\\b[^>]*>").findAll(html)) {
+        if (tag.range.last >= budget) break
+        when {
+            !tag.value.startsWith("</") && tag.groupValues[1] != "li" -> depth++
+            tag.value.startsWith("</") && tag.groupValues[1] != "li" -> depth--
+            tag.value == "</li>" && depth == 1 -> cut = tag.range.last + 1
+        }
+    }
+    check(cut > 0) { "No whole change-notes entry fits in $limit characters" }
+    return html.substring(0, cut) + "</ul>" + footer
 }
 
 // Gradle Changelog Plugin configuration.
