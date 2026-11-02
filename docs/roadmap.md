@@ -11,16 +11,15 @@ folders:
 
 > **Durable value = the ordering and dependency edges, not the `Status` column.** Canonical
 > per-feature status is each feature's `requirements.md` front-matter (`status:`); the `Status`
-> here is advisory. Only **open** work is listed — completed waves (0–19) and every row that
+> here is advisory. Only **open** work is listed — completed waves (0–20) and every row that
 > reached `done` are stripped from this file and live in git history (`git log -p docs/roadmap.md`).
 
 > **MVP COMPLETE (2026-07-18).** The product is **feature-complete for MVP** — Wave 18 (SYNTAX-18,
 > MAINT-23, TYPE-10, REDIS-06, ROCKS-16, TOOLING-08) and Wave 19 (codebase-review remediation,
 > MAINT-24 through 32) both shipped and released (v0.19.0 / v0.19.1). Those two completed waves are
 > removed from this roadmap and live in git history. **Remaining work is all post-MVP:** the
-> **Wave 20 follow-ons** (corpus-sweep fixes + the consolidated loose backlog, incl. MAINT-21,
-> the Gradle 9 / GoLand 2026.2 platform bump), the **Wave 21 definition-library
-> stream** (TARGET-07/09/10 and their bug follow-ons), and the **AI epic (Wave 22)**.
+> **Wave 21** stream (definition libraries, type and resolution fixes, and the consolidated
+> backlog) and the **AI epic (Wave 22)**.
 >
 > **Waves map to releases: wave N ships as `v0.N.x`.** Wave 20 → v0.20.0/v0.20.1,
 > Wave 21 → v0.21.0.
@@ -36,6 +35,9 @@ folders:
   feature's own docs, which are canonical. A cell that restates them goes stale on its own: by
   2026-08-22 ANALYSIS-07's `Unblocks` had grown to 886 characters of planning narrative wrapped
   around two edges that were no longer true, both bugs having since been fixed elsewhere.
+- **File new rows in the open wave** — the one whose release line is still shipping (`v0.N.x`
+  for wave N). A wave whose line has shipped its last release is closed: never add rows to it;
+  move its open rows to the next wave and delete its section.
 - **Update `status` to `done`** in the feature's `requirements.md` as you finish; that makes its
   dependents ready.
 - **DoD gate (learned the hard way):** a feature surfacing through a platform extension point
@@ -62,10 +64,44 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 
 ---
 
-## Wave 20 — Corpus sweep & consolidated backlog  *(non-gating; shipped as v0.20.x)*
+## Wave 21 — Definition libraries & resolution correctness  *(shipping as v0.21.x)*
+
+> **Versioning convention: wave N ships as `v0.N.x`.** This wave holds the work released in
+> **v0.21.0** — TARGET-08's on-demand definition libraries and the completion/resolution defects
+> that had to be fixed for them to work — plus the follow-ons that stream is still carrying.
+> It was originally filed under Wave 20 and moved here on 2026-08-04 to restore the convention;
+> the v0.21.0 tag and its published release are unchanged. Wave 20 closed with v0.20.1; the
+> rows filed under it after that release moved here on 2026-11-02.
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| TARGET-07 | Lua 5.5 standard-library stubs | planned | C | SYNTAX-09 *(Lua 5.5, done)* | — | ✓ |
+| ANALYSIS-07 | Value constraints over the CFG — the type engine and the control-flow graph are two flow analyses that never speak | planned | **L** | ANALYSIS-06 *(CFG, done)*, TYPE-08 *(flow-sensitive, done)* | — | — |
+| TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
+| TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog; includes the ZeroBrane corpus `wxlua` pin (TARGET-10-12, ex-MAINT-37 Phase 5) | **in_progress** | C | — | — | ✓ |
+| BUG-541 | The zerobrane corpus sweep's `LuaSuspiciousConcatenation` count flickers 19/17 between runs once members are pinned to their real target | todo | S | BUG-515 *(done)* | found in BUG-515 planning: `menu_project.lua:96`/`:136` `nil`-operand hits present in some runs only; main steady at 19; cause not established | ✓ |
+| BUG-518 | A deprecated field assignment never warns: the Deprecated API inspection reads no tag on `pkg.x = value` | todo | S | — | found in BUG-513: `---@deprecated` above `pkg.x = 1` gives no warning on a read, global or local; a deprecated function does | ✓ |
+| BUG-519 | A definition library's type snapshots are never pinned, so they rebuild after every edit (stdlib globals such as `error` count as rescued) | todo | S | — | found in TARGET-11 DR-08: all 9 rebuilt Neovim snapshots `pinnable=false`; mechanism read from code; other libraries not measured; does not gate TARGET-11 | ✓ |
+| BUG-505 | `function a.b.c()` members never complete under `a.b.` — the receiver-member index drops two-separator function names | todo | S | — | completes `vim.api.*` / `vim.fn.*` (TARGET-11-08) | ✓ |
+| BUG-507 | A table reached through a field (`---@type`d field, field bound to `require`, nested constructor) offers no members | todo | M | — | completes `vim.uv.*`, `vim.fs.*`, `vim.log.levels.*` (TARGET-11-08) | ✓ |
+| TYPE-14 | Generics — the LuaLS closed baseline (nested positions, cross-file callees, methods, generic classes, grammar) plus a constraint's bound in the body | **planned** | **M** | TYPE-05 *(done)*, TYPE-10 *(done)*, TYPE-13 *(done)*, MAINT-34 *(done)* | closes BUG-420 | needs a parser regen (local-only) |
+| BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | **TYPE-14** *(Phase 5 closes it — do not fix twice)* | — | ✓ |
+| BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |
+| BUG-564 | A local declared without a value and assigned inside a `while` loop is reported as an unused local, though it is read | todo | S | — | found triaging BUG-554's corpus movement: 2 lazy.nvim hits (`to`, `url`) that a false *Too few arguments* ERROR had hidden | ✓ |
+| BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
+| BUG-21 | A later reassignment reaches an earlier argument's demand | todo | S | — | found fixing BUG-19: three zerobrane hits | ✓ |
+| MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | planned | M | MAINT-40, MAINT-48 | — | ✓ |
+| MAINT-47 | Other IDE families — decide which are supported, add each to `verifyPlugin`, resolve the hard coverage/JSON dependencies, and check each live once | todo | M | — | — | ✓ |
+| MAINT-51 | One declared signature — one function for both checking paths, one optional rule, and `detachedDemand` merged with TYPE-14's copy | todo | M | — | before TYPE-14 | ✓ |
+| BUG-25 | A local's reaching definitions show `any` beside a scalar instead of `any` (`---@type Unres\|string` `local z = 1` shows `number \| any`) | todo | C | — | found planning MAINT-52 (Gap 2.1); display only | ✓ |
+| BUG-26 | A local assigned `cond and <unknown>` is shown with the type demanded of it | todo | C | — | found planning MAINT-52 (Gap 2.2); the display path of BUG-553 *(done)* | ✓ |
+| BUG-27 | `LuaPrimitiveType.UNKNOWN` carries several meanings, so no producer can be re-spelled alone | todo | C | — | found planning MAINT-52 (Risk 1.1); prerequisite for spelling "cannot model" as `any` at the producers | ✓ |
+| BUG-28 | A second `@class` tag in the same comment block gives its fields to the first class | todo | S | — | found planning MAINT-52 (DR-04 probe d1) | ✓ |
+| MAINT-54 | Inject known type errors into the corpus to measure what the checker silently skips | todo | M | — | could reopen the redesign question | ✓ |
+| TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
+| BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
+| BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
+| BUG-462 | The package detail card strands its loading placeholders, and its description and dependency regions never render | todo | S | — | — | ✓ |
 | MAINT-43 | CI image publish job — build and push `lunar-ci` to tier2 with a monotonic-semver gate; the GAR copy stays manual | todo | S | — | — | ✓ |
 | MAINT-36 | Pre-contract residue — correctness, dead code and contract compliance (July review §4, findings #76–#92) | todo | M | — | — | ✓ |
 | MAINT-41 | Enforce the July review's systemic patterns mechanically (Logger.error on expected failures, PSI outside read actions, PSI in data classes, wildcard imports) | todo | M | — | — | ✓ |
@@ -108,45 +144,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-464 | Ragged requirement tables render the wrong status — 36 rows, 11 files | todo | C | — | REFACT-01's own table rendered **Full** beside "grep is empty"; the durable half is a `lint_docs.py` table-shape check | ✓ |
 | BUG-458 | Safe Delete of a label leaves `::::`, unparseable on every Lua version | todo | C | — | — | ✓ |
 | BUG-460 | Naming two indent options hides tabs/tab-width and suppresses 4 `.editorconfig` properties | todo | C | — | — | ✓ |
-
-## Wave 21 — Definition libraries & resolution correctness  *(shipped as v0.21.0)*
-
-> **Versioning convention: wave N ships as `v0.N.x`.** This wave holds the work released in
-> **v0.21.0** — TARGET-08's on-demand definition libraries and the completion/resolution defects
-> that had to be fixed for them to work — plus the follow-ons that stream is still carrying.
-> It was originally filed under Wave 20 and moved here on 2026-08-04 to restore the convention;
-> the v0.21.0 tag and its published release are unchanged. Wave 20 keeps what actually shipped as
-> v0.20.x (the MAINT-33 corpus sweep and its four fixes) plus the consolidated loose backlog.
-
-| ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TARGET-07 | Lua 5.5 standard-library stubs | planned | C | SYNTAX-09 *(Lua 5.5, done)* | — | ✓ |
-| ANALYSIS-07 | Value constraints over the CFG — the type engine and the control-flow graph are two flow analyses that never speak | planned | **L** | ANALYSIS-06 *(CFG, done)*, TYPE-08 *(flow-sensitive, done)* | — | — |
-| TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
-| TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog; includes the ZeroBrane corpus `wxlua` pin (TARGET-10-12, ex-MAINT-37 Phase 5) | **in_progress** | C | — | — | ✓ |
-| BUG-541 | The zerobrane corpus sweep's `LuaSuspiciousConcatenation` count flickers 19/17 between runs once members are pinned to their real target | todo | S | BUG-515 *(done)* | found in BUG-515 planning: `menu_project.lua:96`/`:136` `nil`-operand hits present in some runs only; main steady at 19; cause not established | ✓ |
-| BUG-518 | A deprecated field assignment never warns: the Deprecated API inspection reads no tag on `pkg.x = value` | todo | S | — | found in BUG-513: `---@deprecated` above `pkg.x = 1` gives no warning on a read, global or local; a deprecated function does | ✓ |
-| BUG-519 | A definition library's type snapshots are never pinned, so they rebuild after every edit (stdlib globals such as `error` count as rescued) | todo | S | — | found in TARGET-11 DR-08: all 9 rebuilt Neovim snapshots `pinnable=false`; mechanism read from code; other libraries not measured; does not gate TARGET-11 | ✓ |
-| BUG-505 | `function a.b.c()` members never complete under `a.b.` — the receiver-member index drops two-separator function names | todo | S | — | completes `vim.api.*` / `vim.fn.*` (TARGET-11-08) | ✓ |
-| BUG-507 | A table reached through a field (`---@type`d field, field bound to `require`, nested constructor) offers no members | todo | M | — | completes `vim.uv.*`, `vim.fs.*`, `vim.log.levels.*` (TARGET-11-08) | ✓ |
-| TYPE-14 | Generics — the LuaLS closed baseline (nested positions, cross-file callees, methods, generic classes, grammar) plus a constraint's bound in the body | **planned** | **M** | TYPE-05 *(done)*, TYPE-10 *(done)*, TYPE-13 *(done)*, MAINT-34 *(done)* | closes BUG-420 | needs a parser regen (local-only) |
-| BUG-420 | A parameterized `@class` parent never resolves, so inheritance through a generic base is lost | todo | C | **TYPE-14** *(Phase 5 closes it — do not fix twice)* | — | ✓ |
-| BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |
-| BUG-564 | A local declared without a value and assigned inside a `while` loop is reported as an unused local, though it is read | todo | S | — | found triaging BUG-554's corpus movement: 2 lazy.nvim hits (`to`, `url`) that a false *Too few arguments* ERROR had hidden | ✓ |
-| BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
-| BUG-21 | A later reassignment reaches an earlier argument's demand | todo | S | — | found fixing BUG-19: three zerobrane hits | ✓ |
-| MAINT-45 | Performance records stored per commit — CTRF counts and timings from `lunar-ci`, counts gate PRs against the merge-base, timings trend over time | planned | M | MAINT-40, MAINT-48 | — | ✓ |
-| MAINT-47 | Other IDE families — decide which are supported, add each to `verifyPlugin`, resolve the hard coverage/JSON dependencies, and check each live once | todo | M | — | — | ✓ |
-| MAINT-51 | One declared signature — one function for both checking paths, one optional rule, and `detachedDemand` merged with TYPE-14's copy | todo | M | — | before TYPE-14 | ✓ |
-| BUG-25 | A local's reaching definitions show `any` beside a scalar instead of `any` (`---@type Unres\|string` `local z = 1` shows `number \| any`) | todo | C | — | found planning MAINT-52 (Gap 2.1); display only | ✓ |
-| BUG-26 | A local assigned `cond and <unknown>` is shown with the type demanded of it | todo | C | — | found planning MAINT-52 (Gap 2.2); the display path of BUG-553 *(done)* | ✓ |
-| BUG-27 | `LuaPrimitiveType.UNKNOWN` carries several meanings, so no producer can be re-spelled alone | todo | C | — | found planning MAINT-52 (Risk 1.1); prerequisite for spelling "cannot model" as `any` at the producers | ✓ |
-| BUG-28 | A second `@class` tag in the same comment block gives its fields to the first class | todo | S | — | found planning MAINT-52 (DR-04 probe d1) | ✓ |
-| MAINT-54 | Inject known type errors into the corpus to measure what the checker silently skips | todo | M | — | could reopen the redesign question | ✓ |
-| TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
-| BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
-| BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
-| BUG-462 | The package detail card strands its loading placeholders, and its description and dependency regions never render | todo | S | — | — | ✓ |
 
 ---
 

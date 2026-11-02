@@ -4,54 +4,54 @@
 
 - **An unknown type is treated the same in a union and in a demand** (MAINT-52). A table is no longer
   reported for missing a field the class declares as `any`, and an argument to an in-file function's
-  `---@param o? unknown` is no longer reported as not assignable to `nil`.
+  `---@param o? unknown` is no longer reported as not assignable to `nil` ([d0668b6f](https://github.com/internetisalie/lunar/commit/d0668b6f)).
 
 - **A member resolves through its receiver's type** (BUG-508, BUG-516). `M.clear()` now goes to the
   `function M.clear` of the table `M` holds, including a required module's, and no longer to every
   file's `function M.clear`, so a library's deprecated member no longer flags a project's own function.
   `io.stdout:close()` and any colon call on a typed field such as `a.b:m()` resolve to the method the
   receiver's type declares. A member of a local initialised from a table constructor matches only
-  declarations in the same file; any other member whose receiver has no type resolves by name as before.
+  declarations in the same file; any other member whose receiver has no type resolves by name as before ([5d6f7e67](https://github.com/internetisalie/lunar/commit/5d6f7e67)).
 
 - **A member name is never resolved as a variable** (BUG-490, BUG-512). `m` in `function t:m()` or
   `function t.m()` is no longer counted as a usage of a global function `m`. A member such as
   `config.timeout` no longer binds to a local function `timeout`, or to a global function or a
   required file's top-level name from another file, and a bare `close()` no longer resolves to a
   required module's `M:close`. Find Usages and rename no longer reach these names, and *Unused local
-  variable* is reported for a local that only shares a member's name.
+  variable* is reported for a local that only shares a member's name ([dccb8b18](https://github.com/internetisalie/lunar/commit/dccb8b18)).
 
 - **A local read after an assignment in a nested block counts as used** (BUG-24). With `local x`
   followed by `x = 1` and `print(x)` inside a `do` block, *Unused local variable* was reported
-  although `x` is read. Lunar now follows the read back through the assignments to the local.
+  although `x` is read. Lunar now follows the read back through the assignments to the local ([7ec1adb7](https://github.com/internetisalie/lunar/commit/7ec1adb7)).
 
 - **Class declarations ask less of tables** (BUG-555, BUG-556, BUG-557, BUG-558). `---@field u
   string?`, `---@type T?` and `---@param p T?` now admit nil, as `u?` and `p?` do. A keyed field such
   as `---@field [string] number` is not required of a table. A `@class` block above a statement no
   longer annotates a statement with its own `@type`, and the table a `@class` annotates need not
-  hold the class's fields. `(A)|B` now keeps `B`.
+  hold the class's fields. `(A)|B` now keeps `B` ([99899d9c](https://github.com/internetisalie/lunar/commit/99899d9c)).
 
 - **Literal types and the remaining LuaCATS forms are read as types** (BUG-22, BUG-560, BUG-561).
   `"a"|"b"`, `1|2` and `true` now read as string, number and boolean, so `io.open("x", 1)` is
   reported. `(A|B)[]` keeps its array and `fun(...any)` its vararg type. An optional parameter of
   an unknown type accepts any argument rather than only nil. The bundled stubs use these forms, so
-  their signatures show `mode?` where they showed `mode`.
+  their signatures show `mode?` where they showed `mode` ([6b7dc397](https://github.com/internetisalie/lunar/commit/6b7dc397)).
 
 - **Every LuaCATS tag reads the same type forms** (BUG-559, BUG-562, BUG-563). String and number
   literals, backticked generics and `fun(...)` were each accepted by some of `@param`, `@return`,
   `@field`, `@type` and `@cast` but not others. `---@param k "a"|"b"` silently lost the parameter's
   type, `---@return 1|2` was a parse error, and `---@cast x fun(...)` read as a class named `fun`.
-  All of these tags now accept the same forms.
+  All of these tags now accept the same forms ([7ae18e34](https://github.com/internetisalie/lunar/commit/7ae18e34)).
 
 - **A function-typed parameter of a global from another file is checked** (BUG-19). With
   `---@param fn fun()` on a global declared in another file or a library, `take(1)` or passing a
   function with required parameters went unreported, though the same mistake was reported in one
-  file. Lunar now checks these arguments at each call.
+  file. Lunar now checks these arguments at each call ([8a10c1e9](https://github.com/internetisalie/lunar/commit/8a10c1e9)).
 
 - **A union with an unresolved member accepts what that member might be** (BUG-16). With
   `---@param opts? Missing.Type | {buffer: boolean}` and no definition of `Missing.Type`, passing
   another table was reported as not assignable, because the unresolved member was dropped from the
   union. Lunar now treats that member as unknown and reports nothing, as it already did for a lone
-  unresolved type.
+  unresolved type ([c220541f](https://github.com/internetisalie/lunar/commit/c220541f)).
 
 - **`function` means any function** (BUG-15). A value declared with the bare `function` type was
   treated as a function with no parameters. Passing a function with required parameters to a
@@ -60,7 +60,7 @@
   when calling one, including after `type(x) == "function"`. The result of such a call is no longer
   treated as `nil`, which also stopped false reports on `coroutine.wrap` iterators. `fun()` still
   means no parameters. Diagnostics, hints and hover show these values as `function` rather than
-  `fun()`.
+  `fun()` ([2382558c](https://github.com/internetisalie/lunar/commit/2382558c)).
 
 - **A method call's arguments are checked against the method's `---@param` types** (BUG-566, BUG-11). A
   call such as `c:m(1, "y")` to a class method declared in another file, in a library or inherited
