@@ -189,9 +189,16 @@ intellijPlatform {
         )
         // The floor (pluginSinceBuild=261) and the compile platform, pinned: recommended() also
         // pulls the newest EAP, so its verdict would move with JetBrains' release calendar.
+        // `-PverifyIde=<version>` verifies one of them: CI runs one matrix leg per IDE.
         ides {
-            create(IntelliJPlatformType.GoLand, "2026.1.3")
-            create(IntelliJPlatformType.GoLand, "2026.2.3")
+            val verifiedVersions = listOf("2026.1.3", "2026.2.3")
+            val requested = providers.gradleProperty("verifyIde").orNull
+            check(requested == null || requested in verifiedVersions) {
+                "verifyIde=$requested is not one of $verifiedVersions"
+            }
+            verifiedVersions
+                .filter { requested == null || it == requested }
+                .forEach { create(IntelliJPlatformType.GoLand, it) }
         }
     }
 }

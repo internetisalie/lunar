@@ -29,7 +29,9 @@ name: Build Plugin
 #     advertises the `ubuntu-latest` label with no Docker daemon behind it and killed the v0.21.6
 #     release. GitHub-hosted runners always have one, so there is nothing to escape and no `act-ci`
 #     label to escape to. The jobs are equivalent in effect — both publish the tested artifact.
-#   - verifyPlugin runs on tags via a step `if:`; Gitea runs it in the tag-only build-release job. Same effect.
+#   - `verify-plugin` has no `needs: changes` (there is no `changes` job here) and gates `release`
+#     rather than the build, because the build and the publish are separate jobs here. Same effect:
+#     no leg red, no release.
 #   - no performance records (MAINT-45): the gate needs the store and lunar-ci's fixed host class.
 #
 # The env-fragile :integrationTest (real GoLand via IDE-Starter) and parser/lexer regeneration are
@@ -114,13 +116,6 @@ jobs:
       - name: Build plugin (compile + distributable zip)
         run: ./gradlew buildPlugin --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
 
-      - name: Verify plugin compatibility (GoLand 2026.1.3 + 2026.2.3)
-        # pluginSinceBuild=261 is a promise to 2026.1 users; this is the step that keeps it
-        # (MAINT-21). Tag builds only: it downloads a second full IDE, which the routine lane on a
-        # cold per-VM pool should not pay on every push.
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: ./gradlew verifyPlugin --no-daemon --stacktrace -PpluginVersion=${{ steps.version.outputs.version }}
-
       - name: Unit tests (excludes :integrationTest)
         # `test` does not trigger :integrationTest (a separate task).
         #
@@ -175,11 +170,47 @@ jobs:
           path: build/reports/tests/
           if-no-files-found: ignore
 
+  # Plugin Verifier, one leg per IDE (tags only). Each leg builds the zip at the tag version and
+  # verifies it against a single IDE, so a leg's failure names the IDE that broke and a new IDE
+  # family (MAINT-47) is one matrix entry. The versions must match build.gradle.kts'
+  # `pluginVerification.ides`, which rejects any other `-PverifyIde`.
+  #
+  # pluginSinceBuild=261 is a promise to 2026.1 users; this is the job that keeps it (MAINT-21).
+  # Tag builds only: each leg downloads a full IDE, which the routine lane should not pay on every
+  # push. `release` needs every leg, so a red leg stops the release before it publishes.
+  verify-plugin:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ide: ['2026.1.3', '2026.2.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Cache Gradle + IntelliJ Platform artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-verify-${{ matrix.ide }}-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-verify-${{ matrix.ide }}-${{ runner.os }}-
+
+      - name: Verify plugin compatibility (GoLand ${{ matrix.ide }})
+        run: ./gradlew verifyPlugin --no-daemon --stacktrace -PpluginVersion=${GITHUB_REF_NAME#v} -PverifyIde=${{ matrix.ide }}
+
   # Publishes a GitHub Release on a v* tag push. `needs: build` gates it on a green build+test, and
   # it reuses the EXACT zip the build tested (download-artifact) rather than rebuilding — so the
   # released bytes are what the suite validated. Marketplace publish (publishPlugin) stays dormant.
   release:
-    needs: build
+    needs: [build, verify-plugin]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
