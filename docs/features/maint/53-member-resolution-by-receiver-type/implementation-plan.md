@@ -62,21 +62,21 @@ Judge the diff against that phase's row in DR-05's baseline table:
 ### Phase 2: Kind (BUG-490, BUG-512) [Must]
 - **Goal**: members and function-name segments are never variables; bare names are never methods.
 - **Tasks**:
-  - [ ] Edit `lang/LuaNameReference.kt` — design §3.2.
-  - [ ] Edit `lang/indexing/LuaFileBindingsIndex.kt` — design §3.3.
-  - [ ] In `LuaColonCallUsageWithdrawalTest.aSameNamedGlobalFunctionLosesTheColonCallSite`, change
+  - [x] Edit `lang/LuaNameReference.kt` — design §3.2.
+  - [x] Edit `lang/indexing/LuaFileBindingsIndex.kt` — design §3.3.
+  - [x] In `LuaColonCallUsageWithdrawalTest.aSameNamedGlobalFunctionLosesTheColonCallSite`, change
     `usageOffsetsAt(9)` to expect `emptyList()`, message `"the method's own name is not a usage"`, and
     update Case 25 (c) in that test's KDoc. Keep the `usageOffsetsAt(41)` assertion.
-  - [ ] In `LuaDeprecatedBareNameThroughRequireTest`, replace the `assertTrue` precondition with
+  - [x] In `LuaDeprecatedBareNameThroughRequireTest`, replace the `assertTrue` precondition with
     `assertFalse(closeResolvesIntoTheModule(), "a bare 'close' does not resolve to M:close's name leaf")`,
     and rewrite the KDoc's last two sentences: the resolution the precondition relied on was BUG-512,
     and the precondition now asserts that it is gone. Import `kotlin.test.assertFalse`, and drop the
     `kotlin.test.assertTrue` import if nothing in the file still uses it.
-  - [ ] Add TC-05 to TC-07 and TC-20 as `LuaMemberKindResolutionTest` (`BasePlatformTestCase`) under
+  - [x] Add TC-05 to TC-07 and TC-20 as `LuaMemberKindResolutionTest` (`BasePlatformTestCase`) under
     `src/test/kotlin/.../lang/`. Add TC-21 as a second test in `LuaDeprecatedBareNameThroughRequireTest`,
     whose harness puts `require` targets on real disk.
-  - [ ] Run the gate and commit the recording.
-  - [ ] Move BUG-490 and BUG-512 to `done` and delete their roadmap rows. Change the
+  - [x] Run the gate and commit the recording.
+  - [x] Move BUG-490 and BUG-512 to `done` and delete their roadmap rows. Change the
     MAINT-53 roadmap row to read "covers BUG-508, BUG-516".
 - **Exit criteria**: TC-04 to TC-08, TC-20 and TC-21 pass; TC-19 at the Phase 2 delta; `CHANGELOG.md`
   entry through the `changelog` skill.

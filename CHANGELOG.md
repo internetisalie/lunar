@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A member name is never resolved as a variable** (BUG-490, BUG-512). `m` in `function t:m()` or
+  `function t.m()` is no longer counted as a usage of a global function `m`. A member such as
+  `config.timeout` no longer binds to a local function `timeout`, or to a global function or a
+  required file's top-level name from another file, and a bare `close()` no longer resolves to a
+  required module's `M:close`. Find Usages and rename no longer reach these names, and *Unused local
+  variable* is reported for a local that only shares a member's name.
+
 - **A local read after an assignment in a nested block counts as used** (BUG-24). With `local x`
   followed by `x = 1` and `print(x)` inside a `do` block, *Unused local variable* was reported
   although `x` is read. Lunar now follows the read back through the assignments to the local.

@@ -3,7 +3,7 @@ id: "BUG-512"
 title: "A name resolves to a declaration of the wrong kind: a bare name to a member, a member to a bare variable"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

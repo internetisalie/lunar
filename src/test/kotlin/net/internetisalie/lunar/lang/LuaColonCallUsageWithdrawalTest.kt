@@ -58,6 +58,8 @@ class LuaColonCallUsageWithdrawalTest : BasePlatformTestCase() {
 
     /**
      * Case 25 (c) — `GLOBAL_FUNCTION`. Nothing about the withdrawal is specific to a file-local kind.
+     * The method declaration's own name `m@41` was listed as a usage of the global until [[BUG-490]]; a
+     * function-name segment takes no bare-name lookup now, so the global has no usage.
      *
      * **Mutation**: as (a) — the search returns `[41, 51]`.
      */
@@ -68,7 +70,7 @@ class LuaColonCallUsageWithdrawalTest : BasePlatformTestCase() {
             "function m() end\nlocal t = {}\nfunction t:m() end\nt:m()\n",
         )
 
-        assertEquals("only the method declaration's own name remains", listOf(41), usageOffsetsAt(9))
+        assertEquals("the method's own name is not a usage", emptyList<Int>(), usageOffsetsAt(9))
         assertEquals("and the method declaration gains the call site", listOf(51), usageOffsetsAt(41))
     }
 

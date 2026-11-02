@@ -125,7 +125,8 @@ class LuaFileBindingsIndex : FileBasedIndexExtension<Int, LuaFileBindingsRecord>
         // binding set (usages no longer recorded) replaces the stale usage-inclusive index.
         // 3 -> 4 (BUG-436): the filter widened, so the index content changed.
         // 4 -> 5 (BUG-550): a chained call's string argument is no longer recorded as a require.
-        const val VERSION: Int = 5
+        // 5 -> 6 (MAINT-53): a method's name is not a file-scope binding.
+        const val VERSION: Int = 6
     }
 }
 
@@ -379,22 +380,13 @@ class LuaFileBindingsIndexer : ForwardIndexer<LuaFileBindingsRecord>() {
             else -> emptyList()
         }
 
-    /** `function foo` → `foo`; `function recv:m` / `recv.m` → the method-qualified leaf as well. */
-
     /** The IDENTIFIER leaf under [element], or null when the parse produced no name node. */
     private fun identifierOf(element: PsiElement): PsiElement? =
         PsiTreeUtil.getChildOfType(element, LuaNameRef::class.java)?.identifier
 
-    private fun funcDeclNameLeaves(decl: LuaFuncDecl): List<PsiElement> {
-        val plain = PsiTreeUtil.getChildOfType(decl, LuaFuncName::class.java)?.nameRef?.identifier
-        val method =
-            PsiTreeUtil
-                .getChildOfType(decl, LuaFuncName::class.java)
-                ?.funcNameMethod
-                ?.nameRef
-                ?.identifier
-        return listOfNotNull(plain, method)
-    }
+    /** `function foo` → `foo`. A method's name, as in `function recv:m`, is not a file-scope binding. */
+    private fun funcDeclNameLeaves(decl: LuaFuncDecl): List<PsiElement> =
+        listOfNotNull(PsiTreeUtil.getChildOfType(decl, LuaFuncName::class.java)?.nameRef?.identifier)
 
     /** Bare global assignment `x = …` declares `x`; a dotted `t.f = …` is owned by the member-field index. */
     private fun assignmentNameLeaves(stmt: LuaAssignmentStatement): List<PsiElement> =

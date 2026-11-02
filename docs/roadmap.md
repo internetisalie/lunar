@@ -93,12 +93,10 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | DEBUG-07 | Lazy Remote Stack Evaluation — confirmed real, low value | todo | C | — | **measured 2026-08-22** (BUG-450 §5b): parse beats serialization at every size, but there is a ~30 ms PSI floor a payload bound cannot cross, and it is off-EDT — realistic case ~125 ms end to end | ✓ |
 | BUG-451 | luacheck `--std` overrides the project's `.luacheckrc`, false warnings on every rockspec and spec file | todo | S | — | one flag disables two mechanisms; user cannot override it | ✓ |
 | BUG-452 | luacheck exit 2 is a lint result, not a crash — the whole report is discarded | todo | S | — | a test pins the defect as intended | ✓ |
-| BUG-490 | A dotted or colon function's own name is counted as a usage of a same-named global function | todo | S | — | BUG-476 closed the lexical half; a test pins the global half as intended; rename corruption inferred, not executed | ✓ |
 | BUG-498 | A class merged with a same-named stdlib class gets its members in a different order from one JVM to the next | todo | S | — | TYPE-12 DR-09: `---@class File` vs the stubs' `io.lua` rendered two ways across 8 JVMs; `materializeClass` is last-write-wins over index order, so a conflicting member's TYPE may also vary (unmeasured) | ✓ |
 | BUG-499 | The sweep naming guard skips nested test classes and classes that only inherit their tests | todo | C | — | `SweepNamingGuardTest` drops `$` names and reads `declaredMethods` only; read, not run | ✓ |
 | BUG-500 | A require of a module name without a dot resolves to any `init.lua` in the project | todo | S | — | MAINT-37 Phase 3b review: the `FilenameIndex` fallback's path-tail filter is skipped for undotted names (`LuaModuleFileResolver`); wrong Ctrl+B target and wrong module type; read, not run | ✓ |
 | BUG-511 | Global completion offers another file's `---@class` local as a bare value, with no `require` | todo | S | — | found in BUG-510's review: since BUG-510, accepting `Iter`/`uv`/`cjson` raises *Undeclared variable* at once; read, not run | ✓ |
-| BUG-512 | A name resolves to a declaration of the wrong kind: a bare name to a member, a member to a bare variable | todo | S | — | found in BUG-504's review: bare `close()` after `require("mod")` resolves to `M:close` (no *Undeclared variable*); `handlers[1].legacy` resolves to a bare global `legacy`; `config.timeout` resolves lexically to a `local timeout`; reproductions executed, root causes read | ✓ |
 | BUG-453 | The human formatter is parsed instead of luacheck's documented editor interface | todo | S | — | escapes in tooltips; a configured formatter yields a silent false-clean | ✓ |
 | BUG-454 | Toggling a breakpoint mid-run deadlocks the debug session | todo | S | — | unanswered SETB held under writeMutex | ✓ |
 | BUG-455 | No run configuration can block a launch — the non-fatal exception tier is thrown | todo | S | — | RuntimeConfigurationError appears zero times in src/ | ✓ |
@@ -143,7 +141,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-47 | Other IDE families — decide which are supported, add each to `verifyPlugin`, resolve the hard coverage/JSON dependencies, and check each live once | todo | M | — | — | ✓ |
 | MAINT-51 | One declared signature — one function for both checking paths, one optional rule, and `detachedDemand` merged with TYPE-14's copy | todo | M | — | before TYPE-14 | ✓ |
 | MAINT-52 | One rule for how an unknown behaves in a union and a demand | todo | S | — | — | ✓ |
-| MAINT-53 | Resolve members through the receiver's type, not its text — covers BUG-508, BUG-512, BUG-516 | planned | L | — | three phases, one PR each | ✓ |
+| MAINT-53 | Resolve members through the receiver's type, not its text — covers BUG-508, BUG-516 | planned | L | — | three phases, one PR each | ✓ |
 | MAINT-54 | Inject known type errors into the corpus to measure what the checker silently skips | todo | M | — | could reopen the redesign question | ✓ |
 | TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |

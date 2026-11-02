@@ -3,7 +3,7 @@ id: "BUG-490"
 title: "A dotted or colon function's own name is counted as a usage of a same-named global function"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

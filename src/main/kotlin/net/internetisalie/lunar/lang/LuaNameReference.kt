@@ -78,27 +78,28 @@ class LuaNameReference(
             return results.toTypedArray()
         }
 
-        // === PHASE 2: External Resolution (unchanged) ===
-        // Only proceed if local resolution failed
-        val platformQuery =
-            VirtualFilesQuery(
-                GlobalSearchScope.allScope(element.project),
-                PlatformLibraryIndex.getPackageFiles(element.project),
-            )
-        val requiresQuery =
-            RequiredFilesQuery(
-                ProjectScope.getProjectScope(element.project),
-                PathConfiguration.getProjectSourcePathPatterns(element.project),
-                (element.containingFile as? LuaFile)?.let { fileRequires(it) } ?: emptyList(),
-            )
-
-        val importedResults = queryFiles(platformQuery, requiresQuery)
-
+        // === PHASE 2: External Resolution ===
+        // Only proceed if local resolution failed. A table key names no file-scope binding (MAINT-53).
         val referenceName = name
+        if (!namesATableKey(element)) {
+            val platformQuery =
+                VirtualFilesQuery(
+                    GlobalSearchScope.allScope(element.project),
+                    PlatformLibraryIndex.getPackageFiles(element.project),
+                )
+            val requiresQuery =
+                RequiredFilesQuery(
+                    ProjectScope.getProjectScope(element.project),
+                    PathConfiguration.getProjectSourcePathPatterns(element.project),
+                    (element.containingFile as? LuaFile)?.let { fileRequires(it) } ?: emptyList(),
+                )
 
-        importedResults.forEach { filesQueryResults ->
-            filesQueryResults.results.forEach { filesQueryResult ->
-                collectFileResults(results, referenceName, filesQueryResult)
+            val importedResults = queryFiles(platformQuery, requiresQuery)
+
+            importedResults.forEach { filesQueryResults ->
+                filesQueryResults.results.forEach { filesQueryResult ->
+                    collectFileResults(results, referenceName, filesQueryResult)
+                }
             }
         }
 
@@ -130,6 +131,8 @@ class LuaNameReference(
             }
             return results.distinctBy { it.element }.toTypedArray()
         }
+
+        if (namesATableKey(element)) return results.distinctBy { it.element }.toTypedArray()
 
         // BUG-510: LuaClassNameIndex and LuaAliasIndex are NOT consulted here. Every entry in them is
         // a `local` that hosts a `---@class`/`---@alias` tag, and a local is never a variable in
@@ -173,14 +176,23 @@ class LuaNameReference(
      * `m` in `function t:m()` or `function t.m()` — is a table key, never a variable, so no local,
      * parameter or function name can be its target. Without this exclusion it captured any
      * same-named binding in scope: `local m = {}; function m:m() end` made the method name a usage
-     * of the local, and renaming the local rewrote the method (BUG-476).
+     * of the local, and renaming the local rewrote the method (BUG-476). A member of an index
+     * expression, `config.timeout`, is a table key in the same way (BUG-512).
      */
     private fun lexicalTargetOf(element: PsiElement): PsiElement? {
-        val segment = element.parent
-        if (segment is LuaFuncNameProperty || segment is LuaFuncNameMethod) return null
+        if (namesATableKey(element)) return null
         val processor = LuaScopeProcessor(name)
         LuaResolveUtil.scopeCrawlUp(processor, element)
         return processor.result
+    }
+
+    /**
+     * True when [element] is a table key — a function-name segment after the head, or a member of an
+     * index expression — and so never a variable: no lexical, bare-name or file-binding answer applies.
+     */
+    private fun namesATableKey(element: PsiElement): Boolean {
+        val segment = element.parent
+        return segment is LuaFuncNameProperty || segment is LuaFuncNameMethod || segment is LuaIndexExpr
     }
 
     /**
