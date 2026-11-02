@@ -544,7 +544,8 @@ jobs:
   # the only reason the release needed an artifact service at all — see the publish section at
   # the bottom of this job.
   build-release:
-    needs: [changes, verify-plugin]
+    # `corpus` too: a red corpus sweep on the tag must stop the publish, not just mark the run red.
+    needs: [changes, verify-plugin, corpus]
     if: startsWith(github.ref, 'refs/tags/v')
     # act-ci, for the reason spelled out on `release` below — and learned the hard way. Moving only
     # `release` off ubuntu-latest was not enough: on v0.21.6's second attempt THIS job drew
