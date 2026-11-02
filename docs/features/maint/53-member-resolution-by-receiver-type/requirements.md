@@ -41,7 +41,7 @@ DR-02 (cost), DR-03 (recursion).
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-53-01 | **Read through a reassignment uses the local** | M | Not Implemented | A local read only through a reassignment in a nested block is not reported unused. BUG-24. |
+| MAINT-53-01 | **Read through a reassignment uses the local** | M | Full | A local read only through a reassignment in a nested block is not reported unused. BUG-24. |
 | MAINT-53-02 | **A function-name segment is not a usage** | M | Not Implemented | `m` in `function t:m()` or `function t.m()` never resolves to a global `m`. BUG-490. |
 | MAINT-53-03 | **A member is never a variable** | M | Not Implemented | A member name or function-name segment does not resolve to a local, a bare global, or a file-scope binding of a required or platform file. BUG-512 (B), (C). |
 | MAINT-53-04 | **A bare name is not a method** | M | Not Implemented | A bare `close()` does not resolve to a required module's `M:close`. BUG-512 (A). |

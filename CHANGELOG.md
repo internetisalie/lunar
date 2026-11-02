@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A local read after an assignment in a nested block counts as used** (BUG-24). With `local x`
+  followed by `x = 1` and `print(x)` inside a `do` block, *Unused local variable* was reported
+  although `x` is read. Lunar now follows the read back through the assignments to the local.
+
 - **Class declarations ask less of tables** (BUG-555, BUG-556, BUG-557, BUG-558). `---@field u
   string?`, `---@type T?` and `---@param p T?` now admit nil, as `u?` and `p?` do. A keyed field such
   as `---@field [string] number` is not required of a table. A `@class` block above a statement no

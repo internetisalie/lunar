@@ -199,4 +199,47 @@ class LuaUnusedLocalInspectionTest : BasePlatformTestCase() {
             "Unused local variable 'x'", // The outer x is unused
         )
     }
+
+    /** MAINT-53 TC-01 (BUG-24): a read beside an assignment in a nested block uses the outer local. */
+    @Test
+    fun testReadAfterAssignmentInNestedBlockNotFlagged() {
+        assertNoUnused(
+            """
+            local x
+            do
+                x = 1
+                print(x)
+            end
+            """.trimIndent(),
+        )
+    }
+
+    /** MAINT-53 TC-02 (BUG-24): the read reaches the local through more than one reassignment. */
+    @Test
+    fun testReadThroughTwoNestedAssignmentsNotFlagged() {
+        assertNoUnused(
+            """
+            local x
+            do
+                x = 1
+                do
+                    x = 2
+                    print(x)
+                end
+            end
+            """.trimIndent(),
+        )
+    }
+
+    /** MAINT-53 TC-03 (BUG-24): a local that is only written is still reported. */
+    @Test
+    fun testAssignedOnlyLocalStillFlaggedAfterFollowingWrites() {
+        assertUnused(
+            """
+            local x
+            x = 1
+            """.trimIndent(),
+            "Unused local variable 'x'",
+        )
+    }
 }

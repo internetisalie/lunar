@@ -51,11 +51,11 @@ Judge the diff against that phase's row in DR-05's baseline table:
 ### Phase 1: Reads through reassignment (BUG-24) [Must]
 - **Goal**: `LuaUnusedLocalInspection` stops reporting a local read after a reassignment.
 - **Tasks**:
-  - [ ] File the BUG-24 report with `report-bug`. The ID is minted; no report exists. It opens and
+  - [x] File the BUG-24 report with `report-bug`. The ID is minted; no report exists. It opens and
     closes in this PR, so it gets no roadmap row.
-  - [ ] Edit `analysis/inspections/LuaUnusedLocalInspection.kt` — design §3.1.
-  - [ ] Add TC-01 to TC-03 to the existing `lang/insight/LuaUnusedLocalInspectionTest.kt`.
-  - [ ] Run the gate and commit the recording. Move BUG-24 to `done`.
+  - [x] Edit `analysis/inspections/LuaUnusedLocalInspection.kt` — design §3.1.
+  - [x] Add TC-01 to TC-03 to the existing `lang/insight/LuaUnusedLocalInspectionTest.kt`.
+  - [x] Run the gate and commit the recording. Move BUG-24 to `done`.
 - **Exit criteria**: TC-01 to TC-03 pass; TC-19 at the Phase 1 delta; `CHANGELOG.md` entry through the
   `changelog` skill.
 

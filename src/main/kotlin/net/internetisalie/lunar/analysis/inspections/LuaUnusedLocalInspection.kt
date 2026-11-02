@@ -6,6 +6,7 @@ import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiPolyVariantReference
@@ -143,12 +144,41 @@ class LuaUnusedLocalInspection : LocalInspectionTool() {
         val used = mutableSetOf<PsiElement>()
         for (usage in usages) {
             if (usage.identifier.text !in declNames) continue
-            val reference = usage.reference as? PsiPolyVariantReference ?: continue
-            for (result in reference.multiResolve(false)) {
-                val target = result.element ?: continue
-                if (target in declLeaves) used.add(target)
-            }
+            markUsed(usage, declLeaves, used)
         }
         return used
     }
+
+    /**
+     * Follows a read to the declaration it uses. A read beside an assignment in a block nested under the
+     * local binds to that assignment's name leaf, so the walk continues from that write target.
+     */
+    private fun markUsed(
+        usage: LuaNameRef,
+        declLeaves: Set<PsiElement>,
+        used: MutableSet<PsiElement>,
+    ) {
+        val seen = mutableSetOf<PsiElement>()
+        var frontier = targetsOf(usage)
+        while (frontier.isNotEmpty()) {
+            val next = mutableListOf<PsiElement>()
+            for (target in frontier) {
+                ProgressManager.checkCanceled()
+                if (!seen.add(target)) continue
+                if (target in declLeaves) {
+                    used.add(target)
+                    continue
+                }
+                val write = target.parent as? LuaNameRef ?: continue
+                if (isSimpleWriteTarget(write)) next += targetsOf(write)
+            }
+            frontier = next
+        }
+    }
+
+    private fun targetsOf(nameRef: LuaNameRef): List<PsiElement> =
+        (nameRef.reference as? PsiPolyVariantReference)
+            ?.multiResolve(false)
+            ?.mapNotNull { it.element }
+            .orEmpty()
 }
