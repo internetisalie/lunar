@@ -49,9 +49,14 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
+  # A manual run rehearses the tag lane's gates on any branch without cutting a release: it runs
+  # `verify-plugin` and skips the routine build (the PR already gates it). Nothing publishes —
+  # the release jobs stay tag-only.
+  workflow_dispatch:
 
 jobs:
   build:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -176,10 +181,10 @@ jobs:
   # `pluginVerification.ides`, which rejects any other `-PverifyIde`.
   #
   # pluginSinceBuild=261 is a promise to 2026.1 users; this is the job that keeps it (MAINT-21).
-  # Tag builds only: each leg downloads a full IDE, which the routine lane should not pay on every
-  # push. `release` needs every leg, so a red leg stops the release before it publishes.
+  # Tags and manual runs only: each leg downloads a full IDE, which the routine lane should not pay
+  # on every push. A manual run keeps gradle.properties' version, since a branch name is not one. `release` needs every leg, so a red leg stops the release before it publishes.
   verify-plugin:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -204,7 +209,10 @@ jobs:
           restore-keys: gradle-verify-${{ matrix.ide }}-${{ runner.os }}-
 
       - name: Verify plugin compatibility (GoLand ${{ matrix.ide }})
-        run: ./gradlew verifyPlugin --no-daemon --stacktrace -PpluginVersion=${GITHUB_REF_NAME#v} -PverifyIde=${{ matrix.ide }}
+        run: |
+          VERSION_ARG=""
+          case "$GITHUB_REF" in refs/tags/v*) VERSION_ARG="-PpluginVersion=${GITHUB_REF_NAME#v}" ;; esac
+          ./gradlew verifyPlugin --no-daemon --stacktrace $VERSION_ARG -PverifyIde=${{ matrix.ide }}
 
   # Publishes a GitHub Release on a v* tag push. `needs: build` gates it on a green build+test, and
   # it reuses the EXACT zip the build tested (download-artifact) rather than rebuilding — so the

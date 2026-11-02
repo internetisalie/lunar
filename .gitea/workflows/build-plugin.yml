@@ -36,6 +36,10 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
+  # A manual run rehearses the tag lane's gates on any branch without cutting a release: it runs
+  # `verify-plugin` and `corpus` and skips the routine build (the PR already gates it). Nothing publishes —
+  # the release jobs stay tag-only.
+  workflow_dispatch:
 
 jobs:
   # Gitea's act_runner (1.26.x) does NOT honor the on.push `paths-ignore` filter above — this
@@ -135,7 +139,7 @@ jobs:
   # actions/cache, which this executor does not implement, so it runs on act-ci instead.
   build:
     needs: changes
-    if: ${{ needs.changes.outputs.code == 'true' && !startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ needs.changes.outputs.code == 'true' && !startsWith(github.ref, 'refs/tags/v') && github.event_name != 'workflow_dispatch' }}
     runs-on: lunar-ci
     env:
       # The pool mounts a node-local hostPath at /cache (ci.cacheHostPath) that outlives
@@ -377,7 +381,7 @@ jobs:
   # full-run baseline by design and would fail as a phantom regression.
   corpus:
     needs: changes
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/v') || needs.changes.outputs.corpus == 'true' }}
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' || needs.changes.outputs.corpus == 'true' }}
     runs-on: lunar-ci
     # NO container: override — this job takes the pool's tagless label exactly as `build`
     # does, so a newer job image reaches it the moment one is published.
@@ -506,11 +510,11 @@ jobs:
   # `pluginVerification.ides`, which rejects any other `-PverifyIde`.
   #
   # pluginSinceBuild=261 is a promise to 2026.1 users; this is the job that keeps it (MAINT-21).
-  # Tag builds only: each leg downloads a full IDE, which the routine lane should not pay on every
-  # push. `build-release` needs every leg, so a red leg stops the release before it publishes.
+  # Tags and manual runs only: each leg downloads a full IDE, which the routine lane should not pay
+  # on every push. A manual run keeps gradle.properties' version, since a branch name is not one. `build-release` needs every leg, so a red leg stops the release before it publishes.
   verify-plugin:
     needs: changes
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: act-ci
     strategy:
       fail-fast: false
@@ -535,7 +539,10 @@ jobs:
           restore-keys: gradle-verify-${{ matrix.ide }}-${{ runner.os }}-
 
       - name: Verify plugin compatibility (GoLand ${{ matrix.ide }})
-        run: ./gradlew verifyPlugin --no-daemon --stacktrace -PpluginVersion=${GITHUB_REF_NAME#v} -PverifyIde=${{ matrix.ide }}
+        run: |
+          VERSION_ARG=""
+          case "$GITHUB_REF" in refs/tags/v*) VERSION_ARG="-PpluginVersion=${GITHUB_REF_NAME#v}" ;; esac
+          ./gradlew verifyPlugin --no-daemon --stacktrace $VERSION_ARG -PverifyIde=${{ matrix.ide }}
 
   # The RELEASE lane: builds, tests and publishes, in one job. It cannot run on lunar-ci
   # because it needs setup-java and actions/cache, which that executor does not implement.
