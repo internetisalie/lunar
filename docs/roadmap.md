@@ -143,7 +143,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-47 | Other IDE families — decide which are supported, add each to `verifyPlugin`, resolve the hard coverage/JSON dependencies, and check each live once | todo | M | — | — | ✓ |
 | MAINT-51 | One declared signature — one function for both checking paths, one optional rule, and `detachedDemand` merged with TYPE-14's copy | todo | M | — | before TYPE-14 | ✓ |
 | MAINT-52 | One rule for how an unknown behaves in a union and a demand | todo | S | — | — | ✓ |
-| MAINT-53 | Resolve members through the receiver's type, not its text — covers BUG-508, BUG-512, BUG-516 | todo | L | — | needs planning | ✓ |
+| MAINT-53 | Resolve members through the receiver's type, not its text — covers BUG-508, BUG-512, BUG-516 | planned | L | — | three phases, one PR each | ✓ |
 | MAINT-54 | Inject known type errors into the corpus to measure what the checker silently skips | todo | M | — | could reopen the redesign question | ✓ |
 | TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
