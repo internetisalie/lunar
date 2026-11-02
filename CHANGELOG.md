@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Generic functions no longer report their own type parameter** (TYPE-14). A call to a function
+  annotated with `@generic` — a global from another file, a method, or a parameter written `T|nil` or
+  `fun(a: T)` — no longer raises *string is not assignable to T*, and a `@generic T : Base` parameter no
+  longer reports *T is not assignable* where its fields are read. `T` is now recognised inside `T[]`,
+  `T|nil`, `fun(...)` and `table<K, V>`.
 - **A declared parameter is checked by one rule** (MAINT-51). An argument that may be `nil` on some
   paths, or an array or record with `nil` among its element or field types, is no longer reported
   against a parameter declared as a union. A `?` parameter accepts `nil` and its declared type the same

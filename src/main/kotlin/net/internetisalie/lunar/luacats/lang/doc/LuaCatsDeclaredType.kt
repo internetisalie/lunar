@@ -3,6 +3,7 @@ package net.internetisalie.lunar.luacats.lang.doc
 import net.internetisalie.lunar.lang.psi.types.LuaPrimitiveType
 import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsParamTag
 
 /**
@@ -65,8 +66,8 @@ object LuaCatsDeclaredType {
      * collected here rather than left to fail. Mirrors `LuaTypeGraphBridge`'s generic handling.
      */
     private fun genericNames(comment: LuaCatsComment): Set<String> =
-        comment.genericTagList
-            .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
-            .map { it.argName.text }
+        LuaCatsDeclarations
+            .genericParameters(comment)
+            .map { it.name }
             .toSet() + "self"
 }

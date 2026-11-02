@@ -113,4 +113,22 @@ object LuaTypeAlgebra {
      * (BUG-416), so it never decides whether the value fits a demand.
      */
     fun informativeArms(union: LuaGraphType.Union): List<LuaGraphType> = union.types.filter { it != LuaGraphType.Nil }
+
+    /**
+     * How a symbolic [LuaGraphType.Generic] takes part in a compatibility check (TYPE-14-02): null when
+     * the pair is compatible with nothing further to check, else the pair to check instead. An
+     * unbound parameter on either side is never a defect; a bounded one stands for its bound.
+     */
+    fun genericStep(
+        value: LuaGraphType,
+        use: LuaGraphType,
+    ): Pair<LuaGraphType, LuaGraphType>? {
+        val valueBound = (value as? LuaGraphType.Generic)?.let { it.bound ?: return null }
+        val useBound = (use as? LuaGraphType.Generic)?.let { it.bound ?: return null }
+        return when {
+            valueBound != null -> valueBound to use
+            useBound != null -> value to useBound
+            else -> null
+        }
+    }
 }

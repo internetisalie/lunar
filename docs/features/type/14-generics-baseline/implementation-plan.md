@@ -51,6 +51,11 @@ placeholder, and a placeholder that reaches the checker never reports. No instan
   delete the `isCompatible` arm → the union-distribution error returns.
 - The DR-01 fixtures B, C, D, F, G and I, each asserting `getErrors()` contains no message with a
   generic name — the whole "false error" column of requirements "What the engine does today".
+  Fixtures B and I are run with `local xs` rather than DR-01's `local xs = {}`: the constructor
+  assigned to `string[]` is BUG-481's own false error, and with `T[]` in the demand its message
+  names `T[]` without being a symbolic-generic defect (the identical error appears for a plain
+  `string[]` parameter). Fixture I already passes on the unmodified engine (`T[]` collapses to
+  `undefined[]` there); it is a guard, not a red-to-green case.
 - `UnionAndGenericTest`, `TestLuaTypeEngineSafety`, `LuaUnionDistributionTest`,
   `LuaTypeInlayHintsTest` unmodified and green (the TYPE-05 baseline is untouched).
 - `LuaAnnotatedClassDiagnosticsTest` green; **corpus lane** run and re-baselined — the delta must
@@ -213,8 +218,8 @@ inherits with substitution. Closes BUG-420.
 
 ## Verification Tasks
 
-- [ ] `Type14GenericParsingTest` — cases 1–4 (Phase 1)
-- [ ] DR-01 fixture regression file (`Type14FalseErrorRegressionTest`) — the "false error" rows (Phase 1)
+- [x] `Type14GenericParsingTest` — cases 1–4 (Phase 1)
+- [x] DR-01 fixture regression file (`Type14FalseErrorRegressionTest`) — the "false error" rows (Phase 1)
 - [ ] `Type14InstantiationTest` — cases 5–11, 24 (Phases 2, 6)
 - [ ] `Type14ConstraintTest` — cases 19–21 (Phase 3)
 - [ ] `LuaCatsParserTest` additions — cases 13, 14 (Phase 4)
@@ -229,7 +234,7 @@ inherits with substitution. Closes BUG-420.
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Generic-aware parsing and the safety net | todo | Must |
+| Phase 1: Generic-aware parsing and the safety net | done | Must |
 | Phase 2: Recursive instantiation, methods, declared path | todo | Must |
 | Phase 3: Constraints, bound in body, backtick capture | todo | Should |
 | Phase 4: Grammar — type arguments are full types | todo | Must |

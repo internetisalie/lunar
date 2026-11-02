@@ -158,7 +158,8 @@ class LuaTypesSnapshot(
                 val luaTypes = type.types.map { graphTypeToLuaType(it, visited) }.toSet()
                 LuaUnionType(luaTypes).also { visited[type] = it }
             }
-            is LuaGraphType.Generic -> LuaGenericType(type.name)
+            is LuaGraphType.Generic ->
+                LuaGenericType(type.name, type.bound?.let { graphTypeToLuaType(it, visited) }, type.capture)
             // One of the two presentation boundaries where an operator trait becomes the primitive
             // it stands for (BUG-423). Reached for real: both inlay-hint providers type a
             // parameter from its `read` and convert through here, so this is what keeps

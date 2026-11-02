@@ -132,6 +132,21 @@ object LuaCatsDeclarations {
             ?.argType
             ?.text
 
+    /** One `@generic` parameter: its name and the text after `:` of `T : Base`, or null. */
+    data class GenericParameter(
+        val name: String,
+        val boundText: String?,
+    )
+
+    /** Every `@generic` parameter on [comment], in declaration order; a later duplicate name overwrites. */
+    fun genericParameters(comment: LuaCatsComment): List<GenericParameter> =
+        comment.genericTagList
+            .flatMap { it.genericTypeParams?.genericTypeParamList.orEmpty() }
+            .map { GenericParameter(it.argName.text, it.argType?.text?.trim()) }
+            .associateBy { it.name }
+            .values
+            .toList()
+
     /** The first `@alias`'s target type string, or null. */
     fun aliasTarget(comment: LuaCatsComment): String? =
         comment.aliasTagList

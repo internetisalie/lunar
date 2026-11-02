@@ -32,19 +32,32 @@ object LuaTypeGraphBridge {
         return graph.value(element, graphType, declaredOrigin = true)
     }
 
+    /**
+     * Resolves [typeName], reading any name in [typeParameters] as a generic wherever it occurs.
+     *
+     * A string that mentions no parameter keeps the two-way split it always had, nullability included:
+     * `resolveType` answers null for an unresolvable simple name and the callers skip the tag, whereas
+     * [TypeParser.parse] never does, so routing every name through it would inject `Undefined` where
+     * nothing is injected today.
+     */
     private fun resolveTypeWithGenerics(
         typeName: String,
         context: PsiElement,
-        genericNames: Set<String>,
+        typeParameters: Map<String, LuaType?>,
     ): LuaType? {
-        if (typeName in genericNames) return LuaGenericType(typeName)
+        if (TypeParser.mentionsAny(typeName, typeParameters.keys)) {
+            return TypeParser.parse(typeName, context, typeParameters)
+        }
         return if (isSimpleTypeName(typeName)) {
             LuaTypeManager.getInstance(context.project).resolveType(typeName, context)
         } else {
-            // TODO: Pass genericNames to TypeParser once it supports nested generics
             TypeParser.parse(typeName, context)
         }
     }
+
+    /** The `@generic` names on [cats], unconstrained until a bound is read (TYPE-14-11). */
+    private fun typeParametersOf(cats: LuaCatsComment): Map<String, LuaType?> =
+        LuaCatsDeclarations.genericParameters(cats).associate { it.name to null }
 
     /**
      * Processes a `@type` annotation and adds a flow edge from the annotated type into [variable].
@@ -72,14 +85,9 @@ object LuaTypeGraphBridge {
                 ?: classTag?.argType?.text?.trim()
                 ?: return
 
-        val genericNames =
-            cats
-                .getGenericTagList()
-                .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
-                .map { it.argName.text }
-                .toSet()
+        val typeParameters = typeParametersOf(cats)
 
-        val resolvedType = resolveTypeWithGenerics(typeName, context, genericNames) ?: return
+        val resolvedType = resolveTypeWithGenerics(typeName, context, typeParameters) ?: return
 
         val graphType = LuaGraphType.fromLuaType(resolvedType, graph)
 
@@ -117,12 +125,7 @@ object LuaTypeGraphBridge {
         graph: LuaTypeGraph,
         context: PsiElement,
     ) {
-        val genericNames =
-            cats
-                .getGenericTagList()
-                .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
-                .map { it.argName.text }
-                .toSet()
+        val typeParameters = typeParametersOf(cats)
 
         cats.getParamTagList().forEachIndexed { index, paramTag ->
             val paramName = paramTag.argName?.text?.trim() ?: return@forEachIndexed
@@ -132,17 +135,12 @@ object LuaTypeGraphBridge {
             }
             val paramNode = paramNodes.getOrNull(astIndex) ?: return@forEachIndexed
             val typeName = paramTag.argType.text.trim()
-            val resolvedType = resolveTypeWithGenerics(typeName, context, genericNames) ?: return@forEachIndexed
+            val resolvedType = resolveTypeWithGenerics(typeName, context, typeParameters) ?: return@forEachIndexed
 
             val graphType = LuaGraphType.fromLuaType(resolvedType, graph)
-            // For generics, we must inject both a source and a sink so that the variable's
-            // 'write' type becomes Generic, triggering instantiation at call sites.
-            if (graphType is LuaGraphType.Generic) {
-                graph.addEdge(graph.value(context, graphType, declaredOrigin = true), paramNode)
-            } else {
-                // Also inject the type as a source so it propagates
-                graph.addEdge(graph.value(context, graphType, declaredOrigin = true), paramNode)
-            }
+            // The declared type is also a source, so a generic parameter's 'write' becomes Generic and
+            // triggers instantiation at call sites.
+            graph.addEdge(graph.value(context, graphType, declaredOrigin = true), paramNode)
 
             // Create a UseNode constraint that represents the parameter's declared type
             val demand = LuaTypeAlgebra.parameterDemand(graphType, LuaCatsDeclarations.isOptionalParam(paramTag))
@@ -170,28 +168,18 @@ object LuaTypeGraphBridge {
         graph: LuaTypeGraph,
         context: PsiElement,
     ) {
-        val genericNames =
-            cats
-                .getGenericTagList()
-                .flatMap { it.genericTypeParams?.genericTypeParamList ?: emptyList() }
-                .map { it.argName.text }
-                .toSet()
+        val typeParameters = typeParametersOf(cats)
 
         val descriptors = cats.getReturnTagList().flatMap { it.returnTypeDescriptorList }
         descriptors.forEachIndexed { i, desc ->
             val retNode = returnNodes.getOrNull(i) ?: return@forEachIndexed
             val typeName = desc.argType.text.trim()
-            val resolvedType = resolveTypeWithGenerics(typeName, context, genericNames) ?: return@forEachIndexed
+            val resolvedType = resolveTypeWithGenerics(typeName, context, typeParameters) ?: return@forEachIndexed
 
             val graphType = LuaGraphType.fromLuaType(resolvedType, graph)
-            // For generics, we must inject both a source and a sink so that the variable's
-            // 'write' type becomes Generic, triggering instantiation at call sites.
-            if (graphType is LuaGraphType.Generic) {
-                graph.addEdge(graph.value(context, graphType, declaredOrigin = true), retNode)
-            } else {
-                // Also inject the type as a source so it propagates
-                graph.addEdge(graph.value(context, graphType, declaredOrigin = true), retNode)
-            }
+            // The declared type is also a source, so a generic parameter's 'write' becomes Generic and
+            // triggers instantiation at call sites.
+            graph.addEdge(graph.value(context, graphType, declaredOrigin = true), retNode)
 
             // Create a UseNode constraint that represents the return type requirement
             val useNode = graph.use(context, graphType, declaredDemand = true)

@@ -123,6 +123,18 @@ a generic name only when it is the **whole** type string and otherwise hands the
 | TYPE-14-16 | **A callback slot binds from a sibling argument** | C | For `---@param fn fun(a: T) ---@param t T[]`, a lambda passed as `fn` has its `a` inferred from `t`'s element type when `t` is passed first or second. The LuaLS #1883 shape; the ordering caveat is design §5.12. |
 | TYPE-14-17 | **No regression** | M | The full unit suite (`test --rerun --no-build-cache`), the corpus ratchet (`test -PwithCorpus`) and `LuaAnnotatedClassDiagnosticsTest` pass unchanged except for (a) diagnostics this feature removes (the false-error rows above) and (b) at Phase 5 only, diagnostics added on a corpus member because a generic class that previously did not resolve now does — each such addition is listed in the re-baseline commit with the class that accounts for it. An addition with no such class fails the gate. |
 
+## Implementation Status
+
+Status by phase of the [implementation plan](implementation-plan.md). Phase 1 is delivered; the
+remaining rows are not started.
+
+| ID | Status | Notes |
+|----|--------|-------|
+| TYPE-14-01 | Partial | Phase 1: a `@generic` name parses in every position of a `@param`, `@return` and `@type` expression on the same comment (`TypeParser` threads the names; the engine's `LuaTypeGraphBridge` passes them). Not yet: a class head's own parameters for `@field` and methods (Phase 5), and nested type arguments (Phase 4: today only a bare-name argument is generic-aware). |
+| TYPE-14-02 | Full | Phase 1: `checkCompatibility` and `isCompatible` treat an unbound `Generic` on either side as compatible; a bounded one stands for its bound (inert until Phase 3 produces bounds). `LuaGenericType.isAssignableTo` agrees. |
+| TYPE-14-03 to TYPE-14-16 | Not Implemented | Phases 2 to 6. |
+| TYPE-14-17 | Partial | Phase 1 gate met (suite and corpus: no added diagnostic); re-checked at each later phase. |
+
 ## Detailed Specifications
 
 ### TYPE-14-01: Generic names parse in every position

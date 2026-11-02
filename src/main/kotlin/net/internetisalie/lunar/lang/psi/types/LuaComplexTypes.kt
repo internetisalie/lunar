@@ -76,17 +76,19 @@ class LuaArrayType(
 
 class LuaGenericType(
     override val name: String,
+    /** The `: Base` of `---@generic T : Base`; null when unconstrained. */
+    val bound: LuaType? = null,
+    /** True for the `` `T` `` spelling: the argument's string literal names the class bound to it. */
+    val capture: Boolean = false,
 ) : LuaType {
-    override fun resolveMember(name: String): LuaTypeMember? = null
+    override fun resolveMember(name: String): LuaTypeMember? = bound?.resolveMember(name)
 
-    override fun getMembers(): Map<String, LuaTypeMember> = emptyMap()
+    override fun getMembers(): Map<String, LuaTypeMember> = bound?.getMembers() ?: emptyMap()
 
+    /** A symbolic parameter is not a value that can fail an assignment; a bounded one is its bound. */
     override fun isAssignableTo(other: LuaType): Boolean {
         if (other == LuaPrimitiveType.ANY) return true
-        if (other is LuaUnionType) {
-            return other.types.any { this.isAssignableTo(it) }
-        }
-        return this == other
+        return bound?.isAssignableTo(other) ?: true
     }
 
     override fun toString(): String = name

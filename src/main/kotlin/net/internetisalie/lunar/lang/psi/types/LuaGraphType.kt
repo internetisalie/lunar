@@ -115,6 +115,8 @@ sealed class LuaGraphType {
 
     data class Generic(
         val name: kotlin.String,
+        val bound: LuaGraphType? = null,
+        val capture: kotlin.Boolean = false,
     ) : LuaGraphType()
 
     /**
@@ -236,6 +238,7 @@ sealed class LuaGraphType {
                 }
                 allMembers
             }
+            is Generic -> bound?.getMembers() ?: emptyMap()
             else -> emptyMap()
         }
 
@@ -332,7 +335,7 @@ sealed class LuaGraphType {
                 }
 
                 is LuaGenericType -> {
-                    Generic(type.name)
+                    Generic(type.name, type.bound?.let { fromLuaType(it, graph, visited) }, type.capture)
                 }
 
                 is LuaParameterizedType -> {

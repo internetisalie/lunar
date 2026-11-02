@@ -530,6 +530,21 @@ class LuaTypeGraph {
         if (valueType == LuaGraphType.Any || useType == LuaGraphType.Any) return
         if (valueType == LuaGraphType.Undefined || useType == LuaGraphType.Undefined) return
         if (valueType == useType) return
+        if (valueType is LuaGraphType.Generic || useType is LuaGraphType.Generic) {
+            LuaTypeAlgebra.genericStep(valueType, useType)?.let { (boundValue, boundUse) ->
+                checkCompatibility(
+                    boundValue,
+                    boundUse,
+                    valueElement,
+                    useElement,
+                    visited,
+                    certain,
+                    declaredDemand,
+                    unknownProvenance,
+                )
+            }
+            return
+        }
 
         // Recursion guard for head-to-head structural matching
         if (!visited.add(valueType to useType)) return
@@ -717,6 +732,11 @@ class LuaTypeGraph {
         if (value == LuaGraphType.Any || use == LuaGraphType.Any) return true
         if (value == LuaGraphType.Undefined || use == LuaGraphType.Undefined) return true
         if (value == use) return true
+        if (value is LuaGraphType.Generic || use is LuaGraphType.Generic) {
+            return LuaTypeAlgebra.genericStep(value, use)?.let { (boundValue, boundUse) ->
+                isCompatible(boundValue, boundUse, ctx)
+            } ?: true
+        }
 
         // Safety limits (TYPE-09-P2-04). Both fall through to assume-compatible-ish approximations
         // and must NOT be memoized (they are context-dependent, not genuine structural results).
