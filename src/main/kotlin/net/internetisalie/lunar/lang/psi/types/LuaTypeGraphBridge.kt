@@ -3,7 +3,6 @@ package net.internetisalie.lunar.lang.psi.types
 import com.intellij.psi.PsiElement
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsParamTag
 
 /**
  * Bridge between the Layer-1 [LuaType] system and the graph-internal [LuaGraphType] nodes.
@@ -146,22 +145,12 @@ object LuaTypeGraphBridge {
             }
 
             // Create a UseNode constraint that represents the parameter's declared type
-            val useNode = graph.use(context, demandTypeFor(paramTag, graphType), declaredDemand = true)
+            val demand = LuaTypeAlgebra.parameterDemand(graphType, LuaCatsDeclarations.isOptionalParam(paramTag))
+            val useNode = graph.use(context, demand, declaredDemand = true)
             // Use the graph API to add the edge instead of direct downSet manipulation.
             graph.addEdge(paramNode, useNode)
         }
     }
-
-    /** BUG-552: a `?` parameter accepts nil, so its declared demand is `T|nil`; generics keep their own handling. */
-    private fun demandTypeFor(
-        paramTag: LuaCatsParamTag,
-        graphType: LuaGraphType,
-    ): LuaGraphType =
-        if (LuaCatsDeclarations.isOptionalParam(paramTag) && graphType !is LuaGraphType.Generic) {
-            LuaGraphType.Union.create(listOf(graphType, LuaGraphType.Nil))
-        } else {
-            graphType
-        }
 
     /**
      * Processes `@return` annotations and adds flow edges from annotated types into the

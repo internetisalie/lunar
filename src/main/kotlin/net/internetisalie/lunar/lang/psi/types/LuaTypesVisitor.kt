@@ -21,6 +21,7 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
  */
 class LuaTypesVisitor : LuaRecursiveVisitor() {
     private val graph = LuaTypeGraph()
+    private val signatureCopier = LuaSignatureCopier(graph)
     private val elementNodes: MutableMap<PsiElement, List<TypeNode>> = mutableMapOf()
     private var fileReturnType: LuaGraphType = LuaGraphType.Any
     private val rootReturnNodes: MutableList<VariableNode> = mutableListOf()
@@ -1040,108 +1041,14 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         declared: LuaGraphType.Function,
         argExprs: List<PsiElement>,
     ) {
-        if (!positionsAreUnambiguous(declared, argExprs.size)) return
+        if (!LuaSignatureCopier.positionsAreUnambiguous(declared, argExprs.size)) return
         argExprs.forEachIndexed { index, argExpr ->
-            val param = declared.params.getOrNull(index)?.takeUnless { it.isVararg } ?: return@forEachIndexed
-            val declaredType = detachedDemand(demandTypeOf(param)) ?: return@forEachIndexed
+            val param = declared.params.getOrNull(index) ?: return@forEachIndexed
             val argNode = firstNode(unwrapExpression(argExpr)) ?: return@forEachIndexed
-            graph.addEdge(argNode, graph.use(argExpr, declaredType, declaredDemand = true))
+            val paramUse = signatureCopier.parameterUse(param, argExpr) ?: return@forEachIndexed
+            graph.addEdge(argNode, paramUse)
         }
     }
-
-    /** [type] with its functions copied onto fresh nodes, or null if it holds a table (BUG-19). */
-    private fun detachedDemand(type: LuaGraphType): LuaGraphType? =
-        when (type) {
-            is LuaGraphType.Function -> detachedFunction(type)
-            is LuaGraphType.Table -> null
-            is LuaGraphType.Array -> detachedDemand(type.elementType)?.let { LuaGraphType.Array(it) }
-            is LuaGraphType.Union -> {
-                val members = type.types.map { detachedDemand(it) }
-                if (null in members) null else LuaGraphType.Union.create(members.filterNotNull())
-            }
-            else -> type
-        }
-
-    /**
-     * A copy that keeps the signature's parameters and leaves out its returns: `fun()` has a `nil`
-     * return node, and a callback's return value is not an error against it.
-     */
-    private fun detachedFunction(declared: LuaGraphType.Function): LuaGraphType.Function =
-        declared.copy(
-            params = declared.params.map { it.copy(node = detachedParamNode(it.node)) },
-            returns = emptyList(),
-        )
-
-    /** A fresh node of [shared]'s type, untyped when that type would carry the shared nodes along. */
-    private fun detachedParamNode(shared: VariableNode): VariableNode {
-        val fresh = graph.variable(shared.element)
-        val type = shared.read
-        if (!carriesGraphNodes(type)) {
-            graph.addEdge(graph.value(shared.element, type), fresh)
-        }
-        return fresh
-    }
-
-    /** BUG-552: a `?` parameter accepts nil, so its demand is `T|nil`, the same as `---@param p T|nil`. */
-    private fun demandTypeOf(param: LuaGraphType.Function.Parameter): LuaGraphType =
-        if (param.isOptional) {
-            LuaGraphType.Union.create(listOf(param.node.read, LuaGraphType.Nil))
-        } else {
-            param.node.read
-        }
-
-    /**
-     * Whether [type] embeds graph nodes, and therefore cannot safely be used as a demand here.
-     *
-     * A structural check against such a type does not merely compare: `checkFunctionCompatibility`
-     * and `checkTableCompatibility` **wire edges into the type's own member and parameter nodes**.
-     * Those nodes belong to the memoized seed shared by every call in the file, so a single call
-     * site would rewrite the signature everybody else reads — measured, as
-     * `ExpectedCallbackResolverTest.testTableSortComparatorSlotResolves` going red when the
-     * comparator slot picked up one call's lambda.
-     *
-     * [detachedDemand] copies function types instead (BUG-19). A `---@param w wxWindow` is still
-     * unchecked, because a class table cannot be copied so cheaply.
-     */
-    private fun carriesGraphNodes(type: LuaGraphType): Boolean =
-        when (type) {
-            is LuaGraphType.Function, is LuaGraphType.Table -> true
-            is LuaGraphType.Array -> carriesGraphNodes(type.elementType)
-            is LuaGraphType.Union -> type.types.any { carriesGraphNodes(it) }
-            else -> false
-        }
-
-    /**
-     * Whether argument *positions* can be matched to parameters at all — the guard that keeps
-     * overloaded and optional-parameter calls unreported.
-     *
-     * Requires an exact count and no vararg, which is much stricter than "the arity fits", and
-     * deliberately so. **Measured**: a fits-the-arity rule put 244 false positives on the corpus,
-     * 123 of them from `table.insert` alone:
-     *
-     * ```lua
-     * ---@overload fun(list: table, value: any): nil
-     * ---@param list table
-     * ---@param pos? integer
-     * ---@param value? any
-     * function table.insert(list, pos, value) end
-     *
-     * table.insert(stack, "block start")   -- 2 args, arity fits, position 1 is `pos: integer`
-     * ```
-     *
-     * The caller omitted a *middle* parameter, which positional matching cannot see. Only the
-     * primary signature is modelled — `@overload` never reaches the type engine — so any call that
-     * does not fill every slot is a call the engine cannot align, and aligning it anyway checks
-     * arguments against the wrong parameters. That is the same reasoning that already keeps arity
-     * itself unreported (`testDeclarationTypedCalleeIsNotArityChecked`), applied to types.
-     *
-     * The cost is under-reporting on optional-parameter calls. That is BUG-419's posture, and the
-     * alternative was measured to be worse than the bug being fixed.
-     */
-    private fun positionsAreUnambiguous(
-        declared: LuaGraphType.Function,
-        count: Int,
-    ): Boolean = declared.params.none { it.isVararg } && count == declared.params.size
 
     /** The per-argument expression list for a call (string / exprList / tableConstructor form). */
     private fun argExpressionsOf(nameAndArgs: LuaNameAndArgs): List<PsiElement> {

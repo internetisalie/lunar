@@ -3,7 +3,7 @@ id: "MAINT-51"
 title: "51: One Declared Signature"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -53,12 +53,12 @@ second copy.
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-51-01 | **One parameter demand** | M | Not Implemented | A `?` parameter accepts `nil` and its declared type on all three paths, through `LuaTypeAlgebra.parameterDemand` alone. One mutation of that function turns the per-call, the materialized and the in-file TCs red together. |
-| MAINT-51-02 | **A nil arm is not evidence in either checker** | M | Not Implemented | A value whose only mismatch is a `nil` arm, at any depth, is not reported against a union demand. A non-`nil` mismatch still is. |
-| MAINT-51-03 | **An uncertain nil is not a defect against a union demand** | M | Not Implemented | A `nil` that is one of several reaching definitions is not reported against a union demand without `nil`. A certain `nil` is reported as `nil value is not assignable to <demand>`, whether the demand is a union or not. |
-| MAINT-51-04 | **One per-call copy** | M | Not Implemented | A declaration-typed callee's argument is wired straight into a fresh `declaredDemand` use from `LuaSignatureCopier.parameterUse`, never into the memoized seed's node, so its error stays at ERROR tier, one call cannot rewrite another's signature, and each reaching definition of the argument is checked alone. |
-| MAINT-51-05 | **TYPE-14 calls the copier** | M | Not Implemented | TYPE-14's design §5.8 and plan Phase 2 name `LuaSignatureCopier` for a non-generic parameter, with the text in design §5. |
-| MAINT-51-06 | **The corpus does not move** | S | Not Implemented | The corpus baselines recorded in CI's shape equal MAINT-52's (DR-07). |
+| MAINT-51-01 | **One parameter demand** | M | Full | A `?` parameter accepts `nil` and its declared type on all three paths, through `LuaTypeAlgebra.parameterDemand` alone. One mutation of that function turns the per-call, the materialized and the in-file TCs red together. |
+| MAINT-51-02 | **A nil arm is not evidence in either checker** | M | Full | A value whose only mismatch is a `nil` arm, at any depth, is not reported against a union demand. A non-`nil` mismatch still is. |
+| MAINT-51-03 | **An uncertain nil is not a defect against a union demand** | M | Full | A `nil` that is one of several reaching definitions is not reported against a union demand without `nil`. A certain `nil` is reported as `nil value is not assignable to <demand>`, whether the demand is a union or not. |
+| MAINT-51-04 | **One per-call copy** | M | Full | A declaration-typed callee's argument is wired straight into a fresh `declaredDemand` use from `LuaSignatureCopier.parameterUse`, never into the memoized seed's node, so its error stays at ERROR tier, one call cannot rewrite another's signature, and each reaching definition of the argument is checked alone. |
+| MAINT-51-05 | **TYPE-14 calls the copier** | M | Full | TYPE-14's design §5.8 and plan Phase 2 name `LuaSignatureCopier` for a non-generic parameter, with the text in design §5. |
+| MAINT-51-06 | **The corpus does not move** | S | Full | The corpus baselines recorded in CI's shape equal MAINT-52's (DR-07). |
 | MAINT-51-07 | **Table demands on the per-call path** | W | Future Work | Not this feature (Out of Scope, DR-06). |
 
 ## Test Cases
@@ -100,10 +100,10 @@ The existing `LuaCrossFileFunctionDemandTest`, `LuaMethodArgumentTypeTest`,
 stay unmodified and green.
 
 ## Acceptance Criteria
-- [ ] Every TC above passes, and every mutation in design §6 turns the TCs naming it red with the stated output.
-- [ ] Full suite green on top of merged MAINT-52, with no exemptions: 0 failures, including MAINT-52's `LuaUnknownRuleTest`.
-- [ ] The corpus passes in CI's shape and its recording changes no baseline (TC-18).
-- [ ] `git grep -n "fun demandTypeOf\|fun demandTypeFor\|acceptsNil" -- src/main` prints nothing, and
+- [x] Every TC above passes, and every mutation in design §6 turns the TCs naming it red with the stated output.
+- [x] Full suite green on top of merged MAINT-52, with no exemptions: 0 failures, including MAINT-52's `LuaUnknownRuleTest`.
+- [x] The corpus passes in CI's shape and its recording changes no baseline (TC-18).
+- [x] `git grep -n "fun demandTypeOf\|fun demandTypeFor\|acceptsNil" -- src/main` prints nothing, and
   `git grep -l "fun detachedDemand\|fun carriesGraphNodes\|fun positionsAreUnambiguous" -- src/main`
   prints only `src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaSignatureCopier.kt`.
 

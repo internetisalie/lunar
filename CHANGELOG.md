@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A declared parameter is checked by one rule** (MAINT-51). An argument that may be `nil` on some
+  paths, or an array or record with `nil` among its element or field types, is no longer reported
+  against a parameter declared as a union. A `?` parameter accepts `nil` and its declared type the same
+  way for a global function, a class method and an in-file function. A `nil` that is certain is
+  reported once, as *nil value is not assignable to* the declared type, whether that type is a union or not.
+
 - **An unknown type is treated the same in a union and in a demand** (MAINT-52). A table is no longer
   reported for missing a field the class declares as `any`, and an argument to an in-file function's
   `---@param o? unknown` is no longer reported as not assignable to `nil` ([d0668b6f](https://github.com/internetisalie/lunar/commit/d0668b6f)).

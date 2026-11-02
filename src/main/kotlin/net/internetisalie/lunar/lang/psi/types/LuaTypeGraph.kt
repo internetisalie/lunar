@@ -550,7 +550,7 @@ class LuaTypeGraph {
             // *is* `nil` in Lua, so every branch-dependent value is `T | nil` and demanding the
             // nil arm match the use flagged idiomatic code 1 801 times across one corpus member.
             // The nil arm forgives only itself: the informative arms must still all fit.
-            val informative = valueType.types.filter { it != LuaGraphType.Nil }
+            val informative = LuaTypeAlgebra.informativeArms(valueType)
             // Value(Union(nil | A | B)) ≤ Use(T) iff (A ≤ T AND B ≤ T)
             if (!gradual &&
                 informative.isNotEmpty() &&
@@ -568,10 +568,12 @@ class LuaTypeGraph {
             }
             // Forgiving a nil arm must not ENABLE anything: this pair used to error-and-return, and
             // falling through to the structural loop below would wire member edges on pairs that
-            // never propagated before. Suppressing the error is the entire fix.
+            // never propagated before. Suppressing the error is the entire fix. Asked of the nil
+            // arm alone because isCompatible now forgives it too; a demand that admits nil is the
+            // one that propagated before.
             if (!gradual &&
                 informative.size < valueType.types.size &&
-                !isCompatible(valueType, useType, CompatContext())
+                !isCompatible(LuaGraphType.Nil, useType, CompatContext())
             ) {
                 return
             }
@@ -590,6 +592,23 @@ class LuaTypeGraph {
                         unknownProvenance,
                     )
                 }
+            }
+            return
+        }
+
+        // BUG-416: only a CERTAIN nil is a defect — a literal operand (`nil .. s`) or a variable whose
+        // sole reaching definition is nil. Checked before the union-demand branch so that a union demand
+        // forgives an uncertain nil exactly as a single type does (MAINT-51).
+        if (valueType == LuaGraphType.Nil && !isCompatible(LuaGraphType.Nil, useType, CompatContext())) {
+            if (certain) {
+                reportIncompatible(
+                    useElement,
+                    valueElement,
+                    "nil value is not assignable to ${useType.displayName()}",
+                    declaredDemand,
+                    valueType.displayName(),
+                    unknownProvenance,
+                )
             }
             return
         }
@@ -680,25 +699,6 @@ class LuaTypeGraph {
             return
         }
 
-        if (valueType == LuaGraphType.Nil && useType != LuaGraphType.Nil) {
-            // BUG-416: only a CERTAIN nil is a defect — a literal operand (`nil .. s`) or a
-            // variable whose sole reaching definition is nil. A Nil arriving as one of several
-            // reaching definitions is the not-yet-assigned branch of ordinary Lua, and reporting
-            // it flagged a shipped IDE 959 times.
-            if (certain) {
-                val message = "nil value is not assignable to ${useType.displayName()}"
-                reportIncompatible(
-                    useElement,
-                    valueElement,
-                    message,
-                    declaredDemand,
-                    valueType.displayName(),
-                    unknownProvenance,
-                )
-            }
-            return
-        }
-
         reportIncompatible(
             useElement,
             valueElement,
@@ -746,10 +746,11 @@ class LuaTypeGraph {
         // function recursion reuses ctx unchanged.
         val result =
             when {
-                // A gradual union (Any arm, BUG-397) is compatible with everything — the Any arm
-                // means the value may be exactly the use type at runtime.
+                // A gradual union (Any arm, BUG-397) is compatible with everything. A nil arm is
+                // optionality, not evidence (BUG-416), exactly as in checkCompatibility.
                 value is LuaGraphType.Union ->
-                    LuaGraphType.Any in value.types || value.types.all { isCompatible(it, use, ctx.deeper()) }
+                    LuaGraphType.Any in value.types ||
+                        LuaTypeAlgebra.informativeArms(value).all { isCompatible(it, use, ctx.deeper()) }
                 use is LuaGraphType.Union -> use.types.any { isCompatible(value, it, ctx.deeper()) }
                 // BUG-423. Ordered after the union branches so a union VALUE still distributes
                 // (every arm must satisfy the position), and before the structural ones because a

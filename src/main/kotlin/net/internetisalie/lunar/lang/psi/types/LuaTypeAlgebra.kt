@@ -92,4 +92,25 @@ object LuaTypeAlgebra {
             LuaGraphType.Undefined, LuaGraphType.Any -> true
             else -> false
         }
+
+    /**
+     * The demand a declared parameter places on its argument. A `?` parameter accepts `nil` whether the
+     * argument is omitted or written (BUG-552), so its demand is `T|nil`. A generic `T` is left alone:
+     * binding it is the instantiation's job (TYPE-05).
+     */
+    fun parameterDemand(
+        declared: LuaGraphType,
+        isOptional: Boolean,
+    ): LuaGraphType =
+        if (isOptional && declared !is LuaGraphType.Generic) {
+            LuaGraphType.Union.create(listOf(declared, LuaGraphType.Nil))
+        } else {
+            declared
+        }
+
+    /**
+     * The arms of a union value that are evidence about it: all but `nil`. A `nil` arm is optionality
+     * (BUG-416), so it never decides whether the value fits a demand.
+     */
+    fun informativeArms(union: LuaGraphType.Union): List<LuaGraphType> = union.types.filter { it != LuaGraphType.Nil }
 }

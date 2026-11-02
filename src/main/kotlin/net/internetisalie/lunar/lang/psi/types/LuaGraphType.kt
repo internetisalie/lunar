@@ -415,8 +415,8 @@ sealed class LuaGraphType {
 
         /**
          * A declared signature's parameter node (BUG-566). Its demand is marked declared, so an
-         * argument wired into it at a call reports at ERROR tier, at the argument. An optional
-         * parameter also accepts `nil` (BUG-552). Do not move this demand to the call site:
+         * argument wired into it at a call reports at ERROR tier, at the argument. Its demand is
+         * [LuaTypeAlgebra.parameterDemand], as at a call site ([LuaSignatureCopier.parameterUse]). Do not move this demand to the call site:
          * `addError` de-duplicates on element and message, so the existing HYPOTHESIS would shadow
          * it, and bypassing this node breaks generic binding, which flows through the same edge.
          */
@@ -429,8 +429,7 @@ sealed class LuaGraphType {
             val paramNode = graph.variable(anchor)
             val graphType = fromLuaType(param.type, graph, visited)
             paramNode.upSet.add(graph.value(paramNode.element, graphType))
-            val acceptsNil = param.isOptional
-            val demand = if (acceptsNil) Union.create(listOf(graphType, Nil)) else graphType
+            val demand = LuaTypeAlgebra.parameterDemand(graphType, param.isOptional)
             paramNode.downSet.add(graph.use(paramNode.element, demand, declaredDemand = true))
             return paramNode
         }

@@ -65,13 +65,13 @@ placeholder, and a placeholder that reaches the checker never reports. No instan
    `projectionsOf`, `projectAt` (§5.3, §5.4 — reuse `arrayElementType` for `Elem`), `instantiate`
    (§5.5) and `substitute` (§5.6, with the memoized `Table` materialization). Move
    `instantiationCache` here; delete `LuaTypeGraph.instantiateGeneric` / `doInstantiateGeneric`.
-   Change `arrayElementType`, `positionsAreUnambiguous` and `carriesGraphNodes` in
-   `LuaTypesVisitor` from `private` to `internal` and call them; do not copy them.
+   Change `arrayElementType` in `LuaTypesVisitor` from `private` to `internal`, and call it and
+   `LuaSignatureCopier.positionsAreUnambiguous`; do not copy them.
 2. `LuaTypesVisitor.visitFuncCall` (§4.6): the same-file branch drops its `ValueNode` guard and
    reads the template through `functionTypeOf(calleeNode)` (first `Function` arm of a union); the
    declared branch gains the `containsGeneric` → `apply` route (§5.8), reusing
-   `positionsAreUnambiguous` and `carriesGraphNodes`.
-3. `LuaTypesVisitor` holds one `LuaGenericInstantiation(graph)`.
+   `LuaSignatureCopier`.
+3. `LuaTypesVisitor` holds one `LuaGenericInstantiation(graph, signatureCopier)`.
 
 **Verification:**
 - New `Type14InstantiationTest.kt`: cases 5, 6, 7, 8, 9, 10, 11.

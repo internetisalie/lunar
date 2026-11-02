@@ -229,7 +229,7 @@ which handle the top-level case only ("For Phase 5, we only handle direct Generi
 The cache keyed on `(template, element)` moves with it.
 
 ```kotlin
-internal class LuaGenericInstantiation(private val graph: LuaTypeGraph) {
+internal class LuaGenericInstantiation(private val graph: LuaTypeGraph, private val copier: LuaSignatureCopier) {
     /** True when [type] contains a Generic at any depth (§5.3). */
     fun containsGeneric(type: LuaGraphType, visited: MutableSet<LuaGraphType> = mutableSetOf()): Boolean
     /** A fresh copy of [template] for [call]: new parameter and return nodes, generics bound through
@@ -246,7 +246,7 @@ internal class LuaGenericInstantiation(private val graph: LuaTypeGraph) {
 }
 ```
 
-One instance per `LuaTypesVisitor` (it owns the graph). Threading: inside the snapshot build.
+One instance per `LuaTypesVisitor`, built from its graph and its `LuaSignatureCopier`. Threading: inside the snapshot build.
 
 ### 4.5 `LuaTypeGraphBridge` — passes the names, nothing else
 
@@ -418,7 +418,8 @@ generic name first, then builtin, then `createTypeReference`. Exclusion of the h
 2. `Elem`: `type` is `Array` → recurse into `elementType`; `Union` → the first `Array` arm's element
    (the `arrayElementType` rule at [LuaTypesVisitor.kt:1314](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypesVisitor.kt),
    which is `private` today and becomes `internal` so `LuaGenericInstantiation` can call it —
-   the same visibility change §5.8 makes for `positionsAreUnambiguous` and `carriesGraphNodes`);
+   as [[MAINT-51]] did for
+   `LuaSignatureCopier.positionsAreUnambiguous`);
    else `Undefined`.
 3. `Arm(i)`: a `Union` value bound to a union-typed parameter binds the generic to **the whole
    non-nil value**: `T|nil` against `string` gives `T := string`; against `string|nil` gives
@@ -508,15 +509,16 @@ sits before the memo lookup and returns without storing when either side is a bo
   shared by every call in the file), `argNodes`, `argExprs`, `callResultNodes`.
 - **Steps**:
   1. `inst = instantiate(declared, call)` as §5.5 — but step 2's "else: reuse" and step 3's "else:
-     reuse" become **copy**: a non-generic parameter becomes a fresh `p''` carrying
-     `graph.use(call, p.node.read, declaredDemand = true)` only when `!carriesGraphNodes(p.node.read)`
-     (the BUG-425 rule, [LuaTypesVisitor.kt:1043](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypesVisitor.kt);
-     it and `positionsAreUnambiguous` at `:1078` are `private` today and become `internal`, called
-     from `LuaGenericInstantiation` rather than copied); a non-generic return becomes a fresh `r''`
+     reuse" become **copy**: a non-generic parameter becomes a fresh, untyped
+     `p'' = graph.variable(call)`, because step 2 checks its argument against [[MAINT-51]]'s
+     `LuaSignatureCopier.parameterUse` (which applies the `?` rule and copies function demands) and
+     never wires it into `p'';` a non-generic return becomes a fresh `r''`
      fed by `graph.value(call, r.write, declaredOrigin = true)`.
      So the instantiated function shares **no node** with the seed.
-  2. `apply`: if `positionsAreUnambiguous(declared, argExprs.size)`, for each `i`:
-     `graph.addEdge(argNodes[i], inst.function.params[i].node)`; and for each capture position
+  2. `apply`: if
+     `LuaSignatureCopier.positionsAreUnambiguous(declared, argExprs.size)`, for each `i`: when
+     `containsGeneric(declared.params[i].node.read)`, `graph.addEdge(argNodes[i], inst.function.params[i].node)`;
+     otherwise `copier.parameterUse(declared.params[i], argExprs[i])?.let { graph.addEdge(argNodes[i], it) }`; and for each capture position
      `(i, name)` in `inst.captures`, §5.11. If positions are ambiguous, no parameter edge is added
      (bindings stay unbound, returns resolve to `Undefined`).
   3. For each `j`: `graph.addEdge(inst.function.returns[j], callResultNodes[j])`.

@@ -12,11 +12,6 @@ HYPOTHESIS|nil value is not assignable to { ... }|(1918,1922)|LuaIndexExprImpl
 HYPOTHESIS|string is not assignable to number|(11165,11181)|LuaBinOpExprImpl
 HYPOTHESIS|string is not assignable to number|(11269,11292)|LuaBinOpExprImpl
 HYPOTHESIS|string is not assignable to number|(11339,11346)|LuaBinOpExprImpl
-HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(15299,15301)|LuaNameRefImpl
-HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(17998,18000)|LuaIndexExprImpl
-HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18030,18032)|LuaIndexExprImpl
-HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18069,18071)|LuaIndexExprImpl
-HYPOTHESIS|{ ... } | nil | { ... } is not assignable to { ... }|(18100,18102)|LuaIndexExprImpl
 [elements]
 (10264,11856)|LuaFuncDeclImpl|fun(fmt)|cdd0cdb4ff60c163
 (10291,10294)|LuaNameRefImpl|{ ... }|b1fe665a629d8c0a
