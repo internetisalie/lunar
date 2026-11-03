@@ -62,7 +62,7 @@ placeholder, and a placeholder that reaches the checker never reports. No instan
   contain only removed diagnostics whose message names a generic parameter (TYPE-14-17). A delta
   with any *added* diagnostic fails the phase.
 
-## Phase 2 — Recursive instantiation, methods, and the declared path [Must]
+## Phase 2 — Recursive instantiation and the declared path [Must]
 
 **Goal:** binding through structure, substitution through structure, at both call paths.
 
@@ -79,18 +79,27 @@ placeholder, and a placeholder that reaches the checker never reports. No instan
 3. `LuaTypesVisitor` holds one `LuaGenericInstantiation(graph, signatureCopier)`.
 
 **Verification:**
-- New `Type14InstantiationTest.kt`: cases 5, 6, 7, 8, 9, 10, 11.
+- New `Type14InstantiationTest.kt`: cases 5, 6, 7, 8, 10, 11.
   **Mutation** (5): stop descending into `Array` in `projectionsOf` → `undefined`.
-  **Mutation** (6): return `type` unchanged for `Array` in `substitute` → `undefined[]`.
+  **Mutation** (6): return `type` unchanged for `Array` in `substitute` → `T[]`.
   **Mutation** (7): skip `Arg(i)` paths → `undefined`.
   **Mutation** (8): key the memo on `template` alone → the second call reads a union.
-  **Mutation** (9): restore the `calleeNode is ValueNode` guard → `r` is `undefined`.
-  **Mutation** (10): skip instantiation on the declared branch → both results `undefined`.
-  **Mutation** (11): wire `use(callDemand)` against the seed's signature → the seed's parameter
+  **Mutation** (10): skip instantiation on the declared branch → both results read the seed's `T`.
+  **Mutation** (11): wire a generic argument into the seed's parameter → the seed's parameter
   write becomes a union of the arguments.
+- `Type14InstantiationTest`: a name repeated in a return (`T|T[]`, `table<T, T>`) reads the same
+  binding at every occurrence; the `Param`, `Return`, `Member` and `Arm` paths each bind; and a
+  generic position still checks its argument's shape, same-file and declared (`first(5)` against
+  `---@param xs T[]`).
+  **Mutation** (B1): read each occurrence through the walk's shared `visited` set → `T|T[]` reads
+  `number | undefined[]`. **Mutation** (M3a/M3b): drop the declared-demand edge from `p'` /
+  `parameterUse` from a generic position → the shape error disappears.
+- `Type14InstantiationBudgetTest`: reading the `Elem`, substitution and `Arg(i)` results a second
+  time derives no walk root (the BUG-473 meter, reached through the lazy paths).
+  **Mutation** (M1): materialize a type argument into the file's graph on each read → the second
+  read derives roots.
 - `ExpectedCallbackResolverTest`, `LuaColonCallInferenceWithdrawalTest`, `CrossFileInferenceTest`,
-  `LuaTypeGraphRootResolutionBudgetTest` unmodified and green — the last one is the BUG-473 meter;
-  a lazy node that mints during resolution would move it.
+  `LuaTypeGraphRootResolutionBudgetTest` unmodified and green.
 - Full suite and corpus lane green; the corpus delta contains only removed diagnostics (case 25).
 
 ## Phase 3 — Constraints, the bound in the body, and backtick capture [Should]
@@ -158,8 +167,15 @@ inherits with substitution. Closes BUG-420.
    `funcTypeFromStub` (§4.8).
 6. Close BUG-420: set its `bug-report.md` status to `done` with a pointer to this feature, and
    delete its roadmap row (the roadmap convention).
+7. Generic methods (TYPE-14-04, design §4.6 step 2): in `LuaTypesVisitor.functionTypeOf`, when a
+   `:`/`.` call's site member carries no function at visit time, read the template through the
+   receiver's members — `getMembers()[methodName]` on each arm of the receiver's write, taking the
+   first function arm that `containsGeneric` — once task 5 makes `funcTypeFromStub` generic-aware.
 
 **Verification:**
+- `Type14InstantiationTest` case 9 (generic methods, TYPE-14-04, task 7).
+  **Mutation** (9): drop task 7's receiver-member read from `functionTypeOf`, leaving the site
+  member alone → `r` and `q` are `undefined` (the site member is `undefined` at visit time, Gap 2.4).
 - New `Type14GenericClassTest.kt`: cases 15, 16, 17, 18, 22.
   **Mutation** (15): read `argType.text` in `createStub` → key `Box<T>`. **Mutation** (16): return
   the base's members unsubstituted from `instantiate` → `v` is `undefined`. **Mutation** (17): drop
@@ -201,7 +217,7 @@ inherits with substitution. Closes BUG-420.
 | TYPE-14-01 | M | Phase 1 |
 | TYPE-14-02 | M | Phase 1 |
 | TYPE-14-03 | M | Phase 2 |
-| TYPE-14-04 | M | Phase 2 |
+| TYPE-14-04 | M | Phase 5 |
 | TYPE-14-05 | M | Phase 2 |
 | TYPE-14-06 | M | Phase 5 |
 | TYPE-14-07 | M | Phase 4 |
@@ -220,7 +236,8 @@ inherits with substitution. Closes BUG-420.
 
 - [x] `Type14GenericParsingTest` — cases 1–4 (Phase 1)
 - [x] DR-01 fixture regression file (`Type14FalseErrorRegressionTest`) — the "false error" rows (Phase 1)
-- [ ] `Type14InstantiationTest` — cases 5–11, 24 (Phases 2, 6)
+- [x] `Type14InstantiationTest` — cases 5–8, 10, 11 (Phase 2)
+- [ ] `Type14InstantiationTest` — case 9 (Phase 5), case 24 (Phase 6)
 - [ ] `Type14ConstraintTest` — cases 19–21 (Phase 3)
 - [ ] `LuaCatsParserTest` additions — cases 13, 14 (Phase 4)
 - [ ] `Type14GenericClassTest` — cases 15–18, 22 (Phase 5)
@@ -235,7 +252,7 @@ inherits with substitution. Closes BUG-420.
 | Phase | Status | Priority |
 |-------|--------|----------|
 | Phase 1: Generic-aware parsing and the safety net | done | Must |
-| Phase 2: Recursive instantiation, methods, declared path | todo | Must |
+| Phase 2: Recursive instantiation, declared path | done | Must |
 | Phase 3: Constraints, bound in body, backtick capture | todo | Should |
 | Phase 4: Grammar — type arguments are full types | todo | Must |
 | Phase 5: Generic classes and parameterized parents | todo | Must |

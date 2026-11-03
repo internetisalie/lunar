@@ -22,6 +22,7 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
 class LuaTypesVisitor : LuaRecursiveVisitor() {
     private val graph = LuaTypeGraph()
     private val signatureCopier = LuaSignatureCopier(graph)
+    private val instantiation = LuaGenericInstantiation(graph, signatureCopier)
     private val elementNodes: MutableMap<PsiElement, List<TypeNode>> = mutableMapOf()
     private var fileReturnType: LuaGraphType = LuaGraphType.Any
     private val rootReturnNodes: MutableList<VariableNode> = mutableListOf()
@@ -940,9 +941,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         // library — was not merely demoted, it was never looked at.
         if (calleeNodeRef in declarationTypedNodes) {
             val declared = declaredFunctionOf(calleeNodeRef, nameAndArgs.methodExpr?.nameRef?.text)
+            val argNodes = argExprs.map { firstNode(unwrapExpression(it)) }
             declared?.let {
-                seedDeclaredReturns(it, callResultNodes)
-                demandDeclaredParams(it, argExprs)
+                applyDeclaredSignature(it, LuaGenericInstantiation.DeclaredCall(o, argNodes, argExprs, callResultNodes))
             }
             return
         }
@@ -980,21 +981,42 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 implicitSelf = methodExpr != null,
             )
 
-        // If the callee is a generic function template, instantiate it for this call site.
-        if (calleeNode is ValueNode && calleeNode.write is LuaGraphType.Function) {
-            val funcTemplate = calleeNode.write as LuaGraphType.Function
-            val isGeneric =
-                funcTemplate.params.any { it.node.write is LuaGraphType.Generic } ||
-                    funcTemplate.returns.any { it.write is LuaGraphType.Generic }
-
-            if (isGeneric) {
-                val instantiated = graph.instantiateGeneric(funcTemplate, o)
-                graph.addEdge(graph.value(o, instantiated), graph.use(o, callDemand))
-                return
-            }
+        // TYPE-14: a generic template is instantiated per call site, and the copy meets the demand.
+        val template = functionTypeOf(calleeNode)
+        if (template != null && instantiation.containsGeneric(template)) {
+            val instantiated = instantiation.instantiate(template, o)
+            graph.addEdge(graph.value(o, instantiated.function), graph.use(o, callDemand))
+            return
         }
 
         graph.addEdge(calleeNode, graph.use(o, callDemand))
+    }
+
+    /**
+     * The callee's function type: its write, or the first function arm of a union — the member node a
+     * `:`/`.` callee is rebound to can carry both a placeholder and a declaration (TYPE-14 design §4.6).
+     */
+    private fun functionTypeOf(calleeNode: TypeNode): LuaGraphType.Function? =
+        when (val written = (calleeNode as? ValueNode)?.write) {
+            is LuaGraphType.Function -> written
+            is LuaGraphType.Union -> written.types.firstNotNullOfOrNull { it as? LuaGraphType.Function }
+            else -> null
+        }
+
+    /**
+     * A declared signature at one call: a generic one is instantiated per call (TYPE-14-05), any other
+     * seeds its returns and checks its parameters exactly as before (BUG-397, BUG-425).
+     */
+    private fun applyDeclaredSignature(
+        declared: LuaGraphType.Function,
+        site: LuaGenericInstantiation.DeclaredCall,
+    ) {
+        if (instantiation.containsGeneric(declared)) {
+            instantiation.applyDeclared(declared, site)
+            return
+        }
+        seedDeclaredReturns(declared, site.resultNodes)
+        demandDeclaredParams(declared, site.argExprs)
     }
 
     /**
@@ -1281,17 +1303,6 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             )
     }
 
-    private fun arrayElementType(type: LuaGraphType): LuaGraphType? =
-        when (type) {
-            is LuaGraphType.Array -> type.elementType
-            is LuaGraphType.Union ->
-                type.types
-                    .filterIsInstance<LuaGraphType.Array>()
-                    .firstOrNull()
-                    ?.elementType
-            else -> null
-        }
-
     override fun visitFinalStatement(o: LuaFinalStatement) {
         super.visitFinalStatement(o)
         if (o.text.startsWith("return")) {
@@ -1507,6 +1518,18 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
     companion object {
         internal val KEY: Key<CachedValue<LuaTypes>> = Key.create("LuaTypesSnapshotV3")
+
+        /** The element type of an array, or of a union's first array arm; also TYPE-14's `Elem` projection. */
+        internal fun arrayElementType(type: LuaGraphType): LuaGraphType? =
+            when (type) {
+                is LuaGraphType.Array -> type.elementType
+                is LuaGraphType.Union ->
+                    type.types
+                        .filterIsInstance<LuaGraphType.Array>()
+                        .firstOrNull()
+                        ?.elementType
+                else -> null
+            }
 
         /**
          * TYPE-10: files whose snapshot is being built on the current thread, mapped to their

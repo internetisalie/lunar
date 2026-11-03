@@ -19,7 +19,9 @@ again. That is the exact shape BUG-473 measured at ×5.9 per doubling.
 
 - **Mitigation**: the lazy compute memoizes materializations per distinct instantiated name in a
   map captured by the lambda (§5.6), so the mint happens once per lazy node, not once per read.
-  `LuaTypeGraphRootResolutionBudgetTest` is the gate at Phase 2 and Phase 5.
+  The gate is `Type14InstantiationBudgetTest`, which reads an `Elem` projection, a substitution
+  and a type argument twice and asserts the second read derives no walk root.
+  `LuaTypeGraphRootResolutionBudgetTest` has no `@generic` call and cannot see these paths.
 - **What would make it High**: a class whose instantiated name changes between reads (a binding
   that is itself a union that grows as the walk proceeds). The memo is keyed on the name, so a
   growing union mints once per distinct name it passes through — bounded by the number of arms,
@@ -82,6 +84,37 @@ with a sibling source. Recorded here so it is not mistaken for a §5.12 defect.
 `Box<T>` returned where `T` bound to an anonymous table displays as `Box<{ ... }>` and has no
 members (§8). LuaLS prints an expanded form here (#1856, open). Not a regression: today the
 same call yields `Box<T>` with no members.
+
+### Gap 2.4 — A same-file generic method has no template at its call's visit time — RESOLVED (deferred to Phase 5)
+
+A `:`/`.` call's site member is `undefined` when `visitFuncCall` runs, because member wiring happens
+in `checkTypes`. The receiver's own member is the method `funcTypeFromStub` builds, which carries
+no generic until design §4.8. Requirements case 9 (TYPE-14-04) therefore moves to Phase 5, which
+delivers §4.8; there the template is read through the receiver's members (implementation plan
+Phase 5, task 7).
+
+### Gap 2.5 — Two results of one call read in one walk — KNOWN LIMITATION
+
+A substitution whose bindings the walk has already visited reads `Undefined` (design §5.6, the
+sibling-read rule). The visited set is never popped, so the rule cannot tell a second sibling read
+from a cycle back into the binding. For `---@return T, T[]`, a walk that reads both results, such
+as `{ f(1) }`, keeps the first and drops the second. Reading each result on its own is unaffected.
+
+### Gap 2.6 — A declared call with ambiguous positions reads `undefined[]` — KNOWN LIMITATION
+
+When `positionsAreUnambiguous` fails (a vararg or a multi-value last argument), no argument binds,
+so a `---@return T[]` substitutes an unbound binding and reads `undefined[]` rather than the
+`Undefined` that design §8 gives for an unbound result. A bare `---@return T` reads `Undefined`.
+
+### Gap 2.7 — Placeholders on both sides of the shape check — KNOWN LIMITATION
+
+The shape check of design §5.5 step 2 wires the declared demand's nodes into the argument, as the
+check did before this feature. An argument such as `---@type fun(a: number) local cb` passed to
+`---@param f fun(a: T)` therefore still sees `T` flow into its own parameter's type. Projection
+drops placeholders (§5.4 note), so the binding itself reads `number`. One consequence: inside a
+generic function's body, a binding projected from the function's own `T` reads `Undefined`
+rather than `T`, and an argument typed `T|string` there binds only `string`. No false diagnostic
+follows: a union argument is checked arm by arm, so the `string` arm fails either way.
 
 ## Adjacent defects and gaps found by DR-01, not owned here
 

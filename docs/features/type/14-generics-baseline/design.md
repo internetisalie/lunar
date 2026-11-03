@@ -248,6 +248,14 @@ internal class LuaGenericInstantiation(private val graph: LuaTypeGraph, private 
 
 One instance per `LuaTypesVisitor`, built from its graph and its `LuaSignatureCopier`. Threading: inside the snapshot build.
 
+**As implemented.** `apply` takes its call-site arguments as one `DeclaredCall(call, argNodes,
+argExprs, resultNodes)` and instantiates internally, as `applyDeclared(declared, site)`, to stay
+within the three-argument cap. `captures` arrives with Phase 3. No read mints into the file's graph,
+because the snapshot is read concurrently and a mint would move the BUG-473 revision. Function
+copies are minted when the call is instantiated (§5.6). A type read back out of a name (§5.4 step 5,
+§5.6's `Table` arm) is materialized in a scratch graph (`LuaGraphType.materialize`) and memoized per
+instantiation.
+
 ### 4.5 `LuaTypeGraphBridge` — passes the names, nothing else
 
 `resolveTypeWithGenerics` keeps today's two-way split **whenever the string mentions no type
@@ -286,13 +294,19 @@ have identical arms today and collapse to one statement.
 1. **Declared path** (`calleeNodeRef in declarationTypedNodes`, line 913): after `declaredFunctionOf`,
    `if (instantiation.containsGeneric(declared))` → `apply(instantiate(declared, o), argNodesOf(argExprs), argExprs, callResultNodes)`
    and `return`; else the existing `seedDeclaredReturns` + `demandDeclaredParams`.
-2. **Same-file path**: the generic branch at lines 957-970 drops its `calleeNode is ValueNode`
-   guard. The callee's function type is read as `functionTypeOf(calleeNode)`: `(calleeNode as?
-   ValueNode)?.write as? Function` **or**, for a `VariableNode` (the member node a `:`/`.` callee
-   is rebound to at lines 921-931), the first `Function` arm of `calleeNode.write` (a union when
-   the member has both a placeholder and a declaration flowing in — DR-01 D's `fun(v) | fun(v)`).
-   `isGeneric` becomes `instantiation.containsGeneric(funcTemplate)`. The wiring
+2. **Same-file path**: the callee's function type is read as `functionTypeOf(calleeNode)`, which is
+   the callee's write as a `Function`, or the first `Function` arm of a union. `isGeneric` becomes
+   `instantiation.containsGeneric(funcTemplate)`. The wiring
    `addEdge(value(o, instantiated.function), use(o, callDemand))` is unchanged.
+   **Methods** (TYPE-14-04, Phase 5). A `:`/`.` callee is the site member `methodSiteMember` mints,
+   and at visit time its write is `undefined`: the receiver's member reaches it only in
+   `checkTypes`, through the table check (risks-and-gaps Gap 2.4). So when the site member carries no
+   function, `functionTypeOf` reads the template through the receiver's members instead:
+   `getMembers()[methodName]` on each arm of the receiver's write, taking the first `Function` arm
+   that `containsGeneric`. Reading it per arm is required because `Union.getMembers` merges the arms
+   with `putAll`, which lets a nominal `Box` arm shadow the `{ ... }` arm that holds the in-file
+   template. That member is a generic `Function` only once §4.8's `funcTypeFromStub` reads
+   `@generic`, so this step lands with Phase 5.
 3. **Ordering with TYPE-10** (§5.12): `propagateExpectedLambdaParams` moves after the callee node
    is resolved and receives the call's `Instantiated` (nullable) so a callback slot typed `fun(a: T)`
    can be seeded from `bindings["T"]`.
@@ -410,6 +424,13 @@ generic name first, then builtin, then `createTypeReference`. Exclusion of the h
 - Depth is bounded by the same `MAX_DISTRIBUTION_DEPTH` the checker uses; beyond it the walk stops
   (no binding), never throws.
 
+**As implemented.** A `Table` records `Arg(i)` when argument *i* of its `className` is one of the
+template's generic names. Those names are the ones the structural walk finds. A table's arguments
+are text, so this is the only way to tell `table<K, V>`'s `K` from a class named `K`. Limitation: a
+name that appears only inside type arguments is not bound. `table<K, V> → table<V, K>` therefore stays
+un-instantiated. The walk enters only anonymous tables (`className == null`), because a named class's
+members belong to the class's own scope and not to the function's `@generic` scope.
+
 ### 5.4 Projection — reading a bound type out of an argument's type, lazily
 
 `projectAt(type: LuaGraphType, path: List<Step>, visited): LuaGraphType`:
@@ -437,6 +458,12 @@ generic name first, then builtin, then `createTypeReference`. Exclusion of the h
 Every recursion passes `visited` (BUG-390); the compute is installed as a `LazyValueElement`
 whose `compute` is `{ visited -> projectAt(source.writeWith(visited), path, visited) }`.
 
+**As implemented.** At the end of the path, a projected type drops its `Generic` placeholders: a
+bare `Generic` projects as `Undefined`, and a union loses its `Generic` arms. The argument's type
+can carry the template's own placeholders, because the shape check of §5.5 step 2 wires the
+declared demand's nodes back into the argument. Without the drop, `apply(cb)` with
+`---@type fun(a: number) local cb` binds `T := number | T`.
+
 ### 5.5 Instantiation of a template for one call site (same-file callee)
 
 - **Input**: `template: LuaGraphType.Function` (the callee's write), `call: LuaFuncCall`.
@@ -450,9 +477,10 @@ whose `compute` is `{ visited -> projectAt(source.writeWith(visited), path, visi
        (today's behaviour, unchanged); if `w.capture`, record `captures[i] = w.name`.
      - `containsGeneric(w)`: mint `p' = graph.variable(call)`; for each `(name, paths)` in
        `projectionsOf(w)` and each `path`, `graph.addEdge(graph.lazyValue(call) { v -> projectAt(p'.writeWith(v), path, v) }, bindings[name])`.
-       The instantiated parameter is `Parameter(p', p.name, p.isOptional, p.isVararg)`. No demand
-       is attached to `p'` (the structural shape is checked by the caller's existing wiring against
-       `p`'s own declared use — see step 4).
+       The instantiated parameter is `Parameter(p', p.name, p.isOptional, p.isVararg)`. `p'` takes
+       an edge to each declared-demand use node in `p`'s down set, so the argument is still checked
+       against the parameter's declared shape: `first(5)` against `---@param xs T[]` reports
+       `number is not assignable to T[]`, as it did before this feature.
      - else: the parameter is reused as is (today's behaviour).
   3. For each return `r` at index `j` with `w = r.write`:
      - `w is Generic`: the instantiated return is `bindings[w.name]` (unchanged).
@@ -487,6 +515,20 @@ whose `compute` is `{ visited -> projectAt(source.writeWith(visited), path, visi
   union) falls back to `Table(name)` — memberless, as today, and recorded in §8.
 - `Table` without such a name, and every other kind → returned as is.
 
+**As implemented.** One read of a substitution resolves each binding it mentions once, against a
+copy of the walk's `visited` set as it stood on entry, and every occurrence of the name takes that
+one answer. `visited` is never popped, so reading the same binding a second time in one walk
+would return `Undefined`: `---@return T|T[]` read as `number | undefined[]`, and
+`---@return table<T, T>` as `table<number, undefined>`. The `Function` arm does not mint at read time. When the call is instantiated,
+every generic function in the return is copied onto fresh nodes. Each node is fed by a lazy
+substitution of the original node's write, and the read returns that copy. The `Table` arm
+materializes the resolved name in a scratch graph (§4.4 note). **Sibling-read rule:** a substitution
+whose bindings are already in the walk's `visited` set returns `Undefined`. The walk has then reached
+the lazy value a second time, through the variable it feeds, and contributes nothing, as a revisited
+variable contributes nothing. Because bindings are read through copies of `visited`, the rule fires
+only when the walk passed a binding's node directly (risks-and-gaps Gap 2.5); with the copies in
+place it may be redundant, which is unmeasured.
+
 ### 5.7 Compatibility with a symbolic generic
 
 In both `checkCompatibility` (may emit; wires member edges) and `isCompatible` (boolean):
@@ -518,7 +560,11 @@ sits before the memo lookup and returns without storing when either side is a bo
   2. `apply`: if
      `LuaSignatureCopier.positionsAreUnambiguous(declared, argExprs.size)`, for each `i`: when
      `containsGeneric(declared.params[i].node.read)`, `graph.addEdge(argNodes[i], inst.function.params[i].node)`;
-     otherwise `copier.parameterUse(declared.params[i], argExprs[i])?.let { graph.addEdge(argNodes[i], it) }`; and for each capture position
+     otherwise `copier.parameterUse(declared.params[i], argExprs[i])?.let { graph.addEdge(argNodes[i], it) }`.
+     **As implemented**, `parameterUse` is added for a generic position too, so `first(5)` against
+     a declared `---@param xs T[]` still reports `number is not assignable to T[]`, as it did before
+     this feature. The generic test is `projectionsOf(param.node.write, bindings.keys)` on the
+     parameter's write, not `containsGeneric` on its read; and for each capture position
      `(i, name)` in `inst.captures`, §5.11. If positions are ambiguous, no parameter edge is added
      (bindings stay unbound, returns resolve to `Undefined`).
   3. For each `j`: `graph.addEdge(inst.function.returns[j], callResultNodes[j])`.
@@ -755,7 +801,7 @@ existing `LuaTypeManager` service, the existing stub element types, and the exis
 | TYPE-14-01 | M | §4.1, §4.2, §4.5, §5.1, §5.2 |
 | TYPE-14-02 | M | §3.1 (`isAssignableTo`), §3.2, §4.7, §5.7 |
 | TYPE-14-03 | M | §4.4, §5.3, §5.4, §5.5, §5.6 |
-| TYPE-14-04 | M | §4.6 step 2 |
+| TYPE-14-04 | M | §4.6 step 2 (methods: the receiver-member read, with §4.8) |
 | TYPE-14-05 | M | §4.6 step 1, §5.8 |
 | TYPE-14-06 | M | §3.3, §3.5, §4.8 (`funcTypeFromStub`), §4.9 |
 | TYPE-14-07 | M | §6 |

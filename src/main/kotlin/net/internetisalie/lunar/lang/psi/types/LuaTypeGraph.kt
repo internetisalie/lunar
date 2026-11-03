@@ -212,57 +212,6 @@ class LuaTypeGraph {
         to: VariableNode,
     ) = addEdge(from, to)
 
-    private val instantiationCache = mutableMapOf<Pair<LuaGraphType.Function, PsiElement>, LuaGraphType.Function>()
-
-    /**
-     * Creates a fresh instantiation of a generic function for a specific call site.
-     * Replaces symbolic [LuaGraphType.Generic] nodes with fresh [VariableNode]s.
-     */
-    fun instantiateGeneric(
-        template: LuaGraphType.Function,
-        element: PsiElement,
-    ): LuaGraphType.Function =
-        instantiationCache.getOrPut(template to element) {
-            doInstantiateGeneric(template, element)
-        }
-
-    private fun doInstantiateGeneric(
-        template: LuaGraphType.Function,
-        element: PsiElement,
-    ): LuaGraphType.Function {
-        val substitutionMap = mutableMapOf<String, VariableNode>()
-
-        val instantiatedParams =
-            template.params.map { p ->
-                val pType = p.node.write
-                if (pType is LuaGraphType.Generic) {
-                    val freshVar = substitutionMap.getOrPut(pType.name) { variable(element) }
-                    LuaGraphType.Function.Parameter(freshVar, p.name, p.isOptional, p.isVararg)
-                } else {
-                    // Not generic, but might contain generics (e.g. Union or nested)
-                    // For Phase 5, we only handle direct Generic parameters.
-                    p
-                }
-            }
-
-        val instantiatedReturns =
-            template.returns.map { r ->
-                val rType = r.write
-                if (rType is LuaGraphType.Generic) {
-                    substitutionMap.getOrPut(rType.name) { variable(element) }
-                } else {
-                    r
-                }
-            }
-
-        return LuaGraphType.Function(
-            instantiatedParams,
-            instantiatedReturns,
-            template.declaredSignature,
-            template.implicitSelf,
-        )
-    }
-
     // ---------------------------------------------------------------------------
     // Error reporting — populated by checkTypes()
     // ---------------------------------------------------------------------------
@@ -1075,9 +1024,9 @@ class LuaTypeGraph {
     @org.jetbrains.annotations.TestOnly
     internal fun rootResolutionCount(accessor: RootAccessor): Long = rootResolutions[accessor.ordinal]
 
-    private companion object {
+    internal companion object {
         /** Distribution-nesting cutoff (TYPE-09-P2-04); assume-compatible beyond it (TYPE-DR-04). */
-        private const val MAX_DISTRIBUTION_DEPTH = 10
+        internal const val MAX_DISTRIBUTION_DEPTH = 10
 
         /** Union-member cap (TYPE-09-P2-04); larger unions fall back to shallow head matching. */
         private const val MAX_UNION_BREADTH = 100

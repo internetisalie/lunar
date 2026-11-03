@@ -2,7 +2,7 @@
 id: "TYPE-14"
 title: "14: Generics — the LuaLS closed baseline, plus a constraint's bound inside the body"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "high"
 parent_id: "TYPE"
 folders:
@@ -125,15 +125,18 @@ a generic name only when it is the **whole** type string and otherwise hands the
 
 ## Implementation Status
 
-Status by phase of the [implementation plan](implementation-plan.md). Phase 1 is delivered; the
-remaining rows are not started.
+Status by phase of the [implementation plan](implementation-plan.md). Phases 1 and 2 are delivered;
+the remaining rows are not started.
 
 | ID | Status | Notes |
 |----|--------|-------|
 | TYPE-14-01 | Partial | Phase 1: a `@generic` name parses in every position of a `@param`, `@return` and `@type` expression on the same comment (`TypeParser` threads the names; the engine's `LuaTypeGraphBridge` passes them). Not yet: a class head's own parameters for `@field` and methods (Phase 5), and nested type arguments (Phase 4: today only a bare-name argument is generic-aware). |
 | TYPE-14-02 | Full | Phase 1: `checkCompatibility` and `isCompatible` treat an unbound `Generic` on either side as compatible; a bounded one stands for its bound (inert until Phase 3 produces bounds). `LuaGenericType.isAssignableTo` agrees. |
-| TYPE-14-03 to TYPE-14-16 | Not Implemented | Phases 2 to 6. |
-| TYPE-14-17 | Partial | Phase 1 gate met (suite and corpus: no added diagnostic); re-checked at each later phase. |
+| TYPE-14-03 | Full | Phase 2: `LuaGenericInstantiation` binds through `Elem`, `Arm`, `Param`, `Return`, `Arg` and `Member` paths by lazy projection and rebuilds returns by lazy substitution, per call site. A name that occurs only inside type arguments is not bound (design §5.3 note). |
+| TYPE-14-04 | Not Implemented | Moved to Phase 5 with design §4.8 (risks-and-gaps Gap 2.4). |
+| TYPE-14-05 | Full | Phase 2: a generic declared callee is copied per call, onto nodes it does not share with the seed; arguments bind only where positions are unambiguous. |
+| TYPE-14-06 to TYPE-14-16 | Not Implemented | Phases 3 to 6. |
+| TYPE-14-17 | Partial | Phases 1 and 2 gates met (suite and corpus: no added diagnostic); re-checked at each later phase. |
 
 ## Detailed Specifications
 
@@ -257,12 +260,12 @@ names the edit that turns the case red, and each is reachable from the fixture n
 | 3 | 14-02 | the DR-01 "cross-file global" fixture (`lib.lua` + `ident("x")`) with **only** the safety net applied | `getErrors()` | empty | remove the `Generic` arm from `checkCompatibility` → `string is not assignable to T` returns |
 | 4 | 14-02 | `---@generic T` `---@param v T\|nil` `---@return T` `local function must(v) return v end` `local m = must("q")` | `getErrors()` | no error whose message contains ` T` | remove the `Generic` arm from `isCompatible` → `nil \| string is not assignable to T` |
 | 5 | 14-03 | `---@type string[] local xs` + `first(xs)` from case 1, `local a = first(xs)` | type of `a` | `string` | in `LuaGenericInstantiation.projectionsOf`, stop descending into `Array` → `undefined` |
-| 6 | 14-03 | `---@generic T ---@param v T ---@return T[]` `local w = wrap(1)` | type of `w` | `number[]` | in `substitute`, return `type` unchanged for `Array` → `undefined[]` |
+| 6 | 14-03 | `---@generic T ---@param v T ---@return T[]` `local w = wrap(1)` | type of `w` | `number[]` | in `substitute`, return `type` unchanged for `Array` → `T[]` |
 | 7 | 14-03 | `---@generic K, V ---@param t table<K, V> ---@return V` with `---@type table<string, number> local t`, `local v = get(t)` | type of `v` | `number` | skip `Arg(i)` paths in `projectionsOf` → `undefined` |
 | 8 | 14-03 | `ident("x")` and `ident(1)` in one file (the TYPE-05 control) | types of both | `string`, `number` | share one binding map across call sites (drop the `element` from the instantiation-cache key) → the second reads `number \| string` |
-| 9 | 14-04 | DR-01 fixture D (Appendix A; `function Box:echo(v)` with `@generic`, `b:echo("x")`, `Box:echo(1)`) | types of `r`, `q`; `getErrors()` | `string`, `number`; empty | restore the `calleeNode is ValueNode` guard in `visitFuncCall` before the generic branch → `r` is `undefined` |
-| 10 | 14-05 | cross-file: `lib.lua` = `---@generic T ---@param v T ---@return T function ident(v) return v end`; `main.lua` = `local s = ident("x")` `local n = ident(1)` | types; errors | `string`, `number`; none | in the declared branch of `visitFuncCall`, skip instantiation when `declared` has generics and fall through to `seedDeclaredReturns` → both `T`… after 14-02, `undefined` |
-| 11 | 14-05 | case 10 plus a second call `ident(true)` | `getValueType` of the seed node for `ident` (`freeGlobalSeed`) before and after | the seed's parameter node write is unchanged (`Generic("T")`) — no call wrote into it | wire the instantiated params through `checkFunctionCompatibility` against the seed → the seed's param write becomes a union of the arguments |
+| 9 | 14-04 | DR-01 fixture D (Appendix A; `function Box:echo(v)` with `@generic`, `b:echo("x")`, `Box:echo(1)`) | types of `r`, `q`; `getErrors()` | `string`, `number`; empty | drop the receiver-member read from `functionTypeOf` (implementation plan Phase 5, task 7) → `r` and `q` are `undefined` |
+| 10 | 14-05 | cross-file: `lib.lua` = `---@generic T ---@param v T ---@return T function ident(v) return v end`; `main.lua` = `local s = ident("x")` `local n = ident(1)` | types; errors | `string`, `number`; none | in the declared branch of `visitFuncCall`, skip instantiation when `declared` has generics and fall through to `seedDeclaredReturns` → both read the seed's `T` |
+| 11 | 14-05 | case 10 plus a second call `ident(true)` | `getValueType` of the seed node for `ident` (`freeGlobalSeed`) before and after | the seed's parameter node write is unchanged (`Generic("T")`) — no call wrote into it | wire a generic argument into the seed's parameter → the seed's param write becomes a union of the arguments |
 | 12 | 14-06 | cross-file: `lib.lua` from case 10 | `LuaTypeManager.resolveGlobal("ident")` as `LuaFunctionType` | `typeParameters == [T]`; `params[0].type is LuaGenericType`; `returnType is LuaGenericType` | drop `luacatsGenericParams` from `LuaFuncStubImpl` serialization → `typeParameters` empty on the stub path while the AST path (configureByText) still fills it — the parity test's `assertEquals` on the rendered signature goes red |
 | 13 | 14-07 | `---@type table<string, Widget\|nil>` `local q` | PSI of the comment | a `LuaCatsParameterizedName` whose children are a `LuaCatsTypeParam` (`string`) then a `LuaCatsType` whose union has two arms; no `PsiErrorElement`; no `LuaCatsDescription` | revert the grammar rule → the `@type` tag's `argType` is `table` and the rest is a `LuaCatsDescription` |
 | 14 | 14-07 | `---@type table<K, V>` and `---@class Box<T>` | PSI | both arguments are `LuaCatsTypeParam` children of the `LuaCatsParameterizedName` (unchanged shape); `LuaCatsTypeDeclarationsTest` and `LuaCatsTypeReferenceTest` pass unmodified | delete the word `private` from the rule → a `LuaCatsTypeArgument` node appears between them and every test that risks-and-gaps "DR-02 result, run a" lists as red goes red again (measured); dropping the predicate instead turns every bare argument into a `LuaCatsType` and fails the same tests |
@@ -424,7 +427,8 @@ local Kid = {}
 ## Non-Functional Requirements
 
 - **No new root-resolution walks per call site beyond the fresh nodes the instantiation mints.**
-  `LuaTypeGraphRootResolutionBudgetTest` stays green; the BUG-473 hazard is that a lazy value which
+  `LuaTypeGraphRootResolutionBudgetTest` stays green and `Type14InstantiationBudgetTest` shows a
+  second read of generic results derives no walk root; the BUG-473 hazard is that a lazy value which
   mints nodes during a resolution bumps the revision mid-walk — every lazy compute in this design
   memoizes anything it materializes (design §5.6, §5.9).
 - **Every serialized shape or key that changes bumps its version once** — the version bumps §9 lists (`LuaFileElementType.getStubVersion`, `LuaCatsTypeNameIndex.getVersion`, `LuaReceiverMemberIndex.getVersion`) — so existing stubs and indexes rebuild rather than answer under old keys.
