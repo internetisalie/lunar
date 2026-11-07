@@ -15,6 +15,7 @@ import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgName
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgType
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 
 /**
  * Shared "go to LuaCATS type" plumbing for the Go-to-Class and Go-to-Symbol contributors — both
@@ -45,7 +46,7 @@ object LuaCatsTypeNavigation {
             val luaFile = psiManager.findFile(virtualFile) as? LuaFile ?: continue
             for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsClassTag::class.java)) {
                 val id = PsiTreeUtil.getChildOfType(tag, LuaCatsArgType::class.java) ?: continue
-                if (id.text.trim() != name) continue
+                if (LuaCatsDeclarations.classHeadName(tag) != name) continue
                 if (!processor.process(LuaNavigationItem(id, name, AllIcons.Nodes.Class))) return false
             }
             for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsAliasTag::class.java)) {

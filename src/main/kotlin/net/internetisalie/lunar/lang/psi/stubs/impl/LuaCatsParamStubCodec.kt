@@ -22,6 +22,23 @@ internal object LuaCatsParamStubCodec {
         }
     }
 
+    /** Each `@generic` parameter's name and bound text; a null bound is written as a null name. */
+    fun writeGenerics(
+        generics: List<LuaCatsDeclarations.GenericParameter>,
+        out: StubOutputStream,
+    ) {
+        out.writeInt(generics.size)
+        generics.forEach {
+            out.writeName(it.name)
+            out.writeName(it.boundText)
+        }
+    }
+
+    fun readGenerics(input: StubInputStream): List<LuaCatsDeclarations.GenericParameter> =
+        List(input.readInt()) {
+            LuaCatsDeclarations.GenericParameter(input.readName()?.string ?: "", input.readName()?.string)
+        }
+
     /** `List(n) { }` evaluates its elements in index order, so the read order is the write order. */
     fun read(input: StubInputStream): List<LuaCatsDeclarations.ParamDecl> =
         List(input.readInt()) {

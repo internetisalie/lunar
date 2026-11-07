@@ -53,6 +53,13 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     private val methodDemandHubs: MutableMap<MethodDemandKey, VariableNode> = mutableMapOf()
 
     /**
+     * TYPE-14-04: the generic template each `(receiver, method name)` resolved to at its first call
+     * site, null included. Reading the receiver's write once per pair, not once per site, keeps the
+     * BUG-473 root count linear: the revision moves between sites, so each read would re-walk.
+     */
+    private val methodTemplates: MutableMap<MethodDemandKey, LuaGraphType.Function?> = mutableMapOf()
+
+    /**
      * TYPE-12: mints the member node one colon call site's `CALL` demand hangs from. The first site
      * of a `(receiver, method name)` becomes that key's hub, exactly as every site was minted before;
      * a later site hangs off the hub by one forward edge, and [LuaTypeGraph]'s table wiring reaches
@@ -982,7 +989,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             )
 
         // TYPE-14: a generic template is instantiated per call site, and the copy meets the demand.
-        val template = functionTypeOf(calleeNode)
+        val template = calleeTemplate(calleeNode, calleeNodeRef, methodExpr?.nameRef?.text)
         if (template != null && instantiation.containsGeneric(template)) {
             val instantiated = instantiation.instantiate(template, o)
             instantiation.bindCaptures(instantiated, argExprs.map { unwrapExpression(it) ?: it })
@@ -1003,6 +1010,44 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             is LuaGraphType.Union -> written.types.firstNotNullOfOrNull { it as? LuaGraphType.Function }
             else -> null
         }
+
+    /**
+     * The template a call instantiates. A `:` call's site member is `undefined` while the call is
+     * visited, because the receiver's member reaches it only in `checkTypes` (risks-and-gaps Gap
+     * 2.4). So a generic method's template is read from the receiver's classes, through
+     * [LuaClassType.genericMethod], and not from the class's member: that member stays the lazy
+     * signature it was before TYPE-14 (Gap 2.9). Read at visit time, once per (receiver, method),
+     * and converted onto this file's graph (TYPE-14-04, design §4.6 step 2).
+     */
+    private fun calleeTemplate(
+        calleeNode: TypeNode,
+        receiver: TypeNode,
+        methodName: String?,
+    ): LuaGraphType.Function? {
+        functionTypeOf(calleeNode)?.let { return it }
+        if (methodName == null) return null
+        val key = MethodDemandKey(receiver, methodName)
+        if (key in methodTemplates) return methodTemplates[key]
+        val template =
+            receiverClassNames(receiver).firstNotNullOfOrNull { className ->
+                val receiverClass =
+                    LuaTypeManager
+                        .getInstance(
+                            receiver.element.project,
+                        ).resolveType(className, receiver.element)
+                (receiverClass as? LuaClassType)?.genericMethod(methodName)
+            }
+        val graphTemplate = template?.let { LuaGraphType.fromLuaType(it, graph) as? LuaGraphType.Function }
+        methodTemplates[key] = graphTemplate
+        return graphTemplate
+    }
+
+    /** The class names among the arms of [receiver]'s write, in arm order. */
+    private fun receiverClassNames(receiver: TypeNode): List<String> {
+        val written = (receiver as? ValueNode)?.write
+        val arms = if (written is LuaGraphType.Union) written.types else setOfNotNull(written)
+        return arms.mapNotNull { (it as? LuaGraphType.Table)?.className }
+    }
 
     /**
      * A declared signature at one call: a generic one is instantiated per call (TYPE-14-05), any other

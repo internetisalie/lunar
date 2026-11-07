@@ -30,7 +30,6 @@ import net.internetisalie.lunar.lang.psi.types.LuaTypeManager
 import net.internetisalie.lunar.lang.syntax.LuaCatsSummary
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgName
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgType
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsCommentOwner
@@ -286,8 +285,7 @@ class LuaDocumentationTargetProvider : DocumentationTargetProvider {
         for (virtualFile in index.getContainingFiles(LuaCatsTypeNameIndex.KEY, name, scope)) {
             val luaFile = psiManager.findFile(virtualFile) as? LuaFile ?: continue
             for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsClassTag::class.java)) {
-                val id = PsiTreeUtil.getChildOfType(tag, LuaCatsArgType::class.java) ?: continue
-                if (id.text.trim() == name) return tag
+                if (LuaCatsDeclarations.classHeadName(tag) == name) return tag
             }
             for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsAliasTag::class.java)) {
                 val id = PsiTreeUtil.getChildOfType(tag, LuaCatsArgName::class.java) ?: continue

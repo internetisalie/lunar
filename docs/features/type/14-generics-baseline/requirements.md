@@ -125,24 +125,27 @@ a generic name only when it is the **whole** type string and otherwise hands the
 
 ## Implementation Status
 
-Status by phase of the [implementation plan](implementation-plan.md). Phases 1 to 4 are delivered;
-the remaining rows are not started.
+Status by phase of the [implementation plan](implementation-plan.md). Phases 1 to 5 are delivered;
+the remaining rows are Phase 6's.
 
 | ID | Status | Notes |
 |----|--------|-------|
-| TYPE-14-01 | Partial | Phase 1: a `@generic` name parses in every position of a `@param`, `@return` and `@type` expression on the same comment (`TypeParser` threads the names; the engine's `LuaTypeGraphBridge` passes them). Phase 4: a nested type argument (`table<string, T[]>`) parses with the same names. Not yet: a class head's own parameters for `@field` and methods (Phase 5). |
+| TYPE-14-01 | Partial | Phase 1: a `@generic` name parses in every position of a `@param`, `@return` and `@type` expression on the same comment (`TypeParser` threads the names; the engine's `LuaTypeGraphBridge` passes them). Phase 4: a nested type argument (`table<string, T[]>`) parses with the same names. Phase 5: a class head's own parameters parse in its `@field` types, its parent types and its methods' call templates (`typeOrReference`, `genericTemplateOf`); a method's class member keeps the unparsed signature (risks-and-gaps Gap 2.9). Not yet: inside an in-file method's body, where `LuaTypeGraphBridge` does not receive the class's names (design §4.8 Phase 5 note). |
 | TYPE-14-02 | Full | Phase 1: `checkCompatibility` and `isCompatible` treat an unbound `Generic` on either side as compatible; a bounded one stands for its bound (inert until Phase 3 produces bounds). `LuaGenericType.isAssignableTo` agrees. |
 | TYPE-14-03 | Full | Phase 2: `LuaGenericInstantiation` binds through `Elem`, `Arm`, `Param`, `Return`, `Arg` and `Member` paths by lazy projection and rebuilds returns by lazy substitution, per call site. A name that occurs only inside type arguments is not bound (design §5.3 note). |
-| TYPE-14-04 | Not Implemented | Moved to Phase 5 with design §4.8 (risks-and-gaps Gap 2.4). |
+| TYPE-14-04 | Partial | Phase 5: `obj:m(...)` and `Class:m(...)` instantiate per call. The template is read from the receiver's classes (`LuaClassType.genericMethod`), since the site member is `undefined` at visit time (Gap 2.4). Not yet: `Class.fn(...)`, a `.` call, which still infers the uninstantiated `T \| …` (risks-and-gaps Gap 2.10). |
 | TYPE-14-05 | Full | Phase 2: a generic declared callee is copied per call, onto nodes it does not share with the seed; arguments bind only where positions are unambiguous. |
-| TYPE-14-06 | Not Implemented | Phase 5. |
+| TYPE-14-06 | Full | Phase 5: the function stubs carry `luacatsGenericParams`, `LuaLocalVarStub` carries `luacatsTypeParameters`; `LuaCatsStubAstParityTest` TC-26 asserts the class's and the method's type parameters agree on both arms, and case 12 a cross-file generic global's. Stub version 9. |
 | TYPE-14-07 | Full | Phase 4: `typeArgument` is a private rule, a bare name followed by `,` or `>` or else a full `type`. A bare-name argument keeps its `LuaCatsTypeParam` shape under `LuaCatsParameterizedName`; `TypeParser` reads the arguments in document order, parsing a nested one as a type. |
-| TYPE-14-08 to TYPE-14-10 | Not Implemented | Phase 5. |
+| TYPE-14-08 | Full | Phase 5: `classHeadName` keys `LuaClassNameIndex`, `LuaCatsTypeNameIndex` and `LuaReceiverMemberIndex`, and every re-matcher and AST reader of design §5.10 compares the head. Go to Class finds `Box` (`LuaGotoContributorTest` case 27). |
+| TYPE-14-09 | Partial | Phase 5: `resolveType("Box<string>")` instantiates through `LuaGenericSubstitution`, fields and supertypes substituted; assignable to `Box` and not to `Box<number>` (case 17). A method that uses only the class's own parameter (`---@return T` on `Box<T>`) is not substituted at the call (risks-and-gaps Gap 2.11). |
+| TYPE-14-10 | Full | Phase 5: `Kid : PBase<string>` inherits `inherited: string`; BUG-420's own non-generic-parent probe inherits too. BUG-420 closed. |
 | TYPE-14-11 | Full | Phase 3: the bridge parses each `: Bound` (design §5.1 step 2). A same-file parameter typed exactly `T` gets a fresh node that meets the template parameter's declared demands, so the bound is checked once, where and as a plain parameter is (design §5.5 step 1). A declared callee checks the bound through `LuaSignatureCopier.parameterUse`. A class bound is not copied, the same as a plain declared class parameter (BUG-19; risks-and-gaps Gap 2.8). |
 | TYPE-14-12 | Full | Phase 3: a parameter whose type is a bounded `T` reads its members, completion included, through the bound (design §5.7). |
 | TYPE-14-13 | Full | Phase 3: on both call paths, a `` `T` `` parameter gets its own node, and a quoted string literal at that position binds `T` to the type it names (design §5.11). |
-| TYPE-14-14 to TYPE-14-16 | Not Implemented | Phases 5 and 6. |
-| TYPE-14-17 | Partial | Phases 1 to 4 gates met (suite and corpus: no added diagnostic); re-checked at each later phase. |
+| TYPE-14-14 | Full | Phase 5: `---@return Box<T>` gives `Box<string>` with `value: string` at the call (case 22). |
+| TYPE-14-15 to TYPE-14-16 | Not Implemented | Phase 6. |
+| TYPE-14-17 | Partial | Phases 1 to 5 gates met (suite and corpus: no added diagnostic). At Phase 5 the corpus is unchanged against Phase 4, with 0 added and 0 removed, once Gap 2.9 was fixed. Re-checked at Phase 6. |
 
 ## Detailed Specifications
 
@@ -425,10 +428,10 @@ local Kid = {}
 
 - [ ] Every fixture in "What the engine does today" reports zero false errors (TYPE-14-02) and the
       expected type where one is listed in the test cases.
-- [ ] `LuaCatsStubAstParityTest` covers a generic function and a generic class (TYPE-14-06).
+- [x] `LuaCatsStubAstParityTest` covers a generic function and a generic class (TYPE-14-06).
 - [x] `src/main/gen` is regenerated from the grammar in TYPE-14-07 and committed; the regen over the
       committed sources is a no-op.
-- [ ] BUG-420's probe fixture resolves `inherited` (TYPE-14-10) and BUG-420 is closed by this feature.
+- [x] BUG-420's probe fixture resolves `inherited` (TYPE-14-10) and BUG-420 is closed by this feature.
 - [ ] Full suite, corpus ratchet and `LuaAnnotatedClassDiagnosticsTest` green (TYPE-14-17).
 - [ ] The human checklists in [human-verification-checklists.md](human-verification-checklists.md)
       pass in GoLand for the generic-class completion scenario.

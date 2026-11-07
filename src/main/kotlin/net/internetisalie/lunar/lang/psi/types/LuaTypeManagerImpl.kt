@@ -133,7 +133,7 @@ class LuaTypeManagerImpl(
 
         return try {
             resolvingTypes.get().add(name)
-            recordInto(cache, name) { doResolveType(name, project) }
+            recordInto(cache, name) { doResolveType(name, context) }
         } catch (e: ProcessCanceledException) {
             throw e
         } catch (e: IndexNotReadyException) {
@@ -317,8 +317,9 @@ class LuaTypeManagerImpl(
      */
     private fun doResolveType(
         name: String,
-        project: Project,
+        context: PsiElement,
     ): LuaType? {
+        if ('<' in name) return resolveParameterized(name, context)
         val scope = GlobalSearchScope.allScope(project)
         val classDecls = StubIndex.getElements(LuaClassNameIndex.KEY, name, project, scope, LuaLocalVarDecl::class.java)
         if (classDecls.isNotEmpty()) {
@@ -341,6 +342,39 @@ class LuaTypeManagerImpl(
         return null
     }
 
+    /**
+     * `Box<string>`: the head resolved through the ordinary door, then instantiated with the parsed
+     * arguments (TYPE-14 design §5.9). A non-generic class ignores stray arguments.
+     */
+    private fun resolveParameterized(
+        name: String,
+        context: PsiElement,
+    ): LuaType? {
+        val base = resolveType(name.substringBefore('<').trim(), context)
+        // Not a class (`table<K, V>`): no answer, as before this branch, so a graph substitution keeps
+        // its memberless `Table("table<number, number>")` rather than the bare `table` primitive.
+        if (base !is LuaClassType) return null
+        if (base.typeParameters.isEmpty()) return base
+        val arguments = LuaGenericInstantiation.typeArgumentsOf(name).map { TypeParser.parse(it, context) }
+        return LuaGenericSubstitution.instantiate(base, arguments)
+    }
+
+    /**
+     * A tag's type string as a lazy reference, or parsed when it spells one of [typeParameters]
+     * (design §4.8): `---@field value T` on `---@class Box<T>` is a [LuaGenericType], while the
+     * common, non-generic string keeps the cheap reference.
+     */
+    private fun typeOrReference(
+        text: String,
+        context: PsiElement,
+        typeParameters: Map<String, LuaType?>,
+    ): LuaType =
+        if (TypeParser.mentionsAny(text, typeParameters.keys)) {
+            TypeParser.parse(text, context, typeParameters)
+        } else {
+            LuaTypeReference(text, context)
+        }
+
     private fun materializeClass(
         name: String,
         decls: Collection<LuaLocalVarDecl>,
@@ -348,15 +382,17 @@ class LuaTypeManagerImpl(
         decls.forEach { LuaTypeSourceRecorder.reportFile(it.containingFile) } // §3.5
         val membersMap = mutableMapOf<String, LuaTypeMember>()
         val superTypes = mutableListOf<LuaType>()
-        for (decl in decls) {
-            val parts = hostedParts(decl)
+        val declaredParts = decls.map { it to hostedParts(it) }
+        val typeParameterNames = declaredParts.flatMap { it.second.typeParameterNames }.distinct()
+        val classParameters = typeParameterNames.associateWith { null as LuaType? }
+        for ((decl, parts) in declaredParts) {
             // Last write wins, as it always has here — deliberately unlike materializeUnhostedClass,
             // which merges several tags for one name and so keeps first-wins.
             parts.members.forEach { member ->
                 membersMap[member.name] =
                     LuaTypeMember(
                         member.name,
-                        LuaTypeReference(member.typeName, decl),
+                        typeOrReference(member.typeName, decl, classParameters),
                         // The tag on the AST path, the host declaration on the stub path (which has no
                         // PSI). Preserved exactly: LuaOverrideLineMarkerProvider uses sourceElement as
                         // gutter navigation targets, so collapsing this to `decl` would silently
@@ -365,7 +401,7 @@ class LuaTypeManagerImpl(
                         sourceElement = member.tag ?: decl,
                     )
             }
-            parts.superTypeNames.forEach { superTypes.add(LuaTypeReference(it, decl)) }
+            parts.superTypeNames.forEach { superTypes.add(typeOrReference(it, decl, classParameters)) }
         }
         LuaImplicitFields.collect(
             classReceiverNames(name, decls),
@@ -377,8 +413,17 @@ class LuaTypeManagerImpl(
         )
         // Method-aware members: `function Class:m` / `function Class.fn` declarations are not
         // captured as @field/implicit members, so resolveMember would miss them otherwise.
-        collectMethodMembers(name, decls, membersMap)
-        return LuaClassType(name, superTypes, membersMap)
+        val sink = MemberSink(membersMap)
+        collectMethodMembers(MethodScan(name, name, null, typeParameterNames), decls, sink)
+        return LuaClassType(
+            name,
+            superTypes,
+            membersMap,
+            typeParameterNames.map {
+                LuaGenericType(it)
+            },
+            methodTemplates = sink.templates,
+        )
     }
 
     /**
@@ -399,6 +444,8 @@ class LuaTypeManagerImpl(
 
         val membersMap = mutableMapOf<String, LuaTypeMember>()
         val superTypes = mutableListOf<LuaType>()
+        val typeParameterNames = tags.flatMap { LuaCatsDeclarations.classTypeParameterNames(it) }.distinct()
+        val classParameters = typeParameterNames.associateWith { null as LuaType? }
         tags.forEach { tag ->
             val parts = unhostedParts(tag) ?: return@forEach
             // Two different merge rules, and both are pre-existing behaviour rather than a choice
@@ -412,7 +459,7 @@ class LuaTypeManagerImpl(
                 perComment[member.name] =
                     LuaTypeMember(
                         member.name,
-                        LuaTypeReference(member.typeName, tag),
+                        typeOrReference(member.typeName, tag, classParameters),
                         sourceElement = member.tag ?: tag,
                     )
             }
@@ -424,11 +471,20 @@ class LuaTypeManagerImpl(
             // accumulate two `P` references today and must continue to (locked by TC-10).
             // Substituting a name comparison here would look like a tidy-up and be a silent
             // behaviour change, which is the exact class of drift this feature exists to remove.
-            parts.superTypeNames.forEach { superTypes.add(LuaTypeReference(it, tag)) }
+            parts.superTypeNames.forEach { superTypes.add(typeOrReference(it, tag, classParameters)) }
         }
         LuaImplicitFields.collect(setOf(name), tags.mapNotNull { it.containingFile }.distinct(), membersMap)
-        addMethodsOf(MethodScan(name, name, null), membersMap)
-        return LuaClassType(name, superTypes, membersMap)
+        val sink = MemberSink(membersMap)
+        addMethodsOf(MethodScan(name, name, null, typeParameterNames), sink)
+        return LuaClassType(
+            name,
+            superTypes,
+            membersMap,
+            typeParameterNames.map {
+                LuaGenericType(it)
+            },
+            methodTemplates = sink.templates,
+        )
     }
 
     /** Every `---@class <name>` tag in the project, found through the file-based tag index. */
@@ -443,7 +499,7 @@ class LuaTypeManagerImpl(
             .getContainingFiles(LuaCatsTypeNameIndex.KEY, name, scope)
             .mapNotNull { psiManager.findFile(it) as? LuaFile }
             .flatMap { PsiTreeUtil.findChildrenOfType(it, LuaCatsClassTag::class.java) }
-            .filter { it.argType?.text?.trim() == name }
+            .filter { LuaCatsDeclarations.classHeadName(it) == name }
     }
 
     /**
@@ -453,6 +509,8 @@ class LuaTypeManagerImpl(
     private data class DeclaredParts(
         val members: List<LuaCatsDeclarations.FieldMember>,
         val superTypeNames: List<String>,
+        /** The head's own type parameters, `[T]` for `---@class Box<T>` (TYPE-14-08). */
+        val typeParameterNames: List<String> = emptyList(),
     )
 
     /**
@@ -470,20 +528,18 @@ class LuaTypeManagerImpl(
                 // BUG-402: the stub stores the list the extractor produced, so nothing is re-derived
                 // here. The `split(',')` this replaces cut `Base<string, number>` into two fragments.
                 superTypeNames = stub.luacatsParents,
+                typeParameterNames = stub.luacatsTypeParameters,
             )
         }
         val cats =
             net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
                 .getCatsComment(decl)
                 ?: return DeclaredParts(emptyList(), emptyList())
+        val classTag = cats.getClassTagList().firstOrNull()
         return DeclaredParts(
             members = LuaCatsDeclarations.fieldMembers(cats),
-            superTypeNames =
-                cats
-                    .getClassTagList()
-                    .firstOrNull()
-                    ?.let { LuaCatsDeclarations.parentTypeNames(it) }
-                    .orEmpty(),
+            superTypeNames = classTag?.let { LuaCatsDeclarations.parentTypeNames(it) }.orEmpty(),
+            typeParameterNames = classTag?.let { LuaCatsDeclarations.classTypeParameterNames(it) }.orEmpty(),
         )
     }
 
@@ -511,22 +567,32 @@ class LuaTypeManagerImpl(
      * declaring local's name is confined to that local's own file, where the variable exists.
      */
     private fun collectMethodMembers(
-        className: String,
+        classScan: MethodScan,
         decls: Collection<LuaLocalVarDecl>,
-        membersMap: MutableMap<String, LuaTypeMember>,
+        sink: MemberSink,
     ) {
-        addMethodsOf(MethodScan(className, className, null), membersMap)
+        addMethodsOf(classScan, sink)
         decls.forEach { decl ->
-            val localName = declaredName(decl)?.takeIf { it != className } ?: return@forEach
-            addMethodsOf(MethodScan(className, localName, decl.containingFile), membersMap)
+            val localName = declaredName(decl)?.takeIf { it != classScan.className } ?: return@forEach
+            addMethodsOf(classScan.copy(receiver = localName, onlyIn = decl.containingFile), sink)
         }
     }
 
-    /** One receiver name to scan for, and the file it is confined to (null = project-wide). */
+    /** A class's members as they are collected, and the generic call templates of its methods (Gap 2.9). */
+    private class MemberSink(
+        val members: MutableMap<String, LuaTypeMember>,
+        val templates: MutableMap<String, LuaFunctionType> = mutableMapOf(),
+    )
+
+    /**
+     * One receiver name to scan for, and the file it is confined to (null = project-wide).
+     * [classTypeParameters] are the class head's own, in scope in every method's signature.
+     */
     private data class MethodScan(
         val className: String,
         val receiver: String,
         val onlyIn: PsiFile?,
+        val classTypeParameters: List<String> = emptyList(),
     )
 
     /**
@@ -547,18 +613,20 @@ class LuaTypeManagerImpl(
      */
     private fun addMethodsOf(
         scan: MethodScan,
-        membersMap: MutableMap<String, LuaTypeMember>,
+        sink: MemberSink,
     ) {
         // allScope, for the same reason doResolveType uses it: `function Class.method` declarations
         // in a library file are a class's members just as much as a project file's are (BUG-399).
         val scope = GlobalSearchScope.allScope(project)
         for (member in LuaReceiverMemberIndex.membersIn(scan.receiver, project, candidateScope(scan, scope))) {
             ProgressManager.checkCanceled()
-            if (membersMap.containsKey(member.name)) continue
+            if (sink.members.containsKey(member.name)) continue
             val decl = declaredMethod(scan, member, scope) ?: continue
             LuaTypeSourceRecorder.reportFile(decl.containingFile) // §3.5
-            val fnType = funcTypeFromStub(scan.className, decl, member.separator == LuaReceiverMember.Separator.COLON)
-            membersMap[member.name] = LuaTypeMember(member.name, fnType, sourceElement = decl)
+            val implicitSelf = member.separator == LuaReceiverMember.Separator.COLON
+            sink.members[member.name] =
+                LuaTypeMember(member.name, funcTypeFromStub(scan, decl, implicitSelf), sourceElement = decl)
+            genericTemplateOf(scan, decl, implicitSelf)?.let { sink.templates[member.name] = it }
         }
     }
 
@@ -598,41 +666,117 @@ class LuaTypeManagerImpl(
         return decls.firstOrNull { scan.onlyIn == null || it.containingFile == scan.onlyIn }
     }
 
+    /** What a method's comment declares, read from its stub or, for an AST-backed decl, its comment. */
+    private class DeclaredSignature(
+        val params: List<LuaCatsDeclarations.ParamDecl>,
+        val rawReturn: String?,
+        val generics: List<LuaCatsDeclarations.GenericParameter>,
+    )
+
+    /**
+     * Prefer the stub (no AST load) but fall back to the cats comment for AST-backed decls — the stub
+     * is null when the method is declared in the file currently being edited, where resolving its
+     * `---@return` still matters (NAV-05/06, parameter hints). Mirrors how materializeClass reads
+     * @field from either the stub or LuaPsiImplUtil.getCatsComment.
+     */
+    private fun declaredSignatureOf(decl: LuaFuncDecl): DeclaredSignature {
+        decl.stub?.let { return DeclaredSignature(it.luacatsParams, it.luacatsReturnType, it.luacatsGenericParams) }
+        val cats =
+            net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
+                .getCatsComment(decl)
+                ?: return DeclaredSignature(emptyList(), null, emptyList())
+        return DeclaredSignature(
+            LuaCatsDeclarations.params(cats),
+            LuaCatsDeclarations.returnTypeName(cats),
+            LuaCatsDeclarations.genericParameters(cats),
+        )
+    }
+
+    /**
+     * The names a method signature reads as generics: the class head's first, then the method's own
+     * `@generic`s, which shadow a class parameter of the same name (design §5.1 step 3). A bound is
+     * parsed with the names declared before it.
+     */
+    private fun methodTypeParameters(
+        classTypeParameters: List<String>,
+        generics: List<LuaCatsDeclarations.GenericParameter>,
+        context: PsiElement,
+    ): Map<String, LuaType?> {
+        val typeParameters = LinkedHashMap<String, LuaType?>()
+        classTypeParameters.forEach { typeParameters[it] = null }
+        generics.forEach { generic ->
+            typeParameters[generic.name] =
+                generic.boundText?.let { TypeParser.parse(it, context, typeParameters.toMap()) }
+        }
+        return typeParameters
+    }
+
+    /**
+     * A method's class member, exactly as before TYPE-14 Phase 5: every type a lazy
+     * [LuaTypeReference]. Only the type-parameter **names** are added (TYPE-14-06). The member is
+     * graph-inert for a generic signature because a reference to a type expression (`T[]`,
+     * `fun(v: T)`) names no class and resolves to `undefined` whenever it is read; parsing it here
+     * put a real signature in `@param` order against the in-file function (risks-and-gaps Gap 2.9).
+     */
     private fun funcTypeFromStub(
-        className: String,
+        scan: MethodScan,
         decl: LuaFuncDecl,
         implicitSelf: Boolean,
-    ): LuaType {
-        // Prefer the stub (no AST load) but fall back to the cats comment for AST-backed decls —
-        // the stub is null when the method is declared in the file currently being edited, where
-        // resolving its `---@return` still matters (NAV-05/06, parameter hints). Mirrors how
-        // materializeClass reads @field from either the stub or LuaPsiImplUtil.getCatsComment.
-        val stub = decl.stub
-        val cats =
-            if (stub == null) {
-                net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
-                    .getCatsComment(decl)
-            } else {
-                null
-            }
-        val declared: List<LuaCatsDeclarations.ParamDecl> =
-            stub?.luacatsParams
-                ?: cats?.let { LuaCatsDeclarations.params(it) }
-                ?: emptyList()
-        val rawReturn = stub?.luacatsReturnType ?: cats?.let { LuaCatsDeclarations.returnTypeName(it) }
+    ): LuaFunctionType {
+        val signature = declaredSignatureOf(decl)
+        return methodType(MethodSite(scan, decl, implicitSelf), signature) { LuaTypeReference(it, decl) }
+    }
 
-        val params =
-            declared.map { LuaParameter(it.name, LuaTypeReference(it.typeName, decl), isOptional = it.isOptional) }
+    /**
+     * The generic call template of a method (TYPE-14-04): its signature parsed with the class head's
+     * parameters and its own `@generic`s, or null when it mentions neither. Read only by a call site
+     * that instantiates it, never as the class's member (Gap 2.9).
+     */
+    private fun genericTemplateOf(
+        scan: MethodScan,
+        decl: LuaFuncDecl,
+        implicitSelf: Boolean,
+    ): LuaFunctionType? {
+        val signature = declaredSignatureOf(decl)
+        val typeParameters = methodTypeParameters(scan.classTypeParameters, signature.generics, decl)
+        val texts = signature.params.map { it.typeName } + listOfNotNull(signature.rawReturn)
+        if (texts.none { TypeParser.mentionsAny(it, typeParameters.keys) }) return null
+        return methodType(MethodSite(scan, decl, implicitSelf, typeParameters), signature) {
+            typeOrReference(it, decl, typeParameters)
+        }
+    }
+
+    /** Where a method is declared, whether a `:` makes `self` implicit, and its parsed bounds (template only). */
+    private class MethodSite(
+        val scan: MethodScan,
+        val decl: LuaFuncDecl,
+        val implicitSelf: Boolean,
+        val bounds: Map<String, LuaType?> = emptyMap(),
+    )
+
+    private fun methodType(
+        site: MethodSite,
+        signature: DeclaredSignature,
+        typeOf: (String) -> LuaType,
+    ): LuaFunctionType {
+        val params = signature.params.map { LuaParameter(it.name, typeOf(it.typeName), isOptional = it.isOptional) }
+        val rawReturn = signature.rawReturn
         // `---@return self` parses to a type literally named "self"; substitute the receiver class.
         val returnType: LuaType =
             when {
                 rawReturn == null -> LuaPrimitiveType.UNKNOWN
-                rawReturn == "self" -> LuaTypeReference(className, decl)
-                else -> LuaTypeReference(rawReturn, decl)
+                rawReturn == "self" -> LuaTypeReference(site.scan.className, site.decl)
+                else -> typeOf(rawReturn)
             }
         // `params` is built from `---@param` tags only (stub or cats), so a non-empty list means the
         // user declared this signature and its arity is a contract (BUG-419).
-        return LuaFunctionType(params, returnType, declaredSignature = params.isNotEmpty(), implicitSelf = implicitSelf)
+        return LuaFunctionType(
+            params,
+            returnType,
+            typeParameters = signature.generics.map { LuaGenericType(it.name, site.bounds[it.name]) },
+            declaredSignature = params.isNotEmpty(),
+            implicitSelf = site.implicitSelf,
+        )
     }
 
     private fun materializeAlias(

@@ -27,8 +27,9 @@ class LuaFuncStubElementType(
         // *FuncStubElementType were byte-identical, and funcTypeFromStub held a third.
         val returnType = catsComment?.let { LuaCatsDeclarations.returnTypeName(it) }
         val params = catsComment?.let { LuaCatsDeclarations.params(it) } ?: emptyList()
+        val generics = catsComment?.let { LuaCatsDeclarations.genericParameters(it) }.orEmpty()
 
-        return LuaFuncStubImpl(parentStub, name, returnType, params, LuaFuncNameBinding.rootIsLocal(psi))
+        return LuaFuncStubImpl(parentStub, name, returnType, params, LuaFuncNameBinding.rootIsLocal(psi), generics)
     }
 
     override fun getExternalId(): String = "lunar.func.decl"
@@ -41,6 +42,7 @@ class LuaFuncStubElementType(
         dataStream.writeName(stub.luacatsReturnType)
         LuaCatsParamStubCodec.write(stub.luacatsParams, dataStream)
         dataStream.writeBoolean(stub.rootIsLocal)
+        LuaCatsParamStubCodec.writeGenerics(stub.luacatsGenericParams, dataStream)
     }
 
     override fun deserialize(
@@ -50,7 +52,15 @@ class LuaFuncStubElementType(
         val name = dataStream.readName()?.string
         val returnType = dataStream.readName()?.string
         val params = LuaCatsParamStubCodec.read(dataStream)
-        return LuaFuncStubImpl(parentStub, name, returnType, params, dataStream.readBoolean())
+        val rootIsLocal = dataStream.readBoolean()
+        return LuaFuncStubImpl(
+            parentStub,
+            name,
+            returnType,
+            params,
+            rootIsLocal,
+            LuaCatsParamStubCodec.readGenerics(dataStream),
+        )
     }
 
     override fun indexStub(

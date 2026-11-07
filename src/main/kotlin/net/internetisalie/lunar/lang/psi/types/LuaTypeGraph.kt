@@ -958,7 +958,7 @@ class LuaTypeGraph {
         visited: MutableSet<String>,
     ): Boolean {
         if (value.className != null && use.className != null) {
-            if (value.className == use.className) return true
+            if (sameClass(value.className, use.className)) return true
             if (!visited.add(value.className)) return false
 
             return value.superTypes.any {
@@ -967,6 +967,12 @@ class LuaTypeGraph {
         }
         return false
     }
+
+    /** Equal names, or an instantiation (`Box<string>`) against its raw class (`Box`) (TYPE-14 design §4.7). */
+    private fun sameClass(
+        valueClass: String,
+        useClass: String,
+    ): Boolean = valueClass == useClass || ('<' !in useClass && valueClass.substringBefore('<').trim() == useClass)
 
     private fun propagateDownward(
         from: TypeNode,

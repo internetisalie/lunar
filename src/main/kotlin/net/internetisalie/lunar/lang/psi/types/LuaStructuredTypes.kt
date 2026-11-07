@@ -1,12 +1,52 @@
 package net.internetisalie.lunar.lang.psi.types
 
+/**
+ * A `@class`. [name] is `Box` for the declaration and `Box<string>` for an instantiation; the
+ * declaration carries [typeParameters] (`[T]`) and an instantiation its [typeArguments] (`[string]`).
+ */
 class LuaClassType(
     override val name: String,
     val superTypes: List<LuaType> = emptyList(),
     val localMembers: Map<String, LuaTypeMember> = emptyMap(),
     val typeParameters: List<LuaGenericType> = emptyList(),
+    val typeArguments: List<LuaType> = emptyList(),
+    val methodTemplates: Map<String, LuaFunctionType> = emptyMap(),
 ) : LuaType {
+    /** [name] before the first `<`: what the class indexes are keyed on. */
+    val headName: String get() = name.substringBefore('<').trim()
+
+    /**
+     * This declaration's instantiations by name. One `Node<number>` per base is what lets a
+     * recursive class (`---@field next Node<T>`) close its cycle in `LuaGraphType.fromLuaType`,
+     * whose guard is keyed on the instance; it lives exactly as long as this class does.
+     */
+    internal val instantiations = java.util.concurrent.ConcurrentHashMap<String, LuaClassType>()
+
     override fun resolveMember(name: String): LuaTypeMember? = resolveMemberInternal(name, mutableSetOf())
+
+    /**
+     * The generic call template of method [name], own or inherited (TYPE-14-04). Kept apart from
+     * the members: the member stays the lazy, graph-inert signature it always was (risks-and-gaps
+     * Gap 2.9), and only a call site that instantiates reads this.
+     */
+    fun genericMethod(name: String): LuaFunctionType? = genericMethodInternal(name, mutableSetOf())
+
+    private fun genericMethodInternal(
+        name: String,
+        visited: MutableSet<String>,
+    ): LuaFunctionType? {
+        if (!visited.add(this.name)) return null
+        methodTemplates[name]?.let { return it }
+        return superTypes.firstNotNullOfOrNull { superType ->
+            val superClass =
+                when (superType) {
+                    is LuaTypeReference -> superType.resolved
+                    is LuaParameterizedType -> superType.instantiated()
+                    else -> superType
+                } as? LuaClassType
+            superClass?.genericMethodInternal(name, visited)
+        }
+    }
 
     override fun getMembers(): Map<String, LuaTypeMember> = getMembersInternal(mutableSetOf())
 
@@ -58,6 +98,7 @@ class LuaClassType(
         if (other == LuaPrimitiveType.ANY) return true
         if (this === other) return true
         if (other is LuaClassType && this.name == other.name) return true
+        if (other is LuaClassType && sameHead(other)) return true
         if (other is LuaUnionType) {
             return other.types.any { this.isAssignableToInternal(it, visited) }
         }
@@ -68,6 +109,14 @@ class LuaClassType(
                 else -> it.isAssignableTo(other)
             }
         }
+    }
+
+    /** `Box<string>` ≤ `Box` and ≤ `Box<string>`, never ≤ `Box<number>` (TYPE-14-09). */
+    private fun sameHead(other: LuaClassType): Boolean {
+        if (headName != other.headName) return false
+        if (other.typeArguments.isEmpty()) return true
+        return typeArguments.size == other.typeArguments.size &&
+            typeArguments.zip(other.typeArguments).all { (mine, theirs) -> mine.isAssignableTo(theirs) }
     }
 
     override fun toString(): String = name

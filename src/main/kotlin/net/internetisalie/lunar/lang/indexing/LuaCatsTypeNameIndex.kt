@@ -14,8 +14,8 @@ import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgName
-import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgType
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 import org.jetbrains.annotations.NonNls
 import java.io.DataInput
 import java.io.DataOutput
@@ -50,7 +50,8 @@ class LuaCatsTypeNameIndex : FileBasedIndexExtension<String, String>() {
     // 1 -> 2 (BUG-436): the filter widened, so the index CONTENT changed. Without the bump a
     // persisted index keeps its `.lua`-only entries and the fix is invisible on any machine
     // that has indexed before it.
-    override fun getVersion(): Int = 2
+    // 2 -> 3 (TYPE-14-08): a parameterized class is keyed by its head (`Box`, not `Box<T>`).
+    override fun getVersion(): Int = 3
 
     override fun dependsOnFileContent(): Boolean = true
 
@@ -84,8 +85,8 @@ class LuaCatsTypeNameIndex : FileBasedIndexExtension<String, String>() {
             if (psiFile !is LuaFile) return emptyMap()
             val result = mutableMapOf<String, String>()
             PsiTreeUtil.findChildrenOfType(psiFile, LuaCatsClassTag::class.java).forEach { tag ->
-                val name = PsiTreeUtil.getChildOfType(tag, LuaCatsArgType::class.java)?.text?.trim()
-                if (!name.isNullOrEmpty()) result[name] = ""
+                val name = LuaCatsDeclarations.classHeadName(tag)
+                if (name.isNotEmpty()) result[name] = ""
             }
             PsiTreeUtil.findChildrenOfType(psiFile, LuaCatsAliasTag::class.java).forEach { tag ->
                 val name = PsiTreeUtil.getChildOfType(tag, LuaCatsArgName::class.java)?.text?.trim()

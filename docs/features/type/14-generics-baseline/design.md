@@ -136,6 +136,11 @@ bumped by one for the same reason — §9's table is the list (`LuaCatsTypeNameI
 `LuaReceiverMemberIndex`, per §5.10); `LuaReceiverMemberIndex`'s own KDoc records that a key
 change without a bump leaves already-indexed files answering under the old keys.
 
+**As implemented (Phase 5).** The function stubs' field is `List<LuaCatsDeclarations.GenericParameter>`
+(the reader's own `(name, boundText)` value), not a `Pair`; serialized by
+`LuaCatsParamStubCodec.writeGenerics`/`readGenerics`. Phase 4 had taken the stub version to 8, so
+it goes to **9**; `LuaCatsTypeNameIndex` goes 2 → 3 and `LuaReceiverMemberIndex` 5 → 6.
+
 ### 3.6 `LuaParameterizedType` is unchanged in shape
 
 [LuaComplexTypes.kt:95](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaComplexTypes.kt)
@@ -146,6 +151,11 @@ its current no-member behaviour). The instantiation is memoized in a `lazy` fiel
 `LuaParameterizedType` instance, the idiom `LuaTypeReference.memoizedAnswer` uses, so repeated
 member lookups do not re-substitute. It is the Layer-1 spelling of `Box<string>` *before*
 resolution; after resolution the engine holds the instantiated `LuaClassType`.
+
+**As implemented (Phase 5).** The memo is not a `lazy`: it holds `(base, instantiation)` and is
+reused only while the resolved base is the same instance, so a reference whose answer changes, or
+whose TYPE-11 source frame must replay, is re-read rather than frozen. Read at member-lookup time
+(visit or `checkTypes`, whichever first asks), never at construction.
 
 ## 4. Components
 
@@ -314,6 +324,22 @@ have identical arms today and collapse to one statement.
    is resolved and receives the call's `Instantiated` (nullable) so a callback slot typed `fun(a: T)`
    can be seeded from `bindings["T"]`.
 
+**As implemented (Phase 5).** Step 2 does not read the template from the receiver's members. A
+method's class member stays the lazy, reference-typed signature it was before Phase 5, because
+parsing it eagerly put a real signature, in `@param` order, against the in-file function and added
+false errors (risks-and-gaps Gap 2.9).
+
+The template therefore has its own channel:
+- `LuaTypeManagerImpl.genericTemplateOf` parses the signature with the class's and the method's own
+  names. It is stored in `LuaClassType.methodTemplates`, substituted by `instantiate`, and found by
+  `genericMethod`, which walks the supertypes.
+- `calleeTemplate` takes the class names among the receiver write's arms. It reads each class's
+  template **at visit time, once per (receiver node, method name)** (`methodTemplates`), and
+  converts it onto the file's graph with `fromLuaType`.
+- Reading the receiver per call site re-derived walk roots and broke the BUG-473 budget
+  (`LuaTypeGraphRootResolutionBudgetTest`: 245 > 180).
+- Only `:` calls are covered. A `.` call has no receiver node in `visitFuncCall` (Gap 2.10).
+
 ### 4.7 `LuaTypeGraph` — two compatibility arms and one nominal clause
 
 - `checkCompatibility` ([LuaTypeGraph.kt:465](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypeGraph.kt)),
@@ -324,6 +350,11 @@ have identical arms today and collapse to one statement.
 - `isNominallyCompatible` (line ~880): `value.className == use.className` becomes
   `sameClass(value.className, use.className)` — equal strings, **or** equal head names where the
   `use` has no `<`. The same rule as §3.4's Layer-1 clause.
+
+**As implemented (Phase 5).** `sameClass` is not what accepts `Box<string>` for `Box` in the graph:
+with it mutated to plain string equality, `isStructurallyCompatible` accepts the pair anyway (the
+substituted members always satisfy the raw ones). The Layer-1 `LuaClassType.sameHead` clause is the
+load-bearing one, and case 17 asserts it directly.
 
 ### 4.8 `LuaTypeManagerImpl` — parameterized resolution, head keys, and generic-aware stub reads
 
@@ -354,6 +385,29 @@ have identical arms today and collapse to one statement.
   whose function node already carries `Generic` writes once §4.5 lands — DR-01 C measured
   `resolveGlobal(ident) = LuaFunctionType fun(v: T): T`, so the cross-file signature reaches the
   caller today; only the call site's handling (§5.8) is missing.
+
+**As implemented (Phase 5).**
+- `doResolveType` takes the resolving `context: PsiElement`, not the project, since the argument
+  parse needs one.
+- Supertypes are built with `typeOrReference` as well as `@field` types, so a parent spelled with
+  a class parameter (`---@class Kid<T> : Base<T>`) parses with the names.
+- `funcTypeFromStub` builds the class member with `LuaTypeReference`s, as before Phase 5, plus the
+  `@generic` names (TYPE-14-06).
+- The parsed signature is built separately, by `genericTemplateOf`. It is null when the signature
+  mentions no class or method parameter. Both take the existing `MethodScan` (now carrying
+  `classTypeParameters`), and collection writes through a `MemberSink`, to stay inside the
+  three-argument cap.
+- `methodTypeParameters` maps the class's names first and then the method's own, each bound parsed
+  with the names before it.
+- `resolveGlobal` did **not** already carry the type parameters: the snapshot's function converts
+  through `functionToLuaType`, which left `typeParameters` empty (case 12 measured `[]`). It now
+  collects the `Generic` names it meets in the parameters and returns.
+- §5.1 step 3's class parameters inside an in-file method **body** (`LuaTypeGraphBridge`) were not
+  threaded. The class's `T` reaches a method's signature only in its call template
+  (`genericTemplateOf`), which is what case 9 needs. The class member keeps the unparsed reference.
+  So on an instantiation, a method that uses only class parameters (`---@return T` on `Box<T>`) is
+  not substituted through the template: `calleeTemplate` instantiates only a template that still
+  `containsGeneric` after substitution. Its result in that case was not measured.
 
 ### 4.9 Stub element types and the file-based index
 
@@ -389,6 +443,11 @@ have identical arms today and collapse to one statement.
 - `is LuaParameterizedType ->` resolve: `val instantiated = (type.baseType.let { if (it is LuaTypeReference) it.resolved else it } as? LuaClassType)?.takeIf { it.typeParameters.isNotEmpty() }?.let { LuaGenericSubstitution.instantiate(it, type.arguments) }`;
   `instantiated?.let { classTable(it, graph, visited) } ?: Table(type.name)`. The fallback is
   today's behaviour, kept for `table<K, V>` and for a base that is not a generic class.
+
+**As implemented (Phase 5).** The arm goes through `fromLuaType(type.instantiated(), …)` rather than
+`classTable` directly, so the `visited` guard closes a recursive `Node<T>` (a direct `classTable`
+call overflowed the stack). It falls back to `Table(type.name)` unless the instantiation carries
+`typeArguments`.
 
 ## 5. Algorithms
 
@@ -640,6 +699,19 @@ sits before the memo lookup and returns without storing when either side is a bo
 for BUG-420 — `getMembersInternal` walks supertypes and finds the instantiated `PBase<string>`
 with `inherited: string`.
 
+**As implemented (Phase 5).**
+- Step 3 returns **null**, not the base, for a head that is not a `LuaClassType`. `table<K, V>`
+  resolved to null before this phase, and returning the `table` primitive regressed
+  `testRepeatedNameInTypeArgumentsReadsTheSameBindingTwice` (`table<number, number>` became `{ ... }`).
+- `instantiate` memoizes per base (`LuaClassType.instantiations`, keyed by the instantiated name),
+  so a recursive `Node<T>` whose field names `Node<T>` again re-enters the memo instead of the
+  stack. The memo is filled with `putIfAbsent`, so concurrent readers of a snapshot converge on one
+  instance.
+- Layer-1 `substitute` has **no** `LuaClassType` re-instantiation arm. A class argument arrives as a
+  `LuaTypeReference` or a `LuaParameterizedType`, both of which have arms.
+- A method's own `@generic` names shadow the class's: `substituteFunction` removes them from the
+  bindings before substituting.
+
 ### 5.10 Head naming at index time
 
 `classHeadName(tag)`: `PsiTreeUtil.getChildOfType(tag.argType, LuaCatsParameterizedName::class.java)?.genericType?.text ?: tag.argType.text.trim()`.
@@ -817,6 +889,9 @@ recompiled, those tests failed with `NoSuchMethodError` instead.
 | A `` `T` `` argument that is a variable, not a literal | No capture edge; `T` unbound; the return is `Undefined`. Case 21's `u`. |
 | Class-level `T` and method-level `T` on the same method | Method-level wins (§5.1 step 3). |
 | Stub built by an older plugin | `getStubVersion` 5 forces a rebuild. |
+
+**As implemented (Phase 5).** The `Node<T>` row needed the per-base instantiation memo and the
+`fromLuaType` routing (§5.9, §4.11 notes). The stub-version row reads 9.
 
 ## 9. Integration points
 

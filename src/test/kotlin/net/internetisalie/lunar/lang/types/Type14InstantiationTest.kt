@@ -14,7 +14,7 @@ import org.junit.runners.JUnit4
 /**
  * TYPE-14 Phase 2: a generic callee binds its parameters through their structure and rebuilds its
  * returns at the same depth, per call site, on both the same-file and the declared call path.
- * Cases 5-8, 10 and 11 of the feature's requirements.
+ * Cases 5-11 of the feature's requirements; case 9 (generic methods) is Phase 5's.
  */
 @RunWith(JUnit4::class)
 class Type14InstantiationTest : IndexedBasePlatformTestCase() {
@@ -118,8 +118,57 @@ class Type14InstantiationTest : IndexedBasePlatformTestCase() {
         assertEquals("number", typeOf(file, "n"))
     }
 
-    // TODO(TYPE-14 Phase 5): requirements case 9 (generic methods) lands with the generic-aware
-    // funcTypeFromStub of design §4.8; see risks-and-gaps Gap 2.4.
+    /** Case 9 (TYPE-14-04): a generic method instantiates per call, through an instance and through the class. */
+    @Test
+    fun testCase9GenericMethodInstantiatesPerCall() {
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@class Box
+                local Box = {}
+                ---@generic T
+                ---@param v T
+                ---@return T
+                function Box:echo(v) return v end
+                ---@type Box
+                local b
+                local r = b:echo("x")
+                local q = Box:echo(1)
+                """.trimIndent(),
+            )
+        assertEquals("string", typeOf(file, "r"))
+        assertEquals("number", typeOf(file, "q"))
+        assertEquals("[]", errorsOf(file).toString())
+    }
+
+    /**
+     * Risks-and-gaps Gap 2.9: a generic method's class member is not checked against the method
+     * itself in its own file, whatever order its `@param` tags are written in (lazynvim's `filter`).
+     */
+    @Test
+    fun testGenericMethodSignatureRaisesNothingInItsOwnFile() {
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                """
+                ---@class Lst
+                local M = {}
+                ---@generic T
+                ---@param list T[]
+                ---@param fn fun(v: T):boolean?
+                ---@return T[]
+                function M.filter(fn, list) return list end
+                ---@generic T
+                ---@param list T[]
+                ---@param fn fun(v: T):boolean?
+                ---@return T[]
+                function M.keep(list, fn) return list end
+                return M
+                """.trimIndent(),
+            )
+        assertEquals("[]", errorsOf(file).toString())
+    }
 
     @Test
     fun testCase10CrossFileGenericCalleeInstantiatesPerCall() {

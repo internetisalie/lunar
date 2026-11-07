@@ -94,15 +94,32 @@ class LuaGenericType(
     override fun toString(): String = name
 }
 
+/**
+ * `Box<string>` before resolution. Members are read through the instantiation when the base is a
+ * generic class (TYPE-14-09), and through the base otherwise (`table<K, V>` has none).
+ */
 class LuaParameterizedType(
     val baseType: LuaType,
     val arguments: List<LuaType>,
 ) : LuaType {
     override val name: String = "${baseType.name}<${arguments.joinToString(", ") { it.name }}>"
 
-    override fun resolveMember(name: String): LuaTypeMember? = baseType.resolveMember(name)
+    /** The base it was last instantiated from, and the result; the base is re-read so its sources replay. */
+    @Volatile
+    private var memo: Pair<LuaClassType, LuaClassType>? = null
 
-    override fun getMembers(): Map<String, LuaTypeMember> = baseType.getMembers()
+    /** The class this names: the base instantiated with [arguments], or the base itself. */
+    fun instantiated(): LuaType {
+        val base =
+            (if (baseType is LuaTypeReference) baseType.resolved else baseType) as? LuaClassType ?: return baseType
+        if (base.typeParameters.isEmpty()) return base
+        memo?.let { (from, result) -> if (from === base) return result }
+        return LuaGenericSubstitution.instantiate(base, arguments).also { memo = base to it }
+    }
+
+    override fun resolveMember(name: String): LuaTypeMember? = instantiated().resolveMember(name)
+
+    override fun getMembers(): Map<String, LuaTypeMember> = instantiated().getMembers()
 
     override fun isAssignableTo(other: LuaType): Boolean {
         if (other == LuaPrimitiveType.ANY) return true

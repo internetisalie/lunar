@@ -9,6 +9,9 @@ interface LuaFuncStub : StubElement<LuaFuncDecl> {
     val luacatsReturnType: String?
     val luacatsParams: List<LuaCatsDeclarations.ParamDecl>
 
+    /** TYPE-14-06: the comment's `@generic` names and bound texts, in declaration order. */
+    val luacatsGenericParams: List<LuaCatsDeclarations.GenericParameter>
+
     /** BUG-509: the name's first segment is bound by a file-local declaration in scope. */
     val rootIsLocal: Boolean
 }

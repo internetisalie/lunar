@@ -1,5 +1,7 @@
 package net.internetisalie.lunar.luacats.lang.psi
 
+import com.intellij.psi.util.PsiTreeUtil
+
 /**
  * The single reader of a LuaCATS tag into the `(name, type-string)` pairs the type engine consumes.
  *
@@ -146,6 +148,26 @@ object LuaCatsDeclarations {
             .associateBy { it.name }
             .values
             .toList()
+
+    /**
+     * The class name the indexes key on: `Box` for `---@class Box<T>`, the trimmed head text
+     * otherwise, and empty for a partial tag with no name. `typeName ::= parameterizedName | NAME`.
+     */
+    fun classHeadName(tag: LuaCatsClassTag): String {
+        val argType = PsiTreeUtil.getChildOfType(tag, LuaCatsArgType::class.java) ?: return ""
+        val parameterized = PsiTreeUtil.getChildOfType(argType, LuaCatsParameterizedName::class.java)
+        return (parameterized?.genericType?.text ?: argType.text).trim()
+    }
+
+    /**
+     * The head's own `<T, U>` names, in order; empty for a plain head. A nested type in a head
+     * (`---@class Box<string[]>`) is not a parameter and is ignored.
+     */
+    fun classTypeParameterNames(tag: LuaCatsClassTag): List<String> {
+        val argType = PsiTreeUtil.getChildOfType(tag, LuaCatsArgType::class.java) ?: return emptyList()
+        val parameterized = PsiTreeUtil.getChildOfType(argType, LuaCatsParameterizedName::class.java)
+        return parameterized?.typeParamList.orEmpty().map { it.text.trim() }
+    }
 
     /** The first `@alias`'s target type string, or null. */
     fun aliasTarget(comment: LuaCatsComment): String? =

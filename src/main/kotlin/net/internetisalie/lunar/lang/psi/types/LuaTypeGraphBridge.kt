@@ -95,7 +95,7 @@ object LuaTypeGraphBridge {
 
         val typeName =
             typeTag?.let(LuaCatsDeclarations::typeName)
-                ?: classTag?.argType?.text?.trim()
+                ?: classTag?.let { LuaCatsDeclarations.classHeadName(it) }
                 ?: return
 
         val typeParameters = typeParametersOf(cats, context)

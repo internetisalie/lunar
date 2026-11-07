@@ -190,6 +190,13 @@ inherits with substitution. Closes BUG-420.
   the head comparison from `isNominallyCompatible` → `Box<string> is not assignable to Box`.
   **Mutation** (18): remove the parameterized branch from `doResolveType` → `[own]`.
   **Mutation** (22): treat `Table(className)` as a leaf in `substitute` → `Box<T>`.
+  *As run:* mutation (17) as written survives, because `isStructurallyCompatible` accepts the pair
+  without `sameClass`; case 17 also asserts the Layer-1 `isAssignableTo`, and dropping
+  `LuaClassType.sameHead` turns it red. Mutation (12) reddens TC-26's method type parameters on the
+  stub arm; case 12 reads through the snapshot and does not depend on the stub field. Mutation (9)
+  became "the receiver yields no class names" once the template moved to its own channel (Gap 2.9),
+  and mutation (29), which puts the eager template back as the class member, reddens
+  `testGenericMethodSignatureRaisesNothingInItsOwnFile`. Task 7's `.` form is Gap 2.10.
 - `LuaGotoContributorTest` gains a parameterized-class fixture: case 27. **Mutation**: leave
   `LuaCatsTypeNavigation.kt:48`'s raw-text match → `processElements("Box")` yields nothing.
 - `LuaCatsStubAstParityTest` + generic function and generic class fixtures (cases 12 and 26,
@@ -245,12 +252,13 @@ inherits with substitution. Closes BUG-420.
 - [x] `Type14GenericParsingTest` — cases 1–4 (Phase 1)
 - [x] DR-01 fixture regression file (`Type14FalseErrorRegressionTest`) — the "false error" rows (Phase 1)
 - [x] `Type14InstantiationTest` — cases 5–8, 10, 11 (Phase 2)
-- [ ] `Type14InstantiationTest` — case 9 (Phase 5), case 24 (Phase 6)
+- [x] `Type14InstantiationTest` — case 9 (Phase 5)
+- [ ] `Type14InstantiationTest` — case 24 (Phase 6)
 - [x] `Type14ConstraintTest` — cases 19–21 (Phase 3)
 - [x] `LuaCatsParserTest` additions — cases 13, 14 (Phase 4); case 7's nested argument in `Type14NestedTypeArgumentTest`
-- [ ] `Type14GenericClassTest` — cases 15–18, 22 (Phase 5)
-- [ ] `LuaGotoContributorTest` addition — case 27 (Phase 5)
-- [ ] `LuaCatsStubAstParityTest` additions — cases 12, 26 (Phase 5)
+- [x] `Type14GenericClassTest` — cases 15–18, 22 (Phase 5)
+- [x] `LuaGotoContributorTest` addition — case 27 (Phase 5)
+- [x] `LuaCatsStubAstParityTest` additions — cases 12, 26 (Phase 5)
 - [ ] `LuaTypeInlayHintsTest` addition — case 23 (Phase 6)
 - [ ] Corpus lane re-baseline — case 25 (removed-only delta at Phases 1 and 2; attributed additions admitted at Phase 5)
 - [ ] Run [human-verification-checklists.md](human-verification-checklists.md) (Phase 6)
@@ -263,5 +271,5 @@ inherits with substitution. Closes BUG-420.
 | Phase 2: Recursive instantiation, declared path | done | Must |
 | Phase 3: Constraints, bound in body, backtick capture | done | Should |
 | Phase 4: Grammar — type arguments are full types | done | Must |
-| Phase 5: Generic classes and parameterized parents | todo | Must |
+| Phase 5: Generic classes and parameterized parents | done | Must |
 | Phase 6: Callback-slot binding, display, docs | todo | Could / Should |

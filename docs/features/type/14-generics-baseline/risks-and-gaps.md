@@ -85,13 +85,16 @@ with a sibling source. Recorded here so it is not mistaken for a §5.12 defect.
 members (§8). LuaLS prints an expanded form here (#1856, open). Not a regression: today the
 same call yields `Box<T>` with no members.
 
-### Gap 2.4 — A same-file generic method has no template at its call's visit time — RESOLVED (deferred to Phase 5)
+### Gap 2.4 — A same-file generic method has no template at its call's visit time — RESOLVED for `:` calls (Phase 5); `.` calls are Gap 2.10
 
 A `:`/`.` call's site member is `undefined` when `visitFuncCall` runs, because member wiring happens
 in `checkTypes`. The receiver's own member is the method `funcTypeFromStub` builds, which carries
 no generic until design §4.8. Requirements case 9 (TYPE-14-04) therefore moves to Phase 5, which
 delivers §4.8; there the template is read through the receiver's members (implementation plan
 Phase 5, task 7).
+
+**Phase 5.** A `:` call reads the template from the receiver's classes (`LuaClassType.genericMethod`,
+Gap 2.9), once per (receiver, method) pair at visit time; case 9 passes. `.` calls are Gap 2.10.
 
 ### Gap 2.5 — Two results of one call read in one walk — KNOWN LIMITATION
 
@@ -165,6 +168,103 @@ Dispositions:
 5. **Capture gets its own node.** The path-ε parameter node was the binding, so the string argument
    flowed into `T` (`new("Widget")` read `string`). A capture parameter now gets a fresh node, and
    `w` reads `Widget` (design §5.11, amended).
+
+### Gap 2.9 — A generic method's eager nominal signature added false errors in its own file — RESOLVED (Phase 5, option 1)
+
+**Found by the Phase 5 corpus lane.** lazynvim gained 4 diagnostics, lost none, and no generic class
+accounted for them, so TYPE-14-17 (b) failed. The source is `lua/lazy/core/util.lua:40`, a method on
+`---@class LazyUtilCore`:
+
+```lua
+---@generic T
+---@param list T[]
+---@param fn fun(v: T):boolean?
+---@return T[]
+function M.filter(fn, list)
+```
+
+The additions were `T[] is not assignable to fun(v)` and the reverse, at 40:1, 40:19 and 40:23.
+
+**Why a concrete signature never conflicted.** The question was whether a `LuaTypeReference` read
+during the declaring file's own snapshot build answers `undefined`. Measured: **refuted.** It is not
+about timing at all.
+
+- `LuaTypeManager.resolveType` resolves names: primitives, classes and aliases. A reference whose
+  text is a type **expression**, such as `string[]` or `fun(v: string):boolean?`, matches none of
+  them and answers null, then `UNKNOWN`, then `undefined`.
+- This holds outside any build too: `resolveType("string[]")` is null, while `resolveType("string")`
+  is `string`.
+- So before Phase 5, a method member's expression-typed parameters were `undefined` whenever they
+  were read. The read happens at visit time, when `classTable` flattens the class's members for the
+  receiver's annotation.
+- Being `undefined`, those parameters could not conflict with the in-file function.
+- A **name**-typed parameter (`---@param a string`) does resolve, so a name-typed method with
+  reordered `@param` tags can still conflict on base. That is pre-existing and not changed here.
+
+Phase 5's eager parse turned those `undefined`s into real types laid out in `@param` order, and the
+member and the in-file function were then compared position by position.
+
+**Probe rows.** The probe was `Type14P5FilterProbeTest`, run on base and branch, and is now deleted.
+Each fixture is a `@class` holding the method above with its body.
+
+| Row | Base 3e957ef9 | Eager branch | Option 1 |
+| :-- | :-- | :-- | :-- |
+| generic, params in `@param` order | 1 error (`{ ... }` returned for `T[]`, the body's own) | 5 errors | **1, identical to base** (errors and graph render) |
+| generic, swapped (the corpus shape) | 1 | 10 | **1, identical to base** |
+| concrete `string[]`, swapped | 1 | 1 | **1, identical to base** |
+| generic `@field cb fun(v: T): boolean` on `FB<T>`, with an unannotated `function M.cb(v)` | 0 | 0 | 0 |
+| the same with `fun(a: T, b: number)` and `function M.cb(b, a)` | 0 | 0 | 0 |
+
+The `@field` rows raise no conflict, because the in-file function declares no signature of its own.
+They differ from base only in that `FB<T>` now resolves at all; on base it was keyed `FB<T>` and
+memberless.
+
+One thing does flow, though no diagnostic depends on it. The undeclared function's parameters take
+the field's types by position: `b` reads `T` and `a` reads `number`. A `@field` and a same-named
+`function` with a declared signature in a different order would meet the same positional comparison
+this gap describes. That shape was not measured.
+
+**Disposition (option 1).**
+- A method's class member is the lazy, reference-typed signature it was before Phase 5. Only the
+  `@generic` names are added, so TYPE-14-06's parity holds.
+- The generic call template is kept apart, in `LuaClassType.methodTemplates`. It is built by
+  `genericTemplateOf` with the class's and the method's own names, substituted by
+  `LuaGenericSubstitution.instantiate`, and inherited through `genericMethod`.
+- `LuaTypesVisitor.calleeTemplate` reads it from the receiver's class names, once per (receiver,
+  method) at visit time, and converts it onto the file's graph.
+- `@field` types and supertypes keep the eager parse.
+- `testGenericMethodSignatureRaisesNothingInItsOwnFile` pins the fix. Making the nominal member
+  eager again (mutation m29) turns that test red.
+
+### Gap 2.10 — A generic function called with `.` on a class is not instantiated — OPEN
+
+`Box.make(1)`, with `---@generic T ---@param v T ---@return T` on `function Box.make(v)`, infers
+`T | number`. It did so on base and does so after Phase 5, and no diagnostic depends on it.
+
+The `:` route cannot simply be reused, because the call has a different structure:
+- `visitFuncCall` has no receiver node for a `.` call. `methodExpr` is null.
+- The callee is the member expression's own node, not a site member minted over a receiver.
+- So a dot path would first need the prefix's node and the member name split out of the callee
+  expression, which is new visitor work rather than the same lookup.
+
+This is TYPE-14-04's open remainder (plan Phase 5 task 7 named both forms).
+
+### Gap 2.11 — A method using only its class's parameter is not substituted on an instantiation — OPEN
+
+`---@class Box<T>` `---@field value T` with `---@return T function Box:get() end`, and
+`---@type Box<string> local b` `local g = b:get()`: `g` is `undefined` on base and after Phase 5
+(Phase 5 review probe, same-file and cross-file; `b.value` is `string` and a method-level generic
+`b:echo(1)` is `number` after Phase 5). No diagnostic depends on it.
+
+Cause: `LuaTypesVisitor.visitFuncCall` applies a call template only when it still `containsGeneric`.
+`instantiate` does substitute the class parameter (the template becomes `fun(): string`), so the
+check discards it, and the nominal member stays the unresolvable `LuaTypeReference("T")`. The fix is
+to use the instantiated class's substituted template for such a member rather than gating on
+`containsGeneric`. This is TYPE-14-09's open remainder.
+
+The graph-layer `sameClass` head comparison in `LuaTypeGraph.isNominallyCompatible` has no test
+that depends on it (mutation 17 survives; see the plan's "As run" note). It is kept for symmetry
+with `LuaClassType.sameHead`, which case 17 does pin.
 
 ## Adjacent defects and gaps found by DR-01, not owned here
 

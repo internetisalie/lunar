@@ -243,7 +243,26 @@ class LuaTypesSnapshot(
             }
         val returnType =
             type.returns.firstOrNull()?.let { graphTypeToLuaType(it.write, visited) } ?: LuaPrimitiveType.VOID
-        return LuaFunctionType(params, returnType, implicitSelf = type.implicitSelf)
+        val typeParameters = LinkedHashMap<String, LuaGenericType>()
+        (params.map { it.type } + returnType).forEach { collectGenerics(it, typeParameters) }
+        return LuaFunctionType(params, returnType, typeParameters.values.toList(), implicitSelf = type.implicitSelf)
+    }
+
+    /**
+     * The placeholders a converted signature mentions, by name in first-seen order: a generic global
+     * read back from its file's graph has no `@generic` comment to read them from (TYPE-14-06).
+     */
+    private fun collectGenerics(
+        type: LuaType,
+        into: MutableMap<String, LuaGenericType>,
+    ) {
+        when (type) {
+            is LuaGenericType -> into.putIfAbsent(type.name, type)
+            is LuaArrayType -> collectGenerics(type.elementType, into)
+            is LuaUnionType -> type.types.forEach { collectGenerics(it, into) }
+            is LuaParameterizedType -> type.arguments.forEach { collectGenerics(it, into) }
+            else -> Unit
+        }
     }
 
     companion object {

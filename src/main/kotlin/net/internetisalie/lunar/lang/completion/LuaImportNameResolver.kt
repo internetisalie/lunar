@@ -10,6 +10,7 @@ import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaLocalFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 
 /**
  * Derives the local binding name for a return-style auto-import (COMP-03-AC-04).
@@ -50,11 +51,7 @@ class LuaImportNameResolver {
     private fun classNameOf(decl: LuaLocalVarDecl): String? {
         decl.stub?.luacatsClassName?.let { return it.trim() }
         val cats = LuaPsiImplUtil.getCatsComment(decl) ?: return null
-        return cats.classTagList
-            .firstOrNull()
-            ?.argType
-            ?.text
-            ?.trim()
+        return cats.classTagList.firstOrNull()?.let { LuaCatsDeclarations.classHeadName(it) }
     }
 
     private fun resolveFromFilename(file: VirtualFile): String =

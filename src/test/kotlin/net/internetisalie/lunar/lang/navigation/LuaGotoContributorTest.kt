@@ -136,6 +136,26 @@ class LuaGotoContributorTest : IndexedBasePlatformTestCase() {
         assertTrue("Go-to-Symbol item for a declaration should be navigable", item.canNavigate())
     }
 
+    /**
+     * Case 27 (TYPE-14-08): a generic class is found by its head. The key set is asserted only not to
+     * hold the raw `Box<T>`: a bare `Box` key can come from the light project's library roots, so its
+     * presence would prove nothing (DR-03).
+     */
+    @Test
+    fun testGotoClassFindsAGenericClassByItsHead() {
+        myFixture.addFileToProject("genericbox.lua", "---@class Box<T>\nlocal Box = {}")
+        val keys = CommonProcessors.CollectProcessor<String>()
+        LuaCatsTypeNavigation.processNames(keys, GlobalSearchScope.allScope(project), null)
+        assertFalse("the raw head must not be a key: ${keys.results}", "Box<T>" in keys.results)
+
+        val items = mutableListOf<NavigationItem>()
+        LuaCatsTypeNavigation.processElements("Box", project, GlobalSearchScope.allScope(project)) { items.add(it) }
+        assertEquals("exactly one item for Box", 1, items.size)
+        assertEquals("Box", items.first().name)
+        assertEquals("genericbox.lua", items.first().presentation?.locationString)
+        assertTrue("the item lands on the tag", items.first().canNavigate())
+    }
+
     /** Go to Symbol also surfaces classes (any top-level named symbol is reachable). */
     @Test
     fun testGotoSymbolAlsoFindsClass() {

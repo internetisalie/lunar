@@ -9,6 +9,7 @@ import com.intellij.psi.stubs.StubIndex
 import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
 
 /**
  * Shared primitives for the Lua type-hierarchy views (NAV-06): mapping a `@class` declaration to its
@@ -23,10 +24,7 @@ object LuaHierarchyUtil {
     fun className(decl: LuaLocalVarDecl): String? {
         decl.stub?.luacatsClassName?.let { return it }
         val cats = LuaPsiImplUtil.getCatsComment(decl) ?: return null
-        return cats.classTagList
-            .firstOrNull()
-            ?.argType
-            ?.text
+        return cats.classTagList.firstOrNull()?.let { LuaCatsDeclarations.classHeadName(it) }
     }
 
     /**

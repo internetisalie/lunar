@@ -28,7 +28,9 @@ class LuaLocalVarStubElementType(
                 ?.firstOrNull()
                 ?.let(LuaCatsDeclarations::typeName)
         val classTag = catsComment?.getClassTagList()?.firstOrNull()
-        val className = classTag?.argType?.text
+        // TYPE-14-08: keyed by the head, so `---@class Box<T>` is found as `Box`; `T` goes to its own field.
+        val className = classTag?.let { LuaCatsDeclarations.classHeadName(it) }?.takeIf { it.isNotEmpty() }
+        val typeParameters = classTag?.let { LuaCatsDeclarations.classTypeParameterNames(it) }.orEmpty()
         // BUG-402: stored as a LIST. Flattening to `parentTypes.text` forced the reader to re-split
         // on ',', which cuts a parameterized parent (`Base<string, number>`) in half.
         val parents = classTag?.let { LuaCatsDeclarations.parentTypeNames(it) }.orEmpty()
@@ -64,6 +66,7 @@ class LuaLocalVarStubElementType(
             luacatsAliasTarget = aliasTarget,
             luacatsParents = parents,
             luacatsFields = fields,
+            luacatsTypeParameters = typeParameters,
         )
     }
 
@@ -86,6 +89,8 @@ class LuaLocalVarStubElementType(
             dataStream.writeName(name)
             dataStream.writeName(type)
         }
+        dataStream.writeInt(stub.luacatsTypeParameters.size)
+        stub.luacatsTypeParameters.forEach { dataStream.writeName(it) }
     }
 
     override fun deserialize(
@@ -111,6 +116,7 @@ class LuaLocalVarStubElementType(
             val fType = dataStream.readName()?.string ?: ""
             fields[fName] = fType
         }
+        val typeParameters = List(dataStream.readInt()) { dataStream.readName()?.string ?: "" }
         return LuaLocalVarStubImpl(
             parent = parentStub,
             names = names,
@@ -120,6 +126,7 @@ class LuaLocalVarStubElementType(
             luacatsAliasTarget = aliasTarget,
             luacatsParents = parents,
             luacatsFields = fields,
+            luacatsTypeParameters = typeParameters,
         )
     }
 

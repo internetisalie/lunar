@@ -492,8 +492,8 @@ internal class LuaGenericInstantiation(
         }
     }
 
-    private companion object {
-        val QUOTES = setOf('"', '\'')
+    internal companion object {
+        private val QUOTES = setOf('"', '\'')
 
         /** The type arguments a parameterized name spells, split at depth 0; empty for a plain name. */
         fun typeArgumentsOf(className: String?): List<String> {

@@ -338,10 +338,14 @@ sealed class LuaGraphType {
                     Generic(type.name, type.bound?.let { fromLuaType(it, graph, visited) }, type.capture)
                 }
 
-                is LuaParameterizedType -> {
-                    // For Phase 5, we represent parameterized types as Tables with the full name
-                    Table(type.name)
-                }
+                // A generic class's instantiation is a class table named `Box<string>`; any other
+                // parameterized name (`table<K, V>`, a non-generic base) stays memberless (TYPE-14-09).
+                // Through `fromLuaType`, so the guard on the instantiation closes `Node<T>`'s cycle.
+                is LuaParameterizedType ->
+                    (type.instantiated() as? LuaClassType)
+                        ?.takeIf { it.typeArguments.isNotEmpty() }
+                        ?.let { fromLuaType(it, graph, visited) }
+                        ?: Table(type.name)
 
                 else -> Any
             }

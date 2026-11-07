@@ -8,6 +8,8 @@ import net.internetisalie.lunar.lang.indexing.LuaClassNameIndex
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.types.LuaAliasType
 import net.internetisalie.lunar.lang.psi.types.LuaClassType
+import net.internetisalie.lunar.lang.psi.types.LuaFunctionType
+import net.internetisalie.lunar.lang.psi.types.LuaGenericType
 import net.internetisalie.lunar.lang.psi.types.LuaTypeManagerImpl
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsFieldTag
 import org.junit.Test
@@ -47,6 +49,9 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         val expectedMembers: Set<String>,
         val expectedSupertypes: List<String>,
         val expectedMemberTypeContains: Map<String, String> = emptyMap(),
+        /** TYPE-14-06: the class head's own parameters, and each named method's `@generic`s. */
+        val expectedClassTypeParameters: List<String> = emptyList(),
+        val expectedMethodTypeParameters: Map<String, List<String>> = emptyMap(),
     )
 
     /**
@@ -160,6 +165,25 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
             render(case.expectedSupertypes.map(armOf)),
             render(type.superTypes.map { it.name }),
         )
+        assertEquals(
+            "${case.id}/$arm: class type parameters",
+            render(case.expectedClassTypeParameters),
+            render(type.typeParameters.map { it.name }),
+        )
+        case.expectedMethodTypeParameters.forEach { (method, expected) ->
+            val function = type.resolveMember(armOf(method))?.type as? LuaFunctionType
+            assertEquals(
+                "${case.id}/$arm: $method's type parameters",
+                render(
+                    expected,
+                ),
+                render(
+                    function?.typeParameters.orEmpty().map {
+                        it.name
+                    },
+                ),
+            )
+        }
         case.expectedMemberTypeContains.forEach { (member, needle) ->
             val resolvedMember = type.resolveMember(armOf(member))
             assertNotNull("${case.id}/$arm: member $member must resolve", resolvedMember)
@@ -354,6 +378,62 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
         )
     }
 
+    /**
+     * Case 26 (TYPE-14-06): a generic class and a generic method on it agree on both arms — the
+     * class's head parameters and the method's own, read from the stub fields and from the comment.
+     */
+    @Test
+    fun testGenericClassAndMethodAgree() {
+        assertParity(
+            ParityCase(
+                id = "TC-26",
+                source =
+                    """
+                    ---@class C__<T>
+                    ---@field value T
+                    local C__ = {}
+                    ---@generic U
+                    ---@param v U
+                    ---@return U
+                    function C__.m(v) end
+                    """.trimIndent(),
+                className = "C__",
+                expectedMembers = setOf("value", "m"),
+                expectedSupertypes = emptyList(),
+                expectedMemberTypeContains = mapOf("value" to "T", "m" to "fun(v: U): U"),
+                expectedClassTypeParameters = listOf("T"),
+                expectedMethodTypeParameters = mapOf("m" to listOf("U")),
+            ),
+            index = 26,
+        )
+    }
+
+    /** Case 12 (TYPE-14-06): a cross-file generic global keeps its parameter and its symbolic signature. */
+    @Test
+    fun testCrossFileGenericGlobalKeepsItsTypeParameters() {
+        myFixture.addFileToProject(
+            "lib12.lua",
+            """
+            ---@generic T
+            ---@param v T
+            ---@return T
+            function ident12(v) return v end
+            """.trimIndent(),
+        )
+        val usage = myFixture.configureByText("main12.lua", "local s = ident12(\"x\")\n")
+        runReadAction {
+            val resolved = LuaTypeManagerImpl(project).resolveGlobal("ident12", usage)
+            val function =
+                requireNotNull(resolved as? LuaFunctionType) { "ident12 must resolve to a function, was $resolved" }
+            assertEquals("[\"T\"]", render(function.typeParameters.map { it.name }))
+            assertTrue(
+                "parameter is generic: ${function.params.firstOrNull()?.type}",
+                function.params.firstOrNull()?.type is LuaGenericType,
+            )
+            assertTrue("return is generic: ${function.returnType}", function.returnType is LuaGenericType)
+        }
+    }
+
     /** TC-6: `@alias` — not a class, so it gets its own method rather than a [ParityCase]. */
     @Test
     fun testAliasTargetAgrees() {
@@ -387,7 +467,7 @@ class LuaCatsStubAstParityTest : IndexedBasePlatformTestCase() {
      */
     @Test
     fun testStubVersionIsCurrent() {
-        assertEquals("stub version", 8, LuaParserDefinition.FILE.stubVersion)
+        assertEquals("stub version", 9, LuaParserDefinition.FILE.stubVersion)
     }
 
     /**

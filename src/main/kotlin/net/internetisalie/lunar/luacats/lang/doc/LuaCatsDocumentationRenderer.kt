@@ -671,7 +671,7 @@ object LuaCatsDocumentationRenderer {
         )) {
             val luaFile = psiManager.findFile(virtualFile) as? LuaFile ?: continue
             for (tag in PsiTreeUtil.findChildrenOfType(luaFile, LuaCatsClassTag::class.java)) {
-                if (tag.argType.text.trim() != className) continue
+                if (LuaCatsDeclarations.classHeadName(tag) != className) continue
                 return PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java)
             }
         }

@@ -3,13 +3,18 @@ id: "BUG-420"
 title: "A parameterized `@class` parent never resolves, so inheritance through a generic base is lost"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
 
 # BUG-420: A parameterized `@class` parent never resolves
+
+> **Resolved by [[TYPE-14]] Phase 5** (`docs/features/type/14-generics-baseline/`). A parameterized
+> name now resolves: the head is looked up and, for a generic class, instantiated with the arguments
+> (design §5.9). Both this report's probe (a non-generic `ProbeBase<string, number>`) and the generic
+> form (`PBase<T>` inherited as `PBase<string>`) are pinned by `Type14GenericClassTest`.
 
 `---@class Kid : Base<string, number>` records its supertype under the **full** text
 `Base<string, number>`. Nothing strips the generic arguments before the lookup, and

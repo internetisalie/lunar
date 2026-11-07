@@ -203,8 +203,11 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
      * which is precisely when [assignsMembersTo] tells the `@class` door to skip the walk — so a
      * machine that had indexed before this version would silently lose every implicit member,
      * exactly on the libraries that have them.
+     *
+     * 5 → 6 (TYPE-14-08): a `---@class Box<T>`'s `@field` members are keyed under the head `Box`,
+     * where they were keyed under the raw `Box<T>` no lookup asks for.
      */
-    override fun getVersion(): Int = 5
+    override fun getVersion(): Int = 6
 
     override fun dependsOnFileContent(): Boolean = true
 
@@ -475,9 +478,8 @@ class LuaReceiverMemberIndex : FileBasedIndexExtension<String, List<LuaReceiverM
             byReceiver: MemberSink,
         ) {
             tags.forEach { tag ->
-                // Nullable in practice on a partial `---@class` even though the generated getter is
-                // not annotated — LuaTypeManagerImpl:348 reads the same accessor as `argType?.text`.
-                val receiver = tag.argType?.text?.trim() ?: return@forEach
+                // The head, as every class index keys it: `Box` for `---@class Box<T>` (TYPE-14-08).
+                val receiver = LuaCatsDeclarations.classHeadName(tag).takeIf { it.isNotEmpty() } ?: return@forEach
                 val comment = PsiTreeUtil.getParentOfType(tag, LuaCatsComment::class.java) ?: return@forEach
                 LuaCatsDeclarations.fieldMembers(comment).forEach { field ->
                     val kind =

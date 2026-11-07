@@ -17,6 +17,13 @@
   `f(1)` reports *number is not assignable to string*. Inside the function, a parameter of type
   `T : Base` has `Base`'s fields, typed and offered by completion after `p.`. A parameter written
   `` `T` `` takes its type from the class name passed as a string: `new("Widget")` returns a `Widget`.
+  Classes can be generic too. `---@class Box<T>` is found as `Box` by Go to Class and the
+  class hierarchy, and `---@type Box<string>` gives `b.value` the type `string`.
+  A class whose parent is written with type arguments (`---@class Kid : Base<string>`) now inherits
+  the parent's fields, with `T` replaced, where it previously inherited nothing. A generic method
+  called with `:` is typed per call like a free function (`b:echo("x")` is a `string`), and a
+  function returning `Box<T>` returns a `Box<string>` when called with a string. A `Box<string>` can be
+  assigned where a `Box` is expected.
 - **A declared parameter is checked by one rule** (MAINT-51). An argument that may be `nil` on some
   paths, or an array or record with `nil` among its element or field types, is no longer reported
   against a parameter declared as a union. A `?` parameter accepts `nil` and its declared type the same

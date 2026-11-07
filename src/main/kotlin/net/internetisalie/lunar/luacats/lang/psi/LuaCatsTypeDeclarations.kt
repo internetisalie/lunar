@@ -57,9 +57,9 @@ object LuaCatsTypeDeclarations {
      * `typeName ::= parameterizedName | NAME` (`:94`) gives the tag's [LuaCatsArgType] exactly one
      * child. **The element-type test on that child is the whole exclusion** — do not add a separate
      * `LuaCatsParameterizedName` guard in front of it; it would be dead code (`REFACT-08-00-DR-02`
-     * mutation G / G3). Excluding a parameterized head matters because [LuaCatsTypeNameIndex] keys
-     * the tag under the whole text (`Box<T>`), so admitting the head as a declaration leaf would
-     * make [declarationLeaves] of the bare name find nothing.
+     * mutation G / G3). A parameterized head is excluded because `Box<T>` is a different type from
+     * `Box` and is never renamed as one (`REFACT-08-04`); the index now keys it under the head
+     * `Box` (TYPE-14-08), so this exclusion, not the key, is what keeps it out of [declarationLeaves].
      */
     fun classDeclarationLeaf(tag: LuaCatsClassTag): PsiElement? {
         val argType = PsiTreeUtil.getChildOfType(tag, LuaCatsArgType::class.java) ?: return null
