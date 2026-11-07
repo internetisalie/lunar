@@ -115,7 +115,7 @@ a generic name only when it is the **whole** type string and otherwise hands the
 | TYPE-14-08 | **A generic class declares its parameters and is keyed by its head** | M | `---@class Box<T, U>` records `["T", "U"]` on the stub and on `LuaClassType.typeParameters`; `LuaClassNameIndex` and `LuaCatsTypeNameIndex` key the class as `Box`, and `LuaTypeManager.resolveType("Box")` finds it. Every consumer that fetches files by that index key and then re-matches the tag's text (design §5.10 lists them) matches the head too, so Go to Class lists `Box` and lands on the tag. The `T` in `---@field value T` on that class parses as a generic (TYPE-14-01), not as an unresolved class. |
 | TYPE-14-09 | **A parameterized name resolves to an instantiation** | M | `LuaTypeManager.resolveType("Box<string>")` returns a `LuaClassType` named `Box<string>` whose members are `Box`'s with `T` replaced by `string` at every depth, whose supertypes are `Box`'s with the same substitution, and which is nominally assignable to `Box`. `---@type Box<string> local b` gives `b.value : string`, with completion and inlay hints reading the substituted type. A wrong argument count substitutes the provided arguments positionally and leaves the rest symbolic. |
 | TYPE-14-10 | **A parameterized parent inherits with substitution** | M | `---@class Kid : Base<string>` resolves `Kid`'s members to include `Base`'s, with `Base`'s `T` replaced by `string`. This closes [[BUG-420]] without stripping the arguments from the stub or from `superTypes`. |
-| TYPE-14-11 | **A constraint is checked at the call site** | S | For `---@generic T : Base`, the argument bound to `T` is checked against `Base` as a declared demand: `f(1)` reports `number is not assignable to Base`; `f(base)` with `base: Base` does not. |
+| TYPE-14-11 | **A constraint is checked at the call site** | S | For `---@generic T : Bound`, the argument bound to `T` is checked against `Bound` exactly as an argument to a plain `---@param p Bound` is checked: the same message, on the same elements, reported once. `T : string` with `f(1)` reports `number is not assignable to string`. `T : Base` with `f({})` reports the missing required field. `T : Base` with `f(1)` reports nothing, because the checker accepts a primitive where a class is expected (a metatable may give it the members), and a plain `---@param p Base` reports nothing either. |
 | TYPE-14-12 | **A constraint's bound is usable in the body** | S | Inside the function, a parameter typed `T` where `T : Base` resolves `Base`'s members: `p.k` infers `string` for `---@field k string`, completion on `p.` offers `k`, and no diagnostic is raised on the access. |
 | TYPE-14-13 | **Backtick capture binds a named class** | S | For `` ---@param cls `T` ``, a call whose argument at that position is a string literal binds `T` to the class (or primitive) that literal names; the return `T` infers that class. A non-literal argument leaves `T` unbound and raises nothing. |
 | TYPE-14-14 | **A generic return of a parameterized class instantiates the class** | S | `---@return Box<T>` on a generic function returns `Box<string>` at a call site that binds `T` to `string`, with members substituted, so `local b = make("x")` then `b.value` infers `string`. |
@@ -125,7 +125,7 @@ a generic name only when it is the **whole** type string and otherwise hands the
 
 ## Implementation Status
 
-Status by phase of the [implementation plan](implementation-plan.md). Phases 1 and 2 are delivered;
+Status by phase of the [implementation plan](implementation-plan.md). Phases 1 to 3 are delivered;
 the remaining rows are not started.
 
 | ID | Status | Notes |
@@ -135,8 +135,12 @@ the remaining rows are not started.
 | TYPE-14-03 | Full | Phase 2: `LuaGenericInstantiation` binds through `Elem`, `Arm`, `Param`, `Return`, `Arg` and `Member` paths by lazy projection and rebuilds returns by lazy substitution, per call site. A name that occurs only inside type arguments is not bound (design §5.3 note). |
 | TYPE-14-04 | Not Implemented | Moved to Phase 5 with design §4.8 (risks-and-gaps Gap 2.4). |
 | TYPE-14-05 | Full | Phase 2: a generic declared callee is copied per call, onto nodes it does not share with the seed; arguments bind only where positions are unambiguous. |
-| TYPE-14-06 to TYPE-14-16 | Not Implemented | Phases 3 to 6. |
-| TYPE-14-17 | Partial | Phases 1 and 2 gates met (suite and corpus: no added diagnostic); re-checked at each later phase. |
+| TYPE-14-06 to TYPE-14-10 | Not Implemented | Phases 4 and 5. |
+| TYPE-14-11 | Full | Phase 3: the bridge parses each `: Bound` (design §5.1 step 2). A same-file parameter typed exactly `T` gets a fresh node that meets the template parameter's declared demands, so the bound is checked once, where and as a plain parameter is (design §5.5 step 1). A declared callee checks the bound through `LuaSignatureCopier.parameterUse`. A class bound is not copied, the same as a plain declared class parameter (BUG-19; risks-and-gaps Gap 2.8). |
+| TYPE-14-12 | Full | Phase 3: a parameter whose type is a bounded `T` reads its members, completion included, through the bound (design §5.7). |
+| TYPE-14-13 | Full | Phase 3: on both call paths, a `` `T` `` parameter gets its own node, and a quoted string literal at that position binds `T` to the type it names (design §5.11). |
+| TYPE-14-14 to TYPE-14-16 | Not Implemented | Phases 5 and 6. |
+| TYPE-14-17 | Partial | Phases 1 to 3 gates met (suite and corpus: no added diagnostic); re-checked at each later phase. |
 
 ## Detailed Specifications
 
@@ -214,8 +218,10 @@ substituted. `LuaTypeReference("Base<string>")` therefore resolves, which is the
 ### TYPE-14-11 / 12: Constraints
 
 `LuaGenericType.bound: LuaType?` and `LuaGraphType.Generic.bound: LuaGraphType?` carry the
-`: Base` of `---@generic T : Base`. At the call site the fresh node bound to `T` receives a
-declared demand `use(callSite, bound, declaredDemand = true)`. In the body, a parameter whose write
+`: Base` of `---@generic T : Base`. At the call site the argument is checked against the bound
+once, by the check a plain `---@param p Base` gets: on the same-file path a parameter typed `T`
+gets a fresh node that meets the template parameter's declared demands, and on the declared path
+`LuaSignatureCopier.parameterUse` checks it (design §5.5 step 1). In the body, a parameter whose write
 is `Generic(T, bound)` satisfies a member demand through the bound: `checkCompatibility(Generic,
 Table{k})` recurses as `checkCompatibility(bound, Table{k})`, which wires `Base`'s `k` node into the
 access node exactly as a `---@param p Base` would.
@@ -227,7 +233,8 @@ access node exactly as a `---@param p Base` would.
 capture generic at path ε, if the argument expression at that position is a `LuaTerminalExpr`
 with a string literal, the literal's unquoted text is resolved by `LuaTypeManager.resolveType`
 (primitives first, as today) and the result flows into `T`'s node as a declared-origin value.
-Otherwise `T` stays unbound.
+Otherwise `T` stays unbound. The capture parameter has its own node, so the argument's own type
+(`string`) never reaches `T`.
 
 ## Behavior Rules
 
@@ -273,7 +280,7 @@ names the edit that turns the case red, and each is reachable from the fixture n
 | 16 | 14-09 | case 15 plus `---@type Box<string> local b` `local v = b.value` | type of `v`; `resolveType("Box<string>")` | `string`; a `LuaClassType` named `Box<string>` with member `value: string` | in `LuaGenericSubstitution.instantiate`, return the base's members unsubstituted → `v` is `undefined` (a symbolic `T`) |
 | 17 | 14-09 | `---@type Box<string> local b` `---@type Box local raw` `raw = b` | `getErrors()` | none — `Box<string>` is assignable to `Box` | drop the head-name comparison from `isNominallyCompatible` → `Box<string> is not assignable to Box` |
 | 18 | 14-10 | `---@class PBase<T> ---@field inherited T` `---@class Kid : PBase<string> ---@field own number` | `resolveType("Kid").getMembers()` and `resolveMember("inherited").type.name` | keys `[inherited, own]`; `string` | remove the parameterized branch from `doResolveType` → keys `[own]` (BUG-420's exact measurement) |
-| 19 | 14-11 | `---@class Base ---@field k string` `---@generic T : Base ---@param p T` `local function f(p) end` `f(1)` `---@type Base local base` `f(base)` | `getErrors()` | exactly one error, on `1`, message contains `number` and `Base` | drop the `use(…, bound, declaredDemand = true)` edge on the fresh binding node → no error |
+| 19 | 14-11 | (a) `---@generic T : string ---@param p T` `local function f(p) end` `f(1)` `f("s")`; (b) `---@class Base ---@field k string` `local Base = {}` and `---@generic T : Base ---@param p T` `local function f(p) end` `f({})`; (c) the same `T : Base` function with `f(1)` and `---@type Base local base` `f(base)`. Each also as a plain `---@param p string` / `---@param p Base` function | `getErrors()` as (message, element, severity), sorted | (a) `number is not assignable to string` on `local function f(p) end` and on `p`, equal to the plain parameter's list; (b) `Missing required field 'k'` on `{}`, equal to the plain list; (c) empty, as the plain list is | drop the bound demand on the bounded parameter's fresh node → (a) is empty |
 | 20 | 14-12 | case 19's function with body `local m = p.k` | type of `m`; errors on `p.k` | `string`; none | in `checkCompatibility`'s `Generic` arm, return without recursing into `bound` → `undefined` |
 | 21 | 14-13 | `---@class Widget ---@field w number` `` ---@generic T ---@param cls `T` ---@return T `` `local function new(cls) end` `local w = new("Widget")` `local u = new(name)` | types of `w`, `u` | `Widget`, `undefined` | in the capture branch, bind from the argument's *type* (`String`) instead of its literal text → `w` is `string` |
 | 22 | 14-14 | case 15's class plus `---@generic T ---@param v T ---@return Box<T>` `local function make(v) end` `local b = make("x")` `local val = b.value` | types of `b`, `val` | `Box<string>`, `string` | in `substitute`, treat `Table(className)` as a leaf → `Box<T>` with `val` `undefined` |

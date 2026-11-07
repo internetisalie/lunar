@@ -55,9 +55,22 @@ object LuaTypeGraphBridge {
         }
     }
 
-    /** The `@generic` names on [cats], unconstrained until a bound is read (TYPE-14-11). */
-    private fun typeParametersOf(cats: LuaCatsComment): Map<String, LuaType?> =
-        LuaCatsDeclarations.genericParameters(cats).associate { it.name to null }
+    /**
+     * The `@generic` names on [cats], each mapped to its `: Bound` (null when unconstrained). A bound is
+     * parsed with the parameters declared before it, so `---@generic K, V : K` reads `V`'s bound as `K`
+     * (design §5.1 step 2).
+     */
+    private fun typeParametersOf(
+        cats: LuaCatsComment,
+        context: PsiElement,
+    ): Map<String, LuaType?> {
+        val typeParameters = LinkedHashMap<String, LuaType?>()
+        LuaCatsDeclarations.genericParameters(cats).forEach { parameter ->
+            typeParameters[parameter.name] =
+                parameter.boundText?.let { TypeParser.parse(it, context, typeParameters.toMap()) }
+        }
+        return typeParameters
+    }
 
     /**
      * Processes a `@type` annotation and adds a flow edge from the annotated type into [variable].
@@ -85,7 +98,7 @@ object LuaTypeGraphBridge {
                 ?: classTag?.argType?.text?.trim()
                 ?: return
 
-        val typeParameters = typeParametersOf(cats)
+        val typeParameters = typeParametersOf(cats, context)
 
         val resolvedType = resolveTypeWithGenerics(typeName, context, typeParameters) ?: return
 
@@ -125,7 +138,7 @@ object LuaTypeGraphBridge {
         graph: LuaTypeGraph,
         context: PsiElement,
     ) {
-        val typeParameters = typeParametersOf(cats)
+        val typeParameters = typeParametersOf(cats, context)
 
         cats.getParamTagList().forEachIndexed { index, paramTag ->
             val paramName = paramTag.argName?.text?.trim() ?: return@forEachIndexed
@@ -168,7 +181,7 @@ object LuaTypeGraphBridge {
         graph: LuaTypeGraph,
         context: PsiElement,
     ) {
-        val typeParameters = typeParametersOf(cats)
+        val typeParameters = typeParametersOf(cats, context)
 
         val descriptors = cats.getReturnTagList().flatMap { it.returnTypeDescriptorList }
         descriptors.forEachIndexed { i, desc ->

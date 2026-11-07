@@ -1,6 +1,7 @@
 package net.internetisalie.lunar.lang.psi.types
 
 import com.intellij.psi.PsiElement
+import net.internetisalie.lunar.lang.psi.LuaTerminalExpr
 import java.util.Collections
 import java.util.IdentityHashMap
 import java.util.concurrent.ConcurrentHashMap
@@ -48,10 +49,14 @@ internal class LuaGenericInstantiation(
         ) : Step
     }
 
-    /** A template copied for one call: fresh nodes where it was generic, and the node bound to each name. */
+    /**
+     * A template copied for one call: fresh nodes where it was generic, the node bound to each name, and
+     * each `` `T` `` parameter's index with the name its string argument binds (design §5.11).
+     */
     class Instantiated(
         val function: LuaGraphType.Function,
         val bindings: Map<String, VariableNode>,
+        val captures: Map<Int, String>,
     )
 
     /** A call to a declaration-typed callee: each argument's node (null when it has none), and the result nodes. */
@@ -94,6 +99,7 @@ internal class LuaGenericInstantiation(
             }
         if (LuaSignatureCopier.positionsAreUnambiguous(declared, site.argExprs.size)) {
             bindArguments(declared, instantiated, site)
+            bindCaptures(instantiated, site.argExprs)
         }
         instantiated.function.returns.forEachIndexed { index, returned ->
             site.resultNodes.getOrNull(index)?.let { graph.addEdge(returned, it) }
@@ -117,6 +123,30 @@ internal class LuaGenericInstantiation(
                 graph.addEdge(argNode, instantiated.function.params[index].node)
             }
         }
+    }
+
+    /**
+     * Backtick capture (design §5.11): a string literal at a `` `T` `` position binds `T` to the type the
+     * literal names. Any other argument, or a name that resolves to nothing, leaves `T` unbound.
+     */
+    fun bindCaptures(
+        instantiated: Instantiated,
+        argExprs: List<PsiElement>,
+    ) {
+        instantiated.captures.forEach { (index, name) ->
+            val argument = argExprs.getOrNull(index) ?: return@forEach
+            val captured = capturedType(argument) ?: return@forEach
+            graph.addEdge(graph.value(argument, captured, declaredOrigin = true), instantiated.bindings.getValue(name))
+        }
+    }
+
+    /** The type a quoted string literal names; a long-bracket string is not a capture. */
+    private fun capturedType(argument: PsiElement): LuaGraphType? {
+        val literal = (argument as? LuaTerminalExpr)?.string?.text ?: return null
+        if (literal.length < 2 || literal.first() !in QUOTES || literal.last() != literal.first()) return null
+        val named = literal.substring(1, literal.length - 1)
+        val resolved = LuaTypeManager.getInstance(argument.project).resolveType(named, argument) ?: return null
+        return LuaGraphType.fromLuaType(resolved, graph)
     }
 
     /**
@@ -194,19 +224,49 @@ internal class LuaGenericInstantiation(
         private val names: Set<String> = projectionsOf(template, emptySet()).keys
         private val bindings: Map<String, VariableNode> = names.associateWith { graph.variable(call) }
         private val reader = BindingReader(bindings, call)
+        private val captures = LinkedHashMap<Int, String>()
 
         fun build(): Instantiated {
-            val params = template.params.map { instantiateParam(it) }
+            val params = template.params.mapIndexed { index, param -> instantiateParam(index, param) }
             val returns = template.returns.map { instantiateReturn(it) }
-            return Instantiated(template.copy(params = params, returns = returns), bindings)
+            return Instantiated(template.copy(params = params, returns = returns), bindings, captures.toMap())
         }
 
-        private fun instantiateParam(param: LuaGraphType.Function.Parameter): LuaGraphType.Function.Parameter {
+        private fun instantiateParam(
+            index: Int,
+            param: LuaGraphType.Function.Parameter,
+        ): LuaGraphType.Function.Parameter {
             val written = param.node.write
-            if (written is LuaGraphType.Generic) return param.copy(node = bindings.getValue(written.name))
+            if (written is LuaGraphType.Generic) return param.copy(node = genericParameter(index, param.node, written))
             val paths = projectionsOf(written, names)
             if (paths.isNotEmpty()) return param.copy(node = projectedParameter(param.node, paths))
             return if (copyUnchanged) param.copy(node = graph.variable(call)) else param
+        }
+
+        /**
+         * A parameter typed exactly `T` (design §5.5 step 2, path ε). Unconstrained, it is `T`'s binding
+         * node, as before. A `` `T` `` capture gets a fresh node the string argument stops at, because the
+         * literal's text binds `T`, not its type (§5.11). A same-file bounded `T` gets a fresh node, anchored
+         * where the template parameter is, feeding the binding and meeting the template parameter's declared
+         * demands: the argument is checked against the bound once, with the message and on the elements a
+         * plain `---@param p Bound` reports (§5.5 step 1). A declared callee keeps the binding node, since
+         * [LuaSignatureCopier.parameterUse] already checks the bound there.
+         */
+        private fun genericParameter(
+            index: Int,
+            original: VariableNode,
+            generic: LuaGraphType.Generic,
+        ): VariableNode {
+            val binding = bindings.getValue(generic.name)
+            if (generic.capture) {
+                captures[index] = generic.name
+                return graph.variable(call)
+            }
+            if (generic.bound == null || copyUnchanged) return binding
+            val parameter = graph.variable(original.element)
+            graph.addEdge(parameter, binding)
+            declaredDemandsOf(original).forEach { graph.addEdge(parameter, it) }
+            return parameter
         }
 
         /**
@@ -433,6 +493,8 @@ internal class LuaGenericInstantiation(
     }
 
     private companion object {
+        val QUOTES = setOf('"', '\'')
+
         /** The type arguments a parameterized name spells, split at depth 0; empty for a plain name. */
         fun typeArgumentsOf(className: String?): List<String> {
             if (className == null || !className.endsWith(">") || '<' !in className) return emptyList()

@@ -985,6 +985,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val template = functionTypeOf(calleeNode)
         if (template != null && instantiation.containsGeneric(template)) {
             val instantiated = instantiation.instantiate(template, o)
+            instantiation.bindCaptures(instantiated, argExprs.map { unwrapExpression(it) ?: it })
             graph.addEdge(graph.value(o, instantiated.function), graph.use(o, callDemand))
             return
         }

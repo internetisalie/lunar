@@ -35,6 +35,7 @@ internal class LuaSignatureCopier(
         when (type) {
             is LuaGraphType.Function -> detachedFunction(type)
             is LuaGraphType.Table -> null
+            is LuaGraphType.Generic -> detachedGeneric(type)
             is LuaGraphType.Array -> detachedDemand(type.elementType)?.let { LuaGraphType.Array(it) }
             is LuaGraphType.Union -> {
                 val members = type.types.map { detachedDemand(it) }
@@ -42,6 +43,16 @@ internal class LuaSignatureCopier(
             }
             else -> type
         }
+
+    /**
+     * A bounded generic demands its bound, so the bound is detached by the same rule: a class bound is
+     * the seed's own table, and checking an argument against it would write into the seed's member nodes
+     * (BUG-19). Such a demand is not copied, as a plain `---@param p Base` is not.
+     */
+    private fun detachedGeneric(generic: LuaGraphType.Generic): LuaGraphType? {
+        val bound = generic.bound ?: return generic
+        return detachedDemand(bound)?.let { generic.copy(bound = it) }
+    }
 
     /**
      * A copy that keeps the signature's parameters and leaves out its returns: `fun()` has a `nil`

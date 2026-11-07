@@ -107,14 +107,22 @@ placeholder, and a placeholder that reaches the checker never reports. No instan
 **Goal:** `T : Base` is checked at the call and usable in the body; `` `T` `` binds a named class.
 
 1. `genericParameters` bound text → `TypeParser` (design §5.1 step 2) in `LuaTypeGraphBridge`'s
-   map construction; `LuaGenericInstantiation.instantiate` step 1's declared demand on the
-   binding node (§5.5).
+   map construction. On the same-file path, a parameter typed exactly `T : Bound` gets a fresh node,
+   anchored at the template parameter, that feeds the binding and meets the template parameter's
+   declared demands (design §5.5 step 1, as amended for risks-and-gaps Gap 2.8). The declared path
+   adds nothing: `LuaSignatureCopier.parameterUse` already checks the bound, and
+   `detachedDemand` detaches the bound by its table rule (BUG-19).
 2. Capture: `TypeParser`'s `parameterName` branch already lands in Phase 1; add `captures` to
-   `Instantiated` and the literal-binding rule (§5.11) at both call paths.
+   `Instantiated`, a fresh node for each capture parameter, and the literal-binding rule (§5.11) at
+   both call paths.
 
 **Verification:**
-- New `Type14ConstraintTest.kt`: cases 19, 20, 21.
-  **Mutation** (19): drop the declared-demand edge on the binding node → no error on `f(1)`.
+- New `Type14ConstraintTest.kt`: cases 19, 20, 21, each compared against the plain parameter's
+  error list; a bound and a capture each mentioned twice; the declared path's exact error list; and
+  a case-11-style guard that two calls through a declared `T : Base` leave the seed's `Base.k`
+  unchanged.
+  **Mutation** (19): drop the bound demand on the bounded parameter's fresh node → no error on
+  `f(1)` in case 19 (a).
   **Mutation** (20): return from the `Generic` arm without recursing into `bound` → `m` is
   `undefined`. **Mutation** (21): bind from the argument's type instead of its literal text → `w`
   is `string`.
@@ -238,7 +246,7 @@ inherits with substitution. Closes BUG-420.
 - [x] DR-01 fixture regression file (`Type14FalseErrorRegressionTest`) — the "false error" rows (Phase 1)
 - [x] `Type14InstantiationTest` — cases 5–8, 10, 11 (Phase 2)
 - [ ] `Type14InstantiationTest` — case 9 (Phase 5), case 24 (Phase 6)
-- [ ] `Type14ConstraintTest` — cases 19–21 (Phase 3)
+- [x] `Type14ConstraintTest` — cases 19–21 (Phase 3)
 - [ ] `LuaCatsParserTest` additions — cases 13, 14 (Phase 4)
 - [ ] `Type14GenericClassTest` — cases 15–18, 22 (Phase 5)
 - [ ] `LuaGotoContributorTest` addition — case 27 (Phase 5)
@@ -253,7 +261,7 @@ inherits with substitution. Closes BUG-420.
 |-------|--------|----------|
 | Phase 1: Generic-aware parsing and the safety net | done | Must |
 | Phase 2: Recursive instantiation, declared path | done | Must |
-| Phase 3: Constraints, bound in body, backtick capture | todo | Should |
+| Phase 3: Constraints, bound in body, backtick capture | done | Should |
 | Phase 4: Grammar — type arguments are full types | todo | Must |
 | Phase 5: Generic classes and parameterized parents | todo | Must |
 | Phase 6: Callback-slot binding, display, docs | todo | Could / Should |

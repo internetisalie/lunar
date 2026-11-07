@@ -116,6 +116,56 @@ generic function's body, a binding projected from the function's own `T` reads `
 rather than `T`, and an argument typed `T|string` there binds only `string`. No false diagnostic
 follows: a union argument is checked arm by arm, so the `string` arm fails either way.
 
+### Gap 2.8 — A class bound cannot reject a primitive argument — RESOLVED (Phase 3)
+
+Requirements case 19 originally expected `f(1)` against `---@generic T : Base` to report
+`number is not assignable to Base`. The checker cannot produce that diagnostic. `checkCompatibility`
+returns without a report when a `string`, `number` or `boolean` value meets a `Table` demand, under
+the comment "Primitives can have methods via metatables". Design §5.7 routes a bounded use to
+`(V, B)`, which is the same check.
+
+Measured at `26c1801c` with a probe test, since removed (messages read from the builder's test XML):
+
+```
+PROBE A_plainBase     errors={}                                                          ---@param p Base, f(1)
+PROBE J_plainString   errors={[number is not assignable to string] @'local function f(p) end';
+                              [number is not assignable to string] @'p'}                 ---@param p string, f(1)
+PROBE declared        errors={[number is not assignable to string] @'1'}                 declared ---@param p string, psf(1)
+```
+
+The design's binding-node demand (§5.5 step 1 as first written) was then spiked and reverted:
+
+```
+PROBE B_case19     errors={}                                                 T : Base,   f(1)
+PROBE C_case20     m=string                                                  the body half works
+PROBE F_primBound  errors={[number is not assignable to string] @'f(1)'}     T : string, f(1): on the call, not where a plain parameter reports
+PROBE declared     errors={[... string] @'1'; [... string] @'sf(1)'}         declared T : string: reported twice
+```
+
+Dispositions:
+
+1. **Case 19: the primitive leniency stays.** It is existing checker behaviour that plain
+   parameters share, and it is not a generics defect. Changing it would move every
+   `---@param p SomeClass` in the corpus. Case 19 is rewritten as three pairs, each compared with
+   the plain parameter's error list. (a) `T : string` with `f(1)` reports
+   `number is not assignable to string`. (b) `T : Base` with `f({})` reports the missing field.
+   (c) `T : Base` with `f(1)` reports nothing.
+2. **The error lands where a plain parameter's does.** A same-file plain `---@param p string`
+   reports on `local function f(p) end` and on `p`. The bounded parameter now reports on those two
+   elements, with that message (design §5.5 step 1, amended).
+3. **Exactly one report.** The bound check is added only where no check existed, which is a same-file
+   parameter typed exactly `T`. The declared path adds nothing, since `parameterUse` checks the bound
+   through `genericStep`. `Type14ConstraintTest` asserts each path's exact error list.
+4. **BUG-19 on the declared path: measured red, fixed.** Two calls through a declared `T : Base`
+   (`gf({ k = 1 })`, `gf({ k = true })`) wrote into the seed's `Base.k`, which read
+   `string | number | boolean` (`testDeclaredClassBoundLeavesTheSeedsMembersUnchanged`).
+   `LuaSignatureCopier.detachedDemand` now detaches a `Generic`'s bound by its own rule, so a class
+   bound is not copied. A declared `T : Base` is now checked exactly as a plain declared
+   `---@param p Base` is, which means not at all, by the rule BUG-19 set.
+5. **Capture gets its own node.** The path-ε parameter node was the binding, so the string argument
+   flowed into `T` (`new("Widget")` read `string`). A capture parameter now gets a fresh node, and
+   `w` reads `Widget` (design §5.11, amended).
+
 ## Adjacent defects and gaps found by DR-01, not owned here
 
 - **Table constructor versus array type.** `---@type string[]` `local xs = {}` reports

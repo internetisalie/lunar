@@ -250,7 +250,9 @@ One instance per `LuaTypesVisitor`, built from its graph and its `LuaSignatureCo
 
 **As implemented.** `apply` takes its call-site arguments as one `DeclaredCall(call, argNodes,
 argExprs, resultNodes)` and instantiates internally, as `applyDeclared(declared, site)`, to stay
-within the three-argument cap. `captures` arrives with Phase 3. No read mints into the file's graph,
+within the three-argument cap. `captures` maps a parameter index to its name; it is bound by
+`bindCaptures(instantiated, argExprs)`, which the same-file path calls after `instantiate` and
+`applyDeclared` calls where positions are unambiguous (§5.11). No read mints into the file's graph,
 because the snapshot is read concurrently and a mint would move the BUG-473 revision. Function
 copies are minted when the call is instantiated (§5.6). A type read back out of a name (§5.4 step 5,
 §5.6's `Table` arm) is materialized in a scratch graph (`LuaGraphType.materialize`) and memoized per
@@ -281,8 +283,9 @@ name on a `@generic` comment through the parser would inject an `Undefined` valu
 nothing is injected (BUG-406's prose-parameter shape) and pay a dummy-file parse per tag. A string
 that does mention a parameter always contains a real type, so injecting its parse is the intent.
 The three inject methods build `typeParameters` once via `LuaCatsDeclarations.genericParameters(cats)`,
-resolving each bound text through the same parser (a bound is itself a type; a bound naming
-another parameter of the same comment is left unresolved — §8). The "For generics, we must inject
+resolving each bound text through the same parser (a bound is itself a type). A bound that names
+a parameter declared earlier on the comment reads it as that parameter, per §5.1 step 2. A bound
+that names a later one is left unresolved (§8). The "For generics, we must inject
 both a source and a sink" branches at
 [LuaTypeGraphBridge.kt:130-140 and :178-188](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypeGraphBridge.kt)
 have identical arms today and collapse to one statement.
@@ -470,11 +473,19 @@ declared demand's nodes back into the argument. Without the drop, `apply(cb)` wi
 - **Output**: `Instantiated` (§4.4).
 - **Steps**:
   1. `bindings = names(template).associateWith { graph.variable(call) }` — one fresh node per
-     distinct generic name across params and returns. If a name's `Generic` has a `bound`, add
-     `graph.addEdge(bindings[name], graph.use(call, bound, declaredDemand = true))` (TYPE-14-11).
+     distinct generic name across params and returns. A bound is checked where a plain parameter of
+     the bound's type is checked, with the same message and on the same elements (TYPE-14-11). This
+     is §5.5 step 2's bounded path-ε rule. No demand is added to the binding node itself.
   2. For each parameter `p` at index `i` with type `w = p.node.write`:
-     - `w is Generic` (path ε): the instantiated parameter node **is** `bindings[w.name]`
-       (today's behaviour, unchanged); if `w.capture`, record `captures[i] = w.name`.
+     - `w is Generic` (path ε), unbounded: the instantiated parameter node **is** `bindings[w.name]`
+       (today's behaviour, unchanged).
+     - `w is Generic` with `w.capture`: record `captures[i] = w.name` and mint a fresh
+       `p' = graph.variable(call)` that does not feed the binding (§5.11).
+     - `w is Generic` with a `bound`, same-file path: mint `p' = graph.variable(p.node.element)`,
+       anchored where the template parameter is. Add `graph.addEdge(p', bindings[w.name])` and an
+       edge from `p'` to each declared-demand use node in `p`'s down set. The argument then meets the
+       template's own `Generic(T, bound)` demand, which §5.7 checks as the bound, and `p'` itself is
+       read as that demand. A plain `---@param p Bound` reports on the same two elements.
      - `containsGeneric(w)`: mint `p' = graph.variable(call)`; for each `(name, paths)` in
        `projectionsOf(w)` and each `path`, `graph.addEdge(graph.lazyValue(call) { v -> projectAt(p'.writeWith(v), path, v) }, bindings[name])`.
        The instantiated parameter is `Parameter(p', p.name, p.isOptional, p.isVararg)`. `p'` takes
@@ -567,6 +578,12 @@ sits before the memo lookup and returns without storing when either side is a bo
      parameter's write, not `containsGeneric` on its read; and for each capture position
      `(i, name)` in `inst.captures`, §5.11. If positions are ambiguous, no parameter edge is added
      (bindings stay unbound, returns resolve to `Undefined`).
+     **As implemented (Phase 3).** A bounded generic position adds no binding demand here: through
+     `LuaTypeAlgebra.genericStep`, `parameterUse` already checks the argument against the bound.
+     `LuaSignatureCopier.detachedDemand` detaches a `Generic`'s bound by its own rule, so a class
+     bound, which is the seed's own table, is not copied, as a plain declared `---@param p Base` is
+     not (BUG-19). Before that, two calls through a declared `T : Base` wrote `number | boolean`
+     into the seed's `Base.k` (risks-and-gaps Gap 2.8).
   3. For each `j`: `graph.addEdge(inst.function.returns[j], callResultNodes[j])`.
   4. No edge to the seed, no `use(callDemand)` on it, no arity check — the contract
      `testDeclarationTypedCalleeIsNotArityChecked` pins.
@@ -666,6 +683,15 @@ After the key becomes `Box`, the same raw-text match against `Box` fails; withou
 the class would be found under neither name. Requirements case 27 pins the post-change state and
 names leaving the matcher as its mutation.
 
+**As implemented (Phase 3, risks-and-gaps Gap 2.8).** Step 1 originally added
+`graph.addEdge(bindings[name], graph.use(call, bound, declaredDemand = true))`. Measured, that
+demand reported at the call (`f(1)`) rather than where a plain parameter reports, and on the
+declared path it repeated the error `parameterUse` already raised. With one binding shared by
+several `T` parameters it would also check each argument against every one of them. The bound is
+therefore checked per parameter, through the template's own declared demand, and only where no check
+existed: a same-file parameter typed exactly `T`. A non-ε position is already checked through
+step 2's copied demands, and a declared callee through `parameterUse` (§5.8).
+
 ### 5.11 Backtick capture
 
 At `apply` (§5.8 step 2) and, for the same-file path, in `visitFuncCall` right after
@@ -677,6 +703,12 @@ instantiation: for each `(i, name)` in `inst.captures`, `argExprs.getOrNull(i)` 
 The argument itself still flows into the parameter node (it is a `string`), which raises nothing
 because the parameter's write is a capture `Generic` (§5.7). Not a literal, or unresolvable → no
 edge; `T` stays unbound.
+
+**As implemented.** The capture parameter's node is a fresh `graph.variable(call)` and not
+`bindings[name]` (§5.5 step 2). Measured at `26c1801c`, the path-ε parameter node was the binding,
+so the string argument flowed into `T` and `new("Widget")` read `string`. With the literal rule
+alone it would read `string | Widget`. The literal must be quoted with `"` or `'`, and match at
+both ends.
 
 ### 5.12 Callback-slot binding (TYPE-14-16, Could)
 

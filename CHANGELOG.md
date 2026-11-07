@@ -2,14 +2,18 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
-- **Generic functions infer their result from each call** (TYPE-14). A call to a function annotated
-  with `@generic` — a global from another file, a method, or a parameter written `T|nil` or
-  `fun(a: T)` — no longer raises *string is not assignable to T*, and a `@generic T : Base` parameter no
-  longer reports *T is not assignable* where its fields are read. `T` is now recognised inside `T[]`,
-  `T|nil`, `fun(...)` and `table<K, V>`. A call to a function, in the same file or a global from another
-  file, now types its result from the arguments: `first(xs)` with `xs: string[]` is a `string`, `wrap(1)`
-  returning `T[]` is a `number[]`, and `get(t)` with `t: table<string, number>` returning `V` is a
-  `number`. Each call is typed on its own, so `ident("x")` and `ident(1)` give `string` and `number`.
+- **Generic functions infer their result from each call, and honour their constraints** (TYPE-14). A
+  call to a function annotated with `@generic` — a global from another file, a method, or a parameter
+  written `T|nil` or `fun(a: T)` — no longer raises *string is not assignable to T*. `T` is now
+  recognised inside `T[]`, `T|nil`, `fun(...)` and `table<K, V>`. A call to a function, in the same file
+  or a global from another file, now types its result from the arguments: `first(xs)` with
+  `xs: string[]` is a `string`, `wrap(1)` returning `T[]` is a `number[]`, and `get(t)` with
+  `t: table<string, number>` returning `V` is a `number`. Each call is typed on its own, so
+  `ident("x")` and `ident(1)` give `string` and `number`. A constrained parameter
+  (`---@generic T : string`) checks each argument as a parameter declared with that type does, so
+  `f(1)` reports *number is not assignable to string*. Inside the function, a parameter of type
+  `T : Base` has `Base`'s fields, typed and offered by completion after `p.`. A parameter written
+  `` `T` `` takes its type from the class name passed as a string: `new("Widget")` returns a `Widget`.
 - **A declared parameter is checked by one rule** (MAINT-51). An argument that may be `nil` on some
   paths, or an array or record with `nil` among its element or field types, is no longer reported
   against a parameter declared as a union. A `?` parameter accepts `nil` and its declared type the same
