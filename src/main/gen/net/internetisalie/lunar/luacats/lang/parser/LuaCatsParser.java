@@ -1580,7 +1580,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // genericType '<' typeParam {',' typeParam }* '>'
+  // genericType '<' typeArgument {',' typeArgument }* '>'
   public static boolean parameterizedName(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "parameterizedName")) return false;
     if (!nextTokenIs(builder_, NAME)) return false;
@@ -1588,14 +1588,14 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     Marker marker_ = enter_section_(builder_);
     result_ = genericType(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, "<");
-    result_ = result_ && typeParam(builder_, level_ + 1);
+    result_ = result_ && typeArgument(builder_, level_ + 1);
     result_ = result_ && parameterizedName_3(builder_, level_ + 1);
     result_ = result_ && consumeToken(builder_, ">");
     exit_section_(builder_, marker_, PARAMETERIZED_NAME, result_);
     return result_;
   }
 
-  // {',' typeParam }*
+  // {',' typeArgument }*
   private static boolean parameterizedName_3(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "parameterizedName_3")) return false;
     while (true) {
@@ -1606,13 +1606,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // ',' typeParam
+  // ',' typeArgument
   private static boolean parameterizedName_3_0(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "parameterizedName_3_0")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_);
     result_ = consumeToken(builder_, ",");
-    result_ = result_ && typeParam(builder_, level_ + 1);
+    result_ = result_ && typeArgument(builder_, level_ + 1);
     exit_section_(builder_, marker_, null, result_);
     return result_;
   }
@@ -2045,6 +2045,48 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     Marker marker_ = enter_section_(builder_, level_, _NONE_, TYPE, "<type>");
     result_ = unionType(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  /* ********************************************************** */
+  // (typeParam &(',' | '>')) | type
+  static boolean typeArgument(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "typeArgument")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = typeArgument_0(builder_, level_ + 1);
+    if (!result_) result_ = type(builder_, level_ + 1);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // typeParam &(',' | '>')
+  private static boolean typeArgument_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "typeArgument_0")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_);
+    result_ = typeParam(builder_, level_ + 1);
+    result_ = result_ && typeArgument_0_1(builder_, level_ + 1);
+    exit_section_(builder_, marker_, null, result_);
+    return result_;
+  }
+
+  // &(',' | '>')
+  private static boolean typeArgument_0_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "typeArgument_0_1")) return false;
+    boolean result_;
+    Marker marker_ = enter_section_(builder_, level_, _AND_);
+    result_ = typeArgument_0_1_0(builder_, level_ + 1);
+    exit_section_(builder_, level_, marker_, result_, false, null);
+    return result_;
+  }
+
+  // ',' | '>'
+  private static boolean typeArgument_0_1_0(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "typeArgument_0_1_0")) return false;
+    boolean result_;
+    result_ = consumeToken(builder_, ",");
+    if (!result_) result_ = consumeToken(builder_, ">");
     return result_;
   }
 

@@ -5,10 +5,13 @@
 - **Generic functions infer their result from each call, and honour their constraints** (TYPE-14). A
   call to a function annotated with `@generic` — a global from another file, a method, or a parameter
   written `T|nil` or `fun(a: T)` — no longer raises *string is not assignable to T*. `T` is now
-  recognised inside `T[]`, `T|nil`, `fun(...)` and `table<K, V>`. A call to a function, in the same file
-  or a global from another file, now types its result from the arguments: `first(xs)` with
-  `xs: string[]` is a `string`, `wrap(1)` returning `T[]` is a `number[]`, and `get(t)` with
-  `t: table<string, number>` returning `V` is a `number`. Each call is typed on its own, so
+  recognised inside `T[]`, `T|nil`, `fun(...)` and `table<K, V>`. A type argument can be any type:
+  `table<string, Widget|nil>`, `Box<string[]>` and `table<string, table<string, number>>` are read
+  whole, where an argument that was not a plain name left only the name before `<` as the type and
+  the rest as description. A call to a function, in the same file or a global from another file,
+  now types its result from the arguments: `first(xs)` with `xs: string[]` is a `string`, `wrap(1)`
+  returning `T[]` is a `number[]`, and `get(t)` with `t: table<string, number>` returning `V` is a
+  `number` (a `Widget|nil` for `t: table<string, Widget|nil>`). Each call is typed on its own, so
   `ident("x")` and `ident(1)` give `string` and `number`. A constrained parameter
   (`---@generic T : string`) checks each argument as a parameter declared with that type does, so
   `f(1)` reports *number is not assignable to string*. Inside the function, a parameter of type

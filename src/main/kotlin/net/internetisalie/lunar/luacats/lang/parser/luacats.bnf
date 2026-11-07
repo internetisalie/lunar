@@ -207,7 +207,11 @@ private functionReturnTypes ::= '(' optionalType { ',' optionalType }* ')' | opt
 // BUG-544: a `?` suffix only where a type nests in another type. A tag's own top-level type keeps
 // `?` in its description, or `string?` would reach `argType.text` and resolve as a class name.
 private optionalType ::= type '?'?
-parameterizedName ::= genericType '<' typeParam {',' typeParam }* '>'
+// TYPE-14-07: a bare name followed by `,` or `>` stays a `typeParam` (REFACT-08's reference and
+// rename contracts); any other argument is a nested `type`. `private`, or a node would sit between
+// `typeParam` and `parameterizedName` and break `isDeclarationSlotHolder`'s parent test.
+parameterizedName ::= genericType '<' typeArgument {',' typeArgument }* '>'
+private typeArgument ::= (typeParam &(',' | '>')) | type
 genericType ::= NAME
 typeParam ::= NAME
 parameterName ::= CODE

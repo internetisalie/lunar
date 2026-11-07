@@ -157,7 +157,7 @@ inherits with substitution. Closes BUG-420.
 
 1. `LuaCatsDeclarations.classHeadName` / `classTypeParameterNames` (§4.2, §5.10).
 2. Stub fields and serialization (§3.5): `LuaFuncStub`/`LuaLocalFuncStub.luacatsGenericParams`,
-   `LuaLocalVarStub.luacatsTypeParameters`, head-name `luacatsClassName`; `getStubVersion` → 5;
+   `LuaLocalVarStub.luacatsTypeParameters`, head-name `luacatsClassName`; bump `getStubVersion` once more (Phase 4 took it 7 → 8);
    `LuaCatsTypeNameIndex` key and version, **and** every site in design §5.10's re-matcher group
    (`LuaTypeManagerImpl.catsClassTags`, `LuaCatsTypeNavigation.processElements`,
    `LuaDocumentationTargetProvider`'s class lookup, `LuaCatsDocumentationRenderer.resolveBareClassComment`)
@@ -247,7 +247,7 @@ inherits with substitution. Closes BUG-420.
 - [x] `Type14InstantiationTest` — cases 5–8, 10, 11 (Phase 2)
 - [ ] `Type14InstantiationTest` — case 9 (Phase 5), case 24 (Phase 6)
 - [x] `Type14ConstraintTest` — cases 19–21 (Phase 3)
-- [ ] `LuaCatsParserTest` additions — cases 13, 14 (Phase 4)
+- [x] `LuaCatsParserTest` additions — cases 13, 14 (Phase 4); case 7's nested argument in `Type14NestedTypeArgumentTest`
 - [ ] `Type14GenericClassTest` — cases 15–18, 22 (Phase 5)
 - [ ] `LuaGotoContributorTest` addition — case 27 (Phase 5)
 - [ ] `LuaCatsStubAstParityTest` additions — cases 12, 26 (Phase 5)
@@ -262,6 +262,6 @@ inherits with substitution. Closes BUG-420.
 | Phase 1: Generic-aware parsing and the safety net | done | Must |
 | Phase 2: Recursive instantiation, declared path | done | Must |
 | Phase 3: Constraints, bound in body, backtick capture | done | Should |
-| Phase 4: Grammar — type arguments are full types | todo | Must |
+| Phase 4: Grammar — type arguments are full types | done | Must |
 | Phase 5: Generic classes and parameterized parents | todo | Must |
 | Phase 6: Callback-slot binding, display, docs | todo | Could / Should |

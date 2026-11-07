@@ -20,7 +20,8 @@ class LuaFileElementType : IStubFileElementType<LuaFileStub>("Lua", LuaLanguage)
     // BUG-509 added LuaFuncStub.rootIsLocal to the serialized func stub. Bumped to force a rebuild.
     // BUG-554 added each `@param`'s optional marker to the serialized func stubs. Bumped to force a rebuild.
     // BUG-9: a LuaCATS block no longer binds across a blank line, so hoisted cats data changes. Bumped to force a rebuild.
-    override fun getStubVersion(): Int = 7
+    // TYPE-14: LuaCATS type arguments parse as full types, so hoisted type text changes. Bumped to force a rebuild.
+    override fun getStubVersion(): Int = 8
 
     override fun getBuilder(): StubBuilder {
         return object : com.intellij.psi.stubs.DefaultStubBuilder() {

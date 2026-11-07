@@ -35,6 +35,12 @@ public class LuaCatsParameterizedNameImpl extends LuaCatsBaseElement implements 
 
   @Override
   @NotNull
+  public List<LuaCatsType> getTypeList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsType.class);
+  }
+
+  @Override
+  @NotNull
   public List<LuaCatsTypeParam> getTypeParamList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, LuaCatsTypeParam.class);
   }

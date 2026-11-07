@@ -26,7 +26,8 @@ import net.internetisalie.lunar.lang.psi.LuaFile
  * [LuaCatsTypeParam] is reached from **two** grammar rules and is a declaration in one and a use in
  * the other, and the NAME leaf's immediate parent cannot tell them apart — both are `TYPE_PARAM`.
  * It is the *grandparent* that separates a parameterized class head's own parameter
- * (`parameterizedName ::= genericType '<' typeParam … '>'`, `:201`, reached when the enclosing
+ * (`parameterizedName ::= genericType '<' typeArgument … '>'`, whose private `typeArgument` is a
+ * `typeParam` for a bare name, reached when the enclosing
  * `parameterizedName` is itself a `@class` tag's `ArgType`) from a `@generic` declaration
  * (`genericTypeParam ::= <<ArgName typeParam>> …`, `:117`) — both function/class-local declarations,
  * neither a project type. [isDeclarationSlotHolder] is that discrimination, executed against both

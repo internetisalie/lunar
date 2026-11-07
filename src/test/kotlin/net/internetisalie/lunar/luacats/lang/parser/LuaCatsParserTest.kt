@@ -8,8 +8,11 @@ import net.internetisalie.lunar.BaseDocumentTest
 import net.internetisalie.lunar.lang.LuaFileType
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsAliasTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsArgType
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDescription
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsFieldTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsOverloadFunctionSignature
+import net.internetisalie.lunar.luacats.lang.psi.LuaCatsParameterizedName
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsReturnTypeDescriptor
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsSeeTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsTypeTag
@@ -828,5 +831,73 @@ class LuaCatsParserTest : BaseDocumentTest() {
             """.trimIndent(),
             expectErrors = true,
         )
+    }
+
+    /** A compact PSI dump: each composite node's PSI name, then its composite children or, at a leaf, its text. */
+    private fun shapeOf(element: PsiElement): String {
+        val kind = element.javaClass.simpleName.removeSuffix("Impl")
+        val children = element.children
+        if (children.isEmpty()) return "$kind '${element.text}'"
+        return children.joinToString(", ", "$kind(", ")") { shapeOf(it) }
+    }
+
+    private fun parameterizedNameIn(tagClass: Class<out PsiElement>): LuaCatsParameterizedName {
+        val tag = requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, tagClass)) { "no ${tagClass.simpleName}" }
+        return requireNotNull(PsiTreeUtil.findChildOfType(tag, LuaCatsParameterizedName::class.java)) {
+            "no LuaCatsParameterizedName in ${tag.text}"
+        }
+    }
+
+    /** TYPE-14 case 13: an argument that is not a bare name is a nested type, not the start of prose. */
+    @Test
+    fun testNestedTypeArgumentIsAFullType() {
+        doTest(
+            """
+            ---@type table<string, Widget|nil>
+            local q
+            """.trimIndent(),
+        )
+        runReadAction {
+            val tag = requireNotNull(PsiTreeUtil.findChildOfType(myFixture.file, LuaCatsTypeTag::class.java))
+            Assertions.assertNull(PsiTreeUtil.findChildOfType(tag, LuaCatsDescription::class.java))
+            Assertions.assertEquals(
+                "LuaCatsParameterizedName(LuaCatsGenericType 'table', LuaCatsTypeParam 'string', " +
+                    "LuaCatsType(LuaCatsUnionType(" +
+                    "LuaCatsArrayType(LuaCatsDistinctType(LuaCatsNamedType 'Widget')), " +
+                    "LuaCatsArrayType(LuaCatsDistinctType(LuaCatsBuiltinType 'nil')))))",
+                shapeOf(parameterizedNameIn(LuaCatsTypeTag::class.java)),
+            )
+        }
+    }
+
+    /** TYPE-14 case 14: a bare-name argument stays a `LuaCatsTypeParam` directly under the parameterized name. */
+    @Test
+    fun testBareNameTypeArgumentsKeepTheirShape() {
+        doTest(
+            """
+            ---@class Box<T>
+            local Box = {}
+            ---@type table<K, V>
+            local t
+            """.trimIndent(),
+        )
+        runReadAction {
+            Assertions.assertEquals(
+                "LuaCatsParameterizedName(LuaCatsGenericType 'Box', LuaCatsTypeParam 'T')",
+                shapeOf(parameterizedNameIn(LuaCatsClassTag::class.java)),
+            )
+            Assertions.assertEquals(
+                "LuaCatsParameterizedName(LuaCatsGenericType 'table', LuaCatsTypeParam 'K', LuaCatsTypeParam 'V')",
+                shapeOf(parameterizedNameIn(LuaCatsTypeTag::class.java)),
+            )
+        }
+    }
+
+    /** TYPE-14-07: every nested argument form keeps the whole parameterized type in the tag's type. */
+    @Test
+    fun testNestedTypeArgumentForms() {
+        listOf("Box<string[]>", "table<string, table<string, number>>", "Box<fun(a: T): T>").forEach { type ->
+            assertTagType("---@type $type\nlocal x", LuaCatsTypeTag::class.java, type)
+        }
     }
 }

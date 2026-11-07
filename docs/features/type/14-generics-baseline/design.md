@@ -759,6 +759,14 @@ typeParam            ::= NAME
   children walk does; a direct `typeArgumentList`/`typeList` reference does not (measured: run b's
   first regen aborted at that step).
 
+**As implemented (Phase 4).** The walk is `PsiTreeUtil.getChildrenOfAnyType(node, LuaCatsTypeParam,
+LuaCatsType)`: a `LuaCatsType` argument parses through `parseType` with the comment's generic names,
+anything else through `nameType`, so a generic inside a nested argument (`table<string, T[]>`) is
+still a `LuaGenericType`. The generated delta is the one run b measured. With `private` deleted, the
+generator also renames `getTypeParamList()` to `getTypeArgumentList()`, so the REFACT-08 test sources
+that read `typeParamList` no longer compile against it; on the builder, whose test classes were not
+recompiled, those tests failed with `NoSuchMethodError` instead.
+
 ## 7. Data flow
 
 ### Example 1 — `first(xs)` with `---@param xs T[] ---@return T` (same file)

@@ -137,9 +137,24 @@ object TypeParser {
         typeParameters: Map<String, LuaType?>,
     ): LuaType {
         val baseType = LuaTypeManager.getInstance(context.project).createTypeReference(node.genericType.text, context)
-        val typeArgs = node.typeParamList.map { nameType(it.text, context, typeParameters) }
+        val typeArgs =
+            PsiTreeUtil
+                .getChildrenOfAnyType(node, LuaCatsTypeParam::class.java, LuaCatsType::class.java)
+                .map { typeArgument(it, context, typeParameters) }
         return LuaParameterizedType(baseType, typeArgs)
     }
+
+    /** A bare-name argument is a [LuaCatsTypeParam]; any other argument is a nested [LuaCatsType]. */
+    private fun typeArgument(
+        argument: PsiElement,
+        context: PsiElement,
+        typeParameters: Map<String, LuaType?>,
+    ): LuaType =
+        if (argument is LuaCatsType) {
+            parseType(argument, context, typeParameters)
+        } else {
+            nameType(argument.text, context, typeParameters)
+        }
 
     private fun parseDictionary(
         dictType: LuaCatsDictionaryType,

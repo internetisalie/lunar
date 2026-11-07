@@ -255,7 +255,7 @@ higher than run a's.
 
 **Run a — `typeArgument` as a public rule.** The generator produced `LuaCatsTypeArgument` with
 `getType()`/`getTypeParam()` and changed `LuaCatsParameterizedName.getTypeParamList()` to
-`getTypeArgumentList()`; the only compile break was `TypeParser.kt:86`. Parsing was correct:
+`getTypeArgumentList()`; the only compile break in `src/main` was `TypeParser.kt:86` (Phase 4 found test classes that call `getTypeParamList()` also break — design §6 "As implemented"). Parsing was correct:
 
 ```
 H grammar 'table<string, Widget|nil>': errorElements=0 args=[PARAM(string), TYPE(Widget|nil)] description=null | TypeParser=LuaParameterizedType(table<string, Widget | nil>) members=[]

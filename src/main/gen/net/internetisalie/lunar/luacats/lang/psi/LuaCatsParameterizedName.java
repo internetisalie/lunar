@@ -11,6 +11,9 @@ public interface LuaCatsParameterizedName extends PsiElement {
   LuaCatsGenericType getGenericType();
 
   @NotNull
+  List<LuaCatsType> getTypeList();
+
+  @NotNull
   List<LuaCatsTypeParam> getTypeParamList();
 
 }
