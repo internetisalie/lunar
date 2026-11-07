@@ -20,7 +20,7 @@ class LuaLocalFunctionStructureViewTreeElement(
         TreeElementUtils
             .getFuncBodyChildren(
                 myLocalFuncDecl.parList,
-                myLocalFuncDecl.block,
+                myLocalFuncDecl.getBlockList().firstOrNull(),
             ).toTypedArray()
 
     override fun getValue(): Any = myLocalFuncDecl

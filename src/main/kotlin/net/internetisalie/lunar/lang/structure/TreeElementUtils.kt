@@ -13,11 +13,11 @@ object TreeElementUtils {
 
     fun getFuncBodyChildren(
         parList: LuaParList?,
-        block: LuaBlock,
+        block: LuaBlock?,
     ): List<TreeElement> =
         listOf(
             getParListChildren(parList),
-            getBlockChildren(block),
+            block?.let { getBlockChildren(it) }.orEmpty(),
         ).flatten()
 
     private fun getBlockChildren(block: LuaBlock): List<TreeElement> =

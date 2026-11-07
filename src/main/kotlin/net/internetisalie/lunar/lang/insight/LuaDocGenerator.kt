@@ -79,7 +79,7 @@ object LuaDocGenerator {
         indent: String,
     ) {
         val params = LuaPsiImplUtil.getParameters(func.parList)
-        val hasReturn = hasReturnStatement(func.block)
+        val hasReturn = hasReturnStatement(func.getBlockList().firstOrNull())
         buildSignatureTemplate(template, params, hasReturn, indent)
     }
 
@@ -89,7 +89,7 @@ object LuaDocGenerator {
         indent: String,
     ) {
         val params = LuaPsiImplUtil.getParameters(func.parList)
-        val hasReturn = hasReturnStatement(func.block)
+        val hasReturn = hasReturnStatement(func.getBlockList().firstOrNull())
         buildSignatureTemplate(template, params, hasReturn, indent)
     }
 

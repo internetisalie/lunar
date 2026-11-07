@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Typing inside an unfinished function no longer logs an error** (BUG-36). While a `local function`
+  or `function` was missing its `end`, resolving a name in it, opening the structure view or
+  generating its documentation could write an internal error to the IDE log, which GoLand reported as
+  a plugin exception.
 - **Go to Class lists a Lua class once** (BUG-35). A class whose name GoLand also knows as a Go type,
   such as `Box` or `Base`, was listed several times in Go to Class, and every entry opened the same
   declaration.

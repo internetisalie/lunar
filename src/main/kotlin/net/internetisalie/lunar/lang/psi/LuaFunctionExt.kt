@@ -30,7 +30,7 @@ fun LuaFuncDef.processDeclarations(
     }
 
     // 2. Process function body
-    val block = block
+    val block = getBlockList().firstOrNull()
     if (block != null) {
         return block.processDeclarations(processor, state, lastParent, place)
     }
@@ -70,7 +70,7 @@ fun LuaFuncDecl.processDeclarations(
     }
 
     // Process function body
-    val block = block
+    val block = getBlockList().firstOrNull()
     if (block != null && !block.processDeclarations(processor, state, lastParent, place)) {
         return false
     }
@@ -106,7 +106,7 @@ fun LuaLocalFuncDecl.processDeclarations(
     }
 
     // 2. Process function body
-    val block = block
+    val block = getBlockList().firstOrNull()
     if (block != null && !block.processDeclarations(processor, state, lastParent, place)) {
         return false
     }
