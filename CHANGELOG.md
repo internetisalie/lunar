@@ -2,6 +2,9 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Go to Class lists a Lua class once** (BUG-35). A class whose name GoLand also knows as a Go type,
+  such as `Box` or `Base`, was listed several times in Go to Class, and every entry opened the same
+  declaration.
 - **Generic functions infer their result from each call, and honour their constraints** (TYPE-14). A
   call to a function annotated with `@generic` — a global from another file, a method, or a parameter
   written `T|nil` or `fun(a: T)` — no longer raises *string is not assignable to T*. `T` is now

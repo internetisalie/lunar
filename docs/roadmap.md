@@ -88,7 +88,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-32 | A method that uses only its class's type parameter (`---@return T` on `Box<T>`) is `undefined` on a `Box<string>` | todo | S | — | found in TYPE-14 Phase 5 review: TYPE-14-09's remainder (Gap 2.11) | ✓ |
 | BUG-33 | A lambda passed to a generic callback slot (`fun(a: T)`) does not take `a`'s type from a sibling `T[]` argument (LuaLS #1883) | todo | C | — | TYPE-14-16, not delivered by TYPE-14 Phase 6 (Gap 2.12) | ✓ |
 | BUG-34 | A generic function's own `return { value = v }` adds `{ ... }` and `T` to the call's result (`made: Box<number> \| { ... }`, `made.value: number \| T`) | todo | S | — | found in TYPE-14's human checklist, scenario 3.4 | ✓ |
-| BUG-35 | Go to Class lists a generic class (`---@class Box<T>`) three times; a non-generic class is listed once | todo | S | — | found in TYPE-14's human checklist, scenario 3.2 | ✓ |
 | BUG-36 | Typing inside a `local function` whose block is momentarily absent logs a SEVERE `notNullChild` error from `LuaLocalFuncDeclImpl.getBlock` during resolve | todo | S | — | found during TYPE-14's human checklist | ✓ |
 | BUG-37 | A generic class's type parameter (`Box<T>`) is not recognised inside an in-file method's own `@param`/`@return` | todo | S | — | TYPE-14-01's remainder (design §4.8 Phase 5 note) | ✓ |
 | BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |

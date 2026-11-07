@@ -1,10 +1,22 @@
 package net.internetisalie.lunar.lang.navigation
 
+import com.intellij.ide.actions.searcheverywhere.ClassSearchEverywhereContributor
+import com.intellij.ide.actions.searcheverywhere.SEResultsEqualityProvider
+import com.intellij.ide.actions.searcheverywhere.SEResultsEqualityProvider.SEEqualElementsActionType
+import com.intellij.ide.actions.searcheverywhere.SearchEverywhereFoundElementInfo
+import com.intellij.navigation.ChooseByNameContributor
+import com.intellij.navigation.ChooseByNameContributorEx
 import com.intellij.navigation.NavigationItem
+import com.intellij.openapi.actionSystem.ActionPlaces
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
+import com.intellij.openapi.util.Disposer
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.util.CommonProcessors
 import com.intellij.util.Processor
 import com.intellij.util.indexing.FindSymbolParameters
+import com.intellij.util.indexing.IdFilter
 import net.internetisalie.lunar.lang.types.IndexedBasePlatformTestCase
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -164,5 +176,72 @@ class LuaGotoContributorTest : IndexedBasePlatformTestCase() {
 
         assertTrue("Go to Symbol should also enumerate class names", namesOf(contributor).contains("SymClass"))
         assertEquals("Go to Symbol should yield the class item", 1, itemsOf(contributor, "SymClass").size)
+    }
+
+    /**
+     * BUG-35: another language's Go to Class contributor that also enumerates `Box` (GoLand's
+     * `GoTypeContributor` does, twice) makes the platform ask every contributor for `Box` once per
+     * enumeration. Search Everywhere then collapses the repeats through its results-equality
+     * providers, so the same class must come back as equal items, or the list shows it once per
+     * enumeration.
+     */
+    @Test
+    fun testGotoClassListsAClassOnceWhenAnotherContributorEnumeratesItsName() {
+        myFixture.addFileToProject("s31.lua", "---@class Box<T>\n---@field value T\nlocal Box = {}\n")
+        ExtensionTestUtil.addExtensions(
+            ChooseByNameContributor.CLASS_EP_NAME,
+            listOf(NameOnlyContributor("Box"), NameOnlyContributor("Box")),
+            testRootDisposable,
+        )
+
+        val raw = myFixture.getGotoClassResults("Box", false, null).filterIsInstance<NavigationItem>()
+        assertTrue("the platform asks for Box once per enumeration: $raw", raw.count { it.name == "Box" } > 1)
+
+        val shownBoxes = afterSearchEverywhereEquality(raw).filter { it.name == "Box" }
+        assertEquals("Box is listed once: ${shownBoxes.map { it.presentation?.locationString }}", 1, shownBoxes.size)
+    }
+
+    /** Applies the platform's registered results-equality providers the way Search Everywhere does. */
+    private fun afterSearchEverywhereEquality(items: List<NavigationItem>): List<NavigationItem> {
+        val equality = SEResultsEqualityProvider.composite(SEResultsEqualityProvider.EP_NAME.extensionList)
+        val event =
+            AnActionEvent.createFromDataContext(
+                ActionPlaces.UNKNOWN,
+                null,
+                SimpleDataContext.getProjectContext(project),
+            )
+        val classes = ClassSearchEverywhereContributor(event).also { Disposer.register(testRootDisposable, it) }
+        val shown = mutableListOf<SearchEverywhereFoundElementInfo>()
+        for (item in items) {
+            val info = SearchEverywhereFoundElementInfo(item, 0, classes)
+            when (val action = equality.compareItemsCollection(info, shown)) {
+                is SEEqualElementsActionType.Skip -> Unit
+                is SEEqualElementsActionType.Replace -> {
+                    shown.removeAll(action.toBeReplaced)
+                    shown.add(info)
+                }
+                else -> shown.add(info)
+            }
+        }
+        return shown.map { it.element as NavigationItem }
+    }
+
+    /** A foreign contributor that enumerates [name] but owns no element for it. */
+    private class NameOnlyContributor(
+        private val name: String,
+    ) : ChooseByNameContributorEx {
+        override fun processNames(
+            processor: Processor<in String>,
+            scope: GlobalSearchScope,
+            filter: IdFilter?,
+        ) {
+            processor.process(name)
+        }
+
+        override fun processElementsWithName(
+            name: String,
+            processor: Processor<in NavigationItem>,
+            parameters: FindSymbolParameters,
+        ) = Unit
     }
 }

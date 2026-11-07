@@ -45,6 +45,16 @@ class LuaNavigationItem(
 
     override fun canNavigateToSource(): Boolean = target?.canNavigateToSource() ?: false
 
+    /**
+     * BUG-35: the platform asks every contributor for a name once per contributor that enumerates
+     * it, so the same declaration comes back as several items. Search Everywhere collapses repeats
+     * only when they are equal, which a wrapper with identity equality never is.
+     */
+    override fun equals(other: Any?): Boolean =
+        other is LuaNavigationItem && declaration == other.declaration && name == other.name
+
+    override fun hashCode(): Int = 31 * declaration.hashCode() + name.hashCode()
+
     private fun navigationTarget(element: PsiElement): PsiElement =
         when (element) {
             is LuaFuncDecl -> element.funcName
