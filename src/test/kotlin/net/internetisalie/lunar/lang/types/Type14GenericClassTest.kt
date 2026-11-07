@@ -207,4 +207,27 @@ class Type14GenericClassTest : IndexedBasePlatformTestCase() {
         assertEquals("Box<string>", typeOf(file, "b"))
         assertEquals("string", typeOf(file, "val"))
     }
+
+    /**
+     * BUG-34: the body's `return { value = v }` reaches the call as well as the declared `Box<T>`, as a
+     * non-generic function's body does. Its `T` is substituted like the declared return's.
+     */
+    @Test
+    fun testCase22AGenericBodyReturnIsSubstitutedToo() {
+        val file =
+            myFixture.configureByText(
+                "test.lua",
+                boxSource("Box") + "\n" +
+                    """
+                    ---@generic T
+                    ---@param v T
+                    ---@return Box<T>
+                    local function make(v) return { value = v } end
+                    local made = make(1)
+                    local mv = made.value
+                    """.trimIndent(),
+            )
+        assertEquals("number", typeOf(file, "mv"))
+        assertEquals("Box<number> | { ... }", typeOf(file, "made"))
+    }
 }

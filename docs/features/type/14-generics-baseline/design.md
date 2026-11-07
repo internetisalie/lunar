@@ -599,6 +599,13 @@ variable contributes nothing. Because bindings are read through copies of `visit
 only when the walk passed a binding's node directly (risks-and-gaps Gap 2.5); with the copies in
 place it may be redundant, which is unmeasured.
 
+A return node also takes the body's `return` expressions, so its write can hold an anonymous table
+built in terms of `T`: `return { value = v }` under `---@return Box<T>`. That table is copied when the
+call is instantiated, like a function, with each member that mentions a binding on a fresh node fed
+by a lazy substitution. Members are those present when the call is visited. So
+`make(1)` reads `Box<number> | { ... }`, the same two arms a non-generic `---@return Plain` call gives,
+and `.value` reads `number` (BUG-34).
+
 ### 5.7 Compatibility with a symbolic generic
 
 In both `checkCompatibility` (may emit; wires member edges) and `isCompatible` (boolean):

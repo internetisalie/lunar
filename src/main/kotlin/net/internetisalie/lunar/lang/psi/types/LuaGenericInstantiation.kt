@@ -308,7 +308,7 @@ internal class LuaGenericInstantiation(
         }
 
         private fun substitutedReturn(written: LuaGraphType): VariableNode {
-            reader.prepareFunctions(written)
+            reader.prepare(written)
             val fresh = graph.variable(call)
             graph.addEdge(graph.lazyValue(call, reader.substitution(written)), fresh)
             return fresh
@@ -323,14 +323,14 @@ internal class LuaGenericInstantiation(
 
     /**
      * Reads one instantiation's bindings back into types: projection out of an argument (design §5.4)
-     * and substitution into a return (§5.6). Functions met in a return are copied up front by
-     * [prepareFunctions], at instantiation time, so no read mints a node into the file's graph.
+     * and substitution into a return (§5.6). Functions and anonymous tables met in a return are copied
+     * up front by [prepare], at instantiation time, so no read mints a node into the file's graph.
      */
     private inner class BindingReader(
         private val bindings: Map<String, VariableNode>,
         private val call: PsiElement,
     ) {
-        private val preparedFunctions = HashMap<LuaGraphType.Function, LuaGraphType.Function>()
+        private val prepared = HashMap<LuaGraphType, LuaGraphType>()
         private val namedTypes = ConcurrentHashMap<String, LuaGraphType>()
         private val argumentTypes = ConcurrentHashMap<String, LuaGraphType>()
 
@@ -429,8 +429,8 @@ internal class LuaGenericInstantiation(
                 is LuaGraphType.Generic -> resolved[type.name] ?: type
                 is LuaGraphType.Array -> LuaGraphType.Array(substitute(type.elementType, resolved))
                 is LuaGraphType.Union -> LuaGraphType.Union.create(type.types.map { substitute(it, resolved) })
-                is LuaGraphType.Function -> preparedFunctions[type] ?: type
-                is LuaGraphType.Table -> substituteName(type, resolved)
+                is LuaGraphType.Function -> prepared[type] ?: type
+                is LuaGraphType.Table -> prepared[type] ?: substituteName(type, resolved)
                 else -> type
             }
 
@@ -461,31 +461,44 @@ internal class LuaGenericInstantiation(
         }
 
         /**
-         * Copies every generic function in [type] onto fresh nodes, each fed by a lazy substitution of
-         * the original's node: a function returned from a generic call is a new value per call.
+         * Copies every generic function and every anonymous table holding a generic in [type] onto fresh
+         * nodes, each fed by a lazy substitution of the original's node: a function returned from a
+         * generic call is a new value per call, and so is a table its body returns (BUG-34). A named
+         * table is substituted through its name instead (§5.6).
          */
-        fun prepareFunctions(type: LuaGraphType) {
+        fun prepare(type: LuaGraphType) {
             when (type) {
-                is LuaGraphType.Array -> prepareFunctions(type.elementType)
-                is LuaGraphType.Union -> type.types.forEach { prepareFunctions(it) }
+                is LuaGraphType.Array -> prepare(type.elementType)
+                is LuaGraphType.Union -> type.types.forEach { prepare(it) }
                 is LuaGraphType.Function -> if (needsCopy(type)) prepareFunction(type)
+                is LuaGraphType.Table -> if (type.className == null && needsCopy(type)) prepareTable(type)
                 else -> Unit
             }
         }
 
-        private fun needsCopy(function: LuaGraphType.Function): Boolean =
-            function !in preparedFunctions && projectionsOf(function, bindings.keys).isNotEmpty()
+        private fun needsCopy(type: LuaGraphType): Boolean =
+            type !in prepared && projectionsOf(type, bindings.keys).isNotEmpty()
 
         private fun prepareFunction(function: LuaGraphType.Function) {
-            preparedFunctions[function] = function
+            prepared[function] = function
             val params = function.params.map { it.copy(node = substitutedNode(it.node)) }
-            preparedFunctions[function] =
+            prepared[function] =
                 function.copy(params = params, returns = function.returns.map { substitutedNode(it) })
+        }
+
+        /** The table's members as they stand when the call is visited; a member without a generic keeps its node. */
+        private fun prepareTable(table: LuaGraphType.Table) {
+            prepared[table] = table
+            val members =
+                table.localMembers.mapValues { (_, member) ->
+                    if (projectionsOf(member.write, bindings.keys).isEmpty()) member else substitutedNode(member)
+                }
+            prepared[table] = table.copy(localMembers = members)
         }
 
         private fun substitutedNode(original: VariableNode): VariableNode {
             val written = original.write
-            prepareFunctions(written)
+            prepare(written)
             val fresh = graph.variable(call)
             graph.addEdge(graph.lazyValue(call, substitution(written)), fresh)
             return fresh

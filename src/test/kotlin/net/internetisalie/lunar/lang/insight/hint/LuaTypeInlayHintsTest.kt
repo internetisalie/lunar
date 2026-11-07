@@ -339,4 +339,23 @@ class LuaTypeInlayHintsTest : LuaInlayHintsTestCase() {
             LuaTypeInlayHintProvider(),
         )
     }
+
+    /** BUG-34: a generic function's body return is substituted at the call, not shown with its `T`. */
+    fun testGenericBodyReturnIsInstantiated() {
+        doLuaTestProvider(
+            "test.lua",
+            """
+            ---@class Box<T>
+            ---@field value T
+            local Box = {}
+            ---@generic T
+            ---@param v T
+            ---@return Box<T>
+            local function make(v) return { value = v } end
+            local made/*<# : Box<number> | { ... } #>*/ = make(1)
+            local mv/*<# : number #>*/ = made.value
+            """.trimIndent(),
+            LuaTypeInlayHintProvider(),
+        )
+    }
 }
