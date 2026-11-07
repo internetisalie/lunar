@@ -427,6 +427,19 @@ tasks {
                 isFailOnNoMatchingTests = false
             }
         }
+        // MAINT-54: the type-checking false-negative audit edits and re-analyses copies of every
+        // corpus member's declared-demand sites. Its own opt-in, never -PwithCorpus (BUG-418: it
+        // would share the sweeps' JVM and shift their baselines):
+        // `./gradlew test -PwithTypeAudit --tests '*FalseNegativeAudit*'`.
+        if (!project.hasProperty("withTypeAudit")) {
+            filter {
+                excludeTestsMatching("*FalseNegativeAudit*")
+                isFailOnNoMatchingTests = false
+            }
+        } else {
+            val typeAuditDir = layout.buildDirectory.dir("type-audit").get().asFile
+            doFirst { typeAuditDir.deleteRecursively() }
+        }
         // MAINT-40: the findings directory holds exactly one invocation's files, which is what lets
         // tooling/corpus/corpus_ctrf.py read the run's shape from it.
         if (project.hasProperty("withCorpus")) {

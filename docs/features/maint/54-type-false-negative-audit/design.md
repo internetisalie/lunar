@@ -183,13 +183,19 @@ savedSourcePath)` is true, `CorpusDefinitionLibraries.refreshRoots(project)`; th
 `CorpusTarget.restore(project, savedTarget)`; then `super.tearDown()`.
 
 ### 3.6 Aggregation and verdict (`type_audit_summary.py`), fixed before the run
-**Scope: a lazynvim verdict.** Only lazynvim carries LuaCATS `---@param` tags under its manifest roots;
-the other four carry none, and the harness's `ldocParam` counter (§3.2) reports their LDoc `-- @param`
-lines. So only lazynvim yields injection sites; the others contribute coverage counters only. The survey
-asks for exactly this ("the annotated members are where it must be measured",
-`docs/type-system-survey.md:346`). The verdict
-holds for that target as the audit pins it: `LUAJIT:2.1`, its `neovim` definition library disabled
-(§3.5), so `vim.*` calls count as unresolved.
+**Scope: every member, every callee path** (resolves risks-and-gaps DR-03). The population is every
+non-`lenient.` site in all five members on all four callee paths — `LIBRARY`, `SAME_FILE`,
+`PROJECT_FILE` and `CHECKOUT_FILE` — pooled. Mechanisms A and B are checks the engine makes whatever
+file declares the callee, so a `LIBRARY` site (a bundled runtime stub) exercises the same mechanism
+as a project one; `CHECKOUT_FILE` counts as `PROJECT_FILE` does. Only lazynvim carries LuaCATS
+`---@param` tags of its own; the other four reach tagged declarations only through `LIBRARY`, and the
+harness's `ldocParam` counter (§3.2) reports their LDoc `-- @param` lines. Every member is pinned to
+its manifest target with definition libraries disabled (§3.5), so lazynvim's `vim.*` calls count as
+unresolved. Every figure is also reported stratified by callee path and by member, with the share of
+`P` and `S` each path carries; the strata are reporting, not inputs to the verdict. `arg.array` is
+reported as unmeasurable on this engine wherever it checks the argument: every table argument to an
+array type already errors (DR-01e), so such sites fall out as `SKIPPED_PREEXISTING` or `NOISY`; sites on
+a route that checks nothing still read `SILENT` and stay in `F`.
 
 **Pooled across members:** per `(shape, path, form)`, `population` and each outcome count are summed over
 members. Over cells whose shape does not start with `lenient.` and with `measured ≥ 1` (measured =

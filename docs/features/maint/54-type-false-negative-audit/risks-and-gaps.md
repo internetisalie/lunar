@@ -157,11 +157,75 @@ Fields: `b.n = 1` with `b` a `Box`, or an `LBox` with or without the `require`: 
 `number`, `sourceElement` a `LuaCatsFieldTagImpl` each time, so the fixture never reached the stub branch.
 The host `LuaLocalVarDecl`'s `catsComment.fieldTagList`, read directly, gives `n:number`.
 
+### DR-01e — table arguments to `number[]` (Phase 1, measured; corrects TC-16's fixture)
+TC-16 as planned (`pArray({1})`, `{1}`→`function() end`/`{}`) read `SKIPPED_PREEXISTING`: DR-01 never ran
+the baseline. `AuditInjector.keys`, OTHER `DEFS`, HEAD `066057d5`:
+
+| Caller | Non-`HYPOTHESIS` errors |
+|---|---|
+| `pArray({1})`, `pArray({})`, `pArray({1, 2})` | `ERROR` at the literal, *{ ... } is not assignable to number[]* |
+| `---@type number[]` `local xs = {}` `pArray(xs)` | the same at `{}` in the declaration and at `xs` |
+| `local ys = {1}` `pArray(ys)` | the same at `ys` |
+| `pArray(function() end)` | `ERROR ret=true` *fun() is not assignable to number[]* only (as DR-01) |
+
+So every table argument to `number[]`, `{}` included, already errors: a false positive, outside this
+audit's scope. Consequences: a table-literal `arg.array` site is `SKIPPED_PREEXISTING`, and any other
+`arg.array` site's `{}` control raises a direct error, so it is `NOISY`. Both fall out of `F` by the
+design's own rules, so the design stands; `arg.array` is reported unmeasured rather than silent. TC-16
+now uses `pArray(list)` (an untyped name) with control original, which still isolates the rule check.
+
+### DR-03 — the bundled stdlib carries the sites (Phase 1 DR-02 run; resolved)
+Design §3.6 rests on "only lazynvim carries LuaCATS `---@param` tags … so only lazynvim yields injection
+sites; the others contribute coverage counters only". The DR-02 run refutes it: every member's calls
+resolve to tagged declarations outside both the temp tree and the checkout, i.e. `LIBRARY`. The sampled
+sites are standard-library calls (luacheck `spec/helper.lua:78` `error(…, 0)`, `src/luacheck/init.lua:42`
+`assert(…, msg)`, `spec/check_spec.lua:6` `table.remove(warnings, i)`), and the bundled stdlib stubs under
+`src/main/resources/runtime/standard/` carry `---@param` tags. The payload does not record a `LIBRARY`
+callee's file, so "every `LIBRARY` site is a bundled stub" is inferred from that sample, not counted.
+Why DR-01b saw `string.upper` unresolved while these resolve is not established.
+
+Population by callee path, pooled over the five members (non-`lenient.` shapes; `lenient.` in brackets):
+
+| Path | Population | Measured (silent) | Of which lazynvim |
+|---|---|---|---|
+| `LIBRARY` | 8 418 [1 172] | 234 (143) | 1 663 of lazynvim's 2 572 total population |
+| `SAME_FILE` | 469 [67] | 69 (30) | all |
+| `PROJECT_FILE` | 258 [26] | 53 (43) | all |
+| `CHECKOUT_FILE` | 80 [9] | 20 (20) | all |
+
+Non-lazynvim members contribute population only through `LIBRARY`: luacheck 1 399, luarocks 3 992,
+penlight 655, zerobrane 1 881. So `LIBRARY` is 91 % of the non-lenient population `F` is weighted by,
+and `arg.table` on `LIBRARY` (e.g. `table.insert`) counts as node-carrying under §3.6's rule (path ≠
+`SAME_FILE`). The pre-stated verdict would therefore measure the bundled stdlib's declared demand, not
+lazynvim's, which contradicts the verdict's stated scope ("a lazynvim verdict", requirements Overview).
+Computing it anyway and reading it as the survey's answer would be a verdict on a different question;
+reshaping `F` now (dropping `LIBRARY`, scoping to lazynvim) would be choosing the rule after seeing
+the data. Neither is an implementer's call.
+
+Phase 1 (the harness) stands: every count above is the design's own classification, and the
+per-member JSON keeps `path` per cell.
+
+**Resolved (supervisor, 2026-11-07).** Design §3.6 is amended to match:
+1. The verdict rule is unchanged: `F`, `R`, the 0.25 threshold, the half-from-mechanisms-A/B
+   threshold, and pooling across members. Only the population premise was wrong. The population is
+   every non-`lenient.` tagged site in **all five members on all callee paths** (`LIBRARY`,
+   `SAME_FILE`, `PROJECT_FILE`, `CHECKOUT_FILE`), pooled. Mechanisms A and B are engine checks that do
+   not depend on where the callee is declared, so `LIBRARY` sites exercise the mechanism the redesign
+   question is about.
+2. Every figure is also reported stratified by callee path and by member, so the `LIBRARY` weight is
+   visible. The results record where `LIBRARY` callees live, from a sample of their declarations; they
+   are called the bundled stdlib stubs only as far as the sample shows it.
+3. `CHECKOUT_FILE` counts as `PROJECT_FILE` does.
+4. `arg.array` is reported as unmeasurable on this engine: every table argument to `number[]` already
+   errors (DR-01e). The false positive is tracked as a BUG.
+
+No other rule changes after the data was seen.
+
 ## Pending De-risking, Risks and Gaps
 
 | ID | Risk, gap or action | Handling / status |
 |---|---|---|
-| DR-02 | Phase 1 exit: run the audit command (design §5); lazynvim, the only member with LuaCATS sites, carries the injection cost. Read the `[type-audit:<member>] … elapsedMs=` lines; measured = their sum, with lazynvim's reported on its own | todo. Sum > 30 min → `CAP = 2`, re-run and re-measure; still over (lazynvim alone over 30 min at `CAP = 2` included) → the NFR is relaxed to a per-member bound equal to the measured lazynvim time, which this row records with every member's time |
+| DR-02 | Phase 1 exit: run the audit command (design §5); lazynvim, the only member with LuaCATS sites, carries the injection cost. Read the `[type-audit:<member>] … elapsedMs=` lines; measured = their sum, with lazynvim's reported on its own | **done.** Libvirt builder, `CAP = 4`, the design §5 command on `066057d5` plus the Phase 1 harness: luacheck 49 684 ms, luarocks 208 120 ms, penlight 26 009 ms, lazynvim 376 288 ms, zerobrane 114 362 ms; sum 774 463 ms (12.9 min, Gradle wall 13 m 29 s) — under 30 min, so `CAP` stays 4 and the NFR stands. (Rule as planned: sum > 30 min → `CAP = 2` and re-measure; still over → a per-member bound equal to lazynvim's time.) Lazynvim did not carry the cost alone: see DR-03 |
 | Risk 1.1 [Low] | `CAP` sites miss a sub-shape of a large cell | cells split by path and form; `population` beside every rate |
 | Risk 1.2 [Medium] | runtime: snapshots B, W and C per site | DR-02 |
 | Risk 1.3 [Low] | a mutation leaks into later sites | `verifyReverted` aborts the member; TC-18 |

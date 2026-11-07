@@ -98,7 +98,13 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-26 | A local assigned `cond and <unknown>` is shown with the type demanded of it | todo | C | — | found planning MAINT-52 (Gap 2.2); the display path of BUG-553 *(done)* | ✓ |
 | BUG-27 | `LuaPrimitiveType.UNKNOWN` carries several meanings, so no producer can be re-spelled alone | todo | C | — | found planning MAINT-52 (Risk 1.1); prerequisite for spelling "cannot model" as `any` at the producers | ✓ |
 | BUG-28 | A second `@class` tag in the same comment block gives its fields to the first class | todo | S | — | found planning MAINT-52 (DR-04 probe d1) | ✓ |
-| MAINT-54 | Inject known type errors into the corpus to measure what the checker silently skips | planned | M | — | could reopen the redesign question | ✓ |
+| BUG-38 | Too many or too few arguments are not reported against a function declared in another file — every bundled-stdlib call included (`math.floor()`, `ipairs(t, true)`) | todo | S | — | found by MAINT-54's false-negative audit: 0 of 93 measured arity sites on these routes reported; largest share of the audit's `S` | ✓ |
+| BUG-40 | A `table`-, class- or record-typed parameter declared in another file accepts a function (`pairs(function() end)`) | todo | S | — | found by MAINT-54's false-negative audit: 64 of 65 sites silent; the survey's mechanism A | ✓ |
+| BUG-41 | Arguments to a function or method of a `require`d project module are not type-checked | todo | S | — | found by MAINT-54's false-negative audit: lazynvim `Loader.ftdetect(true)` silent; a global table's member reports | ✓ |
+| BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
+| BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
+| BUG-44 | Assigning a wrong value to a class `@field` (`self.b = 'x'` for a `boolean`) is reported only as a hypothesis | todo | S | — | found by MAINT-54's false-negative audit | ✓ |
+| BUG-45 | Routes that report a wrong argument or return at most sites stay silent at a few (`os.exit("audit")` in luarocks `cmd.lua:219`) | todo | C | — | found by MAINT-54's false-negative audit; cause unknown, `addError` dedup is one candidate | ✓ |
 | TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |

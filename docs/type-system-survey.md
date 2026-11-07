@@ -343,8 +343,8 @@ starts from the same ignorance and rediscovers them against the same corpus.
 - ANALYSIS-07's spike showing that value-flow needs a CFG-based core, which would raise F. Its own
   headroom table reads 0, 5, 5 and 0 assignability hits on the four unannotated corpora, so the
   annotated members are where it must be measured.
-- A false-negative audit of declared-demand coverage finding a large silent class, as hinted by
-  `detachedDemand`'s null for tables. The report set cannot rule that out.
+- The [[MAINT-54]] false-negative audit returned **REOPEN** (`F` 0.79, `R` 0.95): a large silent class
+  exists, mostly bundled-stdlib arity and `table` demands; see the [audit results](features/maint/54-type-false-negative-audit/audit-results.md).
 
 **Uncertainty.**
 

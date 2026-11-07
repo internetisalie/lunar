@@ -38,6 +38,21 @@ The same line appears twice in the probe (fixtures B and I), once per file that 
 A non-empty constructor (`{ "a", "b" }`) was not probed; whether it also reports is part of the
 analysis, not of this report.
 
+### Also reached through a parameter ([[MAINT-54]] DR-01e)
+
+Measured again on `066057d5` by MAINT-54's probe, with the callee `---@param xs number[]`
+`function pArray(xs) end` in another file. Each caller reports `ERROR` *{ ... } is not assignable to
+number[]* (non-`HYPOTHESIS`):
+
+| Caller | Where the error lands |
+|---|---|
+| `pArray({1})`, `pArray({})`, `pArray({1, 2})` | the literal |
+| `---@type number[]` `local xs = {}` `pArray(xs)` | `{}` in the declaration, and `xs` |
+| `local ys = {1}` `pArray(ys)` | `ys` |
+
+So non-empty constructors report too, and the false positive reaches every array-typed parameter
+that is passed a table. MAINT-54 reports its `arg.array` shape as unmeasurable for this reason.
+
 ## Expected
 
 No diagnostic. An empty constructor is assignable to any array type, and a constructor whose

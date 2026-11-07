@@ -14,29 +14,32 @@ under `src/main` changes; a diff there fails the phase.
 
 ### Phase 1: Harness [Must]
 - **Tasks**:
-  - [ ] Create `AuditModel.kt`, `AuditKinds`, `AuditSiteFinder`, `AuditSelection`, `AuditInjector`,
+  - [x] Create `AuditModel.kt`, `AuditKinds`, `AuditSiteFinder`, `AuditSelection`, `AuditInjector`,
         `AuditOutput` in `src/test/kotlin/net/internetisalie/lunar/corpus/audit/` — design §2, §3.1–§3.4, §4.
-  - [ ] Create `LuaTypeFalseNegativeAuditTest` — design §3.5.
-  - [ ] Add the `withTypeAudit` filter to `build.gradle.kts` — design §5.
-  - [ ] Create `TypeAuditHarnessTest` (TC-2 to TC-19) and the golden `tooling/corpus/testdata/type_audit_sample.json` — design §4.
-  - [ ] Create `tooling/corpus/type_audit_summary.py` and `test_type_audit_summary.py` (TC-20) — design §3.6.
+  - [x] Create `LuaTypeFalseNegativeAuditTest` — design §3.5.
+  - [x] Add the `withTypeAudit` filter to `build.gradle.kts` — design §5.
+  - [x] Create `TypeAuditHarnessTest` (TC-2 to TC-19) and the golden `tooling/corpus/testdata/type_audit_sample.json` — design §4.
+  - [x] Create `tooling/corpus/type_audit_summary.py` and `test_type_audit_summary.py` (TC-20) — design §3.6.
 - **Exit criteria**: `run test` green with `TypeAuditHarnessTest` present; TC-1's first two runs hold;
   `python3 -m unittest discover -s tooling/corpus -p 'test_*.py'` green; `run ktlintCheck` green; each
   TC's named mutation applied by hand turns it red, then reverted; DR-02 run (lazynvim carries the cost) and its row filled in
   (with `CAP` or the NFR changed as that row says).
 
 ### Phase 2: Measure and report [Must]
+
+Unblocked by risks-and-gaps DR-03's resolution (design §3.6 amended: every member, every path; strata reported).
+
 - **Tasks**:
-  - [ ] Run the design §5 command (every member method of the class); copy the output back as design §5 says; run
+  - [x] Run the design §5 command (every member method of the class); copy the output back as design §5 says; run
         `python3 tooling/corpus/type_audit_summary.py build/type-audit`.
-  - [ ] Create `audit-results.md` (`type: "results"`, `parent_id: "MAINT-54"`): run command, commit SHA,
+  - [x] Create `audit-results.md` (`type: "results"`, `parent_id: "MAINT-54"`): run command, commit SHA,
         the summary output verbatim, the verdict, and the cell → BUG table.
-  - [ ] For every cell with `silent ≥ 1`, mint a BUG (`loom-cli id mint BUG`), write it with the
+  - [x] For every cell with `silent ≥ 1`, mint a BUG (`loom-cli id mint BUG`), write it with the
         `report-bug` skill citing the cell and two of its sites, and add a roadmap row. One BUG may cover
         several cells when the sites show one cause; the results table lists every cell either way.
-  - [ ] Replace the survey's Pass 3 bullet "A false-negative audit of declared-demand coverage …" with
+  - [x] Replace the survey's Pass 3 bullet "A false-negative audit of declared-demand coverage …" with
         one sentence giving the verdict and a link to `audit-results.md`.
-  - [ ] Set this feature `done`; delete the MAINT-54 roadmap row.
+  - [x] Set this feature `done`; delete the MAINT-54 roadmap row.
 - **Exit criteria**: TC-1's third run and TC-21 hold; `scripts/lint_docs.py docs` and
   `scripts/lint_planning.py` report 0 errors.
 

@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "member": "sample",
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "cap": 4,
+  "coverage": {
+    "calls": 10,
+    "stringOrTableArgs": 1,
+    "unresolvedCallee": 2,
+    "unresolvedMethod": 1,
+    "formMismatch": 0,
+    "noTag": 3,
+    "arityGuard": 1,
+    "eligible": 2,
+    "fieldUntagged": 1,
+    "ldocParam": 4
+  },
+  "cells": [
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "GLOBAL"
+      },
+      "population": 9
+    },
+    {
+      "cell": {
+        "shape": "arg.union",
+        "path": "SAME_FILE",
+        "form": "LOCAL"
+      },
+      "population": 1
+    },
+    {
+      "cell": {
+        "shape": "lenient.primitiveForTable",
+        "path": "PROJECT_FILE",
+        "form": "GLOBAL"
+      },
+      "population": 2
+    }
+  ],
+  "records": [
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "GLOBAL"
+      },
+      "file": "lua/sample.lua",
+      "line": 3,
+      "declaredType": "string",
+      "wrong": "true",
+      "outcome": "REPORTED",
+      "newErrors": [
+        {
+          "severity": "ERROR",
+          "rule": "LuaTypeAssignability",
+          "message": "boolean is not assignable to string",
+          "anchor": "AT_PARAM"
+        }
+      ]
+    },
+    {
+      "cell": {
+        "shape": "arg.union",
+        "path": "SAME_FILE",
+        "form": "LOCAL"
+      },
+      "file": "lua/sample.lua",
+      "line": 5,
+      "declaredType": "string|number",
+      "wrong": "true",
+      "outcome": "REPORTED_OTHER_RULE",
+      "newErrors": [
+        {
+          "severity": "ERROR",
+          "rule": "LuaReturnTypeMismatch",
+          "message": "boolean is not assignable to union number | string",
+          "anchor": "AT_DECL"
+        }
+      ]
+    },
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "GLOBAL"
+      },
+      "file": "lua/sample.lua",
+      "line": 7,
+      "declaredType": "number",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "GLOBAL"
+      },
+      "file": "lua/sample.lua",
+      "line": 9,
+      "declaredType": "boolean",
+      "wrong": "\"audit\"",
+      "outcome": "NOISY",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "GLOBAL"
+      },
+      "file": "lua/sample.lua",
+      "line": 11,
+      "declaredType": "string",
+      "wrong": "true",
+      "outcome": "SKIPPED_PREEXISTING",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "GLOBAL"
+      },
+      "file": "lua/sample.lua",
+      "line": 0,
+      "declaredType": "integer",
+      "wrong": "true",
+      "outcome": "FAILED",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "lenient.primitiveForTable",
+        "path": "PROJECT_FILE",
+        "form": "GLOBAL"
+      },
+      "file": "lua/sample.lua",
+      "line": 13,
+      "declaredType": "table",
+      "wrong": "true",
+      "outcome": "LENIENT_BY_DESIGN",
+      "newErrors": []
+    }
+  ]
+}

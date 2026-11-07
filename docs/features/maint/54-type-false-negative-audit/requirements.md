@@ -3,7 +3,7 @@ id: "MAINT-54"
 title: "54: Type Checking False-Negative Audit"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -19,8 +19,8 @@ unreported, [[BUG-19]] §5). This feature injects known type errors into copies 
 how many are reported per shape, and states whether the result reopens the redesign question in the
 [type system survey](../../../type-system-survey.md) (Pass 3, "What would change this verdict").
 
-**The verdict is a lazynvim verdict:** only lazynvim carries LuaCATS tags; scope, target and evidence
-are in design §3.6.
+**The verdict pools every member and every callee path**, bundled runtime stubs (`LIBRARY`) included;
+it is also reported per path and per member. Scope and evidence: design §3.6, risks-and-gaps DR-03.
 
 **Out of scope:** fixing any false negative (each becomes a BUG, MAINT-54-08); any change under
 `src/main`; parsing LDoc; definition libraries (none enabled, so their calls are unresolved); callees
@@ -72,15 +72,30 @@ names the edited text, wrong and control. TC-2 to TC-19 are `TypeAuditHarnessTes
 | 13 | 04, 10 | SAME `KDEFS` + `kNum(1)` | `arg.primitive` `1`→`true`/`7` | `REPORTED`; `delta` anchors exactly `AT_DECL`, `AT_PARAM`, `BODY` (`n + 1`) | anchor every non-site entry `AT_PARAM`: no `BODY` |
 | 14 | 04 | (a) as TC-13 with control `'x'`; (b) a site and `outcome(site, delta = [AT_SITE, expected rule], noise = [BODY])` | measure; `outcome` | (a) `NOISY`; (b) `REPORTED` | (a) ignore `noise`: `REPORTED`; (b) any `noise` entry is `NOISY` |
 | 15 | 04 | OTHER `DEFS` with a trailing `pNum('x')` line in `defs.lua`; caller `pStr('okay')` | measure `'okay'`→`true`/`"ctl"` | `REPORTED`; no `DECLARING_FILE` entry | apply the edited file's `Shift` to the declaring file: a `DECLARING_FILE` entry |
-| 16 | 04 | OTHER `DEFS`, caller `pArray({1})` | `{1}`→`function() end`/`{}` | `REPORTED_OTHER_RULE` (DR-01: only a `ret=true` error) | ignore the rule: `REPORTED` |
+| 16 | 04 | OTHER `DEFS`, caller `pArray(list)` (DR-01e: a table argument already errors) | `list`→`function() end`/original | `REPORTED_OTHER_RULE` (DR-01: only a `ret=true` error) | ignore the rule: `REPORTED` |
 | 17 | 04 | OTHER `DEFS`, caller `pStr('ok')` | site with `edit = TextRange(10_000, 10_001)` | `FAILED` (from `doc.getText` in step 1, inside the `try`); text unchanged | step 1 outside the `try`: the test errors |
 | 18 | 04 | a document holding `"a"` | `verifyReverted(doc, "b")` | `RevertMismatch` | make it a no-op; throw a plain `IllegalStateException` (then mapped to `FAILED`) |
 | 19 | 05 | a fixed `AuditPayload`: one record of each outcome, the `REPORTED` record's only entry anchored `AT_PARAM`, one entry message *boolean is not assignable to union number \| string* | `AuditOutput.render` | equals `tooling/corpus/testdata/type_audit_sample.json` | rename any data-class field; render entries as joined strings |
 | 20 | 05, 06 | `type_audit_sample.json`; cell cases as (shape, path, form, population, outcomes). A: `x`=(arg.class, PROJECT_FILE, GLOBAL, 30, 4×SILENT), `y`=(arg.class, SAME_FILE, LOCAL, 70, 4×REPORTED). B: `x`=(arg.primitive, PROJECT_FILE, MEMBER, 30, 2×SILENT), `y`=(arg.primitive, PROJECT_FILE, GLOBAL, 70, 4×REPORTED). C: A with populations 20, 80. D: C plus (lenient.primitiveForTable, PROJECT_FILE, GLOBAL, 100, 4×LENIENT). E: two members with `x`=(arg.primitive, PROJECT_FILE, GLOBAL), (10, 4×SILENT) and (30, 4×REPORTED) | `load` the sample; `aggregate`; `verdict`; `main` on a missing directory and on a copy with `schema` 2 | sample loads, every entry read as an object with its full `message`; the sample's `REPORTED`-without-`AT_SITE` count is 1; `main` returns 2 both times; A: F 0.30, R 1.00, `REOPEN`; B: F 0.30, R 0.00, `HOLD`; C: F 0.20, `HOLD`; D: F 0.20; E: F 0.50 | rename a key read by `load`; split entries on `\|`; count `REPORTED` records that have an `AT_SITE` entry (0); return 1 on a bad input; drop the R condition (B `REOPEN`); drop `measured ≥ 3` (B `REOPEN`); count lenient as silent (D 0.60); weight per-member rates instead of pooling (E 0.25) |
 | 21 | 05, 07, 08 | Phase 2 output | review | `audit-results.md` holds the tables verbatim, commit SHA, verdict; each cell with `silent ≥ 1` names a BUG present under `docs/features/bug-fixes/` and in `docs/roadmap.md` | a silent cell missing from the BUG table |
 
+## Implementation Status
+
+| ID | Status | Note |
+|----|--------|------|
+| MAINT-54-01 | Full | `build.gradle.kts` `withTypeAudit` filter; TC-1 runs 1–3 hold |
+| MAINT-54-02 | Full | `AuditKinds`; TC-2 |
+| MAINT-54-03 | Full | `AuditSiteFinder`, `AuditSelection`; TC-3 to TC-8 |
+| MAINT-54-04 | Full | `AuditInjector`; TC-9 to TC-18 (TC-16 fixture per DR-01e) |
+| MAINT-54-05 | Full | `AuditOutput`, golden sample; TC-19 |
+| MAINT-54-06 | Full | `type_audit_summary.py`; TC-20 |
+| MAINT-54-07 | Full | [audit-results.md](audit-results.md): verdict REOPEN, strata by path and member; scope per DR-03 (resolved) |
+| MAINT-54-08 | Full | 45 silent cells → [[BUG-38]], [[BUG-40]]–[[BUG-45]], each with a roadmap row; `arg.array`'s false positive is [[BUG-481]] |
+| MAINT-54-09 | Full | `AuditCoverage`; TC-8 |
+| MAINT-54-10 | Full | anchors, summary `REPORTED` without `AT_SITE`; TC-13, TC-20 |
+
 ## Acceptance Criteria
-- [ ] TC-1 to TC-21 hold, and `git diff origin/main -- src/main` is empty.
+- [x] TC-1 to TC-21 hold, and `git diff origin/main -- src/main` is empty.
 
 ## Non-Functional Requirements
 - The routine `run test` gains only `TypeAuditHarnessTest`. The full audit finishes within 30 minutes on
@@ -91,3 +106,4 @@ names the edited text, wrong and control. TC-2 to TC-19 are `TypeAuditHarnessTes
 - Design: [design.md](design.md)
 - Plan: [implementation-plan.md](implementation-plan.md)
 - Risks: [risks-and-gaps.md](risks-and-gaps.md)
+- Results: [audit-results.md](audit-results.md)
