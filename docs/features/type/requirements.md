@@ -67,7 +67,7 @@ Lunar aims to provide a robust, LuaCATS-first type system to enable advanced IDE
 - **Strategy**: Let-Polymorphism (Generic instantiation at call sites)
 
 ### TYPE-14: Generics — the LuaLS closed baseline
-- **Status**: planned — see [`14-generics-baseline/requirements.md`](./14-generics-baseline/requirements.md)
+- **Status**: **✅ Implemented** — see [`14-generics-baseline/requirements.md`](./14-generics-baseline/requirements.md). Open remainders filed as BUG-31 (`.` calls), BUG-32 (class-parameter-only methods on an instantiation), BUG-33 (callback slots bound from a sibling argument) and BUG-34 (a generic body's own return leaking `T` into the call result).
 - **Strategy**: one path-based substitution mechanism (lazy projection in, lazy rebuild out) applied at same-file callees, declared callees, generic classes and parameterized parents; constraints ride on the placeholder as a bound.
 
 ### TYPE-06: Return Type Checking

@@ -236,7 +236,7 @@ this gap describes. That shape was not measured.
 - `testGenericMethodSignatureRaisesNothingInItsOwnFile` pins the fix. Making the nominal member
   eager again (mutation m29) turns that test red.
 
-### Gap 2.10 — A generic function called with `.` on a class is not instantiated — OPEN
+### Gap 2.10 — A generic function called with `.` on a class is not instantiated — OPEN, filed as [[BUG-31]]
 
 `Box.make(1)`, with `---@generic T ---@param v T ---@return T` on `function Box.make(v)`, infers
 `T | number`. It did so on base and does so after Phase 5, and no diagnostic depends on it.
@@ -249,7 +249,7 @@ The `:` route cannot simply be reused, because the call has a different structur
 
 This is TYPE-14-04's open remainder (plan Phase 5 task 7 named both forms).
 
-### Gap 2.11 — A method using only its class's parameter is not substituted on an instantiation — OPEN
+### Gap 2.11 — A method using only its class's parameter is not substituted on an instantiation — OPEN, filed as [[BUG-32]]
 
 `---@class Box<T>` `---@field value T` with `---@return T function Box:get() end`, and
 `---@type Box<string> local b` `local g = b:get()`: `g` is `undefined` on base and after Phase 5
@@ -265,6 +265,77 @@ to use the instantiated class's substituted template for such a member rather th
 The graph-layer `sameClass` head comparison in `LuaTypeGraph.isNominallyCompatible` has no test
 that depends on it (mutation 17 survives; see the plan's "As run" note). It is kept for symmetry
 with `LuaClassType.sameHead`, which case 17 does pin.
+
+### Gap 2.12 — A callback slot's parameter also receives the symbolic `T` from the shape check — OPEN, filed as [[BUG-33]]; TYPE-14-16 not delivered
+
+Design §5.12 says that seeding a lambda's parameter from `bindings["T"]`, instead of from a value
+built from the symbolic `fun(a: T)`, makes `a` read the bound type. At runtime it does not. With
+§5.12 implemented as written, DR-01 fixture I gives `a: string | T`, not `string`. The `string` arm
+comes from the binding. The `T` arm comes from a second edge that §5.12 does not mention, which is
+the shape check of Gap 2.7.
+
+That edge is the instantiated parameter `fn`, which meets the template parameter's declared demand
+`fun(a: T)`. On the same-file path this is `Instantiator.projectedParameter`, through
+`declaredDemandsOf`. On the declared path it is `LuaSignatureCopier.parameterUse`, in
+`bindArguments`. When the lambda is checked against that demand, the demand's parameter node,
+written `Generic("T")`, flows into the lambda's own parameter. This is the same mechanism Gap 2.7
+records for a typed callback argument.
+
+Measured in one probe file per state. `a` is the lambda's parameter and `r` is the call's result.
+Each was read in both orders (`a` first, then `r` first), with identical results.
+
+| Fixture | Base `792f2f7c` | §5.12 as designed | §5.12 + both shape-check edges removed (probe only) |
+| :-- | :-- | :-- | :-- |
+| I, same-file: `filter(function(a) end, xs)` | `a: T`, `r: string[]` | `a: string \| T`, `r: string[]` | `a: string`, `r: string[]` |
+| I, other order: `keep(xs, function(a) end)` | `a: T` | `a: string \| T` | `a: string` |
+| I, cross-file (`filter` a global in `lib.lua`) | `a: T` | `a: string \| T` | not run |
+| `fun(k: K, v: V)` against `table<string, number>` | `k: K`, `v: V` | `k: string \| K`, `v: number \| V` | `k: string`, `v: number` |
+| Only source of `T` is the lambda (`call(function(a) end)`) | `a: T` | `a: T` | `a: undefined` |
+| `:` method, `L:each(xs, function(a) end)` | `a: T` | `a: T` | `a: undefined` |
+
+Removing the shape-check edges is not a fix. It fails
+`testGenericPositionStillChecksItsShapeSameFile` and `testGenericPositionStillChecksItsShapeDeclared`,
+so `first(5)` against `T[]` would stop reporting. Error counts were unchanged by §5.12: the fixture-I
+file reports 6 errors on base and on the branch, and every one of them comes from BUG-481's
+`local xs = {}`.
+
+**Also contradicted: case 24's mutation.** Requirements case 24 says running
+`propagateExpectedLambdaParams` before the instantiation exists leaves `a` `undefined`. Base, which
+has that ordering, gives `T`.
+
+**The `:` method row.** The callback is not seeded in the `:` method row even without the shape
+check. Why `LuaExpectedCallbackResolver` yields no slot for `function L:each` was not investigated.
+
+**Option 2, tried once and not delivered.** The re-plan chose option 2 of three:
+- option 1, substitute the shape check's demand;
+- option 2, stop the placeholder flowing into a lambda parameter that has a binding seed;
+- option 3, accept `string | T`.
+
+Option 2 had to be a local guard and meet a fixed bar. The guard cannot sit where the demand is
+added (`projectedParameter`, `parameterUse`), because the edge is not made there. It is made in
+`LuaTypeGraph.checkFunctionCompatibility`, as `addEdge(useParam.node, valueParam.node)`, when the
+lambda meets the demand. That one site serves both call paths.
+
+The attempt:
+- marked each lambda parameter seeded from a binding;
+- skipped that edge when the demand's parameter is written as a `Generic`.
+
+Results:
+
+| Row of the bar | Result |
+| :-- | :-- |
+| Fixture I, both orders and cross-file | `a: string` (met) |
+| `fun(k: K, v: V)` | `string`, `number` (met) |
+| `:` method | `T`, unchanged (met) |
+| Errors | identical to base (met) |
+| Shape-check tests | green (met) |
+| **Only the lambda mentions `T`** | **`undefined`, where base gives `T` (missed)** |
+
+The missed row fails because nothing outside the lambda binds `T` there, so the binding seed reads
+the cycle's `Undefined`. Meeting it needs a further rule: seed from the binding only when another
+parameter of the template also mentions the name. That is more than the guard the bar allowed, so
+the production change was removed and TYPE-14-16 is left Not Implemented. The attempt's diff,
+probe source and outputs are listed in the Phase 6 handoff.
 
 ## Adjacent defects and gaps found by DR-01, not owned here
 

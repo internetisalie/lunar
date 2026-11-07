@@ -320,4 +320,23 @@ class LuaTypeInlayHintsTest : LuaInlayHintsTestCase() {
             LuaTypeInlayHintProvider(),
         )
     }
+
+    /** TYPE-14 case 23 (TYPE-14-15): an instantiation displays by its instantiated name, a substituted member by its type. */
+    fun testGenericInstantiationDisplaysItsInstantiatedName() {
+        doLuaTestProvider(
+            "test.lua",
+            """
+            ---@class Box<T>
+            ---@field value T
+            local Box = {}
+            ---@generic T
+            ---@param v T
+            ---@return Box<T>
+            local function make(v) end
+            local b/*<# : Box<string> #>*/ = make("x")
+            local val/*<# : string #>*/ = b.value
+            """.trimIndent(),
+            LuaTypeInlayHintProvider(),
+        )
+    }
 }

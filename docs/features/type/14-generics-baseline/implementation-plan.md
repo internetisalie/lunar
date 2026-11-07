@@ -221,6 +221,10 @@ inherits with substitution. Closes BUG-420.
 **Verification:**
 - `Type14InstantiationTest` case 24. **Mutation**: run `propagateExpectedLambdaParams` before the
   instantiation is built → `a` is `undefined`.
+  **As run: task 1 is not delivered.** Implemented as written, §5.12 gives `a: string | T`, and the
+  prediction above is wrong, since base gives `T`. The one bounded attempt at a fix missed its bar.
+  The production change and the case-24 tests were removed. TYPE-14-16 is filed as [[BUG-33]]
+  (risks-and-gaps Gap 2.12).
 - `LuaTypeInlayHintsTest` case 23 (Phase 6 only; the class-level assertions are case 22 in Phase 5).
 - [human-verification-checklists.md](human-verification-checklists.md) run in GoLand
   (`verify-in-ide`), results recorded there.
@@ -253,15 +257,15 @@ inherits with substitution. Closes BUG-420.
 - [x] DR-01 fixture regression file (`Type14FalseErrorRegressionTest`) — the "false error" rows (Phase 1)
 - [x] `Type14InstantiationTest` — cases 5–8, 10, 11 (Phase 2)
 - [x] `Type14InstantiationTest` — case 9 (Phase 5)
-- [ ] `Type14InstantiationTest` — case 24 (Phase 6)
+- [ ] `Type14InstantiationTest` — case 24 (Phase 6): not delivered, [[BUG-33]]
 - [x] `Type14ConstraintTest` — cases 19–21 (Phase 3)
 - [x] `LuaCatsParserTest` additions — cases 13, 14 (Phase 4); case 7's nested argument in `Type14NestedTypeArgumentTest`
 - [x] `Type14GenericClassTest` — cases 15–18, 22 (Phase 5)
 - [x] `LuaGotoContributorTest` addition — case 27 (Phase 5)
 - [x] `LuaCatsStubAstParityTest` additions — cases 12, 26 (Phase 5)
-- [ ] `LuaTypeInlayHintsTest` addition — case 23 (Phase 6)
-- [ ] Corpus lane re-baseline — case 25 (removed-only delta at Phases 1 and 2; attributed additions admitted at Phase 5)
-- [ ] Run [human-verification-checklists.md](human-verification-checklists.md) (Phase 6)
+- [x] `LuaTypeInlayHintsTest` addition — case 23 (Phase 6)
+- [x] Corpus lane re-baseline — case 25 (removed-only delta at Phases 1 and 2; attributed additions admitted at Phase 5; Phase 6 unchanged against Phase 5)
+- [x] Run [human-verification-checklists.md](human-verification-checklists.md) (Phase 6): run 2026-11-07, results there; findings filed as [[BUG-34]], [[BUG-35]], [[BUG-36]]
 
 ## Task Summary
 
@@ -272,4 +276,4 @@ inherits with substitution. Closes BUG-420.
 | Phase 3: Constraints, bound in body, backtick capture | done | Should |
 | Phase 4: Grammar — type arguments are full types | done | Must |
 | Phase 5: Generic classes and parameterized parents | done | Must |
-| Phase 6: Callback-slot binding, display, docs | todo | Could / Should |
+| Phase 6: Callback-slot binding, display, docs | done (task 1 not delivered: [[BUG-33]]) | Could / Should |

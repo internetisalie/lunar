@@ -795,6 +795,17 @@ lazy projection (§5.4), so it does not matter that `t`'s node is read after the
 The one shape this cannot serve is a lambda whose parameter is the **only** source of `T` — that
 is inference *from* an un-annotated lambda, which is LuaLS's own open half of #1883 and stays out.
 
+**Not delivered (Phase 6, [[BUG-33]]).** This section's premise was measured and found wrong. The
+seed is not the only edge into the lambda's parameter. Once the call is wired,
+`LuaTypeGraph.checkFunctionCompatibility` meets the lambda against the template parameter's
+symbolic `fun(a: T)` demand, and flows that demand's `Generic("T")` node into `a`. Seeding from the
+binding therefore gives `a: string | T`.
+
+A guard on that edge, for binding-seeded parameters, gives `string`. But it leaves the only-source
+shape `undefined`, because a binding with no other source reads its cycle's `Undefined`. Avoiding
+that needs a rule choosing between the binding seed and the symbolic seed, which was outside the
+bound set for the attempt. Measurements are in risks-and-gaps Gap 2.12.
+
 ## 6. The grammar, and what regeneration changes
 
 [luacats.bnf:201-203](../../../../src/main/kotlin/net/internetisalie/lunar/luacats/lang/parser/luacats.bnf):
