@@ -25,3 +25,75 @@
 ---BIT LIBRARY (NEW IN 5.2)
 ---@class bit32
 bit32 = {}
+
+---Returns x shifted disp bits to the right (arithmetic shift: vacant bits are copies of bit 31)
+---A negative disp shifts to the left
+---@param x number
+---@param disp number
+---@return integer
+function bit32.arshift(x, disp) end
+
+---Returns the bitwise and of its operands
+---@vararg number
+---@return integer
+function bit32.band(...) end
+
+---Returns the bitwise negation of x
+---@param x number
+---@return integer
+function bit32.bnot(x) end
+
+---Returns the bitwise or of its operands
+---@vararg number
+---@return integer
+function bit32.bor(...) end
+
+---Returns whether the bitwise and of its operands is different from zero
+---@vararg number
+---@return boolean
+function bit32.btest(...) end
+
+---Returns the bitwise exclusive or of its operands
+---@vararg number
+---@return integer
+function bit32.bxor(...) end
+
+---Returns the unsigned number formed by bits field to field + width - 1 of n (width defaults to 1)
+---@param n number
+---@param field number
+---@param width? number
+---@return integer
+function bit32.extract(n, field, width) end
+
+---Returns a copy of n with bits field to field + width - 1 replaced by the value v (width defaults to 1)
+---@param n number
+---@param v number
+---@param field number
+---@param width? number
+---@return integer
+function bit32.replace(n, v, field, width) end
+
+---Returns x rotated disp bits to the left (a negative disp rotates to the right)
+---@param x number
+---@param disp number
+---@return integer
+function bit32.lrotate(x, disp) end
+
+---Returns x shifted disp bits to the left (a negative disp shifts to the right)
+---@param x number
+---@param disp number
+---@return integer
+function bit32.lshift(x, disp) end
+
+---Returns x rotated disp bits to the right (a negative disp rotates to the left)
+---@param x number
+---@param disp number
+---@return integer
+function bit32.rrotate(x, disp) end
+
+---Returns x shifted disp bits to the right (logical shift: vacant bits are filled with zeros)
+---A negative disp shifts to the left
+---@param x number
+---@param disp number
+---@return integer
+function bit32.rshift(x, disp) end

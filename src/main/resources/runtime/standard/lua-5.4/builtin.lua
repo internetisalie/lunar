@@ -128,6 +128,12 @@ function pcall(f, ...) end
 ---@return boolean success, ...
 function xpcall(f, err, ...) end
 
+---Emits a warning with a message composed by concatenating all its arguments (which should be strings)
+---A single argument starting with "@" is a control message: "@off" stops and "@on" restarts the emission
+---@param msg string
+---@vararg string
+function warn(msg, ...) end
+
 ---Raises an error with message at given level
 ---@param message any
 ---@param level? integer

@@ -54,3 +54,7 @@ target. Reported here without a root cause.
   `inspection.LuaSuspiciousConcatenation=19` → `17` and `symbol.LuaSuspiciousConcatenation.nil=3`
   → `1`. Whether the member raises the rate is still not established: the runs without it are too
   few to compare.
+- **The flickering hits are false, and [[BUG-47]] is why** (found fixing [[BUG-46]]). The operand is typed
+  nil from `ide.interpreter = nil` (`src/main.lua:88`) because a member read through the `any`-typed
+  `ide.config` takes the root table's same-named member. A probe after the sweep printed nil in a run
+  that reported the hits and in one that did not, so this bug is whether the inspection observes it.

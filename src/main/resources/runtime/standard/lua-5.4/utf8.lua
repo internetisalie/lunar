@@ -25,3 +25,47 @@
 ---UTF8 LIBRARY
 ---@class utf8
 utf8 = {}
+
+---Receives zero or more integers, converts each one to its UTF-8 byte sequence and returns the concatenation
+---@vararg integer
+---@return string
+function utf8.char(...) end
+
+---The pattern "[\0-\x7F\xC2-\xFD][\x80-\xBF]*", which matches exactly one UTF-8 byte sequence
+---(assuming that the subject is a valid UTF-8 string)
+utf8.charpattern = "[\0-\x7F\xC2-\xFD][\x80-\xBF]*"
+
+---Returns an iterator such that `for p, c in utf8.codes(s) do body end` iterates over all characters of s,
+---with p the position (in bytes) and c the code point of each character; raises an error on an invalid byte sequence
+---If lax is true, the check that each code point is at most 10FFFF and is not a surrogate is skipped
+---@param s string
+---@param lax? boolean
+---@return function, string, integer
+function utf8.codes(s, lax) end
+
+---Returns the code points (as integers) of all characters in s that start between byte positions i and j
+---The default for i is 1 and for j is i; raises an error on an invalid byte sequence
+---@param s string
+---@param i? integer
+---@param j? integer
+---@param lax? boolean
+---@return integer ...
+function utf8.codepoint(s, i, j, lax) end
+
+---Returns the number of UTF-8 characters in s that start between positions i and j (defaults 1 and -1)
+---On an invalid byte sequence, returns nil plus the position of the first invalid byte
+---@param s string
+---@param i? integer
+---@param j? integer
+---@param lax? boolean
+---@return integer|nil, integer|nil
+function utf8.len(s, i, j, lax) end
+
+---Returns the position (in bytes) where the encoding of the n-th character of s (counting from position i) starts
+---A negative n gets characters before position i; the default for i is 1 when n is non-negative and #s + 1 otherwise
+---Returns nil if the specified character is neither in the subject nor right after its end
+---@param s string
+---@param n integer
+---@param i? integer
+---@return integer|nil
+function utf8.offset(s, n, i) end

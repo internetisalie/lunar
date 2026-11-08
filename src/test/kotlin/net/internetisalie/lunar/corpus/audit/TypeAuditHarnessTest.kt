@@ -116,7 +116,7 @@ class TypeAuditHarnessTest : IndexedBasePlatformTestCase() {
         val caller =
             myFixture.addFileToProject(
                 "caller.lua",
-                "pStr 'a'\npTable {}\nstring.upper('a')\nnope(1)\npTwo('a')\npStr('a')\n-- @param x number\n",
+                "pStr 'a'\npTable {}\nnoSuchHelper('a')\nnope(1)\npTwo('a')\npStr('a')\n-- @param x number\n",
             )
         val coverage = scan(caller).coverage
         assertEquals(6, coverage.calls)

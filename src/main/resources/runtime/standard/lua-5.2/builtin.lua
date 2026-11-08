@@ -222,12 +222,6 @@ function assert(v, message) end
 ---@return any
 function dofile(filename) end
 
----Gets the function environment (deprecated, kept for compatibility)
----@overload fun(): table
----@param f integer|function
----@return table
-function getfenv(f) end
-
 ---Gets the metatable of object
 ---Returns nil if no metatable or __metatable field
 ---@param object any
@@ -241,12 +235,6 @@ function getmetatable(object) end
 ---@vararg any
 ---@return table
 function module(name, ...) end
-
----Sets the function environment (deprecated, kept for compatibility)
----@param f integer|function
----@param table table
----@return function
-function setfenv(f, table) end
 
 ---Sets the metatable for a table
 ---Can be prevented by __metatable field

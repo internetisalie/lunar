@@ -5,6 +5,8 @@ requires=20
 unresolvedRequires=20
 inspection.LuaGlobalCreation=182
 inspection.LuaShadowingVariable=219
+# LuaSuspiciousConcatenation 3 / nil 3: two are false hits at src/editor/menu_project.lua:96 and :136
+# (BUG-47), reported in some sweeps and not others (BUG-541). Keep the high reading until BUG-47 is fixed.
 inspection.LuaSuspiciousConcatenation=3
 inspection.LuaTypeAssignability=7
 inspection.LuaUndeclaredVariable=1954

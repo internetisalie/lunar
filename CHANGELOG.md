@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The standard library is known on Lua 5.2, 5.3 and 5.4** (BUG-46). On those language levels the
+  `math`, `string`, `os`, `debug` and `coroutine` libraries, `utf8` on 5.3 and 5.4, and `bit32` on 5.2
+  offered no completion, documentation or navigation, and calls into them were not type-checked. Each
+  level now declares the functions its reference manual documents, with that version's signatures:
+  for example `math.tointeger` and `string.pack` from 5.3, and `coroutine.close` and the two-part
+  `math.randomseed` from 5.4. Functions a version removed, such as `string.gfind` on 5.2 or
+  `math.pow` on 5.3, are not offered there; `getfenv` and `setfenv` are gone from 5.2 and 5.3, and
+  `warn` is declared on 5.4.
 - **Wrong argument counts are reported for functions declared in your project's other files**
   (BUG-38). A call that passed too few or too many arguments to a global function or table member
   declared with `---@param` in another of your project's files was not reported. Lunar now reports
