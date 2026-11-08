@@ -39,6 +39,9 @@ object LuaRocksInstallCommand {
             if (!version.isNullOrBlank()) add(version)
         }
 
+    /** Builds `["init"]`, run in the project root to create its rock tree (BUG-55). */
+    fun buildInitArgs(): List<String> = listOf("init")
+
     /** Builds `["remove", "--tree", <root>, <name>]` (design §3.1). */
     fun buildRemoveArgs(
         treeRoot: Path,

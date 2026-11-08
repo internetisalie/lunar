@@ -7,10 +7,12 @@ import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.OnePixelSplitter
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SearchTextField
+import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBTabbedPane
+import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
 import net.internetisalie.lunar.lang.LuaIcons
@@ -30,11 +32,14 @@ import javax.swing.event.DocumentEvent
  * EDT-confined. All state flows through [LuaRocksBrowserModel]; this panel is its [Listener]. The
  * 300 ms search [Alarm] and both [PackageDetailPane]s are parented to this [Disposable] (BUG-379).
  */
-class LuaRocksBrowserPanel(
+class LuaRocksBrowserPanel internal constructor(
     private val project: Project,
+    private val treeInitializer: LuaRocksTreeInitializer,
 ) : JBPanel<LuaRocksBrowserPanel>(BorderLayout()),
     Disposable,
     LuaRocksBrowserModel.Listener {
+    constructor(project: Project) : this(project, LuaRocksTreeInitializer.forProject(project))
+
     private val model = LuaRocksBrowserModel(ProjectBackend(project), this)
     private val marketDetail = PackageDetailPane(project, model).also { Disposer.register(this, it) }
     private val installedDetail = PackageDetailPane(project, model).also { Disposer.register(this, it) }
@@ -43,12 +48,22 @@ class LuaRocksBrowserPanel(
     private val marketList = JBList(marketModel).apply { cellRenderer = MarketCellRenderer() }
     private val installedModel = DefaultListModel<InstalledRockRow>()
     private val installedList = JBList(installedModel)
-    private val treeStrip = JBLabel().apply { border = JBUI.Borders.empty(2, 6) }
+    private val treeLabel = JBLabel()
+    internal val initializeLink = ActionLink(PackageDetailPane.INITIALIZE_TREE) { initializeTree() }
+    private val treeStrip =
+        JBPanel<JBPanel<*>>(HorizontalLayout(JBUI.scale(8))).apply {
+            border = JBUI.Borders.empty(2, 6)
+            add(treeLabel)
+            add(initializeLink)
+        }
     private val tabs = JBTabbedPane()
     private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
     init {
-        detailPanes().forEach { it.onDependencyClicked = { name -> searchFor(name) } }
+        detailPanes().forEach {
+            it.onDependencyClicked = { name -> searchFor(name) }
+            it.onInitializeTree = { initializeTree() }
+        }
         tabs.addTab("Marketplace", buildMarketplaceTab())
         tabs.addTab("Installed", buildInstalledTab())
         tabs.addChangeListener { onTabChanged() }
@@ -155,9 +170,27 @@ class LuaRocksBrowserPanel(
         rows.forEach { installedModel.addElement(it) }
     }
 
+    internal fun treeStripText(): String = treeLabel.text
+
     private fun refreshTreeStrip() {
         val tree = LuaRocksInstallCommand.resolveTargetTree(project)
-        treeStrip.text = tree?.let { "Target tree: $it" } ?: "No project rock tree"
+        treeLabel.text = tree?.let { "Target tree: $it" } ?: "No project rock tree"
+        initializeLink.isVisible = tree == null
+    }
+
+    /** Runs `luarocks init` for the project, then re-reads the tree it created (BUG-55). */
+    private fun initializeTree() {
+        initializeLink.isEnabled = false
+        treeInitializer.initialize { success ->
+            initializeLink.isEnabled = true
+            refreshTreeStrip()
+            if (success) onTreeCreated()
+        }
+    }
+
+    private fun onTreeCreated() {
+        detailPanes().forEach { it.showEmpty() }
+        if (tabs.selectedIndex == INSTALLED_TAB) model.loadInstalled()
     }
 
     override fun dispose() {

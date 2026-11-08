@@ -6,6 +6,7 @@ import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.JBHtmlPane
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
@@ -45,6 +46,9 @@ class PackageDetailPane(
     /** Set by the panel: activating a dependency row searches that package (design §2.6). */
     var onDependencyClicked: (String) -> Unit = {}
 
+    /** Invoked by the No-tree card's link; the panel runs `luarocks init` (BUG-55). */
+    var onInitializeTree: () -> Unit = {}
+
     private val executor = LuaRocksInstallExecutor(project)
     private val cards = layout as CardLayout
 
@@ -64,8 +68,12 @@ class PackageDetailPane(
     private val emptyCard = JBPanelWithEmptyText().withEmptyText("No package selected")
     private val errorCard = ErrorCard(project)
     private val noTreeCard =
-        JBPanelWithEmptyText()
-            .withEmptyText("No project rock tree; initialize a LuaRocks project")
+        JBPanelWithEmptyText().apply {
+            emptyText.text = "No project rock tree"
+            emptyText.appendSecondaryText(INITIALIZE_TREE, SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+                onInitializeTree()
+            }
+        }
 
     private var currentRow: LuaRockRow? = null
     private var currentHomepage: String? = null
@@ -318,11 +326,12 @@ class PackageDetailPane(
 
     override fun dispose() = Unit
 
-    private companion object {
+    internal companion object {
         const val EMPTY = "empty"
         const val DETAIL = "detail"
         const val ERROR = "error"
         const val NO_TREE = "noTree"
+        const val INITIALIZE_TREE = "Initialize LuaRocks project"
     }
 }
 

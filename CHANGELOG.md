@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The packages browser can create the project's rock tree** (BUG-55). In a project with no
+  `lua_modules` or `.luarocks` tree, the *LuaRocks Packages* tool window said "No project rock tree"
+  and offered no way to install anything. It now offers *Initialize LuaRocks project*, which runs
+  `luarocks init` in the project root with the configured LuaRocks; the browser then installs into
+  the new tree.
 - **The standard library is known on Lua 5.5** (TARGET-07). A project targeting Standard 5.5 had no
   standard library at all: `print`, `io`, `table` and the other libraries offered no completion,
   documentation or navigation, and calls into them were not type-checked. Lua 5.5 now has its own

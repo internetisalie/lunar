@@ -22,7 +22,7 @@ data class InstallRequest(
 /**
  * Runs canonical `install` / `remove` on a background [Task.Backgroundable] against the project
  * rock tree (ROCKS-16-02, design §2.2). Builds args via [LuaRocksInstallCommand] and runs the CLI
- * with `--tree <root>` plus a working directory of the tree's parent.
+ * with `--tree <root>` plus a working directory of the tree's parent; `init` runs in the project root.
  *
  * Threading contract (review finding #64): the CLI capture runs on the task's **background** thread;
  * [onInstall]/[onRemove] pass a callback that this executor invokes **on the EDT** via `invokeLater`.
@@ -34,7 +34,7 @@ class LuaRocksInstallExecutor(
     /** Internal execution context (3-arg-cap object, contract §3): all state for one CLI job. */
     private data class Job(
         val title: String,
-        val treeRoot: Path,
+        val workDir: Path?,
         val args: List<String>,
         val successLabel: String,
         val onDone: (Boolean) -> Unit,
@@ -47,7 +47,7 @@ class LuaRocksInstallExecutor(
     ) {
         val title = request.version?.let { "Installing ${request.name} $it" } ?: "Installing ${request.name}"
         val args = LuaRocksInstallCommand.buildInstallArgs(request.treeRoot, request.name, request.version)
-        runInBackground(Job(title, request.treeRoot, args, "installed ${request.name}", onDone))
+        runInBackground(Job(title, request.treeRoot.parent, args, "installed ${request.name}", onDone))
     }
 
     /** Removes [name] from [treeRoot]; [onDone] is invoked on the EDT with the success flag. */
@@ -57,7 +57,19 @@ class LuaRocksInstallExecutor(
         onDone: (Boolean) -> Unit,
     ) {
         val args = LuaRocksInstallCommand.buildRemoveArgs(treeRoot, name)
-        runInBackground(Job("Removing $name", treeRoot, args, "removed $name", onDone))
+        runInBackground(Job("Removing $name", treeRoot.parent, args, "removed $name", onDone))
+    }
+
+    /**
+     * Runs `luarocks init` in [projectRoot], creating the project rock tree the browser installs into
+     * (BUG-55). [onDone] is invoked on the EDT with the success flag.
+     */
+    fun initialize(
+        projectRoot: Path,
+        onDone: (Boolean) -> Unit,
+    ) {
+        val args = LuaRocksInstallCommand.buildInitArgs()
+        runInBackground(Job("Initializing LuaRocks project", projectRoot, args, "initialized the project", onDone))
     }
 
     private fun runInBackground(job: Job) {
@@ -76,7 +88,7 @@ class LuaRocksInstallExecutor(
             (
                 LuaRocksEnvironment.command(project, job.args)
                     ?: return finish(false, NOT_CONFIGURED, job.onDone)
-            ).withWorkDirectory(job.treeRoot.parent?.toString())
+            ).withWorkDirectory(job.workDir?.toString())
         val output =
             LuaToolExecutionService.getInstance().capture(
                 command,
