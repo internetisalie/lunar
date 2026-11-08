@@ -55,7 +55,7 @@ provides `junit_ctrf.py fetch` and `diff`. This feature makes the skill use them
 
 Rows 3–18 and 23 are the `test_tcNN_*` methods of `tooling/ctrf/test_unit_gate.py` (run:
 `cd tooling/ctrf && python3 -m unittest test_unit_gate`), which drive a fake builder with canned log
-text. Each of those rows' mutants is a named entry in `mutants_unit_gate.py` on `proof/maint-50-gate`, and
+text. Each of those rows' mutants is a named entry in `tooling/ctrf/mutants_unit_gate.py`, and
 every entry goes red (DR-07). Rows 19–22 and 24 run by hand or in CI, as stated in the plan.
 
 | # | Req | Given | Then | Red under |

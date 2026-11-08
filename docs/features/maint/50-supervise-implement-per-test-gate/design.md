@@ -33,8 +33,8 @@ per phase: run and copy back under one lock, `diff`, judge the lines. The judge 
 
 ## 2. `tooling/ctrf/unit_gate.sh`
 
-Mode 755. Run from a checkout's root. Proven text: branch `proof/maint-50-gate` at `81fc4eda`, local
-only, with `test_unit_gate.py` and `mutants_unit_gate.py` (DR-07).
+Mode 755. Run from a checkout's root. Its tests are `test_unit_gate.py`, and
+`tooling/ctrf/mutants_unit_gate.py` proves them (DR-07).
 
 ### 2.1 Which copy runs
 Baseline item 2 freezes `unit_gate.sh`, `junit_ctrf.py` and `loom_store.py` from `origin/main` into

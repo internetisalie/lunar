@@ -41,3 +41,5 @@ Tests: `cd tooling/ctrf && python3 -m unittest test_perf_ctrf`.
 - **`wait <backend>`**: polls `./gradlew --status` on the builder until no daemon is `BUSY`; `20` at the limit.
 
 Tests: `cd tooling/ctrf && python3 -m unittest test_unit_gate`. `build-plugin.yml` runs them in `build` on both platforms.
+`python3 tooling/ctrf/mutants_unit_gate.py` checks those tests: it applies each named mutant to `unit_gate.sh`, runs them, and
+prints `bad 0` when every mutant turns them red. Run it after changing `unit_gate.sh` or its tests.
