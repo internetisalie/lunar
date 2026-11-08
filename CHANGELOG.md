@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The packages browser opens on luarocks.org's popular packages** (BUG-56). The Marketplace tab
+  with an empty search showed "Nothing to show". It now lists the week's most-downloaded rocks when
+  the tool window opens, and prompts for a search when that list cannot be fetched. Installing a
+  package from the popular list takes its latest version.
 - **The packages browser can create the project's rock tree** (BUG-55). In a project with no
   `lua_modules` or `.luarocks` tree, the *LuaRocks Packages* tool window said "No project rock tree"
   and offered no way to install anything. It now offers *Initialize LuaRocks project*, which runs

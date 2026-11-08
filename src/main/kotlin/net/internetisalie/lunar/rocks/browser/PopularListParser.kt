@@ -9,7 +9,8 @@ data class PopularEntry(
 /**
  * Pure parser for the luarocks.org `/stats/this-week` (and `/stats/dependencies`) ranking tables
  * (ROCKS-16-15, design §3.3a). Derives each package name from the row's `/modules/<author>/<name>`
- * link — the stable per-package key — preserving rank order and capturing the count column.
+ * link — the stable per-package key — preserving rank order and capturing the download count: the row's last numeric cell, since the
+ * first is the rank (BUG-56).
  *
  * Robust by contract: malformed/blank rows are skipped, never thrown; a page with no recognizable
  * rows yields an empty list so the caller falls back to the neutral prompt (never an error state).
@@ -40,7 +41,8 @@ object PopularListParser {
                 ?: return null
         val count =
             COUNT_CELL
-                .find(rowHtml)
+                .findAll(rowHtml)
+                .lastOrNull()
                 ?.groupValues
                 ?.get(1)
                 ?.trim()

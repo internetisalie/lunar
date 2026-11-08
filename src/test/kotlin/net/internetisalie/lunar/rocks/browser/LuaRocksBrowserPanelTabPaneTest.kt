@@ -60,7 +60,7 @@ class LuaRocksBrowserPanelTabPaneTest : BasePlatformTestCase() {
 
     /** Builds a browser panel, runs [assertions] over its tabs, and disposes it before returning. */
     private fun withBrowserTabs(assertions: (JBTabbedPane) -> Unit) {
-        val panel = LuaRocksBrowserPanel(project)
+        val panel = LuaRocksBrowserPanel(project, { it(false) }, SyncBrowserBackend(project))
         try {
             val tabs = UIUtil.findComponentOfType(panel, JBTabbedPane::class.java)
             assertions(requireNotNull(tabs) { "browser panel has no tabbed pane" })

@@ -75,7 +75,7 @@ class LuaRocksBrowserPanelInitTreeTest : BasePlatformTestCase() {
         initializer: LuaRocksTreeInitializer,
         assertions: (LuaRocksBrowserPanel) -> Unit,
     ) {
-        val panel = LuaRocksBrowserPanel(project, initializer)
+        val panel = LuaRocksBrowserPanel(project, initializer, SyncBrowserBackend(project))
         try {
             assertions(panel)
         } finally {

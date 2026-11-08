@@ -38,7 +38,7 @@ object LuaRocksMetadataService {
                 add("show")
                 add("--porcelain")
                 add(name)
-                if (version != null) add(version)
+                if (!version.isNullOrBlank()) add(version)
             }
         val command = LuaRocksEnvironment.command(project, subArgs) ?: return null
         val output =

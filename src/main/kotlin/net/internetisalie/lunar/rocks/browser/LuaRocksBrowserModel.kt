@@ -123,8 +123,8 @@ class LuaRocksBrowserModel(
         listener.onState(BrowserState.Results(marketplaceRows.toList()))
     }
 
-    private fun popularPackage(entry: PopularEntry): LuaRockPackage =
-        LuaRockPackage(entry.name, entry.count ?: "", "popular", "", "")
+    /** The stats page names no version, so it stays blank and install takes the latest (BUG-56). */
+    private fun popularPackage(entry: PopularEntry): LuaRockPackage = LuaRockPackage(entry.name, "", "popular", "", "")
 
     private fun fetchInstalled(
         treeRoot: Path,

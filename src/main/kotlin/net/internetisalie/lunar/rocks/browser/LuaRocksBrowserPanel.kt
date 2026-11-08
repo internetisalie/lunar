@@ -35,12 +35,13 @@ import javax.swing.event.DocumentEvent
 class LuaRocksBrowserPanel internal constructor(
     private val project: Project,
     private val treeInitializer: LuaRocksTreeInitializer,
+    backend: LuaRocksBrowserBackend,
 ) : JBPanel<LuaRocksBrowserPanel>(BorderLayout()),
     Disposable,
     LuaRocksBrowserModel.Listener {
-    constructor(project: Project) : this(project, LuaRocksTreeInitializer.forProject(project))
+    constructor(project: Project) : this(project, LuaRocksTreeInitializer.forProject(project), ProjectBackend(project))
 
-    private val model = LuaRocksBrowserModel(ProjectBackend(project), this)
+    private val model = LuaRocksBrowserModel(backend, this)
     private val marketDetail = PackageDetailPane(project, model).also { Disposer.register(this, it) }
     private val installedDetail = PackageDetailPane(project, model).also { Disposer.register(this, it) }
     private val searchField = SearchTextField(true)
@@ -71,6 +72,7 @@ class LuaRocksBrowserPanel internal constructor(
         add(tabs, BorderLayout.CENTER)
         wireSelectionListeners()
         refreshTreeStrip()
+        model.loadPopular()
     }
 
     // ── LuaRocksBrowserModel.Listener ──────────────────────────────────────
@@ -81,7 +83,7 @@ class LuaRocksBrowserPanel internal constructor(
             is BrowserState.Installed -> renderInstalled(state.rows)
             is BrowserState.Error -> detailPanes().forEach { it.showError(state.message) }
             is BrowserState.NoTree -> detailPanes().forEach { it.showNoTree() }
-            BrowserState.Idle -> marketModel.clear()
+            BrowserState.Idle -> showSearchPrompt()
             BrowserState.Loading -> Unit
         }
     }
@@ -160,7 +162,14 @@ class LuaRocksBrowserPanel internal constructor(
         model.runMarketplaceSearch(name)
     }
 
+    /** The zero-query state when no popular list could be loaded (BUG-56). */
+    private fun showSearchPrompt() {
+        marketModel.clear()
+        marketList.emptyText.text = SEARCH_PROMPT
+    }
+
     private fun renderResults(rows: List<LuaRockRow>) {
+        marketList.emptyText.text = NO_RESULTS
         marketModel.clear()
         rows.forEach { marketModel.addElement(it) }
     }
@@ -171,6 +180,10 @@ class LuaRocksBrowserPanel internal constructor(
     }
 
     internal fun treeStripText(): String = treeLabel.text
+
+    internal fun marketplaceNames(): List<String> = (0 until marketModel.size()).map { marketModel[it].pkg.name }
+
+    internal fun marketplaceEmptyText(): String = marketList.emptyText.text
 
     private fun refreshTreeStrip() {
         val tree = LuaRocksInstallCommand.resolveTargetTree(project)
@@ -209,7 +222,8 @@ class LuaRocksBrowserPanel internal constructor(
             (value as? LuaRockRow)?.let { row ->
                 val badge = if (row.installed) "  ✓" else ""
                 val update = if (row.hasUpdate) "  ⬆" else ""
-                text = "${row.pkg.name}  ${row.pkg.version}$badge$update"
+                text =
+                    listOf(row.pkg.name, row.pkg.version).filter { it.isNotBlank() }.joinToString("  ") + badge + update
                 icon = LuaIcons.ROCKET
             }
             return this
@@ -220,5 +234,7 @@ class LuaRocksBrowserPanel internal constructor(
         const val MARKETPLACE_TAB = 0
         const val INSTALLED_TAB = 1
         const val DEBOUNCE_MS = 300
+        const val SEARCH_PROMPT = "Search luarocks.org"
+        const val NO_RESULTS = "No packages found"
     }
 }

@@ -170,6 +170,13 @@ class LuaRocksBrowserModelTest {
 
         val results = listener.states.filterIsInstance<BrowserState.Results>().single()
         assertEquals(listOf("luafilesystem", "dkjson"), results.rows.map { it.pkg.name })
+        assertEquals(
+            "a popular row must not carry the count as its version",
+            listOf("", ""),
+            results.rows.map {
+                it.pkg.version
+            },
+        )
     }
 
     @Test
