@@ -100,6 +100,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-28 | A second `@class` tag in the same comment block gives its fields to the first class | todo | S | — | found planning MAINT-52 (DR-04 probe d1) | ✓ |
 | BUG-47 | A member read through an `any`-typed member takes the type of the root table's same-named member (`ide.config.default.interpreter` typed as `ide.interpreter`) | todo | S | — | found fixing BUG-46; the false nil behind BUG-541's zerobrane flicker | ✓ |
 | BUG-48 | A moved Lua environment's tools are reported as "Not executable" — name the move (manifest `location` mismatch) or the missing `#!` interpreter | todo | S | — | seen live after a container-built hererocks env was used on the host | ✓ |
+| SYNTAX-19 | Shebang file-type detection — extensionless `#!…lua` scripts open as Lua (own detector, not `hashBangs`) | todo | S | — | — | ✓ |
 | BUG-40 | A `table`-, class- or record-typed parameter declared in another file accepts a function (`pairs(function() end)`) | todo | S | — | found by MAINT-54's false-negative audit: 64 of 65 sites silent; the survey's mechanism A | ✓ |
 | BUG-41 | Arguments to a function or method of a `require`d project module are not type-checked | todo | S | — | found by MAINT-54's false-negative audit: lazynvim `Loader.ftdetect(true)` silent; a global table's member reports | ✓ |
 | BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
