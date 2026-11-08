@@ -102,6 +102,8 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-48 | A moved Lua environment's tools are reported as "Not executable" — name the move (manifest `location` mismatch) or the missing `#!` interpreter | todo | S | — | seen live after a container-built hererocks env was used on the host | ✓ |
 | BUG-50 | Opening a project runs every `.rockspec` with full stdlib access (`__index = _G`) and no project-trust check | todo | S | — | security: gate on TrustedProjects, empty env | ✓ |
 | BUG-52 | Every `.rockspec` that fails to evaluate (test fixtures too) logs a WARN with stack trace | todo | C | — | related BUG-50 | ✓ |
+| BUG-53 | Every historical rockspec of one rock (e.g. luacheck's `rockspecs/`, 47 files) is discovered as a separate project rock | todo | S | — | gap in ROCKS-09-01; discovery has several consumers | ✓ |
+| BUG-54 | Dependency tree flags each project rock and the `lua` constraint as missing, and its roots are indistinguishable | todo | S | — | — | ✓ |
 | SYNTAX-19 | Shebang file-type detection — extensionless `#!…lua` scripts open as Lua (own detector, not `hashBangs`) | todo | S | — | — | ✓ |
 | BUG-40 | A `table`-, class- or record-typed parameter declared in another file accepts a function (`pairs(function() end)`) | todo | S | — | found by MAINT-54's false-negative audit: 64 of 65 sites silent; the survey's mechanism A | ✓ |
 | BUG-41 | Arguments to a function or method of a `require`d project module are not type-checked | todo | S | — | found by MAINT-54's false-negative audit: lazynvim `Loader.ftdetect(true)` silent; a global table's member reports | ✓ |
