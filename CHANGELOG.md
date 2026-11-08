@@ -8,21 +8,21 @@
   `.luacheckrc`, `.busted`, StyLua configs, `.luarc.json`, `.lunar-env.json` and LuaCov reports each
   get their own icon in the Project view. The run configuration types, the LuaRocks project wizard,
   package and dependency rows, and the Publish, Build Workspace, Import LuaCov Report, Lua Console
-  and Run Test Matrix actions use these icons or the platform's own.
+  and Run Test Matrix actions use these icons or the platform's own ([a9d31397](https://github.com/internetisalie/lunar/commit/a9d31397)).
 - **The packages browser describes rocks you have not installed** (BUG-58). Selecting any rock that
   was not installed showed "Could not load metadata", with License and Homepage stuck on
   "(loading)". Lunar now downloads the rock's rockspec from the rocks server with the configured
   LuaRocks and shows its summary, description, license, homepage and dependencies. The rockspec is
-  read, never run. Popular packages you already have offer Uninstall rather than Install.
+  read, never run. Popular packages you already have offer Uninstall rather than Install ([afe9c550](https://github.com/internetisalie/lunar/commit/afe9c550)).
 - **The packages browser opens on luarocks.org's popular packages** (BUG-56). The Marketplace tab
   with an empty search showed "Nothing to show". It now lists the week's most-downloaded rocks when
   the tool window opens, and prompts for a search when that list cannot be fetched. Installing a
-  package from the popular list takes its latest version.
+  package from the popular list takes its latest version ([a02a97cb](https://github.com/internetisalie/lunar/commit/a02a97cb)).
 - **The packages browser can create the project's rock tree** (BUG-55). In a project with no
   `lua_modules` or `.luarocks` tree, the *LuaRocks Packages* tool window said "No project rock tree"
   and offered no way to install anything. It now offers *Initialize LuaRocks project*, which runs
   `luarocks init` in the project root with the configured LuaRocks; the browser then installs into
-  the new tree.
+  the new tree ([54d502fe](https://github.com/internetisalie/lunar/commit/54d502fe)).
 - **The standard library is known on Lua 5.5** (TARGET-07). A project targeting Standard 5.5 had no
   standard library at all: `print`, `io`, `table` and the other libraries offered no completion,
   documentation or navigation, and calls into them were not type-checked. Lua 5.5 now has its own
@@ -30,7 +30,7 @@
   are declared, `coroutine.close` may be called without an argument, `utf8.offset` returns where the
   character ends as well as where it starts, `collectgarbage` accepts `"param"`, and `_VERSION` is
   `"Lua 5.5"`. `file:setvbuf`, `package.preload` and `package.config` are declared under their manual
-  names.
+  names ([5e3b3a1e](https://github.com/internetisalie/lunar/commit/5e3b3a1e)).
 - **The standard library is known on Lua 5.2, 5.3 and 5.4** (BUG-46). On those language levels the
   `math`, `string`, `os`, `debug` and `coroutine` libraries, `utf8` on 5.3 and 5.4, and `bit32` on 5.2
   offered no completion, documentation or navigation, and calls into them were not type-checked. Each
@@ -38,20 +38,20 @@
   for example `math.tointeger` and `string.pack` from 5.3, and `coroutine.close` and the two-part
   `math.randomseed` from 5.4. Functions a version removed, such as `string.gfind` on 5.2 or
   `math.pow` on 5.3, are not offered there; `getfenv` and `setfenv` are gone from 5.2 and 5.3, and
-  `warn` is declared on 5.4.
+  `warn` is declared on 5.4 ([4cb5e7e1](https://github.com/internetisalie/lunar/commit/4cb5e7e1)).
 - **Wrong argument counts are reported for functions declared in your project's other files**
   (BUG-38). A call that passed too few or too many arguments to a global function or table member
   declared with `---@param` in another of your project's files was not reported. Lunar now reports
   *Too few arguments* and *Too many arguments* there, as it does for a function in the same file.
   Functions from the bundled standard library and definition libraries, and functions with an
-  `---@overload`, are not counted.
+  `---@overload`, are not counted ([53ec4288](https://github.com/internetisalie/lunar/commit/53ec4288)).
 - **Typing inside an unfinished function no longer logs an error** (BUG-36). While a `local function`
   or `function` was missing its `end`, resolving a name in it, opening the structure view or
   generating its documentation could write an internal error to the IDE log, which GoLand reported as
-  a plugin exception.
+  a plugin exception ([9d4bf784](https://github.com/internetisalie/lunar/commit/9d4bf784)).
 - **Go to Class lists a Lua class once** (BUG-35). A class whose name GoLand also knows as a Go type,
   such as `Box` or `Base`, was listed several times in Go to Class, and every entry opened the same
-  declaration.
+  declaration ([fb13889a](https://github.com/internetisalie/lunar/commit/fb13889a)).
 - **Generic functions infer their result from each call, and honour their constraints** (TYPE-14, BUG-34). A
   call to a function annotated with `@generic` — a global from another file, a method, or a parameter
   written `T|nil` or `fun(a: T)` — no longer raises *string is not assignable to T*. `T` is now
@@ -74,12 +74,12 @@
   called with `:` is typed per call like a free function (`b:echo("x")` is a `string`), and a
   function returning `Box<T>` returns a `Box<string>` when called with a string, and type inlay
   hints show it as `Box<string>`, with `string` for its `value`. A `Box<string>` can be assigned
-  where a `Box` is expected.
+  where a `Box` is expected ([e8fc4248](https://github.com/internetisalie/lunar/commit/e8fc4248), [26c1801c](https://github.com/internetisalie/lunar/commit/26c1801c), [451e72ef](https://github.com/internetisalie/lunar/commit/451e72ef), [3e957ef9](https://github.com/internetisalie/lunar/commit/3e957ef9), [792f2f7c](https://github.com/internetisalie/lunar/commit/792f2f7c), [4ea8a640](https://github.com/internetisalie/lunar/commit/4ea8a640)).
 - **A declared parameter is checked by one rule** (MAINT-51). An argument that may be `nil` on some
   paths, or an array or record with `nil` among its element or field types, is no longer reported
   against a parameter declared as a union. A `?` parameter accepts `nil` and its declared type the same
   way for a global function, a class method and an in-file function. A `nil` that is certain is
-  reported once, as *nil value is not assignable to* the declared type, whether that type is a union or not.
+  reported once, as *nil value is not assignable to* the declared type, whether that type is a union or not ([457212bf](https://github.com/internetisalie/lunar/commit/457212bf)).
 
 - **An unknown type is treated the same in a union and in a demand** (MAINT-52). A table is no longer
   reported for missing a field the class declares as `any`, and an argument to an in-file function's
