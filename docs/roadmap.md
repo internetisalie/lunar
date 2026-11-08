@@ -105,6 +105,8 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
 | BUG-44 | Assigning a wrong value to a class `@field` (`self.b = 'x'` for a `boolean`) is reported only as a hypothesis | todo | S | — | found by MAINT-54's false-negative audit | ✓ |
 | BUG-45 | Routes that report a wrong argument or return at most sites stay silent at a few (`os.exit("audit")` in luarocks `cmd.lua:219`) | todo | C | — | found by MAINT-54's false-negative audit; cause unknown, `addError` dedup is one candidate | ✓ |
+| MAINT-55 | LuaCATS type-checking conformance suite (seeded from LuaLS's MIT-licensed cases) | todo | M | — | per-rule agree/miss/false-report table | ✓ |
+| MAINT-56 | Representative type corpus and real-world rule frequencies (stratified corpus, bug-fix mining) | todo | M | — | weights MAINT-54's F and MAINT-55's rules | ✓ |
 | TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
