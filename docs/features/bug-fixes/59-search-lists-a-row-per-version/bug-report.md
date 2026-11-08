@@ -3,7 +3,7 @@ id: "BUG-59"
 title: "Packages browser search lists a row per version, and the version picker offers only the clicked one"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

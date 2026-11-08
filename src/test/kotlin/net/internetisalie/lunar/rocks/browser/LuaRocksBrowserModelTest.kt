@@ -115,22 +115,44 @@ class LuaRocksBrowserModelTest {
     }
 
     @Test
-    fun `an installed rock with a newer search version is flagged hasUpdate`() {
-        val results =
-            listOf(
-                pkg("inspect", "3.1.2-0", installed = true),
-                pkg("inspect", "3.1.3-0", installed = true),
-            )
-        val backend = FakeBackend(tree, { results })
-        val listener = RecordingListener()
-        val model = LuaRocksBrowserModel(backend, listener)
+    fun `an installed rock older than the newest search version is flagged hasUpdate`() {
+        val results = listOf(pkg("inspect", "3.1.2-0", installed = true), pkg("inspect", "3.1.3-0", installed = true))
+        val backend = FakeBackend(tree, { results }, { listOf(InstalledRockRow("inspect", "3.1.2-0")) })
+        val model = LuaRocksBrowserModel(backend, RecordingListener())
         model.runMarketplaceSearch("inspect")
         backend.drain()
 
-        val installedOlder = model.currentRows.first { it.pkg.version == "3.1.2-0" }
-        val installedLatest = model.currentRows.first { it.pkg.version == "3.1.3-0" }
-        assertTrue("older installed row should offer an update", installedOlder.hasUpdate)
-        assertTrue("latest installed row should NOT offer an update", !installedLatest.hasUpdate)
+        assertTrue("installed 3.1.2-0 should offer 3.1.3-0", model.currentRows.single().hasUpdate)
+    }
+
+    @Test
+    fun `an installed rock at the newest version is not flagged hasUpdate`() {
+        val results = listOf(pkg("inspect", "3.1.2-0", installed = true), pkg("inspect", "3.1.3-0", installed = true))
+        val backend = FakeBackend(tree, { results }, { listOf(InstalledRockRow("inspect", "3.1.3-0")) })
+        val model = LuaRocksBrowserModel(backend, RecordingListener())
+        model.runMarketplaceSearch("inspect")
+        backend.drain()
+
+        assertTrue(!model.currentRows.single().hasUpdate)
+    }
+
+    @Test
+    fun `search shows one row per package with every version newest first (BUG-59)`() {
+        val results =
+            listOf(
+                pkg("argparse", "0.6.0-1"),
+                pkg("argparse", "0.7.2-1"),
+                pkg("argparse", "0.10.0-1"),
+                pkg("argparse-temp", "1.0-1"),
+            )
+        val backend = FakeBackend(tree, { results })
+        val model = LuaRocksBrowserModel(backend, RecordingListener())
+        model.runMarketplaceSearch("argparse")
+        backend.drain()
+
+        assertEquals(listOf("argparse", "argparse-temp"), model.currentRows.map { it.pkg.name })
+        assertEquals("0.10.0-1", model.currentRows[0].pkg.version)
+        assertEquals(listOf("0.10.0-1", "0.7.2-1", "0.6.0-1"), model.currentRows[0].versions)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.rocks.browser
 
+import net.internetisalie.lunar.rocks.deps.LuaRocksVersion
 import java.nio.file.Path
 
 /**
@@ -76,34 +77,43 @@ class LuaRocksBrowserModel(
         treeRoot: Path?,
         id: Long,
     ) {
-        val outcome = runCatching { backend.search(query, treeRoot) }
+        val outcome = runCatching { buildRows(backend.search(query, treeRoot), installedVersions(treeRoot)) }
         backend.onEdt { publishSearch(outcome, id) }
     }
 
+    /** Installed version by name, so a row knows whether its newest version is an update. */
+    private fun installedVersions(treeRoot: Path?): Map<String, String> {
+        val tree = treeRoot ?: return emptyMap()
+        return runCatching { backend.listInstalled(tree) }.getOrDefault(emptyList()).associate { it.name to it.version }
+    }
+
     private fun publishSearch(
-        outcome: Result<List<LuaRockPackage>>,
+        outcome: Result<MutableList<LuaRockRow>>,
         id: Long,
     ) {
         if (id != requestId) return
         outcome
-            .onSuccess { packages ->
-                marketplaceRows = buildRows(packages)
+            .onSuccess { rows ->
+                marketplaceRows = rows
                 listener.onState(BrowserState.Results(marketplaceRows.toList()))
             }.onFailure { listener.onState(BrowserState.Error(messageOf(it))) }
     }
 
-    /** Builds rows, flagging `hasUpdate` on an installed rock whose latest search version is newer (§3.2). */
-    private fun buildRows(packages: List<LuaRockPackage>): MutableList<LuaRockRow> {
-        val latestByName =
-            packages
-                .groupBy { it.name }
-                .mapValues { (_, group) -> group.map { LuaRockRow(it, false) } }
-                .mapValues { (_, rows) -> LuaRocksUpdateDetector.latestOf(rows) }
-        return packages.mapTo(mutableListOf()) { pkg ->
-            val hasUpdate = pkg.isInstalled && LuaRocksUpdateDetector.hasUpdate(pkg.version, latestByName[pkg.name])
-            LuaRockRow(pkg, pkg.isInstalled, hasUpdate)
+    /**
+     * One row per package, in search order: the newest version, every version newest first, and
+     * `hasUpdate` when the installed version is older than the newest (§3.2, BUG-59).
+     */
+    private fun buildRows(
+        packages: List<LuaRockPackage>,
+        installed: Map<String, String>,
+    ): MutableList<LuaRockRow> =
+        packages.groupBy { it.name }.values.mapTo(mutableListOf()) { group ->
+            val newestFirst = group.sortedByDescending { LuaRocksVersion.parse(it.version) }
+            val newest = newestFirst.first()
+            val hasUpdate =
+                installed[newest.name]?.let { LuaRocksUpdateDetector.hasUpdate(it, newest.version) } ?: false
+            LuaRockRow(newest, newest.isInstalled, hasUpdate, newestFirst.map { it.version })
         }
-    }
 
     private fun fetchPopular(id: Long) {
         val entries = backend.fetchPopular()

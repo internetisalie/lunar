@@ -104,7 +104,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-53 | Every historical rockspec of one rock (e.g. luacheck's `rockspecs/`, 47 files) is discovered as a separate project rock | todo | S | — | gap in ROCKS-09-01; discovery has several consumers | ✓ |
 | BUG-54 | Dependency tree flags each project rock and the `lua` constraint as missing, and its roots are indistinguishable | todo | S | — | — | ✓ |
 | BUG-57 | Rockspec fields (likely `.luacheckrc`/`.busted` too) flagged by the global-creation inspection | todo | S | — | — | ✓ |
-| BUG-59 | Packages browser search lists a row per version; the version picker offers only the clicked one | todo | S | — | found in the first live use of ROCKS-16 | ✓ |
 | BUG-60 | External Libraries lists the stdlib twice (two providers, one root) and the search trees as bare, identical `5.4` folders regardless of target | todo | S | — | seen live 2026-11-08 | ✓ |
 | BUG-49 | Lua 5.2–5.4 `io`/`package` stubs declare names the manuals lack (`io.setvbuf`, `File:iseof`, `package.preloaded`); 5.4 `collectgarbage` options stale | todo | C | — | found by TARGET-07; fixed in 5.5 only | ✓ |
 | SYNTAX-19 | Shebang file-type detection — extensionless `#!…lua` scripts open as Lua (own detector, not `hashBangs`) | todo | S | — | — | ✓ |

@@ -139,7 +139,7 @@ class LuaRocksBrowserPanel internal constructor(
         marketList.addListSelectionListener {
             if (it.valueIsAdjusting) return@addListSelectionListener
             val row = marketList.selectedValue ?: return@addListSelectionListener marketDetail.showEmpty()
-            marketDetail.showPackage(row, listOf(row.pkg.version))
+            marketDetail.showPackage(row, row.versions.ifEmpty { listOf(row.pkg.version) })
         }
         installedList.addListSelectionListener {
             if (it.valueIsAdjusting) return@addListSelectionListener
