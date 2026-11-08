@@ -15,7 +15,7 @@ editor intelligence, static analysis, and remote debugging to Lua projects.
 - **Refactoring & intentions** — rename, introduce variable, label handling, and string conversions
 - **Debugging & execution** — breakpoints, stack frames, remote (DBGp/MobDebug) debugging, and a REPL
 - **Runtime targets** — select a platform/version target with target-aware standard-library
-  resolution, stub-backed for Standard Lua (5.1–5.4), Redis (5/6/7), and Valkey (7.2/8)
+  resolution, stub-backed for Standard Lua (5.1–5.5), LuaJIT (2.0/2.1), Redis (5/6/7), and Valkey (7.2/8)
 - **Toolchain management** — discover, provision, and resolve Lua interpreters and tools
 - **LuaRocks integration** — rockspec support, dependency management, package discovery, and multi-rock workspaces
 - **Redis & Valkey** — server-side Lua scripting (`redis.*` / `server.*`), sandbox inspections, and connection-aware typing

@@ -22,7 +22,7 @@ documentation, inspections, static analysis (Luacheck), formatting, and remote d
 - **[REFACT / INTENT]** Refactoring & intentions — rename, labels, introduce variable, string conversions
 - **[DEBUG / RUN]** Debugging & execution — breakpoints, stack frames, remote (DBGp/MobDebug) debugging, REPL
 - **[EDITOR]** Editor ergonomics — structural editing, breadcrumbs, and the long-tail editor extension points
-- **[TARGET]** Runtime environment configuration — select a platform/version target with target-aware standard-library resolution, stub-backed today for **Standard Lua (5.1–5.4), Redis (5/6/7), and Valkey (7.2/8)** (LuaJIT, OpenResty, Tarantool, and Pandoc are selectable targets but not yet backed by bundled library stubs)
+- **[TARGET]** Runtime environment configuration — select a platform/version target with target-aware standard-library resolution, stub-backed today for **Standard Lua (5.1–5.5), LuaJIT (2.0/2.1), Redis (5/6/7), and Valkey (7.2/8)** (OpenResty, Tarantool, and Pandoc are selectable targets but not yet backed by bundled library stubs)
 - **[TOOLING]** Unified Lua toolchain — model, discover, provision, and resolve interpreters and tools
 - **[TOOL]** Tool inventory — registry for external Lua binaries (`luarocks`, `luacheck`, `lua-format`, …)
 - **[ROCKS]** LuaRocks integration — rockspec support, dependency management, package discovery, multi-rock workspaces
@@ -115,7 +115,7 @@ src/main/kotlin/net/internetisalie/lunar/
 
 src/main/gen/                # Generated parser + lexer (committed by hand; never regenerated in CI)
 src/main/lua/                # Vendored debugger runtime (MobDebug)
-src/main/resources/runtime/  # Lua stdlib API stubs (5.1–5.4)
+src/main/resources/runtime/  # Lua stdlib API stubs (5.1–5.5, LuaJIT)
 src/integrationTest/kotlin/  # IDE-Starter integration tests
 src/test/kotlin/             # Unit tests
 docs/                        # Spec-driven feature documentation (see docs/features.md)

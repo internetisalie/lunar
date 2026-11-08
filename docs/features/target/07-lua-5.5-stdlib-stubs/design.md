@@ -54,7 +54,7 @@ No existing component resolves 5.5 stubs by any mechanism other than the target 
 `THIRD-PARTY.md` attribution edit. Zero production Kotlin.**
 
 ### Target State
-`runtime/standard/lua-5.5/` exists with 10 files mirroring 5.4 plus the §1-delta patches.
+`runtime/standard/lua-5.5/` exists with 10 files mirroring 5.4 plus the requirements §delta patches.
 `Target(STANDARD, "5.5")` → `getLibraryRootPath()` = `runtime/standard/lua-5.5` →
 `RuntimeLibraryProvider.getLibraryRoot` returns the new dir → `LuaLibraryProvider` injects it
 as the synthetic library → `LuaGlobalDeclarationIndex` indexes each `function <ns>.<name>` decl
@@ -75,7 +75,7 @@ components that consume them already exist and are enumerated in §1 (Prior Art)
 ### 2.1 Resource files to create (10)
 - **Path**: `src/main/resources/runtime/standard/lua-5.5/{builtin,coroutine,debug,io,math,os,package,string,table,utf8}.lua`
 - **Provenance**: byte-copy of the same-named file from `runtime/standard/lua-5.4/`, then apply
-  the §1 delta to `builtin.lua` and `table.lua` only.
+  the requirements §delta (§3.1 steps 2–4).
 - **Consumed by**: `RuntimeLibraryProvider.getLibraryFiles` / `LuaLibraryProvider` (§1). No
   registration entry is needed — resource dirs are discovered by path, not declared.
 
@@ -104,7 +104,9 @@ so the implementer makes no choices:
   3. In `lua-5.5/table.lua`: append the `table.create` declaration block (verbatim from
      requirements §TARGET-07-02) after the existing `table.move` block (currently the last
      declaration, `lua-5.4/table.lua:75-84`), before the trailing blank line.
-  4. Leave the other 8 files untouched.
+  4. Apply the rest of the requirements §delta table (found by DR-02): `math.lua`,
+     `coroutine.lua`, `utf8.lua`, `io.lua`, `package.lua` and `collectgarbage` in `builtin.lua`.
+     `debug.lua`, `os.lua` and `string.lua` stay byte-identical to 5.4.
 - **Rules / edge handling**: Do **not** search-and-replace `5.4` across the whole file set —
   the MIT header's copyright year range `1994–2025` and any doc prose must not change; only the
   two `builtin.lua` lines in step 2 are edited. `math.lua`, `os.lua`, etc. contain no `5.4`
@@ -170,8 +172,8 @@ stubs" entry (`THIRD-PARTY.md:116-126`):
 - **Usage line**: change `Lua 5.1-5.4` → `Lua 5.1-5.5`.
 - **Files line**: change the glob to
   `src/main/resources/runtime/standard/lua-5.{1,2,3,4,5}/*.lua` and the count from `39 files`
-  to `49 files` (39 + 10 new), keeping the same parenthetical file-name list plus a note that
-  5.5 adds `table.create`.
+  to `49 files` (39 + 10 new), keeping the same parenthetical file-name list (`utf8` now
+  covers 5.3-5.5).
 
 ## 8. Requirement Coverage
 

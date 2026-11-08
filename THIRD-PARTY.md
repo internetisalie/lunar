@@ -127,13 +127,13 @@ file's header.
 
 - **Copyright:** (c) 1994-2025 Lua.org, PUC-Rio
 - **License:** MIT (the Lua license)
-- **Usage:** Type-annotation stubs describing the Lua 5.1-5.4 standard-library
+- **Usage:** Type-annotation stubs describing the Lua 5.1-5.5 standard-library
   API surface, used for completion, navigation, and type inference. Each file
   carries the full MIT license header.
 - **Files:**
-  - `src/main/resources/runtime/standard/lua-5.{1,2,3,4}/*.lua`
-    (39 files: `builtin`, `coroutine`, `debug`, `io`, `math`, `os`, `package`,
-    `string`, `table`, plus `bit32` (5.2) and `utf8` (5.3, 5.4)).
+  - `src/main/resources/runtime/standard/lua-5.{1,2,3,4,5}/*.lua`
+    (49 files: `builtin`, `coroutine`, `debug`, `io`, `math`, `os`, `package`,
+    `string`, `table`, plus `bit32` (5.2) and `utf8` (5.3-5.5)).
   - `src/main/resources/runtime/luajit/luajit-2.{0,1}/{builtin,coroutine,debug,io,math,os,package,string,table}.lua` (copies of `lua-5.1`)
 - **Upstream:** https://www.lua.org/
 

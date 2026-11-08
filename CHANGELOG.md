@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The standard library is known on Lua 5.5** (TARGET-07). A project targeting Standard 5.5 had no
+  standard library at all: `print`, `io`, `table` and the other libraries offered no completion,
+  documentation or navigation, and calls into them were not type-checked. Lua 5.5 now has its own
+  declarations, following the 5.5 reference manual: `table.create`, `math.frexp` and `math.ldexp`
+  are declared, `coroutine.close` may be called without an argument, `utf8.offset` returns where the
+  character ends as well as where it starts, `collectgarbage` accepts `"param"`, and `_VERSION` is
+  `"Lua 5.5"`. `file:setvbuf`, `package.preload` and `package.config` are declared under their manual
+  names.
 - **The standard library is known on Lua 5.2, 5.3 and 5.4** (BUG-46). On those language levels the
   `math`, `string`, `os`, `debug` and `coroutine` libraries, `utf8` on 5.3 and 5.4, and `bit32` on 5.2
   offered no completion, documentation or navigation, and calls into them were not type-checked. Each

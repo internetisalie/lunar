@@ -75,7 +75,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TARGET-07 | Lua 5.5 standard-library stubs | planned | C | SYNTAX-09 *(Lua 5.5, done)* | — | ✓ |
 | ANALYSIS-07 | Value constraints over the CFG — the type engine and the control-flow graph are two flow analyses that never speak | planned | **L** | ANALYSIS-06 *(CFG, done)*, TYPE-08 *(flow-sensitive, done)* | — | — |
 | TARGET-09 | Addon auto-detection (turn TARGET-08 from capability into fix) | **planned** | S | TARGET-08 *(done)* | — | ✓ |
 | TARGET-10 | `wx`/`wxstc`/`wxaui` definition libraries — investigate, then catalog; includes the ZeroBrane corpus `wxlua` pin (TARGET-10-12, ex-MAINT-37 Phase 5) | **in_progress** | C | — | — | ✓ |
@@ -107,6 +106,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-55 | Packages browser shows "No project rock tree" with no way to create one (no init action for an existing project) | todo | S | — | ROCKS-16 TC-04 hint text also truncated | ✓ |
 | BUG-56 | Empty Marketplace query shows "Nothing to show" instead of popular packages or a search prompt | todo | C | — | measure the popular fetch first | ✓ |
 | BUG-57 | Rockspec fields (likely `.luacheckrc`/`.busted` too) flagged by the global-creation inspection | todo | S | — | — | ✓ |
+| BUG-49 | Lua 5.2–5.4 `io`/`package` stubs declare names the manuals lack (`io.setvbuf`, `File:iseof`, `package.preloaded`); 5.4 `collectgarbage` options stale | todo | C | — | found by TARGET-07; fixed in 5.5 only | ✓ |
 | SYNTAX-19 | Shebang file-type detection — extensionless `#!…lua` scripts open as Lua (own detector, not `hashBangs`) | todo | S | — | — | ✓ |
 | BUG-40 | A `table`-, class- or record-typed parameter declared in another file accepts a function (`pairs(function() end)`) | todo | S | — | found by MAINT-54's false-negative audit: 64 of 65 sites silent; the survey's mechanism A | ✓ |
 | BUG-41 | Arguments to a function or method of a `require`d project module are not type-checked | todo | S | — | found by MAINT-54's false-negative audit: lazynvim `Loader.ftdetect(true)` silent; a global table's member reports | ✓ |

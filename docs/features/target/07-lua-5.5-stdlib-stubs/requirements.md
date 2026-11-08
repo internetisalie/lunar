@@ -5,7 +5,7 @@ type: feature
 folders:
   - "[[features/target/requirements|requirements]]"
 title: "TARGET-07: Lua 5.5 Standard-Library Stubs"
-status: "planned"
+status: "done"
 priority: "low"
 ---
 
@@ -55,54 +55,50 @@ resolver already recognises the `lua-5.5` path segment, so the files are additiv
 | ID | Requirement | Priority | Description |
 |----|-------------|----------|-------------|
 | TARGET-07-01 | **Mirror the 5.4 stub set** | M | `runtime/standard/lua-5.5/` contains exactly the same 10 file names as `runtime/standard/lua-5.4/`, each a copy of its 5.4 counterpart except where the delta below applies. |
-| TARGET-07-02 | **`table.create` stub** | M | `lua-5.5/table.lua` declares `function table.create(nseq, nrec)` with LuaCATS annotations matching the sibling stub style. |
+| TARGET-07-02 | **5.5 stdlib delta** | M | The 5.5 files apply every stub-visible change in the 5.5 manual's §6 (table below): `table.create`, `math.frexp`/`math.ldexp`, optional `coroutine.close` argument, `utf8.offset`'s second result, `collectgarbage`'s 5.5 options; the declared names equal the manual's §6 name list. |
 | TARGET-07-03 | **`_VERSION` bumped** | M | `lua-5.5/builtin.lua` sets `_VERSION = "Lua 5.5"` (the 5.4 stub sets `"Lua 5.4"`). |
 | TARGET-07-04 | **Per-file license header** | M | Every new `.lua` file begins with the byte-identical MIT (Lua.org/PUC-Rio) header used by the 5.1–5.4 stubs. |
 | TARGET-07-05 | **Attribution registry updated** | M | `THIRD-PARTY.md`'s Lua stubs entry lists `lua-5.5` and the corrected file count. |
 | TARGET-07-06 | **5.5-target resolution** | M | With the project target `Standard 5.5`, a reference to `table.create` in an editor file resolves to the `lua-5.5/table.lua` declaration. |
 | TARGET-07-07 | **Version gating (negative)** | M | With the project target `Standard 5.4`, a reference to `table.create` resolves to **zero** declarations (the symbol is 5.5-only). |
-| TARGET-07-08 | **Baseline parity of unchanged symbols** | S | Every symbol present in a 5.4 stub file is present in the corresponding 5.5 file (no accidental drops during the copy). |
+| TARGET-07-08 | **Baseline parity of unchanged symbols** | S | Every name in the 5.4 manual's §6 that the 5.5 manual keeps is declared in the 5.5 set (no accidental drops during the copy). Stub names absent from both manuals (`io.setvbuf`, `File:iseof`, `package.preloaded`) are not carried over. |
 
 ## Detailed Specifications
 
 ### The Lua 5.4 → 5.5 stdlib delta (the crux)
 
 Lua 5.5 (released 2025-12-22) is a small delta over 5.4 for the *standard library* surface.
-Most 5.5 changes are language/runtime (the `global` keyword, read-only for-loop variables,
-compact arrays, incremental GC, external strings, C-API additions) and carry **no stub
-impact**. The genuine, stub-visible stdlib delta is:
+The delta below was taken by diffing §6 of the 5.4.7 and 5.5.0 reference manuals (function lists,
+signature headings and prose) and confirmed against the 5.5.0 C sources and interpreter.
 
-| Stub file | Disposition | Delta |
+| Stub file | Disposition | Delta (5.5 manual section) |
 |-----------|-------------|-------|
-| `builtin.lua` | **modified** | `_VERSION = "Lua 5.5"` (was `"Lua 5.4"`). No function added/removed. |
-| `table.lua` | **modified** | Add `function table.create(nseq, nrec)` (new in 5.5 — pre-sizes a table's array and hash parts). |
-| `coroutine.lua` | copied unchanged | — |
-| `debug.lua` | copied unchanged | — |
-| `io.lua` | copied unchanged | — |
-| `math.lua` | copied unchanged | — |
-| `os.lua` | copied unchanged | — |
-| `package.lua` | copied unchanged | — |
-| `string.lua` | copied unchanged | — |
-| `utf8.lua` | copied unchanged | — |
+| `builtin.lua` | **modified** | `_VERSION = "Lua 5.5"` (§6.2). `collectgarbage` (§6.2): options `"isrunning"`, `"incremental"`/`"generational"` (return the previous mode) and `"param"` (name + optional value), optional `opt`; `"setpause"`/`"setstepmul"` are gone. |
+| `table.lua` | **modified** | Add `table.create(nseq, nrec?)` (§6.7). |
+| `math.lua` | **modified** | Add `math.frexp(x)` and `math.ldexp(m, e)` (§6.8; absent from the 5.4 manual). |
+| `coroutine.lua` | **modified** | `coroutine.close([co])` — `co` defaults to the running coroutine (§6.3). |
+| `utf8.lua` | **modified** | `utf8.offset` returns the start **and end** byte positions (§6.6). |
+| `io.lua` | **modified** | Name correction: the copied `io.setvbuf(file, …)` is `file:setvbuf(mode, size?)` (§6.9); the undocumented `File:iseof` is dropped. |
+| `package.lua` | **modified** | Name correction: `package.preloaded` is `package.preload`; `package.config` is added (§6.4). |
+| `debug.lua`, `os.lua`, `string.lua` | copied unchanged | prose-only changes in the manual. |
 
 **Non-deltas (explicitly called out to prevent mistakes):**
 - `table.move` is **NOT** a 5.5 addition — it exists since Lua 5.3 and is already present in
-  the 5.4 stub (`lua-5.4/table.lua:84`). The roadmap brief naming it as a 5.5 addition is
-  imprecise; do not re-add it.
+  the 5.4 stub. Do not re-add it.
 - `global` is a **keyword**, not a stdlib symbol. It has no stub file and is owned by
-  SYNTAX-09. Do not add a `global.lua` to the standard dir (that name is the Redis/Valkey
-  ambient-globals file, unrelated).
-- No 5.4 stdlib symbol was **removed** in 5.5. The copy is strictly additive.
+  SYNTAX-09. Do not add a `global.lua` to the standard dir.
+- No 5.4 manual function was **removed** in 5.5.
+- `pairs` may return four values and `file:write` reports failure values in 5.5; the stubs keep
+  their 5.4 return types (`pairs` models only the iterator; `file:write` returns `File` so that
+  chained writes are not flagged).
 
 ### TARGET-07-02: `table.create` stub
 
-Append to `lua-5.5/table.lua`, after `table.move`, in the exact style of the sibling
-declarations (leading `---` doc lines, `---@param`, `---@return`, empty-body `function`):
+The engine checks a call against the primary signature only, so there is no `@overload`:
 
 ```lua
----Creates a new table pre-sized for nseq sequence elements and nrec other entries
----Introduced in Lua 5.5; avoids rehashing when the final size is known in advance
----@overload fun(nseq: integer): table
+---Creates a new empty table, preallocating memory for nseq sequence elements and nrec other entries
+---nrec defaults to zero; both are hints that avoid rehashing when the final size is known in advance
 ---@param nseq integer
 ---@param nrec? integer
 ---@return table
@@ -138,18 +134,18 @@ for the unchanged files; the two modified files retain it unchanged.
 | 2 | TARGET-07-07 | Project target `Target(STANDARD, "5.4")`; editor file `test.lua` = `table.create(4)` | Resolve the `create` `LuaNameRef` via `multiResolve(false)` | `.size == 0` (5.5-only symbol not visible at 5.4). |
 | 3 | TARGET-07-06 | Project target `Target(STANDARD, "5.5")`; editor file `test.lua` = `table.insert({}, 1)` | Resolve `insert` | `.size >= 1` (5.4-inherited symbol still resolves at 5.5, proving baseline parity — TARGET-07-08). |
 | 4 | TARGET-07-01 | Bundled resources | `RuntimeLibraryProvider(project).getLibraryFiles(Target(STANDARD, "5.5"))` | Returns 10 `.lua` files whose name set equals the `lua-5.4` name set. |
-| 5 | TARGET-07-02 / -04 | The `lua-5.5/table.lua` resource | Read its bytes | Content contains `function table.create(` and the MIT header line `Copyright © 1994–2025 Lua.org, PUC-Rio.`. |
+| 5 | TARGET-07-02 / -04 | Project target 5.5; every `lua-5.5/*.lua` resource | Resolve `table.create`, `math.frexp`, `math.ldexp`, `coroutine.close`, `utf8.offset`; resolve `io.setvbuf`; read each file's licence block | Each 5.5 function has its signature (`coroutine.close` takes `co?`); `io.setvbuf` does not resolve; every header contains `Copyright © 1994–2025 Lua.org, PUC-Rio.` and equals its 5.4 counterpart's. |
 | 6 | TARGET-07-03 | The `lua-5.5/builtin.lua` resource | Read its bytes | Content contains `_VERSION = "Lua 5.5"` and does **not** contain `_VERSION = "Lua 5.4"`. |
 
 ## Acceptance Criteria
-- [ ] TARGET-07-01: `lua-5.5/` name set == `lua-5.4/` name set (10 files). (TC 4)
-- [ ] TARGET-07-02: `table.create` declared in `lua-5.5/table.lua`. (TC 5)
-- [ ] TARGET-07-03: `_VERSION = "Lua 5.5"` in `lua-5.5/builtin.lua`. (TC 6)
-- [ ] TARGET-07-04: MIT header present on every new file. (TC 5)
-- [ ] TARGET-07-05: `THIRD-PARTY.md` lists `lua-5.5` with corrected count.
-- [ ] TARGET-07-06: `table.create` resolves under a 5.5 target. (TC 1, 3)
-- [ ] TARGET-07-07: `table.create` does not resolve under a 5.4 target. (TC 2)
-- [ ] TARGET-07-08: no 5.4 symbol dropped in the 5.5 copy. (TC 3, 4)
+- [x] TARGET-07-01: `lua-5.5/` name set == `lua-5.4/` name set (10 files). (TC 4)
+- [x] TARGET-07-02: the 5.5 delta is applied and the names match the manual. (TC 5)
+- [x] TARGET-07-03: `_VERSION = "Lua 5.5"` in `lua-5.5/builtin.lua`. (TC 6)
+- [x] TARGET-07-04: MIT header present on every new file. (TC 5)
+- [x] TARGET-07-05: `THIRD-PARTY.md` lists `lua-5.5` with corrected count.
+- [x] TARGET-07-06: `table.create` resolves under a 5.5 target. (TC 1, 3)
+- [x] TARGET-07-07: `table.create` does not resolve under a 5.4 target. (TC 2)
+- [x] TARGET-07-08: no 5.4 manual name dropped in the 5.5 copy (script check against both manuals). (TC 3, 4)
 
 ## Non-Functional Requirements
 - **Threading**: tests drive resolution on the EDT under a read action and call
