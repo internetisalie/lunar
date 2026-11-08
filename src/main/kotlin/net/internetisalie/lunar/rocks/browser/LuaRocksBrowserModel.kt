@@ -107,11 +107,19 @@ class LuaRocksBrowserModel(
 
     private fun fetchPopular(id: Long) {
         val entries = backend.fetchPopular()
-        backend.onEdt { publishPopular(entries, id) }
+        val installed = installedNames()
+        backend.onEdt { publishPopular(entries, installed, id) }
+    }
+
+    /** Names in the project tree, so a popular row offers Uninstall for a rock already there (BUG-58). */
+    private fun installedNames(): Set<String> {
+        val tree = backend.resolveTree() ?: return emptySet()
+        return runCatching { backend.listInstalled(tree) }.getOrDefault(emptyList()).mapTo(mutableSetOf()) { it.name }
     }
 
     private fun publishPopular(
         entries: List<PopularEntry>,
+        installed: Set<String>,
         id: Long,
     ) {
         if (id != requestId) return
@@ -119,7 +127,8 @@ class LuaRocksBrowserModel(
             listener.onState(BrowserState.Idle)
             return
         }
-        marketplaceRows = entries.mapTo(mutableListOf()) { LuaRockRow(popularPackage(it), installed = false) }
+        marketplaceRows =
+            entries.mapTo(mutableListOf()) { LuaRockRow(popularPackage(it), installed = it.name in installed) }
         listener.onState(BrowserState.Results(marketplaceRows.toList()))
     }
 

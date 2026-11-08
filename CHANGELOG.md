@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The packages browser describes rocks you have not installed** (BUG-58). Selecting any rock that
+  was not installed showed "Could not load metadata", with License and Homepage stuck on
+  "(loading)". Lunar now downloads the rock's rockspec from the rocks server with the configured
+  LuaRocks and shows its summary, description, license, homepage and dependencies. The rockspec is
+  read, never run. Popular packages you already have offer Uninstall rather than Install.
 - **The packages browser opens on luarocks.org's popular packages** (BUG-56). The Marketplace tab
   with an empty search showed "Nothing to show". It now lists the week's most-downloaded rocks when
   the tool window opens, and prompts for a search when that list cannot be fetched. Installing a

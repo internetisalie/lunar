@@ -195,7 +195,7 @@ class PackageDetailPane(
         token: Long,
     ) {
         ApplicationManager.getApplication().executeOnPooledThread {
-            val meta = LuaRocksMetadataService.show(row.pkg.name, row.pkg.version, project)
+            val meta = LuaRocksMetadataService.describe(row.pkg.name, row.pkg.version, project)
             ApplicationManager.getApplication().invokeLater { applyMetadata(meta, token) }
         }
     }
@@ -207,10 +207,12 @@ class PackageDetailPane(
         if (token != selectionToken) return
         if (meta == null) {
             description.text = UIUtil.toHtml("Could not load metadata.")
+            licenseLabel.text = UNKNOWN
+            homepageButton.text = UNKNOWN
             return
         }
         description.text = describe(meta)
-        licenseLabel.text = meta.license ?: "(unknown)"
+        licenseLabel.text = meta.license ?: UNKNOWN
         currentHomepage = meta.homepage
         homepageButton.text = meta.homepage ?: "(none)"
         depsModel.clear()
@@ -331,6 +333,7 @@ class PackageDetailPane(
         const val DETAIL = "detail"
         const val ERROR = "error"
         const val NO_TREE = "noTree"
+        const val UNKNOWN = "(unknown)"
         const val INITIALIZE_TREE = "Initialize LuaRocks project"
     }
 }

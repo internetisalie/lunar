@@ -180,6 +180,20 @@ class LuaRocksBrowserModelTest {
     }
 
     @Test
+    fun `a popular rock already in the tree is shown as installed`() {
+        val backend =
+            FakeBackend(tree, { emptyList() }, { listOf(InstalledRockRow("dkjson", "2.8-1")) }).apply {
+                popular = listOf(PopularEntry("luafilesystem", "83,158"), PopularEntry("dkjson", "48,256"))
+            }
+        val listener = RecordingListener()
+        LuaRocksBrowserModel(backend, listener).loadPopular()
+        backend.drain()
+
+        val results = listener.states.filterIsInstance<BrowserState.Results>().single()
+        assertEquals(listOf(false, true), results.rows.map { it.installed })
+    }
+
+    @Test
     fun `loadInstalled with no tree posts NoTree`() {
         val backend = FakeBackend(treeRoot = null, searchResult = { emptyList() })
         val listener = RecordingListener()

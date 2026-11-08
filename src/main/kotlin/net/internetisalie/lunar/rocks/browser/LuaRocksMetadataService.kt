@@ -1,7 +1,9 @@
 package net.internetisalie.lunar.rocks.browser
 
+import com.intellij.openapi.application.runReadActionBlocking
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
 import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
 import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
@@ -46,12 +48,62 @@ object LuaRocksMetadataService {
                 .getInstance()
                 .capture(command, LuaExecTimeout.COMMAND)
         if (output.exitCode != 0) {
-            log.warn(
+            log.info(
                 "luarocks show --porcelain $name ${version ?: ""} exited ${output.exitCode}: ${output.stderr.trim()}",
             )
             return null
         }
         return parseShowOutput(output.stdout, name)
+    }
+
+    /**
+     * Metadata for the detail pane: an installed rock's from `luarocks show`, otherwise the rocks
+     * server's rockspec, read without running it (BUG-58). Null when neither answers.
+     */
+    fun describe(
+        name: String,
+        version: String?,
+        project: Project,
+    ): LuaRockMetadata? = show(name, version, project) ?: fromServer(name, version, project)
+
+    /** Builds `["download", "--rockspec", <name>, <version?>]`; a blank version means the latest. */
+    internal fun rockspecDownloadArgs(
+        name: String,
+        version: String?,
+    ): List<String> =
+        buildList {
+            add("download")
+            add("--rockspec")
+            add(name)
+            if (!version.isNullOrBlank()) add(version)
+        }
+
+    private fun fromServer(
+        name: String,
+        version: String?,
+        project: Project,
+    ): LuaRockMetadata? {
+        val text = downloadRockspec(project, rockspecDownloadArgs(name, version)) ?: return null
+        return runReadActionBlocking { RockspecMetadataReader.read(project, text) }
+    }
+
+    /** Runs `luarocks download --rockspec` in a fresh temporary directory and returns the file's text. */
+    private fun downloadRockspec(
+        project: Project,
+        subArgs: List<String>,
+    ): String? {
+        val dir = FileUtil.createTempDirectory("lunar-rockspec", null, true)
+        try {
+            val command = LuaRocksEnvironment.command(project, subArgs)?.withWorkDirectory(dir) ?: return null
+            val output = LuaToolExecutionService.getInstance().capture(command, LuaExecTimeout.NETWORK)
+            if (output.exitCode != 0) {
+                log.info("luarocks ${subArgs.joinToString(" ")} exited ${output.exitCode}: ${output.stderr.trim()}")
+                return null
+            }
+            return dir.listFiles { file -> file.name.endsWith(".rockspec") }?.firstOrNull()?.readText()
+        } finally {
+            FileUtil.delete(dir)
+        }
     }
 
     // ── Parsing helper ───────────────────────────────────────────────────────
