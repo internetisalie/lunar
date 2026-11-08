@@ -245,7 +245,13 @@ class LuaTypesSnapshot(
             type.returns.firstOrNull()?.let { graphTypeToLuaType(it.write, visited) } ?: LuaPrimitiveType.VOID
         val typeParameters = LinkedHashMap<String, LuaGenericType>()
         (params.map { it.type } + returnType).forEach { collectGenerics(it, typeParameters) }
-        return LuaFunctionType(params, returnType, typeParameters.values.toList(), implicitSelf = type.implicitSelf)
+        return LuaFunctionType(
+            params,
+            returnType,
+            typeParameters.values.toList(),
+            implicitSelf = type.implicitSelf,
+            countsArguments = type.countsArguments,
+        )
     }
 
     /**

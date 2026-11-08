@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Wrong argument counts are reported for functions declared in your project's other files**
+  (BUG-38). A call that passed too few or too many arguments to a global function or table member
+  declared with `---@param` in another of your project's files was not reported. Lunar now reports
+  *Too few arguments* and *Too many arguments* there, as it does for a function in the same file.
+  Functions from the bundled standard library and definition libraries, and functions with an
+  `---@overload`, are not counted.
 - **Typing inside an unfinished function no longer logs an error** (BUG-36). While a `local function`
   or `function` was missing its `end`, resolving a name in it, opening the structure view or
   generating its documentation could write an internal error to the IDE log, which GoLand reported as

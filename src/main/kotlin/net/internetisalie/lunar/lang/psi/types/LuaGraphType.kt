@@ -61,6 +61,8 @@ sealed class LuaGraphType {
          * and `function() end` all have one too, and each of those does mean zero.
          */
         val anySignature: kotlin.Boolean = false,
+        /** See [LuaFunctionType.countsArguments]; carried across files, read by no type check (BUG-38). */
+        val countsArguments: kotlin.Boolean = false,
     ) : LuaGraphType() {
         data class Parameter(
             val node: VariableNode,
@@ -298,7 +300,14 @@ sealed class LuaGraphType {
                         }
                     val returnNode = memberNodeFor(type.returnType, graph, visited)
 
-                    val finalFunc = Function(params, listOf(returnNode), type.declaredSignature, type.implicitSelf)
+                    val finalFunc =
+                        Function(
+                            params,
+                            listOf(returnNode),
+                            type.declaredSignature,
+                            type.implicitSelf,
+                            countsArguments = type.countsArguments,
+                        )
                     visited[type] = finalFunc
                     finalFunc
                 }

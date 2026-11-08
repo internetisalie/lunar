@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.lang.psi.types
 
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiElement
@@ -25,6 +26,9 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
     private val instantiation = LuaGenericInstantiation(graph, signatureCopier)
     private val elementNodes: MutableMap<PsiElement, List<TypeNode>> = mutableMapOf()
     private var fileReturnType: LuaGraphType = LuaGraphType.Any
+
+    /** Set per file by [visitFile]; see [countsArguments]. */
+    private var inProjectSource: Boolean = false
     private val rootReturnNodes: MutableList<VariableNode> = mutableListOf()
 
     /** Current lexical scope. Updated as we enter/leave blocks and functions. */
@@ -386,6 +390,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             repeat(8) { rootReturnNodes.add(graph.variable(file)) }
         }
 
+        inProjectSource = isProjectSource(file)
         declareFileGlobals(file)
         super.visitFile(file)
 
@@ -950,6 +955,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
             val declared = declaredFunctionOf(calleeNodeRef, nameAndArgs.methodExpr?.nameRef?.text)
             val argNodes = argExprs.map { firstNode(unwrapExpression(it)) }
             declared?.let {
+                reportDeclaredArity(it, o, argExprs)
                 applyDeclaredSignature(it, LuaGenericInstantiation.DeclaredCall(o, argNodes, argExprs, callResultNodes))
             }
             return
@@ -1047,6 +1053,43 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val written = (receiver as? ValueNode)?.write
         val arms = if (written is LuaGraphType.Union) written.types else setOfNotNull(written)
         return arms.mapNotNull { (it as? LuaGraphType.Table)?.className }
+    }
+
+    /**
+     * BUG-38: a declaration-typed callee raises no call demand, so `checkFunctionCompatibility` never
+     * counts its arguments. A callee whose signature counts ([LuaFunctionType.countsArguments]) is
+     * counted here, as the contract [LuaGraphType.Function.declaredSignature] makes it in its own file.
+     */
+    private fun reportDeclaredArity(
+        declared: LuaGraphType.Function,
+        call: LuaFuncCall,
+        argExprs: List<PsiElement>,
+    ) {
+        if (!declared.countsArguments) return
+        val callDemand =
+            LuaGraphType.Function(
+                params = argExprs.map { LuaGraphType.Function.Parameter(graph.variable(it)) },
+                returns = emptyList(),
+                implicitSelf = call.nameAndArgsList.firstOrNull()?.methodExpr != null,
+            )
+        graph.reportArity(declared.copy(declaredSignature = true), callDemand, call)
+    }
+
+    /**
+     * Whether calls from other files count arguments against this function (BUG-38): it has
+     * `---@param` tags, no `@overload` (whose signatures the engine does not model), and is declared
+     * in the project's own source rather than a bundled stub or a definition library.
+     */
+    private fun countsArguments(
+        hasParamTags: Boolean,
+        cats: List<LuaCatsComment>,
+    ): Boolean = hasParamTags && cats.none { it.overloadTagList.isNotEmpty() } && inProjectSource
+
+    /** Whether the visited file is the project's own source, not a library root (BUG-38). */
+    private fun isProjectSource(file: PsiFile): Boolean {
+        val virtualFile = file.originalFile.virtualFile ?: return false
+        val index = ProjectFileIndex.getInstance(file.project)
+        return index.isInContent(virtualFile) && !index.isInLibrary(virtualFile)
     }
 
     /**
@@ -1544,7 +1587,14 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
 
             // The bare parameter list declares names, not requirements — Lua fills missing arguments
             // with nil. Only a `---@param` tag makes this signature's arity a contract (BUG-419).
-            val funcType = LuaGraphType.Function(finalParams, returnNodes, catsParams.isNotEmpty(), selfBinding != null)
+            val funcType =
+                LuaGraphType.Function(
+                    finalParams,
+                    returnNodes,
+                    catsParams.isNotEmpty(),
+                    selfBinding != null,
+                    countsArguments = countsArguments(catsParams.isNotEmpty(), allCats),
+                )
             if (funcNode != null) {
                 graph.addEdge(graph.value(element, funcType), funcNode)
             }

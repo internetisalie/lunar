@@ -163,6 +163,13 @@ class LuaFunctionType(
      * a value with a demand by this flag (BUG-8).
      */
     val implicitSelf: Boolean = false,
+    /**
+     * True when a call from another file counts its arguments against [params]: a `---@param`
+     * signature with no `@overload`, declared in the project's own source (BUG-38). Bundled stubs and
+     * definition libraries are not precise enough to count against. Read by that count only, unlike
+     * [declaredSignature], which also selects the parameter demand.
+     */
+    val countsArguments: Boolean = false,
 ) : LuaType {
     override val name: String =
         run {

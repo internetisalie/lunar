@@ -827,6 +827,27 @@ class LuaTypeGraph {
         useElement: PsiElement,
         visited: MutableSet<Pair<LuaGraphType, LuaGraphType>>,
     ) {
+        reportArity(value, use, useElement)
+
+        for (i in 0 until minOf(value.returns.size, use.returns.size)) {
+            addEdge(value.returns[i], use.returns[i])
+        }
+
+        for ((valueParam, useParam) in alignedParams(value, use)) {
+            addEdge(useParam.node, valueParam.node)
+        }
+    }
+
+    /**
+     * Reports a call [use] that passes fewer or more arguments than [value] accepts. Called for every
+     * function-to-function check, and directly for a callee typed from another file's declaration,
+     * which raises no call demand (BUG-38).
+     */
+    internal fun reportArity(
+        value: LuaGraphType.Function,
+        use: LuaGraphType.Function,
+        useElement: PsiElement,
+    ) {
         val minParams = minArity(value, use)
         val maxParams = maxArity(value, use)
         val provided = use.params.size
@@ -854,14 +875,6 @@ class LuaTypeGraph {
                     tier,
                 ),
             )
-        }
-
-        for (i in 0 until minOf(value.returns.size, use.returns.size)) {
-            addEdge(value.returns[i], use.returns[i])
-        }
-
-        for ((valueParam, useParam) in alignedParams(value, use)) {
-            addEdge(useParam.node, valueParam.node)
         }
     }
 

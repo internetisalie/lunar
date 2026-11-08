@@ -87,7 +87,8 @@ internal class LuaGenericInstantiation(
     /**
      * The declared-path application (design §5.8): a full copy sharing no node with the seed, bound
      * from the arguments only where positions are unambiguous, with its returns flowing into the call's
-     * result nodes. No call demand and no arity check reach the seed (BUG-397, BUG-425).
+     * result nodes. No call demand reaches the seed (BUG-397, BUG-425); the visitor counts the
+     * arguments itself where the signature counts (BUG-38).
      */
     fun applyDeclared(
         declared: LuaGraphType.Function,
