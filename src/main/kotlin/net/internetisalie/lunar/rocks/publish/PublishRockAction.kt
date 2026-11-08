@@ -1,5 +1,6 @@
 package net.internetisalie.lunar.rocks.publish
 
+import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -29,7 +30,7 @@ class PublishRockAction :
     DumbAwareAction(
         "Publish Rock to LuaRocks…",
         "Upload this rockspec to LuaRocks",
-        LuaIcons.ROCKET,
+        AllIcons.Actions.Upload,
     ) {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
@@ -67,7 +68,7 @@ class PublishRockAction :
                     project,
                     prompt,
                     "Publish Rock to LuaRocks",
-                    LuaIcons.ROCKET,
+                    LuaIcons.ROCKSPEC,
                 )?.takeIf { it.isNotBlank() } ?: return null
         LuaRocksApiKeyStore.setApiKey(server, entered)
         return entered

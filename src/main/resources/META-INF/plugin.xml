@@ -69,14 +69,14 @@
             id="LuaRocks"
             anchor="right"
             secondary="true"
-            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
+            icon="net.internetisalie.lunar.lang.LuaIcons.TOOLWINDOW_DEPENDENCIES"
             factoryClass="net.internetisalie.lunar.rocks.ui.LuaRocksToolWindowFactory"/>
 
     <!-- LuaRocks Package Browser (ROCKS-02; redesigned ROCKS-16) -->
     <toolWindow
             id="LuaRocks Packages"
             anchor="bottom"
-            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
+            icon="net.internetisalie.lunar.lang.LuaIcons.TOOLWINDOW_PACKAGES"
             factoryClass="net.internetisalie.lunar.rocks.browser.LuaRocksBrowserToolWindowFactory"/>
 
     <!-- Redis Functions panel (REDIS-05 AC-7/AC-8) -->
@@ -84,7 +84,7 @@
             id="Redis Functions"
             anchor="bottom"
             secondary="true"
-            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET"
+            icon="net.internetisalie.lunar.lang.LuaIcons.TOOLWINDOW_REDIS_FUNCTIONS"
             factoryClass="net.internetisalie.lunar.redis.functions.ui.LuaRedisFunctionsToolWindowFactory"/>
 
 
@@ -98,6 +98,10 @@
             language="Lua"
             extensions="lua;rockspec"
             fileNames=".luacheckrc;.busted"/>
+    <!-- Name-only icons for Lua tooling files; first, so the Lua file type's icon does not win -->
+    <fileIconProvider
+            order="first"
+            implementation="net.internetisalie.lunar.lang.LuaFileIconProvider"/>
 
     <lang.syntaxHighlighterFactory
             language="Lua"
@@ -793,6 +797,7 @@
          reached the UI (BUG-448 #21). MatrixResultsToolWindow.init sets the display name, so the id
          stays what it is: persisted layout state and RunMatrixAction's lookup key. -->
     <toolWindow id="Lunar.LuaMatrix" anchor="bottom" secondary="true" canCloseContents="true"
+        icon="net.internetisalie.lunar.lang.LuaIcons.TOOLWINDOW_TEST_MATRIX"
         factoryClass="net.internetisalie.lunar.rocks.matrix.MatrixResultsToolWindow"/>
 
   </extensions>
@@ -815,7 +820,8 @@
     <action id="Lua.Console"
             class="net.internetisalie.lunar.run.console.LuaConsoleAction"
             text="Lua Console"
-            description="Open an interactive Lua REPL">
+            description="Open an interactive Lua REPL"
+            icon="AllIcons.Nodes.Console">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
 
@@ -824,7 +830,7 @@
             class="net.internetisalie.lunar.rocks.publish.PublishRockAction"
             text="Publish Rock to LuaRocks…"
             description="Upload this rockspec to luarocks.org"
-            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET">
+            icon="AllIcons.Actions.Upload">
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
@@ -834,7 +840,7 @@
             class="net.internetisalie.lunar.rocks.build.BuildWorkspaceAction"
             text="Build Workspace (dependency order)"
             description="Build all first-party rocks with luarocks make in topological dependency order"
-            icon="net.internetisalie.lunar.lang.LuaIcons.ROCKET">
+            icon="AllIcons.Actions.Compile">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
     </action>
@@ -868,7 +874,8 @@
       <action id="Lunar.Toolchain.RunMatrix"
               class="net.internetisalie.lunar.rocks.matrix.RunMatrixAction"
               text="Run Test Matrix…"
-              description="Run the rockspec test command against every provisioned environment"/>
+              description="Run the rockspec test command against every provisioned environment"
+              icon="net.internetisalie.lunar.lang.LuaIcons.TOOLWINDOW_TEST_MATRIX"/>
       <action id="Lunar.Toolchain.BatchProvision"
               class="net.internetisalie.lunar.toolchain.provision.LuaBatchProvisionToolchainsAction"
               text="Provision Version Matrix…"

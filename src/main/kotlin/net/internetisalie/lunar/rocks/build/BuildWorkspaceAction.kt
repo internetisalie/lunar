@@ -6,6 +6,7 @@ import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.execution.ui.RunContentDescriptor
 import com.intellij.execution.ui.RunContentManager
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
@@ -14,7 +15,6 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
-import net.internetisalie.lunar.lang.LuaIcons
 import net.internetisalie.lunar.rocks.LuaRockspecDiscoveryService
 
 /**
@@ -24,7 +24,7 @@ class BuildWorkspaceAction :
     DumbAwareAction(
         "Build Workspace (dependency order)",
         "Build all first-party rocks with luarocks make in topological dependency order",
-        LuaIcons.ROCKET,
+        AllIcons.Actions.Compile,
     ) {
     override fun update(event: AnActionEvent) {
         val project = event.project
@@ -48,7 +48,7 @@ class BuildWorkspaceAction :
                     null,
                     console.component,
                     "Build Workspace",
-                    LuaIcons.ROCKET,
+                    AllIcons.Actions.Compile,
                 )
 
             RunContentManager.getInstance(project).showRunContent(

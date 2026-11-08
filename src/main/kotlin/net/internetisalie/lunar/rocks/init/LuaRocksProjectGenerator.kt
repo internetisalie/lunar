@@ -13,7 +13,7 @@ import javax.swing.Icon
 /**
  * LuaRocks project generator for the New Project wizard (small-IDE EP).
  *
- * Appears in the wizard as "LuaRocks" with [LuaIcons.ROCKET]. Delegates all
+ * Appears in the wizard as "LuaRocks" with [LuaIcons.ROCKSPEC]. Delegates all
  * file generation to [LuaRocksScaffolder], which runs inside a [WriteAction].
  *
  * Registered via `directoryProjectGenerator` EP in plugin.xml (see §7 of the design doc).
@@ -21,7 +21,7 @@ import javax.swing.Icon
 class LuaRocksProjectGenerator : DirectoryProjectGeneratorBase<LuaRocksProjectSettings>() {
     override fun getName(): String = "LuaRocks"
 
-    override fun getLogo(): Icon = LuaIcons.ROCKET
+    override fun getLogo(): Icon = LuaIcons.ROCKSPEC
 
     override fun createPeer(): ProjectGeneratorPeer<LuaRocksProjectSettings> = LuaRocksGeneratorPeer()
 

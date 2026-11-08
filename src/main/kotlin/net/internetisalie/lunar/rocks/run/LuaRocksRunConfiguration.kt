@@ -65,7 +65,7 @@ class LuaRocksRunConfigurationType :
         ID,
         "LuaRocks",
         "LuaRocks task run configuration",
-        NotNullLazyValue.createValue { LuaIcons.ROCKET },
+        NotNullLazyValue.createValue { LuaIcons.ROCKSPEC },
     ) {
     init {
         addFactory(LuaRocksRunConfigurationFactory(this))

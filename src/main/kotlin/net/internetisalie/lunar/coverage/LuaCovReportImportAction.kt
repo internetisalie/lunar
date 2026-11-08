@@ -21,7 +21,7 @@ class LuaCovReportImportAction :
     DumbAwareAction(
         "Import LuaCov Report...",
         "Load coverage data from a luacov.report.out or luacov.stats.out file",
-        LuaIcons.COVERAGE,
+        LuaIcons.COVERAGE_REPORT,
     ) {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return

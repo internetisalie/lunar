@@ -193,7 +193,7 @@ class DependencyTreePanel(
         override fun actionPerformed(event: AnActionEvent) = perform()
     }
 
-    /** Renders dependency nodes with the rocket icon and a warning overlay for conflicts. */
+    /** Renders dependency nodes with the package icon and a warning overlay for conflicts. */
     private class DependencyCellRenderer : DefaultTreeCellRenderer() {
         override fun getTreeCellRendererComponent(
             tree: JTree,
@@ -207,7 +207,7 @@ class DependencyTreePanel(
             super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus)
             val node = (value as? DefaultMutableTreeNode)?.userObject as? DependencyNode
             if (node != null) {
-                icon = if (node.hasConflicts) AllIcons.General.Warning else LuaIcons.ROCKET
+                icon = if (node.hasConflicts) AllIcons.General.Warning else LuaIcons.ROCKSPEC
                 text =
                     buildString {
                         append(node.packageName)

@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Lunar has its own icons**. The placeholder rocket is gone. Lua files, the plugin logo and the
+  four tool windows (LuaRocks dependencies, LuaRocks packages, Redis Functions, Lua Test Matrix) have
+  New UI icons in light and dark variants, drawn at 20 px for the tool window stripe. Rockspecs,
+  `.luacheckrc`, `.busted`, StyLua configs, `.luarc.json`, `.lunar-env.json` and LuaCov reports each
+  get their own icon in the Project view. The run configuration types, the LuaRocks project wizard,
+  package and dependency rows, and the Publish, Build Workspace, Import LuaCov Report, Lua Console
+  and Run Test Matrix actions use these icons or the platform's own.
 - **The packages browser describes rocks you have not installed** (BUG-58). Selecting any rock that
   was not installed showed "Could not load metadata", with License and Homepage stuck on
   "(loading)". Lunar now downloads the rock's rockspec from the rocks server with the configured

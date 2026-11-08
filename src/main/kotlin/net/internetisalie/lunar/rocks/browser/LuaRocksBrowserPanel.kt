@@ -224,7 +224,7 @@ class LuaRocksBrowserPanel internal constructor(
                 val update = if (row.hasUpdate) "  ⬆" else ""
                 text =
                     listOf(row.pkg.name, row.pkg.version).filter { it.isNotBlank() }.joinToString("  ") + badge + update
-                icon = LuaIcons.ROCKET
+                icon = LuaIcons.ROCKSPEC
             }
             return this
         }

@@ -45,7 +45,7 @@ class LuaTestRunConfigurationType :
         ID,
         "Lua Tests",
         "Run Lua test suites",
-        NotNullLazyValue.createValue { LuaIcons.TEST },
+        NotNullLazyValue.createValue { LuaIcons.BUSTED_CONFIG },
     ) {
     init {
         addFactory(LuaTestRunConfigurationFactory(this))

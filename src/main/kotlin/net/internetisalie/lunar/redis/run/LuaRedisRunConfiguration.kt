@@ -54,7 +54,7 @@ class LuaRedisRunConfigurationType :
         ID,
         "Redis Script",
         "Run a Lua script against a Redis/Valkey server",
-        NotNullLazyValue.createValue { LuaIcons.ROCKET },
+        NotNullLazyValue.createValue { LuaIcons.TOOLWINDOW_REDIS_FUNCTIONS },
     ) {
     init {
         addFactory(LuaRedisRunConfigurationFactory(this))
