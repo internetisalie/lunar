@@ -2,6 +2,8 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Rock source root folders keep their names** (BUG-61). In the Project view, a folder marked as a
+  rock source root showed only the gray *rock source root* tag. It now shows its name with the tag.
 - **Package search shows one row per package** (BUG-59). The LuaRocks Packages search listed a
   row for every published version, so a rock with many releases pushed other matches down the list.
   Each package now has one row showing its newest version, and the detail pane's version picker

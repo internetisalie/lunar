@@ -18,9 +18,21 @@ class LuaRockSourceRootDecorator : ProjectViewNodeDecorator {
         if (!dir.isDirectory || !dir.isValid) return
         val base = project.basePath ?: return
         val roots = sourceRootDirs(project, base)
-        if (dir.path.trimEnd('/') in roots) {
-            data.addText(" rock source root", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+        if (dir.path.trimEnd('/') in roots) appendSourceRootTag(data)
+    }
+
+    /**
+     * The tree draws only the colored fragments once there are any, so a node that has none yet gets
+     * its name (and location) as fragments first — otherwise the tag would replace the folder name.
+     */
+    private fun appendSourceRootTag(data: PresentationData) {
+        if (data.coloredText.isEmpty()) {
+            data.addText(data.presentableText, SimpleTextAttributes.REGULAR_ATTRIBUTES)
+            data.locationString?.takeIf { it.isNotEmpty() }?.let {
+                data.addText(" $it", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+            }
         }
+        data.addText(" rock source root", SimpleTextAttributes.GRAYED_ATTRIBUTES)
     }
 
     private fun sourceRootDirs(

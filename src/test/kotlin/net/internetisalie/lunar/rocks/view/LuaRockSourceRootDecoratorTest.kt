@@ -14,8 +14,8 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class LuaRockSourceRootDecoratorTest {
     private lateinit var fixture: CodeInsightTestFixture
@@ -66,11 +66,11 @@ class LuaRockSourceRootDecoratorTest {
             val decorator = LuaRockSourceRootDecorator()
 
             val srcNode = DummyNode(project, srcDir)
-            val srcData = PresentationData()
+            val srcData = PresentationData().apply { presentableText = "src" }
             decorator.decorate(srcNode, srcData)
 
-            val srcText = srcData.coloredText
-            assertTrue(srcText.any { it.text == " rock source root" }, "src folder should be badged")
+            val srcText = srcData.coloredText.map { it.text }
+            assertEquals(listOf("src", " rock source root"), srcText, "src keeps its name and is badged (BUG-61)")
 
             val thirdpartyNode = DummyNode(project, thirdpartyDir)
             val thirdpartyData = PresentationData()
