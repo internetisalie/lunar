@@ -102,7 +102,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-52 | Every `.rockspec` that fails to evaluate (test fixtures too) logs a WARN with stack trace | todo | C | — | related BUG-50 | ✓ |
 | BUG-53 | Every historical rockspec of one rock (e.g. luacheck's `rockspecs/`, 47 files) is discovered as a separate project rock | todo | S | — | gap in ROCKS-09-01; discovery has several consumers | ✓ |
 | BUG-54 | Dependency tree flags each project rock and the `lua` constraint as missing, and its roots are indistinguishable | todo | S | — | — | ✓ |
-| BUG-57 | Rockspec fields (likely `.luacheckrc`/`.busted` too) flagged by the global-creation inspection | todo | S | — | — | ✓ |
 | BUG-49 | Lua 5.2–5.4 `io`/`package` stubs declare names the manuals lack (`io.setvbuf`, `File:iseof`, `package.preloaded`); 5.4 `collectgarbage` options stale | todo | C | — | found by TARGET-07; fixed in 5.5 only | ✓ |
 | SYNTAX-19 | Shebang file-type detection — extensionless `#!…lua` scripts open as Lua (own detector, not `hashBangs`) | todo | S | — | — | ✓ |
 | BUG-40 | A `table`-, class- or record-typed parameter declared in another file accepts a function (`pairs(function() end)`) | todo | S | — | found by MAINT-54's false-negative audit: 64 of 65 sites silent; the survey's mechanism A | ✓ |

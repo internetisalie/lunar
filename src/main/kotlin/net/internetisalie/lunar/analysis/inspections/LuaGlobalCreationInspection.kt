@@ -8,6 +8,7 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiPolyVariantReference
 import com.intellij.psi.util.PsiTreeUtil
 import net.internetisalie.lunar.lang.psi.LuaAssignmentStatement
@@ -15,6 +16,7 @@ import net.internetisalie.lunar.lang.psi.LuaElementFactory
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
 import net.internetisalie.lunar.lang.psi.LuaNameRef
 import net.internetisalie.lunar.lang.psi.LuaVisitor
+import net.internetisalie.lunar.lang.schema.LuaSchemaProviderFactory
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.settings.LuaProjectSettings
 
@@ -36,6 +38,22 @@ class LuaGlobalCreationInspection : LocalInspectionTool() {
         holder: ProblemsHolder,
         isOnTheFly: Boolean,
     ): PsiElementVisitor =
+        if (isSchemaConfig(holder.file)) {
+            PsiElementVisitor.EMPTY_VISITOR
+        } else {
+            globalCreationVisitor(holder)
+        }
+
+    /**
+     * A rockspec, `.luacheckrc` or `.busted` file declares its content as top-level globals, so it is
+     * exempt; its schema's compliance inspection reports keys the schema does not allow (BUG-57).
+     */
+    private fun isSchemaConfig(file: PsiFile): Boolean {
+        val virtualFile = file.virtualFile ?: return false
+        return LuaSchemaProviderFactory.EP_NAME.extensionList.any { it.isAvailable(virtualFile) }
+    }
+
+    private fun globalCreationVisitor(holder: ProblemsHolder): PsiElementVisitor =
         object : LuaVisitor() {
             override fun visitAssignmentStatement(o: LuaAssignmentStatement) {
                 val varList = o.varList.varList

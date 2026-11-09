@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Config files are not flagged for creating globals** (BUG-57). Every field of a `.rockspec`, and the
+  settings in `.luacheckrc` and `.busted`, were reported as *Global creation*. These files declare
+  their content as globals, so the inspection now skips them; a misspelled rockspec field is still
+  reported by the rockspec schema check.
 - **External Libraries is easier to read** (BUG-60). The standard library appeared twice, under two
   names, and the search-path directories appeared as bare, identical `5.4` folders whatever the
   project's Lua version. The standard library is now listed once, titled by the target, and each
