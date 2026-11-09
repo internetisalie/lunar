@@ -5,50 +5,50 @@
 - **The packages browser keeps up with what you install** (BUG-64, BUG-65, BUG-66, BUG-69). The
   Installed tab lists each rock as `name  version` and refreshes after an install, update or
   uninstall. An installed rock with a newer version shows an update marker and an Update button in
-  both tabs. An error replaces stale search results.
+  both tabs. An error replaces stale search results ([1292322e](https://github.com/internetisalie/lunar/commit/1292322e)).
 - **Rocks with computed rockspecs are described** (BUG-68). A rock whose rockspec builds its fields
   from variables, such as `luacheck`, showed no license, homepage or dependencies. Its rockspec is
-  now evaluated in an empty environment to read them.
+  now evaluated in an empty environment to read them ([1292322e](https://github.com/internetisalie/lunar/commit/1292322e)).
 - **The dependency tool window is named on its stripe** (BUG-67). Until first opened, its stripe
-  button read *LuaRocks*; it now reads *LuaRocks Dependencies*.
+  button read *LuaRocks*; it now reads *LuaRocks Dependencies* ([1292322e](https://github.com/internetisalie/lunar/commit/1292322e)).
 - **Lua tools on your PATH are found on first use** (BUG-63). Until you clicked *Discover* in the
   Toolchain settings, Lunar acted as if no Lua was installed, even with `lua` and `luarocks` on
   `PATH`. The first time a project opens with no tools registered, Lunar now discovers them and
-  says what it registered.
+  says what it registered ([fe669c6a](https://github.com/internetisalie/lunar/commit/fe669c6a)).
 - **`require` resolves into libraries the way Lua does** (BUG-62). A bare `require("util")` could
   resolve to a nested file inside an installed library, such as busted's `luassert/util.lua`. Inside
   any library (installed rocks, definition libraries, search-path directories, the target's
-  standard library), a module now resolves only to the file at its own path.
+  standard library), a module now resolves only to the file at its own path ([8139001f](https://github.com/internetisalie/lunar/commit/8139001f)).
 - **A broken rockspec no longer floods the IDE log** (BUG-52). Every `.rockspec` that failed to
   evaluate, test fixtures included, wrote a warning and a Lua stack trace to `idea.log`. These
-  failures are now logged at debug level.
+  failures are now logged at debug level ([3a446f9e](https://github.com/internetisalie/lunar/commit/3a446f9e)).
 - **The dependency tree knows your own rocks and the Lua runtime** (BUG-54). Each rock developed in
   the project was flagged as *required but not installed*, and its `lua >= 5.1` entry was looked up
   as an installed rock. A project rock now shows its rockspec's version and path and is never
-  flagged, and the `lua` entry is checked against the configured runtime's version.
+  flagged, and the `lua` entry is checked against the configured runtime's version ([7e01f08f](https://github.com/internetisalie/lunar/commit/7e01f08f)).
 - **A rock with several rockspecs is one rock** (BUG-53). A project holding a development rockspec
   beside a `rockspecs/` archive of releases showed every archived version as a separate rock, and
   derived module search roots from the archive. Lunar now keeps one rockspec per package: the
-  development rockspec if there is one, otherwise the highest version.
+  development rockspec if there is one, otherwise the highest version ([1ab9da0a](https://github.com/internetisalie/lunar/commit/1ab9da0a)).
 - **Config files are not flagged for creating globals** (BUG-57). Every field of a `.rockspec`, and the
   settings in `.luacheckrc` and `.busted`, were reported as *Global creation*. These files declare
   their content as globals, so the inspection now skips them; a misspelled rockspec field is still
-  reported by the rockspec schema check.
+  reported by the rockspec schema check ([a8c7adb8](https://github.com/internetisalie/lunar/commit/a8c7adb8)).
 - **External Libraries is easier to read** (BUG-60). The standard library appeared twice, under two
   names, and the search-path directories appeared as bare, identical `5.4` folders whatever the
   project's Lua version. The standard library is now listed once, titled by the target, and each
-  search-path directory is listed by its path. The default search path follows the target's version.
+  search-path directory is listed by its path. The default search path follows the target's version ([59f851da](https://github.com/internetisalie/lunar/commit/59f851da)).
 - **Rockspecs are evaluated only in a trusted project, and only as data** (BUG-50). Lunar ran every
   `.rockspec` in a project as soon as it was opened, with the whole standard library available, so a
   rockspec could run commands or write files. It now evaluates rockspecs only after you trust the
-  project, and in an empty environment, as LuaRocks itself does.
+  project, and in an empty environment, as LuaRocks itself does ([fa1e079c](https://github.com/internetisalie/lunar/commit/fa1e079c)).
 - **Rock source root folders keep their names** (BUG-61). In the Project view, a folder marked as a
-  rock source root showed only the gray *rock source root* tag. It now shows its name with the tag.
+  rock source root showed only the gray *rock source root* tag. It now shows its name with the tag ([514b5cf7](https://github.com/internetisalie/lunar/commit/514b5cf7)).
 - **Package search shows one row per package** (BUG-59). The LuaRocks Packages search listed a
   row for every published version, so a rock with many releases pushed other matches down the list.
   Each package now has one row showing its newest version, and the detail pane's version picker
   offers every version. An installed rock is marked for update when its installed version is older
-  than the newest.
+  than the newest ([68e1d80d](https://github.com/internetisalie/lunar/commit/68e1d80d)).
 - **Lunar has its own icons**. The placeholder rocket is gone. Lua files, the plugin logo and the
   four tool windows (LuaRocks dependencies, LuaRocks packages, Redis Functions, Lua Test Matrix) have
   New UI icons in light and dark variants, drawn at 20 px for the tool window stripe. Rockspecs,
