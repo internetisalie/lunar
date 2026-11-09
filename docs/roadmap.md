@@ -100,7 +100,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-47 | A member read through an `any`-typed member takes the type of the root table's same-named member (`ide.config.default.interpreter` typed as `ide.interpreter`) | todo | S | — | found fixing BUG-46; the false nil behind BUG-541's zerobrane flicker | ✓ |
 | BUG-48 | A moved Lua environment's tools are reported as "Not executable" — name the move (manifest `location` mismatch) or the missing `#!` interpreter | todo | S | — | seen live after a container-built hererocks env was used on the host | ✓ |
 | BUG-52 | Every `.rockspec` that fails to evaluate (test fixtures too) logs a WARN with stack trace | todo | C | — | related BUG-50 | ✓ |
-| BUG-53 | Every historical rockspec of one rock (e.g. luacheck's `rockspecs/`, 47 files) is discovered as a separate project rock | todo | S | — | gap in ROCKS-09-01; discovery has several consumers | ✓ |
 | BUG-54 | Dependency tree flags each project rock and the `lua` constraint as missing, and its roots are indistinguishable | todo | S | — | — | ✓ |
 | BUG-49 | Lua 5.2–5.4 `io`/`package` stubs declare names the manuals lack (`io.setvbuf`, `File:iseof`, `package.preloaded`); 5.4 `collectgarbage` options stale | todo | C | — | found by TARGET-07; fixed in 5.5 only | ✓ |
 | SYNTAX-19 | Shebang file-type detection — extensionless `#!…lua` scripts open as Lua (own detector, not `hashBangs`) | todo | S | — | — | ✓ |

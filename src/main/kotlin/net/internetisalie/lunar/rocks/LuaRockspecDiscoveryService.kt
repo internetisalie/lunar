@@ -51,8 +51,9 @@ class LuaRockspecDiscoveryService(
         )
 
     /**
-     * Cached, sorted (by project-relative path, case-insensitive); one entry per discovered source
-     * rockspec (path + parsed identity). The single discovery method consumers call.
+     * Cached, sorted (by project-relative path, case-insensitive); one entry per package, its
+     * highest-version rockspec (path + parsed identity; [RockspecVersionSelection]). The single
+     * discovery method consumers call.
      */
     fun discoverRockspecPaths(): List<DiscoveredRockspec> = discoveryCache.value
 
@@ -81,8 +82,11 @@ class LuaRockspecDiscoveryService(
                     .executeSynchronously()
             }
 
-        return includedRockspecs
-            .map { DiscoveredRockspec(it.path, RockspecBridge.read(project, it.path)?.packageName) }
+        val discovered =
+            includedRockspecs.map {
+                DiscoveredRockspec(it.path, RockspecBridge.read(project, it.path)?.packageName)
+            }
+        return RockspecVersionSelection.onePerPackage(discovered)
     }
 
     private fun enumerateIncluded(

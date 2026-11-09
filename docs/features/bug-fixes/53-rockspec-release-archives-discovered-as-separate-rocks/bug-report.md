@@ -3,7 +3,7 @@ id: "BUG-53"
 title: "Every historical rockspec of one rock is discovered as a separate project rock"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -29,3 +29,18 @@ Dependencies* tool window shows 48 roots, every one labelled `luacheck`.
   specified, so this is a gap in that requirement as well as in the code.
 - Discovery feeds module resolution (ROCKS-05) and the rocks browser as well. Check each consumer's
   expectation before changing the service, rather than only the tree.
+
+## 4. Fix
+`LuaRockspecDiscoveryService` returns one rockspec per package, chosen by `RockspecVersionSelection`:
+packages are named by the bridge's `package` field (else the file name), and the highest version
+by LuaRocks ordering wins. That ordering places `dev` and `scm` above every release, so a
+development rockspec is preferred whenever one exists. Every consumer benefits:
+- the dependency tree gets one root per rock;
+- module resolution no longer derives search roots from a `rockspecs/` archive;
+- the workspace build and the test matrix no longer act on each archived version.
+
+## 5. Test
+`RockspecVersionSelectionTest` covers three cases:
+- a development rockspec wins over a release archive;
+- without one, the highest release wins, compared as versions, not names;
+- different packages and unnamed rockspecs are all kept.

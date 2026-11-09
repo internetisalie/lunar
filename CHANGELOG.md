@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A rock with several rockspecs is one rock** (BUG-53). A project holding a development rockspec
+  beside a `rockspecs/` archive of releases showed every archived version as a separate rock, and
+  derived module search roots from the archive. Lunar now keeps one rockspec per package: the
+  development rockspec if there is one, otherwise the highest version.
 - **Config files are not flagged for creating globals** (BUG-57). Every field of a `.rockspec`, and the
   settings in `.luacheckrc` and `.busted`, were reported as *Global creation*. These files declare
   their content as globals, so the inspection now skips them; a misspelled rockspec field is still
