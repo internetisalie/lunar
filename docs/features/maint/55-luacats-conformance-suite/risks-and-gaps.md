@@ -319,7 +319,7 @@ disagreements and go to Phase 4.
 Evidence and reasons for each ruling:
 - `undeclared-arity`: the tier line `LuaTypeGraph.kt:855-860`, and BUG-419 defect 4
   (`LuaInferredArityTierTest` KDoc). 113 of its 129 DR-07 reports are BUG-74 and the rest sampled at
-  2/15; re-measure after BUG-74 if the question comes back.
+  2/15; TYPE-15 (after BUG-74) reports it as a weak warning and withdraws this deviation.
 - `undeclared-arity` (self): listed apart because a missing `self` is a likelier bug. A missing `self` is
   an authoring-time assist: shipped code has already had it fixed, so the corpora's zero says nothing
   about its value while typing. Its fix ships with a quick fix that rewrites `t.init()` to `t:init()`
