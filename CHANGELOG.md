@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Lua tools on your PATH are found on first use** (BUG-63). Until you clicked *Discover* in the
+  Toolchain settings, Lunar acted as if no Lua was installed, even with `lua` and `luarocks` on
+  `PATH`. The first time a project opens with no tools registered, Lunar now discovers them and
+  says what it registered.
 - **`require` resolves into libraries the way Lua does** (BUG-62). A bare `require("util")` could
   resolve to a nested file inside an installed library, such as busted's `luassert/util.lua`. Inside
   any library (installed rocks, definition libraries, search-path directories, the target's

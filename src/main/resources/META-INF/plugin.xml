@@ -671,6 +671,8 @@
 
     <!-- Toolchain health & diagnostics (TOOLING-07) -->
     <postStartupActivity implementation="net.internetisalie.lunar.toolchain.health.LuaToolHealthStartup" />
+    <!-- Discovers Lua tools on PATH when the registry is empty (BUG-63) -->
+    <postStartupActivity implementation="net.internetisalie.lunar.toolchain.discovery.LuaFirstRunDiscovery" />
     <editorNotificationProvider implementation="net.internetisalie.lunar.toolchain.health.LuaToolEditorNotificationProvider" />
 
     <!-- RUN-08-17: covered=green / uncovered=red foregrounds for luacov.report.out -->
