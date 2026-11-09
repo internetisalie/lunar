@@ -99,7 +99,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-28 | A second `@class` tag in the same comment block gives its fields to the first class | todo | S | — | found planning MAINT-52 (DR-04 probe d1) | ✓ |
 | BUG-47 | A member read through an `any`-typed member takes the type of the root table's same-named member (`ide.config.default.interpreter` typed as `ide.interpreter`) | todo | S | — | found fixing BUG-46; the false nil behind BUG-541's zerobrane flicker | ✓ |
 | BUG-48 | A moved Lua environment's tools are reported as "Not executable" — name the move (manifest `location` mismatch) or the missing `#!` interpreter | todo | S | — | seen live after a container-built hererocks env was used on the host | ✓ |
-| BUG-50 | Opening a project runs every `.rockspec` with full stdlib access (`__index = _G`) and no project-trust check | todo | S | — | security: gate on TrustedProjects, empty env | ✓ |
 | BUG-52 | Every `.rockspec` that fails to evaluate (test fixtures too) logs a WARN with stack trace | todo | C | — | related BUG-50 | ✓ |
 | BUG-53 | Every historical rockspec of one rock (e.g. luacheck's `rockspecs/`, 47 files) is discovered as a separate project rock | todo | S | — | gap in ROCKS-09-01; discovery has several consumers | ✓ |
 | BUG-54 | Dependency tree flags each project rock and the `lua` constraint as missing, and its roots are indistinguishable | todo | S | — | — | ✓ |

@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Rockspecs are evaluated only in a trusted project, and only as data** (BUG-50). Lunar ran every
+  `.rockspec` in a project as soon as it was opened, with the whole standard library available, so a
+  rockspec could run commands or write files. It now evaluates rockspecs only after you trust the
+  project, and in an empty environment, as LuaRocks itself does.
 - **Rock source root folders keep their names** (BUG-61). In the Project view, a folder marked as a
   rock source root showed only the gray *rock source root* tag. It now shows its name with the tag.
 - **Package search shows one row per package** (BUG-59). The LuaRocks Packages search listed a

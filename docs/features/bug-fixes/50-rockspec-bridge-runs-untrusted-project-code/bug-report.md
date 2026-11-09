@@ -3,7 +3,7 @@ id: "BUG-50"
 title: "Opening a project runs every .rockspec in it with full standard-library access, without asking for project trust"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -37,15 +37,25 @@ Seen live (2026-11-08): opening `~/Documents/src/lua/test` evaluated luacheck's 
   anywhere.
 - `LuaRockspecDiscoveryService.kt:85` calls it for every included `.rockspec`. With the default empty
   include/exclude globs, that is all of them, test fixtures included.
+- `LuaRocksBridgeFiles.ensureExtracted` copies the bridge scripts into the IDE's temp directory and
+  skips any file already there, so an upgraded plugin kept running the previous version's
+  `rockspec.lua`. A sandbox fix in the script alone would never have reached an existing install.
 
-## 4. Fix Strategy (to be confirmed by plan-bug)
-- Skip the bridge while the project is untrusted, and say why once rather than per file.
-- Evaluate with an empty environment. If real rockspecs need any globals, add an explicit allow-list
-  justified by the corpus's rockspecs.
-- Check what LuaRocks itself allows a rockspec to read, and match it.
+## 4. Fix Strategy
+- `RockspecBridge.read` returns nothing while `TrustedProjects.isProjectTrusted` is false, and logs
+  that once per project. `LuaRockspecTrustListener` (on `TrustedProjectsListener`) refreshes
+  `RockspecSourcePathProvider` and the PSI caches when the project becomes trusted.
+- `rockspec.lua` evaluates the rockspec in an empty table, as `luarocks.core.persist.load_into_table`
+  does: no standard library is reachable and an unknown global reads as `nil`. Over the test
+  project's rockspecs, every one that evaluated before evaluates to the same JSON, compared as
+  parsed data.
+- The first `ensureExtracted` of each IDE run overwrites every bridge script.
 
 ## 5. Test Strategy
 - An untrusted project: the bridge is not run.
 - A trusted project: a rockspec that calls `os.execute` or `io.open` fails to evaluate, and nothing is
   written.
-- The corpus's real rockspecs still evaluate to the same package, version and dependencies.
+- The corpus's real rockspecs still evaluate to the same package, version and dependencies (checked
+  by comparing the old and new bridge's output; the existing rocks tests evaluate real rockspecs).
+- `RockspecBridgeSandboxTest` covers the first two; `LuaRocksBridgeFilesTest` checks that a stale
+  extracted script is replaced.

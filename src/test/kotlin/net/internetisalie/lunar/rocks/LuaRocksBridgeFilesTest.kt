@@ -6,6 +6,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.readText
+import kotlin.io.path.writeText
 
 /**
  * Verifies the relocated bridge scripts under `src/main/resources/lua/` are on the classpath and that
@@ -24,6 +25,21 @@ class LuaRocksBridgeFilesTest : BasePlatformTestCase() {
         assertTrue("export.lua should exist", export.isRegularFile())
         // The export.lua latent-bug fix must be present in the packaged copy.
         assertTrue("export.lua must iterate ipairs(names)", export.readText().contains("ipairs(names)"))
+    }
+
+    @Test
+    fun testFirstExtractionOfARunReplacesAStaleCopy() {
+        val rockspec = LuaRocksBridgeFiles.rockspecScript()
+        rockspec.writeText("-- a previous plugin version's script")
+        LuaRocksBridgeFiles.forgetExtraction()
+
+        val refreshed = LuaRocksBridgeFiles.rockspecScript().readText()
+
+        val bundled =
+            requireNotNull(javaClass.classLoader.getResourceAsStream("lua/rockspec.lua")).use {
+                String(it.readAllBytes())
+            }
+        assertEquals("BUG-50: an upgraded plugin must not run the old script", bundled, refreshed)
     }
 
     @Test

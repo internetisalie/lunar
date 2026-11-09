@@ -803,6 +803,9 @@
   </extensions>
 
   <applicationListeners>
+    <!-- Re-runs rockspec discovery once the project is trusted (BUG-50) -->
+    <listener class="net.internetisalie.lunar.rocks.LuaRockspecTrustListener"
+              topic="com.intellij.ide.trustedProjects.TrustedProjectsListener"/>
     <!-- Re-checks the Lua Environment widget when a project's environment set changes (BUG-534) -->
     <listener class="net.internetisalie.lunar.toolchain.ui.LuaEnvWidgetAvailabilityListener"
               topic="net.internetisalie.lunar.toolchain.registry.LuaToolchainListener"/>

@@ -9,13 +9,12 @@ package.path = lunar_path .. ";" .. package.path
 
 local rockspec_path = arg[1]
 
--- Run the rockspec in a sandbox that separates the fields it declares from the
--- standard globals. Reads fall through to _G (so a rockspec may reference the
--- stdlib while evaluating), but every top-level assignment lands directly in
--- `manifest`. Exporting from `manifest` — never _G — keeps stdlib tables such as
--- `package` (a table full of functions) from leaking in when the rockspec omits
--- that field, which otherwise crashes the JSON encoder.
-local manifest = setmetatable({}, { __index = _G })
+-- Evaluate the rockspec as declarative data, the way LuaRocks does
+-- (`luarocks.core.persist.load_into_table`): in an empty environment, so it can
+-- reach no standard library at all (no os, io, require, load or dofile). A read
+-- of any global yields nil; every top-level assignment lands in `manifest`
+-- (BUG-50).
+local manifest = {}
 
 local chunk, load_error
 if setfenv then

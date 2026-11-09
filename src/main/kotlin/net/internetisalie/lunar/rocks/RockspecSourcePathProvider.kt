@@ -133,8 +133,8 @@ class RockspecSourcePathProvider(
         @TestOnly
         var testForceReadLockGuard: Boolean = false
 
-        @TestOnly
-        fun invalidateCache(project: Project) {
+        /** Drops every derived pattern so the next read re-runs discovery (BUG-50: after the project becomes trusted). */
+        fun refresh(project: Project) {
             val provider = getInstance(project)
             // BUG-410: retire any in-flight prewarm FIRST. Previously this cleared the counters but
             // left `prewarmInFlight` set, so a job launched before the reset kept the flag — the
@@ -144,8 +144,13 @@ class RockspecSourcePathProvider(
             provider.prewarmEpoch.incrementAndGet()
             provider.prewarmInFlight.set(false)
             provider.cachedFull.set(null)
-            provider.prewarmLaunches.set(0)
             provider.forceRefreshTracker.incModificationCount()
+        }
+
+        @TestOnly
+        fun invalidateCache(project: Project) {
+            refresh(project)
+            getInstance(project).prewarmLaunches.set(0)
         }
 
         /** True once the off-lock prewarm has published full patterns (test await seam; no compute). */

@@ -2,6 +2,7 @@ package net.internetisalie.lunar.rocks
 
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.diagnostic.logger
+import org.jetbrains.annotations.TestOnly
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -30,25 +31,39 @@ object LuaRocksBridgeFiles {
     private var extractedDir: Path? = null
 
     /**
-     * Extracts the bridge scripts (once) to a cached temp directory and returns its root. Re-extracts
-     * any missing files (e.g. if the temp dir was cleaned) but is otherwise idempotent.
+     * Extracts the bridge scripts to a cached temp directory and returns its root. The first call in
+     * each IDE run overwrites every script, so an upgraded plugin never runs a previous version's
+     * copy left in the temp directory (BUG-50); later calls re-extract only files that went missing.
      */
     @Synchronized
     fun ensureExtracted(): Path {
-        val root =
-            extractedDir
-                ?: Path.of(PathManager.getTempPath(), "lunar-rocks", "lua").also { extractedDir = it }
+        val known = extractedDir
+        val root = known ?: Path.of(PathManager.getTempPath(), "lunar-rocks", "lua")
         for (resource in RESOURCES) {
             val target = root.resolve(resource.removePrefix("lua/"))
-            if (Files.isRegularFile(target)) continue
-            Files.createDirectories(target.parent)
-            val stream =
-                javaClass.classLoader.getResourceAsStream(resource)
-                    ?: error("Bundled bridge script not found on classpath: $resource")
-            stream.use { Files.copy(it, target, StandardCopyOption.REPLACE_EXISTING) }
-            log.debug("Extracted bridge script $resource -> $target")
+            if (known != null && Files.isRegularFile(target)) continue
+            extract(resource, target)
         }
+        extractedDir = root
         return root
+    }
+
+    private fun extract(
+        resource: String,
+        target: Path,
+    ) {
+        Files.createDirectories(target.parent)
+        val stream =
+            javaClass.classLoader.getResourceAsStream(resource)
+                ?: error("Bundled bridge script not found on classpath: $resource")
+        stream.use { Files.copy(it, target, StandardCopyOption.REPLACE_EXISTING) }
+        log.debug("Extracted bridge script $resource -> $target")
+    }
+
+    /** Makes the next [ensureExtracted] behave like the first one of an IDE run. */
+    @TestOnly
+    fun forgetExtraction() {
+        extractedDir = null
     }
 
     /** Path to the bridge entry point script. */

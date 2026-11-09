@@ -3,9 +3,11 @@ package net.internetisalie.lunar.rocks
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import net.internetisalie.lunar.toolchain.exec.LuaExecResult
 import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
 import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
@@ -32,11 +34,16 @@ data class RockspecData(
 object RockspecBridge {
     private val log = logger<RockspecBridge>()
     private const val ENV_LUA_PATH_TEMPLATE = "LUNAR_LUA_PATH_TEMPLATE"
+    private val UNTRUSTED_NOTED = Key.create<Boolean>("lunar.rockspec.untrustedNoted")
 
     fun read(
         project: Project,
         rockspecPath: Path,
     ): RockspecData? {
+        if (!TrustedProjects.isProjectTrusted(project)) {
+            noteUntrustedOnce(project)
+            return null
+        }
         val interpreter =
             LuaToolResolver
                 .getInstance()
@@ -63,6 +70,13 @@ object RockspecBridge {
             return null
         }
         return parse(output.stdout, rockspecPath)
+    }
+
+    /** A rockspec is project code; it runs only once the user trusts the project (BUG-50). Logged once per project. */
+    private fun noteUntrustedOnce(project: Project) {
+        if (project.getUserData(UNTRUSTED_NOTED) == true) return
+        project.putUserData(UNTRUSTED_NOTED, true)
+        log.info("Rockspecs in ${project.name} are not evaluated until the project is trusted")
     }
 
     /**
