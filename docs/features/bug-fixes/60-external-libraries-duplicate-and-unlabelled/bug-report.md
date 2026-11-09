@@ -3,7 +3,7 @@ id: "BUG-60"
 title: "External Libraries lists the standard library twice and the search trees as bare, mismatched version folders"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -39,15 +39,25 @@ Expand *External Libraries* in the Project view.
   `5.4` whatever the target's language level is.
 
 ## 4. Fix Strategy
-- Keep one stdlib provider: `LuaLibraryProvider` (it also supplies `getRootsToWatch`). Drop
-  `PlatformLibrary` from `PlatformLibraryProvider.getAdditionalProjectLibraries`; keep
-  `PlatformLibraryIndex`, which other code uses. Label it with the target, e.g. *Lua 5.1 standard
-  library*, located at the root's path.
-- Give each search-path directory its own `SyntheticLibrary`, labelled with its full path, under a
-  clearer name such as *Lua search path*.
-- Derive the default source path's version from the target's language level instead of `5.4`.
+- `PlatformLibraryProvider` no longer returns the target's standard library; `LuaLibraryProvider`
+  is its only provider, titled by the target (`Lua 5.1`, or `Redis 7+` for a host target) with
+  *standard library* as its location.
+- Each search-path directory outside the project is its own `SearchPathLibrary`, titled by its
+  path (home shown as `~`) with *Lua search path* as its location.
+- `DEFAULT_SOURCE_PATH` writes the version as `{LUA_VERSION}` (`PathConfiguration.LUA_VERSION_MACRO`),
+  which `LuaProjectSettings.State.expandLuaPath` replaces with the target's `major.minor`. It is not
+  written `$LUA_VERSION$`, because the IDE reports any `$NAME$` in stored settings as an undefined
+  path variable.
+- Pointing the default path at the target's real tree exposed a resolution flaw. The module
+  resolver's file-name fallback accepted any `util.lua` for a bare `require("util")`, so with
+  busted installed it resolved to `luassert/util.lua`. Each search-path directory outside the
+  project now gets TARGET-12's rule for the runtime root: a module resolves only to the file at its
+  relative path (`PlatformLibraryIndex.searchPathRoots`, `resolveModuleCandidates`).
 
 ## 5. Test Strategy
-Light-fixture tests over `AdditionalLibraryRootsProvider.EP_NAME` extensions: the stdlib root
-appears in exactly one library; two search-path directories with the same last segment give two
-distinctly labelled libraries; a 5.1 target with no source path yields `5.1` default directories.
+`ExternalLibrariesPresentationTest`: across every `AdditionalLibraryRootsProvider`, the standard
+library's root is in exactly one library; two search-path directories both named `5.4` give two
+differently titled libraries; a 5.1 target with the default search path yields `5.1` directories and
+no `5.4`. `SearchPathRequireTest`: in a search-path directory holding `luassert/util.lua`, a bare
+`require("util")` does not reach it and `require("luassert.util")` does. It fails when the
+search-path directories are not held to the exact-path rule.

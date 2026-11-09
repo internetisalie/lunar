@@ -56,8 +56,8 @@ class LibraryProviderTest {
             assertTrue(roots54.first().path.endsWith("runtime/standard/lua-5.4"))
 
             // Verify presentation properties
-            assertEquals("Lua External API Stubs", library54.presentableText)
-            assertEquals("Lua Stubs", library54.locationString)
+            assertEquals("Lua 5.4", library54.presentableText)
+            assertEquals("standard library", library54.locationString)
             assertNotNull(library54.getIcon(false))
 
             // Set to 5.1

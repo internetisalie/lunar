@@ -44,11 +44,13 @@ fun resolveModuleCandidates(
             FilenameIndex.getVirtualFilesByName(moduleName.substringAfterLast('.') + ".lua", scope) +
                 FilenameIndex.getVirtualFilesByName("init.lua", scope)
 
-        val runtimeRoot = PlatformLibraryIndex.getPlatformLibraryFolder(project)
+        val strictRoots =
+            listOfNotNull(PlatformLibraryIndex.getPlatformLibraryFolder(project)) +
+                PlatformLibraryIndex.searchPathRoots(project)
         for (virtualFile in byName) {
             val path = virtualFile.path
             val accepted =
-                runtimeRootVerdict(virtualFile, runtimeRoot, moduleName)
+                strictRoots.firstNotNullOfOrNull { runtimeRootVerdict(virtualFile, it, moduleName) }
                     ?: (
                         path.endsWith(expectedPathPart) ||
                             path.endsWith(expectedInitPathPart) ||
@@ -61,7 +63,8 @@ fun resolveModuleCandidates(
     }
 
 /**
- * TARGET-12 (design §1.1): inside the active runtime root, a module resolves only to the file at
+ * TARGET-12 (design §1.1): inside the active runtime root, and inside each search-path directory
+ * outside the project (BUG-60), a module resolves only to the file at
  * its relative path, `<a/b>.lua` or `<a/b>/init.lua`, so a bare `require("util")` cannot land on a
  * nested stub such as `luajit-2.1/jit/util.lua`. True or false for a candidate inside the active
  * runtime root; null when the rule does not apply.

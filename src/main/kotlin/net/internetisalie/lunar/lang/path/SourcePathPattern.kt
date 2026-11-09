@@ -2,14 +2,16 @@ package net.internetisalie.lunar.lang.path
 
 import com.intellij.openapi.project.Project
 import net.internetisalie.lunar.settings.LuaProjectSettings
-import net.internetisalie.lunar.settings.expandMacros
 
 data object PathConfiguration {
+    /** Stands for the target's `major.minor` Lua version in a search path (BUG-60). */
+    const val LUA_VERSION_MACRO = "{LUA_VERSION}"
+
     const val DEFAULT_SOURCE_PATH =
-        "/usr/local/share/lua/5.4/?.lua;" +
-            "/usr/local/share/lua/5.4/?/init.lua;" +
-            "/usr/local/lib/lua/5.4/?.lua;" +
-            "/usr/local/lib/lua/5.4/?/init.lua;" +
+        "/usr/local/share/lua/$LUA_VERSION_MACRO/?.lua;" +
+            "/usr/local/share/lua/$LUA_VERSION_MACRO/?/init.lua;" +
+            "/usr/local/lib/lua/$LUA_VERSION_MACRO/?.lua;" +
+            "/usr/local/lib/lua/$LUA_VERSION_MACRO/?/init.lua;" +
             "\$PROJECT_DIR$/?.lua;" +
             "\$PROJECT_DIR$/?/init.lua"
 
@@ -39,7 +41,7 @@ data object PathConfiguration {
         val luaPath =
             state
                 .expandSourcePath(project)
-                .ifEmpty { DEFAULT_SOURCE_PATH.expandMacros(project) }
+                .ifEmpty { state.expandLuaPath(DEFAULT_SOURCE_PATH, project) }
         return SourcePathPattern.patternsFromLuaPath(luaPath)
     }
 }

@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **External Libraries is easier to read** (BUG-60). The standard library appeared twice, under two
+  names, and the search-path directories appeared as bare, identical `5.4` folders whatever the
+  project's Lua version. The standard library is now listed once, titled by the target, and each
+  search-path directory is listed by its path. The default search path follows the target's version.
 - **Rockspecs are evaluated only in a trusted project, and only as data** (BUG-50). Lunar ran every
   `.rockspec` in a project as soon as it was opened, with the whole standard library available, so a
   rockspec could run commands or write files. It now evaluates rockspecs only after you trust the

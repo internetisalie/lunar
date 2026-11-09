@@ -102,7 +102,20 @@ class LuaProjectSettings(
          */
         var rocksServerUrl: String = ""
 
-        fun expandSourcePath(project: Project): String = sourcePath.trim(' ').expandMacros(project)
+        fun expandSourcePath(project: Project): String = expandLuaPath(sourcePath.trim(' '), project)
+
+        /** Expands [PathConfiguration.LUA_VERSION_MACRO] to the target's version, then the IDE path macros. */
+        fun expandLuaPath(
+            luaPath: String,
+            project: Project,
+        ): String {
+            val level = getTarget().getImplicitLanguageLevel()
+            return luaPath
+                .replace(
+                    PathConfiguration.LUA_VERSION_MACRO,
+                    "${level.major}.${level.minor}",
+                ).expandMacros(project)
+        }
 
         private fun buildDefaultTarget(): Target {
             val defaultPlatform = LuaPlatform.STANDARD

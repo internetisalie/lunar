@@ -25,6 +25,7 @@ import com.intellij.openapi.roots.AdditionalLibraryRootsProvider
 import com.intellij.openapi.roots.SyntheticLibrary
 import com.intellij.openapi.roots.ex.ProjectRootManagerEx
 import com.intellij.openapi.util.EmptyRunnable
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.stubs.StubIndex
@@ -38,78 +39,29 @@ import java.nio.file.Paths
 import javax.swing.Icon
 
 class PlatformLibraryProvider : AdditionalLibraryRootsProvider() {
+    /**
+     * One library per search-path directory outside the project. The target's standard library is
+     * [net.internetisalie.lunar.lang.library.LuaLibraryProvider]'s alone, so it is not listed twice (BUG-60).
+     */
     override fun getAdditionalProjectLibraries(project: Project): Collection<SyntheticLibrary> =
-        listOf(
-            getExternalLibraries(project),
-            getSupportLibraries(project),
-        ).flatten()
+        PlatformLibraryIndex.searchPathRoots(project).map { SearchPathLibrary(it) }
 
-    fun getSupportLibraries(project: Project): Collection<SyntheticLibrary> {
-        val (level, platformDirectoryVirtualFile) =
-            PlatformLibraryIndex.getPlatformLibrary(project)
-                ?: return emptyList()
-        return listOf(PlatformLibrary(level, platformDirectoryVirtualFile))
-    }
-
-    fun getExternalLibraries(project: Project): Collection<SyntheticLibrary> {
-        val projectBasePath = project.basePath ?: return emptyList()
-
-        val virtualFiles =
-            PathConfiguration
-                .getStaticSourcePathPatterns(project)
-                .map { it.leadingPath }
-                .distinct()
-                .map { it -> Paths.get(it) }
-                .filter { it.isAbsolute }
-                .filter { !it.startsWith(projectBasePath) }
-                .mapNotNull { VfsUtil.findFile(it, false) }
-                .toTypedArray()
-
-        if (virtualFiles.isEmpty()) return emptyList()
-
-        return listOf<SyntheticLibrary>(
-            ExternalLibraries("Search Trees", *virtualFiles),
-        )
-    }
-
-    class PlatformLibrary(
-        private val level: LuaLanguageLevel,
+    /** A directory on the Lua search path, named by its full path so two `…/5.4` roots stay distinct. */
+    class SearchPathLibrary(
         private val root: VirtualFile,
     ) : SyntheticLibrary(),
         ItemPresentation {
-        private val roots = listOf(root)
-
         override fun hashCode() = root.hashCode()
 
-        override fun equals(other: Any?): Boolean = other is PlatformLibrary && other.root == root
+        override fun equals(other: Any?): Boolean = other is SearchPathLibrary && other.root == root
 
-        override fun getSourceRoots() = roots
+        override fun getSourceRoots() = listOf(root)
 
-        override fun getLocationString() = "Lua Standard Library"
-
-        override fun getIcon(p0: Boolean): Icon = LuaIcons.FILE
-
-        override fun getPresentableText() = level.toString()
-    }
-
-    class ExternalLibraries(
-        val name: String,
-        vararg root: VirtualFile,
-    ) : SyntheticLibrary(),
-        ItemPresentation {
-        private val roots = listOf(*root)
-
-        override fun hashCode() = roots.hashCode()
-
-        override fun equals(other: Any?): Boolean = other is ExternalLibraries && other.roots == roots
-
-        override fun getSourceRoots() = roots
-
-        override fun getLocationString() = name
+        override fun getLocationString() = "Lua search path"
 
         override fun getIcon(p0: Boolean): Icon = LuaIcons.FILE
 
-        override fun getPresentableText() = name
+        override fun getPresentableText(): String = FileUtil.getLocationRelativeToUserHome(root.presentableUrl)
     }
 }
 
@@ -117,6 +69,18 @@ object PlatformLibraryIndex {
     fun getPlatformLibraryFolder(project: Project): VirtualFile? {
         val (_, folder) = getPlatformLibrary(project) ?: return null
         return folder
+    }
+
+    /** The existing search-path directories outside the project (BUG-60). */
+    fun searchPathRoots(project: Project): List<VirtualFile> {
+        val projectBasePath = project.basePath ?: return emptyList()
+        return PathConfiguration
+            .getStaticSourcePathPatterns(project)
+            .map { it.leadingPath }
+            .distinct()
+            .map { Paths.get(it) }
+            .filter { it.isAbsolute && !it.startsWith(projectBasePath) }
+            .mapNotNull { VfsUtil.findFile(it, false) }
     }
 
     fun getPlatformLibrary(project: Project): Pair<LuaLanguageLevel, VirtualFile>? {
