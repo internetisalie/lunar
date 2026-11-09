@@ -98,4 +98,25 @@ class LuaRocksDependencyResolverForestTest : BasePlatformTestCase() {
                 ?: error("Expected a 'ghost' child node, got ${root.children.map { it.packageName }}")
         assertNull("Unresolved (not installed) dependency must be a missing root", ghost.resolvedVersion)
     }
+
+    fun testProjectRootIsNeverMissingAndLuaIsCheckedAgainstTheRuntime() {
+        tempFixture.createFile(
+            "app-1.2-1.rockspec",
+            "package = \"app\"\nversion = \"1.2-1\"\nsource = { url = \"x\" }\ndependencies = { \"lua >= 5.1\", \"ghost\" }\n",
+        )
+        registerContentRoot()
+        if (!luaAvailable()) return
+
+        val root = LuaRocksDependencyResolver.resolveAll(project).single()
+        VersionConflictEngine.annotate(root)
+        val lua = root.children.single { it.packageName == "lua" }
+        val ghost = root.children.single { it.packageName == "ghost" }
+
+        assertEquals("1.2-1", root.resolvedVersion?.raw)
+        assertEquals("app-1.2-1.rockspec", root.location)
+        assertTrue("a project rock is never missing (BUG-54): ${root.conflicts}", root.conflicts.isEmpty())
+        assertEquals("5.4", lua.resolvedVersion?.raw)
+        assertTrue("lua >= 5.1 holds for runtime 5.4: ${lua.conflicts}", lua.conflicts.isEmpty())
+        assertTrue("a rock nobody installed is still missing", ghost.conflicts.isNotEmpty())
+    }
 }

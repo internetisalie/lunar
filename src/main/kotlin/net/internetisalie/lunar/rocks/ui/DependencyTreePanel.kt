@@ -208,12 +208,7 @@ class DependencyTreePanel(
             val node = (value as? DefaultMutableTreeNode)?.userObject as? DependencyNode
             if (node != null) {
                 icon = if (node.hasConflicts) AllIcons.General.Warning else LuaIcons.ROCKSPEC
-                text =
-                    buildString {
-                        append(node.packageName)
-                        node.resolvedVersion?.let { append(" ").append(it.raw) } ?: append(" (missing)")
-                        if (node.isCycle) append(" (cycle)")
-                    }
+                text = DependencyLabels.treeText(node)
             }
             return this
         }

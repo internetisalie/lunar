@@ -46,13 +46,9 @@ class DependencyInspectorPanel : JPanel(CardLayout()) {
         buildString {
             append("<html><body style='font-family:sans-serif'>")
             append("<h3>").append(escape(node.packageName)).append("</h3>")
-            append("<p><b>Version:</b> ")
-                .append(
-                    node.resolvedVersion?.raw?.let {
-                        escape(it)
-                    } ?: "<i>not installed</i>",
-                ).append("</p>")
-            append("<p><b>Scope:</b> ").append(if (node.isTransitive) "transitive" else "direct").append("</p>")
+            append("<p><b>Version:</b> ").append(escape(DependencyLabels.versionText(node))).append("</p>")
+            node.location?.let { append("<p><b>Rockspec:</b> ").append(escape(it)).append("</p>") }
+            append("<p><b>Scope:</b> ").append(DependencyLabels.scopeText(node)).append("</p>")
             appendList("Constraints", node.requiredConstraints.map { "${it.op.token} ${it.version.raw}" })
             appendList("Required by", node.requiredBy.map { it.packageName })
             if (node.conflicts.isNotEmpty()) {

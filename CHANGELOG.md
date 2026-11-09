@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The dependency tree knows your own rocks and the Lua runtime** (BUG-54). Each rock developed in
+  the project was flagged as *required but not installed*, and its `lua >= 5.1` entry was looked up
+  as an installed rock. A project rock now shows its rockspec's version and path and is never
+  flagged, and the `lua` entry is checked against the configured runtime's version.
 - **A rock with several rockspecs is one rock** (BUG-53). A project holding a development rockspec
   beside a `rockspecs/` archive of releases showed every archived version as a separate rock, and
   derived module search roots from the archive. Lunar now keeps one rockspec per package: the

@@ -3,11 +3,13 @@ package net.internetisalie.lunar.rocks
 import net.internetisalie.lunar.rocks.deps.ConflictInfo
 import net.internetisalie.lunar.rocks.deps.ConflictType
 import net.internetisalie.lunar.rocks.deps.ConstraintOp
+import net.internetisalie.lunar.rocks.deps.DependencyKind
 import net.internetisalie.lunar.rocks.deps.DependencyNode
 
 /**
  * Annotates a resolved dependency tree with [ConflictInfo] markers.
  *
+ * A project rock is never checked, and `lua` is checked only when a runtime is configured (BUG-54).
  * Detects three problems: a missing install (no resolved version), an installed version that
  * violates a required constraint, and a constraint set that is internally unsatisfiable even when
  * nothing is installed (e.g. `>= 2.0` together with `< 1.5`).
@@ -18,9 +20,10 @@ object VersionConflictEngine {
     }
 
     private fun annotateNode(node: DependencyNode) {
-        if (node.isCycle) return
+        if (node.isCycle || node.kind == DependencyKind.PROJECT) return
         val constraints = node.requiredConstraints
         val resolved = node.resolvedVersion
+        if (resolved == null && node.kind == DependencyKind.RUNTIME) return
         if (resolved == null) {
             node.conflicts +=
                 ConflictInfo(

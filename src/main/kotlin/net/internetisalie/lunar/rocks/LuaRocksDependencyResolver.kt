@@ -1,8 +1,16 @@
 package net.internetisalie.lunar.rocks
 
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFile
+import net.internetisalie.lunar.rocks.deps.DependencyKind
 import net.internetisalie.lunar.rocks.deps.DependencyNode
 import net.internetisalie.lunar.rocks.deps.DependencySpec
+import net.internetisalie.lunar.rocks.deps.LuaRocksVersion
+import net.internetisalie.lunar.toolchain.resolve.LuaToolResolver
 import java.nio.file.Path
 
 /**
@@ -38,7 +46,14 @@ object LuaRocksDependencyResolver {
         val rootData = RockspecBridge.read(project, rockspec) ?: return null
         val context = ResolutionContext(project, installed)
         val rootKey = rootData.packageName.lowercase()
-        val root = DependencyNode(rootData.packageName, isTransitive = false)
+        val root =
+            DependencyNode(
+                rootData.packageName,
+                isTransitive = false,
+                resolvedVersion = rootData.version?.let { LuaRocksVersion.parse(it) },
+                kind = DependencyKind.PROJECT,
+                location = projectRelative(project, rockspec),
+            )
         context.seen[rootKey] = root
         expand(root, rootData.dependencies, context, visiting = setOf(rootKey), parentIsRoot = true)
         return root
@@ -70,6 +85,7 @@ object LuaRocksDependencyResolver {
         isTransitive: Boolean,
     ): DependencyNode {
         val key = spec.packageName.lowercase()
+        if (key == RUNTIME_PACKAGE) return context.seen.getOrPut(key) { runtimeNode(spec, context, isTransitive) }
         if (key in visiting) {
             return DependencyNode(spec.packageName, isTransitive, isCycle = true)
         }
@@ -99,6 +115,36 @@ object LuaRocksDependencyResolver {
         val data = RockspecBridge.read(context.project, rock.rockspec) ?: return
         expand(child, data.dependencies, context, visiting + key, parentIsRoot = false)
     }
+
+    /** `lua` names the interpreter, not a rock: its version is the configured runtime's (BUG-54). */
+    private fun runtimeNode(
+        spec: DependencySpec,
+        context: ResolutionContext,
+        isTransitive: Boolean,
+    ): DependencyNode {
+        val version = LuaToolResolver.getInstance().resolveRuntime(context.project)?.luaVersion
+        return DependencyNode(
+            spec.packageName,
+            isTransitive,
+            resolvedVersion = version?.let { LuaRocksVersion.parse(it) },
+            kind = DependencyKind.RUNTIME,
+        )
+    }
+
+    /** The rockspec's path relative to its content root, or its absolute path outside the project. */
+    private fun projectRelative(
+        project: Project,
+        rockspec: Path,
+    ): String {
+        val file = LocalFileSystem.getInstance().findFileByNioFile(rockspec) ?: return rockspec.toString()
+        val root =
+            ReadAction.compute<VirtualFile?, RuntimeException> {
+                ProjectFileIndex.getInstance(project).getContentRootForFile(file)
+            } ?: return rockspec.toString()
+        return VfsUtilCore.getRelativePath(file, root) ?: rockspec.toString()
+    }
+
+    private const val RUNTIME_PACKAGE = "lua"
 
     private class ResolutionContext(
         val project: Project,
