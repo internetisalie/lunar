@@ -103,6 +103,11 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | SYNTAX-19 | Shebang file-type detection — extensionless `#!…lua` scripts open as Lua (own detector, not `hashBangs`) | todo | S | — | — | ✓ |
 | BUG-40 | A `table`-, class- or record-typed parameter declared in another file accepts a function (`pairs(function() end)`) | todo | S | — | found by MAINT-54's false-negative audit: 64 of 65 sites silent; the survey's mechanism A | ✓ |
 | BUG-41 | Arguments to a function or method of a `require`d project module are not type-checked | todo | S | — | found by MAINT-54's false-negative audit: lazynvim `Loader.ftdetect(true)` silent; a global table's member reports | ✓ |
+| BUG-70 | A truthiness or early-return guard (`if t then`, `if not t then return end`, `t and t:m()`) does not narrow away nil | todo | S | — | found by MAINT-55 DR-07; blocks re-measuring the `uncertain-nil` deviation | ✓ |
+| BUG-71 | A colon method's `self` receiver reads as possibly nil (281 of 1180 DR-07 reports) | todo | S | — | found by MAINT-55 DR-07; blocks re-measuring the `uncertain-nil` deviation | ✓ |
+| BUG-72 | An unannotated parameter takes nil from a caller in the same file instead of reading as `any` | todo | S | — | found by MAINT-55 DR-07; blocks re-measuring the `uncertain-nil` deviation | ✓ |
+| BUG-73 | An `a and b or c` value keeps a nil arm despite the `or` default | todo | S | — | found by MAINT-55 DR-07; blocks re-measuring the `uncertain-nil` deviation | ✓ |
+| BUG-74 | A `@class` method reads as `fun(a) \| fun()`, so a correct call is checked against the empty arm | todo | S | — | found by MAINT-55 DR-07: 113 of 129 `undeclared-arity` reports | ✓ |
 | BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
 | BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
 | BUG-44 | Assigning a wrong value to a class `@field` (`self.b = 'x'` for a `boolean`) is reported only as a hypothesis | todo | S | — | found by MAINT-54's false-negative audit | ✓ |
