@@ -112,6 +112,21 @@ class PackageDetailPane(
     fun showInstalled(row: InstalledRockRow) =
         showPackage(LuaRockRow(installedPackage(row), installed = true), listOf(row.version))
 
+    /**
+     * Offers every available [versions] of the installed [row], newest first, and Update when the
+     * installed version is older than the newest (BUG-65). Does not reload the metadata.
+     */
+    fun showAvailableVersions(
+        row: InstalledRockRow,
+        versions: List<String>,
+    ) {
+        if (versions.isEmpty() || currentRow?.pkg?.name != row.name) return
+        versionPicker.model = DefaultComboBoxModel(versions.toTypedArray())
+        versionPicker.selectedItem = row.version
+        val outdated = LuaRocksUpdateDetector.hasUpdate(row.version, versions.first())
+        renderActionFor(LuaRockRow(installedPackage(row), installed = true, hasUpdate = outdated, versions = versions))
+    }
+
     fun showEmpty() {
         currentRow = null
         cards.show(this, EMPTY)
@@ -244,7 +259,10 @@ class PackageDetailPane(
         beginProgress("Updating…")
         executor.install(InstallRequest(row.pkg.name, null, treeRoot)) { success ->
             endProgress(success, "Updated.", "Update failed.")
-            if (success) model.onInstallSucceeded(row.pkg.name)
+            if (success) {
+                renderActionFor(row.copy(installed = true, hasUpdate = false))
+                model.onInstallSucceeded(row.pkg.name)
+            }
         }
     }
 
@@ -256,7 +274,10 @@ class PackageDetailPane(
         val version = versionPicker.selectedItem as? String
         executor.install(InstallRequest(row.pkg.name, version, treeRoot)) { success ->
             endProgress(success, "Installed.", "Install failed.")
-            if (success) model.onInstallSucceeded(row.pkg.name)
+            if (success) {
+                renderActionFor(row.copy(installed = true, hasUpdate = isOutdated(version, row)))
+                model.onInstallSucceeded(row.pkg.name, version)
+            }
         }
     }
 
@@ -267,9 +288,19 @@ class PackageDetailPane(
         beginProgress("Removing…")
         executor.remove(row.pkg.name, treeRoot) { success ->
             endProgress(success, "Removed.", "Remove failed.")
-            if (success) model.onRemoveSucceeded(row.pkg.name)
+            if (success) {
+                renderActionFor(row.copy(installed = false, hasUpdate = false))
+                model.onRemoveSucceeded(row.pkg.name)
+            }
         }
     }
+
+    /** True when the installed [version] is older than the newest [row] offers (BUG-65). */
+    private fun isOutdated(
+        version: String?,
+        row: LuaRockRow,
+    ): Boolean =
+        version != null && LuaRocksUpdateDetector.hasUpdate(version, row.versions.firstOrNull() ?: row.pkg.version)
 
     private fun beginProgress(label: String) {
         statusLabel.text = label
@@ -283,7 +314,6 @@ class PackageDetailPane(
     ) {
         statusLabel.text = if (success) ok else fail
         actionButton.isEnabled = true
-        currentRow?.let { renderActionFor(it.copy(installed = if (success) !it.installed else it.installed)) }
     }
 
     private fun renderActionFor(row: LuaRockRow) {

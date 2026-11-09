@@ -27,10 +27,8 @@ Paths are under `docs/features/`.
 
 ### Editor surfaces
 
-- [ ] **ROCKS-16** package browser (`rocks/16-package-browser-redesign`). All 8 results blank;
-  ROCKS-16-01, 03, 04, 06, 07, 09, 10, 12, 14 and 15 read "Full (VNC pending)"; DR-01 and DR-04
-  "awaiting VNC gate". Flows: open both tool windows, search, select, Installed tab, Update badge,
-  Popular list, dependency click, version picker, Add-to-rockspec.
+- [x] **ROCKS-16** package browser (`rocks/16-package-browser-redesign`). Run 2026-11-09: all 8
+  scenarios pass, after BUG-64–BUG-69, which the run found.
 - [ ] **COMP-09** member enumeration (`completion/09-member-enumeration`). 16 of 18 results blank;
   only 1.1 and 2.3 were run.
 - [ ] **TYPE-08** flow-sensitive narrowing (`type/08-flow-sensitive`). 9 results blank.
@@ -124,7 +122,6 @@ recorded results copied into the checklist, not a new run.
 
 ## 3. To resolve before running
 
-- Which ROCKS-16 flows the BUG-448/449 live audit already covered.
 - Which BUG-381 step was not reached.
 - Whether TOOLING-06's live sign-off covered TOOLING-05's handed-over gate and terminal PATH.
 - MAINT-34 and MAINT-35 result lines, and the inlay-hint settings items in

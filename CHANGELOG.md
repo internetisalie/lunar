@@ -2,6 +2,15 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The packages browser keeps up with what you install** (BUG-64, BUG-65, BUG-66, BUG-69). The
+  Installed tab lists each rock as `name  version` and refreshes after an install, update or
+  uninstall. An installed rock with a newer version shows an update marker and an Update button in
+  both tabs. An error replaces stale search results.
+- **Rocks with computed rockspecs are described** (BUG-68). A rock whose rockspec builds its fields
+  from variables, such as `luacheck`, showed no license, homepage or dependencies. Its rockspec is
+  now evaluated in an empty environment to read them.
+- **The dependency tool window is named on its stripe** (BUG-67). Until first opened, its stripe
+  button read *LuaRocks*; it now reads *LuaRocks Dependencies*.
 - **Lua tools on your PATH are found on first use** (BUG-63). Until you clicked *Discover* in the
   Toolchain settings, Lunar acted as if no Lua was installed, even with `lua` and `luarocks` on
   `PATH`. The first time a project opens with no tools registered, Lunar now discovers them and

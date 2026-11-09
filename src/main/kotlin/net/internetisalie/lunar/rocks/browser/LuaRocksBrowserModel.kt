@@ -24,6 +24,7 @@ class LuaRocksBrowserModel(
     }
 
     private var requestId: Long = 0
+    private var installedRequestId: Long = 0
     private var marketplaceRows: MutableList<LuaRockRow> = mutableListOf()
 
     /** The current Marketplace rows (read-only view for the panel/tests). */
@@ -51,25 +52,61 @@ class LuaRocksBrowserModel(
 
     /** Loads the Installed tab; no tree → [BrowserState.NoTree] (design §3.3 Installed / §4.1). */
     fun loadInstalled() {
-        val treeRoot =
-            backend.resolveTree() ?: run {
-                post(BrowserState.NoTree)
-                return
-            }
-        val id = beginRequest()
-        backend.runInBackground { fetchInstalled(treeRoot, id) }
+        if (backend.resolveTree() == null) {
+            post(BrowserState.NoTree)
+            return
+        }
+        refreshInstalled()
     }
 
-    /** Flips the matching Marketplace row to installed in place and invalidates the cache (design §3.4). */
-    fun onInstallSucceeded(name: String) {
+    /**
+     * Marks the Marketplace row installed, with an update when the installed [version] is older than
+     * the newest (BUG-65), and re-lists the Installed tab (BUG-66). A null version is the latest.
+     */
+    fun onInstallSucceeded(
+        name: String,
+        version: String? = null,
+    ) {
         LuaRocksSearchCache.invalidateAll()
-        flipRow(name, installed = true)
+        updateRow(name) { row ->
+            val outdated =
+                version != null &&
+                    LuaRocksUpdateDetector.hasUpdate(version, row.versions.firstOrNull() ?: row.pkg.version)
+            row.copy(installed = true, hasUpdate = outdated)
+        }
+        refreshInstalled()
     }
 
-    /** Flips the matching Marketplace row to not-installed in place and invalidates the cache. */
+    /** Marks the Marketplace row not installed and re-lists the Installed tab (BUG-66). */
     fun onRemoveSucceeded(name: String) {
         LuaRocksSearchCache.invalidateAll()
-        flipRow(name, installed = false)
+        updateRow(name) { it.copy(installed = false, hasUpdate = false) }
+        refreshInstalled()
+    }
+
+    /** Every version of [name] the rocks server offers, newest first, delivered on the EDT (BUG-65). */
+    fun availableVersions(
+        name: String,
+        onResult: (List<String>) -> Unit,
+    ) {
+        val treeRoot = backend.resolveTree()
+        backend.runInBackground {
+            val versions =
+                runCatching { backend.search(name, treeRoot) }
+                    .getOrDefault(emptyList())
+                    .filter { it.name == name }
+                    .map { it.version }
+                    .distinct()
+                    .sortedByDescending { LuaRocksVersion.parse(it) }
+            backend.onEdt { onResult(versions) }
+        }
+    }
+
+    /** Re-lists the Installed tab under its own request id, so it never cancels a Marketplace search. */
+    private fun refreshInstalled() {
+        val treeRoot = backend.resolveTree() ?: return
+        val id = ++installedRequestId
+        backend.runInBackground { fetchInstalled(treeRoot, id) }
     }
 
     private fun fetchSearch(
@@ -157,19 +194,19 @@ class LuaRocksBrowserModel(
         outcome: Result<List<InstalledRockRow>>,
         id: Long,
     ) {
-        if (id != requestId) return
+        if (id != installedRequestId) return
         outcome
             .onSuccess { listener.onState(BrowserState.Installed(it)) }
             .onFailure { listener.onState(BrowserState.Error(messageOf(it))) }
     }
 
-    private fun flipRow(
+    private fun updateRow(
         name: String,
-        installed: Boolean,
+        transform: (LuaRockRow) -> LuaRockRow,
     ) {
         val index = marketplaceRows.indexOfFirst { it.pkg.name == name }
         if (index < 0) return
-        marketplaceRows[index] = marketplaceRows[index].copy(installed = installed)
+        marketplaceRows[index] = transform(marketplaceRows[index])
         listener.onRowChanged(index)
     }
 

@@ -14,15 +14,26 @@ import com.intellij.ui.content.ContentFactory
 class LuaRocksToolWindowFactory :
     ToolWindowFactory,
     DumbAware {
+    /**
+     * The stripe title is set when the tool window registers, not when its content is first
+     * created: until then the stripe would show the registration id (BUG-67).
+     */
+    override fun init(toolWindow: ToolWindow) {
+        toolWindow.stripeTitle = TITLE
+    }
+
     override fun createToolWindowContent(
         project: Project,
         toolWindow: ToolWindow,
     ) {
-        toolWindow.stripeTitle = "LuaRocks Dependencies"
-        toolWindow.title = "LuaRocks Dependencies"
+        toolWindow.title = TITLE
         val panel = DependencyTreePanel(project)
         val content = ContentFactory.getInstance().createContent(panel, "", false)
         toolWindow.contentManager.addContent(content)
         ApplicationManager.getApplication().invokeLater { panel.refresh() }
+    }
+
+    private companion object {
+        const val TITLE = "LuaRocks Dependencies"
     }
 }

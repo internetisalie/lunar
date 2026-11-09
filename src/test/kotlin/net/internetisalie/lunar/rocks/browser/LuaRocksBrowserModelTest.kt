@@ -156,6 +156,50 @@ class LuaRocksBrowserModelTest {
     }
 
     @Test
+    fun `installing an older version flags an update, and the Installed tab is re-listed (BUG-65, BUG-66)`() {
+        val results = listOf(pkg("inspect", "3.1.2-0"), pkg("inspect", "3.1.3-0"))
+        var installed = emptyList<InstalledRockRow>()
+        val backend = FakeBackend(tree, { results }, { installed })
+        val listener = RecordingListener()
+        val model = LuaRocksBrowserModel(backend, listener)
+        model.runMarketplaceSearch("inspect")
+        backend.drain()
+
+        installed = listOf(InstalledRockRow("inspect", "3.1.2-0"))
+        model.onInstallSucceeded("inspect", "3.1.2-0")
+        backend.drain()
+
+        assertTrue("3.1.2-0 is older than 3.1.3-0", model.currentRows.single().hasUpdate)
+        assertEquals(BrowserState.Installed(installed), listener.states.last())
+    }
+
+    @Test
+    fun `removing a rock clears its update and re-lists the Installed tab (BUG-66)`() {
+        val backend = FakeBackend(tree, { listOf(pkg("inspect", "3.1.3-0", installed = true)) }, { emptyList() })
+        val listener = RecordingListener()
+        val model = LuaRocksBrowserModel(backend, listener)
+        model.runMarketplaceSearch("inspect")
+        backend.drain()
+
+        model.onRemoveSucceeded("inspect")
+        backend.drain()
+
+        assertTrue(!model.currentRows.single().installed)
+        assertEquals(BrowserState.Installed(emptyList()), listener.states.last())
+    }
+
+    @Test
+    fun `available versions are one package's, newest first (BUG-65)`() {
+        val results = listOf(pkg("inspect", "3.1.2-0"), pkg("inspect-tl-type", "9.0-1"), pkg("inspect", "3.1.10-0"))
+        val backend = FakeBackend(tree, { results })
+        var versions: List<String>? = null
+        LuaRocksBrowserModel(backend, RecordingListener()).availableVersions("inspect") { versions = it }
+        backend.drain()
+
+        assertEquals(listOf("3.1.10-0", "3.1.2-0"), versions)
+    }
+
+    @Test
     fun `a not-installed rock is never flagged hasUpdate`() {
         val backend = FakeBackend(tree, { listOf(pkg("inspect", "3.1.2-0"), pkg("inspect", "3.1.3-0")) })
         val listener = RecordingListener()

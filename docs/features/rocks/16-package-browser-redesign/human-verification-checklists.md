@@ -22,7 +22,7 @@ Run via the `verify-in-ide` VNC flow against the containerized GoLand with a Lua
   3. Open the LuaRocks Dependencies tool window (ROCKS-03) and refresh.
 - **Expected**: the rock appears under the project `lua_modules/` tree AND in the dependency tree /
   External Libraries — not in the binary's default global tree.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass (2026-11-09): `inspect` 3.1.2-0 landed in `test/lua_modules/lib/luarocks/rocks-5.1/`, not the global tree.
 
 ## 2. Two-tab surface & differentiation
 
@@ -31,13 +31,13 @@ Run via the `verify-in-ide` VNC flow against the containerized GoLand with a Lua
 - **Steps**: open the browser; note the two tabs and the north strip showing the active tree path.
 - **Expected**: Marketplace + Installed tabs render in the Plugins idiom; the strip shows
   `.../lua_modules`.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass (2026-11-09).
 
 ### Scenario 2.2: Tool-window names are unambiguous (BUG-366)
 - **Steps**: hover both tool-window stripes.
 - **Expected**: browser stripe reads "LuaRocks Packages"; dependency stripe reads
   "LuaRocks Dependencies"; tooltips describe each role.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass (2026-11-09, after BUG-67): before the fix the dependency stripe read *LuaRocks*.
 
 ## 3. Detail pane parity (BUG-363/365/367/368)
 
@@ -49,7 +49,7 @@ Run via the `verify-in-ide` VNC flow against the containerized GoLand with a Lua
 - **Expected**: empty state is a centered `JBPanelWithEmptyText` ("No package selected"), not a
   `(no package selected)` label; selected detail uses the standard UI font on a consistent grid;
   dependencies render as a list; clicking a dependency selects/searches it.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass (2026-11-09, after BUG-68): double-clicking `argparse` in `luacheck`'s dependencies searches it.
 
 ## 4. Honest error state
 
@@ -58,7 +58,7 @@ Run via the `verify-in-ide` VNC flow against the containerized GoLand with a Lua
 - **Steps**: search any term.
 - **Expected**: the panel shows an error state with the not-configured message and a Configure
   link that opens Settings → Languages & Frameworks → Lua → Toolchain. NOT "No packages found".
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass (2026-11-09, after BUG-69): before the fix the previous results stayed listed beside the error.
 
 ## 5. Installed tab & in-place refresh
 
@@ -66,12 +66,12 @@ Run via the `verify-in-ide` VNC flow against the containerized GoLand with a Lua
 - **Steps**: open the Installed tab (no query); uninstall a rock inline.
 - **Expected**: installed rocks list immediately; uninstall drops the row in place without a
   re-search, and the on-disk tree loses the rock.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass (2026-11-09, after BUG-64/BUG-66): before the fix rows rendered as object text and stayed after uninstall.
 
 ### Scenario 5.2: Install flips Marketplace row in place
 - **Steps**: install a rock from the Marketplace tab and watch its row.
 - **Expected**: the row's installed badge flips immediately (no manual re-search).
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass (2026-11-09).
 
 ## 6. Update affordance (Should)
 
@@ -80,4 +80,4 @@ Run via the `verify-in-ide` VNC flow against the containerized GoLand with a Lua
 - **Steps**: view it in the Installed tab / detail pane.
 - **Expected**: an Update badge + button surfaces; clicking Update installs the latest into the
   same tree.
-- **Result**: ⬜ Pass / ⬜ Fail
+- **Result**: ✅ Pass (2026-11-09, after BUG-65): Update installed 3.1.3-0 into the same tree.

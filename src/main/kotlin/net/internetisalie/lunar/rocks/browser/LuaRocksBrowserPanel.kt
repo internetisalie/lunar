@@ -48,7 +48,7 @@ class LuaRocksBrowserPanel internal constructor(
     private val marketModel = DefaultListModel<LuaRockRow>()
     private val marketList = JBList(marketModel).apply { cellRenderer = MarketCellRenderer() }
     private val installedModel = DefaultListModel<InstalledRockRow>()
-    private val installedList = JBList(installedModel)
+    private val installedList = JBList(installedModel).apply { cellRenderer = InstalledCellRenderer() }
     private val treeLabel = JBLabel()
     internal val initializeLink = ActionLink(PackageDetailPane.INITIALIZE_TREE) { initializeTree() }
     private val treeStrip =
@@ -81,7 +81,7 @@ class LuaRocksBrowserPanel internal constructor(
         when (state) {
             is BrowserState.Results -> renderResults(state.rows)
             is BrowserState.Installed -> renderInstalled(state.rows)
-            is BrowserState.Error -> detailPanes().forEach { it.showError(state.message) }
+            is BrowserState.Error -> showError(state.message)
             is BrowserState.NoTree -> detailPanes().forEach { it.showNoTree() }
             BrowserState.Idle -> showSearchPrompt()
             BrowserState.Loading -> Unit
@@ -143,7 +143,7 @@ class LuaRocksBrowserPanel internal constructor(
         }
         installedList.addListSelectionListener {
             if (it.valueIsAdjusting) return@addListSelectionListener
-            installedList.selectedValue?.let { row -> installedDetail.showInstalled(row) }
+            installedList.selectedValue?.let { row -> showInstalledRow(row) }
         }
     }
 
@@ -162,6 +162,13 @@ class LuaRocksBrowserPanel internal constructor(
         model.runMarketplaceSearch(name)
     }
 
+    /** An error replaces the previous results, which no longer answer the query (BUG-69). */
+    private fun showError(message: String) {
+        marketModel.clear()
+        marketList.emptyText.text = ""
+        detailPanes().forEach { it.showError(message) }
+    }
+
     /** The zero-query state when no popular list could be loaded (BUG-56). */
     private fun showSearchPrompt() {
         marketModel.clear()
@@ -175,8 +182,19 @@ class LuaRocksBrowserPanel internal constructor(
     }
 
     private fun renderInstalled(rows: List<InstalledRockRow>) {
+        val selected = installedList.selectedValue
         installedModel.clear()
         rows.forEach { installedModel.addElement(it) }
+        if (selected == null) return
+        // Re-select by name: an update changes the version, not the rock (BUG-66).
+        rows.firstOrNull { it.name == selected.name }?.let { installedList.setSelectedValue(it, true) }
+            ?: installedDetail.showEmpty()
+    }
+
+    /** Shows an installed rock, then offers its newer versions once the server answers (BUG-65). */
+    private fun showInstalledRow(row: InstalledRockRow) {
+        installedDetail.showInstalled(row)
+        model.availableVersions(row.name) { versions -> installedDetail.showAvailableVersions(row, versions) }
     }
 
     internal fun treeStripText(): String = treeLabel.text
@@ -230,6 +248,24 @@ class LuaRocksBrowserPanel internal constructor(
         }
     }
 
+    /** An installed rock as `name  version`, not its data-class text (BUG-64). */
+    private class InstalledCellRenderer : DefaultListCellRenderer() {
+        override fun getListCellRendererComponent(
+            list: JList<*>,
+            value: Any?,
+            index: Int,
+            isSelected: Boolean,
+            cellHasFocus: Boolean,
+        ): Component {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus)
+            (value as? InstalledRockRow)?.let { row ->
+                text = installedRowText(row)
+                icon = LuaIcons.ROCKSPEC
+            }
+            return this
+        }
+    }
+
     private companion object {
         const val MARKETPLACE_TAB = 0
         const val INSTALLED_TAB = 1
@@ -238,3 +274,6 @@ class LuaRocksBrowserPanel internal constructor(
         const val NO_RESULTS = "No packages found"
     }
 }
+
+/** The Installed tab's text for a rock (BUG-64). */
+internal fun installedRowText(row: InstalledRockRow): String = "${row.name}  ${row.version}"

@@ -22,6 +22,14 @@ class LuaRocksBrowserPanelPopularTest : BasePlatformTestCase() {
         }
     }
 
+    fun `test an error replaces the previous results (BUG-69)`() {
+        val popular = listOf(PopularEntry("luafilesystem", "83,158"))
+        withPanel(SyncBrowserBackend(project, popular)) { panel ->
+            panel.onState(BrowserState.Error("LuaRocks is not configured."))
+            assertEmpty(panel.marketplaceNames())
+        }
+    }
+
     private fun withPanel(
         backend: LuaRocksBrowserBackend,
         assertions: (LuaRocksBrowserPanel) -> Unit,

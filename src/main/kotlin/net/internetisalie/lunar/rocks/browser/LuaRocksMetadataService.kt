@@ -5,6 +5,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
 import net.internetisalie.lunar.rocks.LuaRocksEnvironment
+import net.internetisalie.lunar.rocks.RockspecBridge
 import net.internetisalie.lunar.toolchain.exec.LuaExecTimeout
 import net.internetisalie.lunar.toolchain.exec.LuaToolExecutionService
 
@@ -58,7 +59,7 @@ object LuaRocksMetadataService {
 
     /**
      * Metadata for the detail pane: an installed rock's from `luarocks show`, otherwise the rocks
-     * server's rockspec, read without running it (BUG-58). Null when neither answers.
+     * server's rockspec, read without running it (BUG-58), or evaluated in an empty environment when it computes its fields (BUG-68). Null when neither answers.
      */
     fun describe(
         name: String,
@@ -84,7 +85,24 @@ object LuaRocksMetadataService {
         project: Project,
     ): LuaRockMetadata? {
         val text = downloadRockspec(project, rockspecDownloadArgs(name, version)) ?: return null
-        return runReadActionBlocking { RockspecMetadataReader.read(project, text) }
+        return runReadActionBlocking { RockspecMetadataReader.read(project, text) } ?: evaluated(project, text)
+    }
+
+    /**
+     * A rockspec that computes its fields, evaluated by the bridge in an empty environment, which
+     * reaches no standard library (BUG-50); the literal reader above cannot follow it (BUG-68).
+     */
+    private fun evaluated(
+        project: Project,
+        text: String,
+    ): LuaRockMetadata? {
+        val file = FileUtil.createTempFile("lunar-server", ".rockspec", true)
+        try {
+            file.writeText(text)
+            return RockspecBridge.evaluate(project, file.toPath())?.let { RockspecJsonMetadata.read(it) }
+        } finally {
+            FileUtil.delete(file)
+        }
     }
 
     /** Runs `luarocks download --rockspec` in a fresh temporary directory and returns the file's text. */

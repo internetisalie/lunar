@@ -19,17 +19,23 @@ import java.lang.reflect.Proxy
 class LuaRocksToolWindowTitlesTest : BasePlatformTestCase() {
     fun `test browser factory sets the LuaRocks Packages stripe and title`() {
         val recorder = TitleRecorder()
+        LuaRocksBrowserToolWindowFactory().init(recorder.toolWindow)
+        assertEquals("the stripe is titled before the window opens (BUG-67)", "LuaRocks Packages", recorder.stripeTitle)
         LuaRocksBrowserToolWindowFactory().createToolWindowContent(project, recorder.toolWindow)
 
-        assertEquals("LuaRocks Packages", recorder.stripeTitle)
         assertEquals("LuaRocks Packages", recorder.title)
     }
 
     fun `test dependency factory sets the LuaRocks Dependencies stripe and title`() {
         val recorder = TitleRecorder()
+        LuaRocksToolWindowFactory().init(recorder.toolWindow)
+        assertEquals(
+            "the stripe is titled before the window opens (BUG-67)",
+            "LuaRocks Dependencies",
+            recorder.stripeTitle,
+        )
         LuaRocksToolWindowFactory().createToolWindowContent(project, recorder.toolWindow)
 
-        assertEquals("LuaRocks Dependencies", recorder.stripeTitle)
         assertEquals("LuaRocks Dependencies", recorder.title)
     }
 

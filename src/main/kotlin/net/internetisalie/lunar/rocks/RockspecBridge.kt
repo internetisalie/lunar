@@ -44,6 +44,18 @@ object RockspecBridge {
             noteUntrustedOnce(project)
             return null
         }
+        return evaluate(project, rockspecPath)?.let { parse(it, rockspecPath) }
+    }
+
+    /**
+     * Evaluates a rockspec in the bridge's empty environment and returns its JSON, with no
+     * project-trust check. For a rockspec that is not project code, such as one downloaded from a
+     * rocks server (BUG-68); project rockspecs go through [read].
+     */
+    internal fun evaluate(
+        project: Project,
+        rockspecPath: Path,
+    ): String? {
         val interpreter =
             LuaToolResolver
                 .getInstance()
@@ -57,14 +69,7 @@ object RockspecBridge {
             log.debug("Rockspec bridge skipped for $rockspecPath: no Lua runtime is configured")
             return null
         }
-        val command =
-            GeneralCommandLine(
-                interpreter,
-                LuaRocksBridgeFiles.rockspecScript().toString(),
-                rockspecPath.toString(),
-            ).withEnvironment(ENV_LUA_PATH_TEMPLATE, LuaRocksBridgeFiles.luaPathTemplate())
-
-        val output = captureOffEdt(command)
+        val output = captureOffEdt(bridgeCommand(interpreter, rockspecPath))
         if (output.exitCode != 0 || output.stdout.isBlank()) {
             // A file that does not evaluate is usually a test fixture or a deliberately broken sample;
             // logging each at WARN, with Lua's traceback, flooded idea.log (BUG-52, as BUG-380 did).
@@ -73,8 +78,18 @@ object RockspecBridge {
             )
             return null
         }
-        return parse(output.stdout, rockspecPath)
+        return output.stdout
     }
+
+    private fun bridgeCommand(
+        interpreter: String,
+        rockspecPath: Path,
+    ): GeneralCommandLine =
+        GeneralCommandLine(
+            interpreter,
+            LuaRocksBridgeFiles.rockspecScript().toString(),
+            rockspecPath.toString(),
+        ).withEnvironment(ENV_LUA_PATH_TEMPLATE, LuaRocksBridgeFiles.luaPathTemplate())
 
     /** A rockspec is project code; it runs only once the user trusts the project (BUG-50). Logged once per project. */
     private fun noteUntrustedOnce(project: Project) {
