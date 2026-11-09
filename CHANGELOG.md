@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **`require` resolves into libraries the way Lua does** (BUG-62). A bare `require("util")` could
+  resolve to a nested file inside an installed library, such as busted's `luassert/util.lua`. Inside
+  any library (installed rocks, definition libraries, search-path directories, the target's
+  standard library), a module now resolves only to the file at its own path.
 - **A broken rockspec no longer floods the IDE log** (BUG-52). Every `.rockspec` that failed to
   evaluate, test fixtures included, wrote a warning and a Lua stack trace to `idea.log`. These
   failures are now logged at debug level.

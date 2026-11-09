@@ -7,7 +7,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.runInEdtAndWait
 import net.internetisalie.lunar.analysis.inspections.LuaUndeclaredVariableInspection
 import net.internetisalie.lunar.lang.LuaRequireReference
-import net.internetisalie.lunar.lang.path.runtimeRootVerdict
+import net.internetisalie.lunar.lang.path.libraryRootVerdict
 import net.internetisalie.lunar.lang.types.IndexedBasePlatformTestCase
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.project.PlatformLibraryIndex
@@ -164,14 +164,14 @@ class LuaJitRuntimeStubsTest : IndexedBasePlatformTestCase() {
         val verdicts =
             runReadActionBlocking {
                 listOf(
-                    runtimeRootVerdict(initFile, root, "pkg"),
-                    runtimeRootVerdict(initFile, root, "pkg.init"),
-                    runtimeRootVerdict(initFile, root, "init"),
-                    runtimeRootVerdict(nested, root, "util"),
-                    runtimeRootVerdict(nested, root, "jit.util"),
-                    runtimeRootVerdict(top, root, "top"),
-                    runtimeRootVerdict(outside, root, "util"),
-                    runtimeRootVerdict(top, null, "top"),
+                    libraryRootVerdict(initFile, root, "pkg"),
+                    libraryRootVerdict(initFile, root, "pkg.init"),
+                    libraryRootVerdict(initFile, root, "init"),
+                    libraryRootVerdict(nested, root, "util"),
+                    libraryRootVerdict(nested, root, "jit.util"),
+                    libraryRootVerdict(top, root, "top"),
+                    libraryRootVerdict(outside, root, "util"),
+                    libraryRootVerdict(top, null, "top"),
                 )
             }
         assertEquals("verdicts", listOf(true, true, false, false, true, true, null, null), verdicts)

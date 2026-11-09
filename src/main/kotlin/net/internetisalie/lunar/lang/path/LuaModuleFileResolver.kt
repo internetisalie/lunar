@@ -9,7 +9,6 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import net.internetisalie.lunar.lang.psi.LuaFile
-import net.internetisalie.lunar.project.PlatformLibraryIndex
 import java.io.File
 
 /**
@@ -44,13 +43,10 @@ fun resolveModuleCandidates(
             FilenameIndex.getVirtualFilesByName(moduleName.substringAfterLast('.') + ".lua", scope) +
                 FilenameIndex.getVirtualFilesByName("init.lua", scope)
 
-        val strictRoots =
-            listOfNotNull(PlatformLibraryIndex.getPlatformLibraryFolder(project)) +
-                PlatformLibraryIndex.searchPathRoots(project)
         for (virtualFile in byName) {
             val path = virtualFile.path
             val accepted =
-                strictRoots.firstNotNullOfOrNull { runtimeRootVerdict(virtualFile, it, moduleName) }
+                libraryRootVerdict(virtualFile, LuaLibraryRoots.rootOf(project, virtualFile), moduleName)
                     ?: (
                         path.endsWith(expectedPathPart) ||
                             path.endsWith(expectedInitPathPart) ||
@@ -63,19 +59,19 @@ fun resolveModuleCandidates(
     }
 
 /**
- * TARGET-12 (design §1.1): inside the active runtime root, and inside each search-path directory
- * outside the project (BUG-60), a module resolves only to the file at
- * its relative path, `<a/b>.lua` or `<a/b>/init.lua`, so a bare `require("util")` cannot land on a
- * nested stub such as `luajit-2.1/jit/util.lua`. True or false for a candidate inside the active
- * runtime root; null when the rule does not apply.
+ * Inside a library root, a module resolves only to the file at its relative path, `<a/b>.lua` or
+ * `<a/b>/init.lua`, as Lua's own `package.path` rule would load it. So a bare `require("util")`
+ * lands neither on a nested stub such as `luajit-2.1/jit/util.lua` (TARGET-12) nor on an installed
+ * rock's `luassert/util.lua` (BUG-62). True or false for a candidate inside [libraryRoot]; null for
+ * a project file, where the caller's lenient match applies.
  */
-internal fun runtimeRootVerdict(
+internal fun libraryRootVerdict(
     candidate: VirtualFile,
-    runtimeRoot: VirtualFile?,
+    libraryRoot: VirtualFile?,
     moduleName: String,
 ): Boolean? {
-    if (runtimeRoot == null || !VfsUtilCore.isAncestor(runtimeRoot, candidate, true)) return null
-    val relativePath = VfsUtilCore.getRelativePath(candidate, runtimeRoot) ?: return false
+    if (libraryRoot == null || !VfsUtilCore.isAncestor(libraryRoot, candidate, true)) return null
+    val relativePath = VfsUtilCore.getRelativePath(candidate, libraryRoot) ?: return false
     val modulePath = moduleName.replace('.', '/')
     return relativePath == "$modulePath.lua" || relativePath == "$modulePath/init.lua"
 }
