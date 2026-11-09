@@ -3,7 +3,7 @@ id: "BUG-52"
 title: "Every .rockspec that fails to evaluate, test fixtures included, logs a WARN with its stack trace"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "low"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -28,3 +28,15 @@ followed by its stack trace. The same happens for `spec/samples/bad.rockspec`.
   vendored test trees are evaluated too. Whether to add default excludes (`spec/`, `test/`) is a
   question for plan-bug.
 - Related: [[BUG-50]] decides whether these files are evaluated at all.
+
+## 4. Fix
+`RockspecBridge.read` logs an evaluation failure at debug, with only the first line of the
+interpreter's error rather than its traceback. This matches how BUG-380 handled the "no runtime" case.
+
+Default excludes for `spec/` and `test/` were not added. [[BUG-50]] already stops evaluation in an
+untrusted project and removes the standard library, so fixtures no longer run. [[BUG-53]] keeps one
+rockspec per package, and a broken fixture just contributes nothing.
+
+## 5. Test
+No regression test: the change is a log level, which the light-fixture logger does not expose
+without asserting on the logging framework itself.

@@ -2,6 +2,9 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A broken rockspec no longer floods the IDE log** (BUG-52). Every `.rockspec` that failed to
+  evaluate, test fixtures included, wrote a warning and a Lua stack trace to `idea.log`. These
+  failures are now logged at debug level.
 - **The dependency tree knows your own rocks and the Lua runtime** (BUG-54). Each rock developed in
   the project was flagged as *required but not installed*, and its `lua >= 5.1` entry was looked up
   as an installed rock. A project rock now shows its rockspec's version and path and is never

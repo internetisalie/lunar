@@ -66,7 +66,11 @@ object RockspecBridge {
 
         val output = captureOffEdt(command)
         if (output.exitCode != 0 || output.stdout.isBlank()) {
-            log.warn("Rockspec bridge failed for $rockspecPath (exit=${output.exitCode}): ${output.stderr}")
+            // A file that does not evaluate is usually a test fixture or a deliberately broken sample;
+            // logging each at WARN, with Lua's traceback, flooded idea.log (BUG-52, as BUG-380 did).
+            log.debug(
+                "Rockspec bridge failed for $rockspecPath (exit=${output.exitCode}): ${output.stderr.lineSequence().firstOrNull()}",
+            )
             return null
         }
         return parse(output.stdout, rockspecPath)
