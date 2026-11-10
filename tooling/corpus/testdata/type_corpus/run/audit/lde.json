@@ -1,0 +1,176 @@
+{
+  "schema": 1,
+  "member": "lde",
+  "commit": "c1",
+  "cap": 4,
+  "coverage": {
+    "calls": 0,
+    "stringOrTableArgs": 0,
+    "unresolvedCallee": 0,
+    "unresolvedMethod": 0,
+    "formMismatch": 0,
+    "noTag": 0,
+    "arityGuard": 0,
+    "eligible": 0,
+    "fieldUntagged": 0,
+    "ldocParam": 0
+  },
+  "cells": [
+    {
+      "cell": {
+        "shape": "arg.table",
+        "path": "LIBRARY",
+        "form": "GLOBAL"
+      },
+      "population": 30
+    },
+    {
+      "cell": {
+        "shape": "arity.tooMany",
+        "path": "SAME_FILE",
+        "form": "LOCAL"
+      },
+      "population": 20
+    },
+    {
+      "cell": {
+        "shape": "arg.optional",
+        "path": "LIBRARY",
+        "form": "METHOD"
+      },
+      "population": 5
+    }
+  ],
+  "records": [
+    {
+      "cell": {
+        "shape": "arg.table",
+        "path": "LIBRARY",
+        "form": "GLOBAL"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.table",
+        "path": "LIBRARY",
+        "form": "GLOBAL"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.table",
+        "path": "LIBRARY",
+        "form": "GLOBAL"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.table",
+        "path": "LIBRARY",
+        "form": "GLOBAL"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arity.tooMany",
+        "path": "SAME_FILE",
+        "form": "LOCAL"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "REPORTED",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arity.tooMany",
+        "path": "SAME_FILE",
+        "form": "LOCAL"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "REPORTED",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arity.tooMany",
+        "path": "SAME_FILE",
+        "form": "LOCAL"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "REPORTED",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arity.tooMany",
+        "path": "SAME_FILE",
+        "form": "LOCAL"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "REPORTED",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.optional",
+        "path": "LIBRARY",
+        "form": "METHOD"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.optional",
+        "path": "LIBRARY",
+        "form": "METHOD"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "REPORTED",
+      "newErrors": []
+    }
+  ]
+}

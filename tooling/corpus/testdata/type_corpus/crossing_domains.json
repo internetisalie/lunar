@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "measuredAt": "2026-11-08",
+  "query": "\"<signature>\" extension:lua",
+  "domains": [
+    {"id": "neovim", "kind": "host", "sampled": true, "weighted": true, "lunar": "none",
+     "hosts": [{"name": "neovim", "counts": {"vim.api": 940}}]},
+    {"id": "defold", "kind": "host", "sampled": true, "weighted": true, "lunar": "none",
+     "hosts": [{"name": "defold", "counts": {"msg.post": 10}}]},
+    {"id": "h", "kind": "host", "sampled": true, "weighted": true, "lunar": "none",
+     "hosts": [{"name": "h", "counts": {"h.api": 10}}]},
+    {"id": "u", "kind": "host", "sampled": false, "weighted": true, "lunar": "none",
+     "hosts": [{"name": "u", "counts": {"u.api": 30}}]},
+    {"id": "puc", "kind": "interpreter", "sampled": true, "weighted": false, "reason": "unmeasurable", "lunar": "none",
+     "hosts": [{"name": "puc", "counts": {"#!/usr/bin/env lua": 10}}]}
+  ],
+  "excluded": []
+}

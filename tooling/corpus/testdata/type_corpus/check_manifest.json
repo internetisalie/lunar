@@ -1,0 +1,8 @@
+{
+  "corpora": [
+    {"name": "zz", "url": "https://github.com/a/zz.git", "commit": "c", "roots": ["."], "luaLevel": "LUA51",
+     "domain": "love", "licence": "MIT"},
+    {"name": "penlight", "url": "https://github.com/a/penlight.git", "commit": "c", "roots": ["."],
+     "luaLevel": "LUA51", "domain": "love", "cohort": "young", "licence": "MIT"}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "measuredAt": "2026-01-01",
+  "query": "\"<signature>\" extension:lua",
+  "domains": [
+    {"id": "neovim", "kind": "host", "sampled": true, "weighted": true, "lunar": "none",
+     "hosts": [{"name": "neovim", "counts": {"vim.api": 1}}]}
+  ],
+  "excluded": []
+}

@@ -1,0 +1,518 @@
+{
+  "$comment": [
+    "MAINT-56 representative type corpus: members audited by LuaRepresentativeTypeAuditTest under",
+    "-PwithTypeCorpus (docs/features/maint/56-representative-type-corpus/design.md §2.1).",
+    "Fetched by `fetch-corpus.py --manifest tooling/corpus/type-corpus.json` into test/corpus/<name>;",
+    "checked by `type_corpus.py check`. No name may also be in corpus.json.",
+    "",
+    "Fields: corpus.json's (name, url, commit, roots, luaLevel, moduleRoot, target, definitionLibraries,",
+    "prune; see its $comment), except that commit pins the default branch on the selection date, not a",
+    "release tag (design §1), plus:",
+    "  domain   a sampled domain id of type-domains.json (the host API the code scripts)",
+    "  cohort   young (created within 24 months of the pin) | small (< 100 stars) | established",
+    "  licence  SPDX id from the GitHub API; recorded, never a filter (risks-and-gaps DR-03)",
+    "  sparse   optional; true fetches only the roots and moduleRoot (git sparse-checkout)"
+  ],
+  "corpora": [
+    {
+      "name": "telescope",
+      "url": "https://github.com/nvim-telescope/telescope.nvim.git",
+      "commit": "1e1bab730218eaf97fce743be3f56e51075928ac",
+      "roots": [
+        "lua"
+      ],
+      "luaLevel": "LUA51",
+      "moduleRoot": "lua",
+      "target": "LUAJIT:2.1",
+      "definitionLibraries": [
+        "neovim"
+      ],
+      "domain": "neovim",
+      "cohort": "established",
+      "licence": "MIT"
+    },
+    {
+      "name": "gitsigns",
+      "url": "https://github.com/lewis6991/gitsigns.nvim.git",
+      "commit": "ef707fb93301a9b856f36eae4c8f56f5b988a794",
+      "roots": [
+        "lua"
+      ],
+      "luaLevel": "LUA51",
+      "moduleRoot": "lua",
+      "target": "LUAJIT:2.1",
+      "definitionLibraries": [
+        "neovim"
+      ],
+      "domain": "neovim",
+      "cohort": "established",
+      "licence": "MIT"
+    },
+    {
+      "name": "blinkcmp",
+      "url": "https://github.com/saghen/blink.cmp.git",
+      "commit": "7b31e1b6497be70f620bbad83a789929248697ac",
+      "roots": [
+        "lua"
+      ],
+      "luaLevel": "LUA51",
+      "moduleRoot": "lua",
+      "target": "LUAJIT:2.1",
+      "definitionLibraries": [
+        "neovim"
+      ],
+      "domain": "neovim",
+      "cohort": "established",
+      "licence": "MIT"
+    },
+    {
+      "name": "differ",
+      "url": "https://github.com/undont/differ.nvim.git",
+      "commit": "b5b107d093307692d1c0f677ec9f10c743543f9b",
+      "roots": [
+        "lua"
+      ],
+      "luaLevel": "LUA51",
+      "moduleRoot": "lua",
+      "target": "LUAJIT:2.1",
+      "definitionLibraries": [
+        "neovim"
+      ],
+      "domain": "neovim",
+      "cohort": "young",
+      "licence": "MIT"
+    },
+    {
+      "name": "weakauras",
+      "url": "https://github.com/WeakAuras/WeakAuras2.git",
+      "commit": "2837a63d8de281cbb3cb3b6c7d1f18df8aa31c93",
+      "roots": [
+        "WeakAuras/RegionTypes",
+        "WeakAuras/BaseRegions"
+      ],
+      "luaLevel": "LUA51",
+      "prune": [
+        "WeakAurasModelPaths"
+      ],
+      "domain": "wow",
+      "cohort": "established",
+      "licence": "GPL-2.0"
+    },
+    {
+      "name": "ouf",
+      "url": "https://github.com/oUF-wow/oUF.git",
+      "commit": "c5ff6e4a09bfaf2186e205777e0fab964b5cddc1",
+      "roots": [
+        "elements"
+      ],
+      "luaLevel": "LUA51",
+      "domain": "wow",
+      "cohort": "established",
+      "licence": "MIT"
+    },
+    {
+      "name": "omniinv",
+      "url": "https://github.com/Zendevve/OmniInventory.git",
+      "commit": "6ada95f6cc227cd85850fc7d67ee339d4454631f",
+      "roots": [
+        "OmniInventory/Omni",
+        "OmniInventory/Engine",
+        "OmniInventory/Modules",
+        "OmniInventory/DB"
+      ],
+      "luaLevel": "LUA51",
+      "domain": "wow",
+      "cohort": "young",
+      "licence": "NOASSERTION"
+    },
+    {
+      "name": "kristal",
+      "url": "https://github.com/KristalTeam/Kristal.git",
+      "commit": "0ba9821cc0d43b8e8fb3b6b8379bbf36825f3110",
+      "roots": [
+        "src/engine/game/battle",
+        "src/engine/game/common"
+      ],
+      "luaLevel": "LUA51",
+      "target": "LUAJIT:2.1",
+      "definitionLibraries": [
+        "love2d"
+      ],
+      "domain": "love",
+      "cohort": "established",
+      "licence": "BSD-3-Clause"
+    },
+    {
+      "name": "prism",
+      "url": "https://github.com/PrismRL/prism.git",
+      "commit": "72a17adc783ca823d90bf1ff26406f6998ba4863",
+      "roots": [
+        "engine",
+        "spectrum"
+      ],
+      "luaLevel": "LUA51",
+      "target": "LUAJIT:2.1",
+      "definitionLibraries": [
+        "love2d"
+      ],
+      "domain": "love",
+      "cohort": "young",
+      "licence": "MIT"
+    },
+    {
+      "name": "opensmce",
+      "url": "https://github.com/jakubg1/OpenSMCE.git",
+      "commit": "a013fe3d8cee0d57b3c6158e28c87864750f7368",
+      "roots": [
+        "src"
+      ],
+      "luaLevel": "LUA51",
+      "target": "LUAJIT:2.1",
+      "definitionLibraries": [
+        "love2d"
+      ],
+      "domain": "love",
+      "cohort": "small",
+      "licence": "MIT"
+    },
+    {
+      "name": "factoryplanner",
+      "url": "https://github.com/ClaudeMetz/FactoryPlanner.git",
+      "commit": "e2aadc111c0c12c858a713e22c0c1bcde99465f2",
+      "roots": [
+        "modfiles"
+      ],
+      "luaLevel": "LUA52",
+      "domain": "factorio",
+      "cohort": "established",
+      "licence": "MIT"
+    },
+    {
+      "name": "rampant",
+      "url": "https://github.com/veden/Rampant.git",
+      "commit": "92c00c655f726c7b634dc843a825266abf38fa62",
+      "roots": [
+        "prototypes",
+        "libs"
+      ],
+      "luaLevel": "LUA52",
+      "domain": "factorio",
+      "cohort": "small",
+      "licence": "GPL-3.0"
+    },
+    {
+      "name": "facc",
+      "url": "https://github.com/factoriocenter/factorio-admin-command-center.git",
+      "commit": "0ba301595a79827044ee6e0c16c162bf9bddf996",
+      "roots": [
+        "scripts"
+      ],
+      "luaLevel": "LUA52",
+      "domain": "factorio",
+      "cohort": "young",
+      "licence": "MIT"
+    },
+    {
+      "name": "awesome",
+      "url": "https://github.com/awesomeWM/awesome.git",
+      "commit": "1a5163ebd2b0c92f0dd19ab9e02762b05f629a80",
+      "roots": [
+        "lib/gears",
+        "lib/naughty"
+      ],
+      "luaLevel": "LUA53",
+      "moduleRoot": "lib",
+      "domain": "awesome",
+      "cohort": "established",
+      "licence": "GPL-2.0"
+    },
+    {
+      "name": "lain",
+      "url": "https://github.com/lcpz/lain.git",
+      "commit": "34a8d51c957620012822a48790cbda9a9c43e059",
+      "roots": [
+        "widget",
+        "layout",
+        "util"
+      ],
+      "luaLevel": "LUA53",
+      "domain": "awesome",
+      "cohort": "established",
+      "licence": "GPL-2.0"
+    },
+    {
+      "name": "somewm",
+      "url": "https://github.com/raven2cz/somewm-one.git",
+      "commit": "e9ba2bd7da8dced8043903dd3f97755bac14bb19",
+      "roots": [
+        "fishlive"
+      ],
+      "luaLevel": "LUA53",
+      "domain": "awesome",
+      "cohort": "young",
+      "licence": "MIT"
+    },
+    {
+      "name": "bullmq",
+      "url": "https://github.com/taskforcesh/bullmq.git",
+      "commit": "b18b6ddd3d4e6fe2d8a14d09fb733aea159a5de4",
+      "roots": [
+        "src/commands"
+      ],
+      "luaLevel": "LUA51",
+      "target": "REDIS:7+",
+      "domain": "redis",
+      "cohort": "established",
+      "licence": "MIT"
+    },
+    {
+      "name": "inngest",
+      "url": "https://github.com/inngest/inngest.git",
+      "commit": "8ffc717d61035d178b14007858687bbd7195764a",
+      "roots": [
+        "pkg/constraintapi/lua",
+        "pkg/execution/state/redis_state"
+      ],
+      "luaLevel": "LUA51",
+      "target": "REDIS:7+",
+      "sparse": true,
+      "domain": "redis",
+      "cohort": "established",
+      "licence": "NOASSERTION"
+    },
+    {
+      "name": "beequeue",
+      "url": "https://github.com/bee-queue/bee-queue.git",
+      "commit": "31337aca81446859070d07f1e8b73df1d2fbc97a",
+      "roots": [
+        "lib/lua"
+      ],
+      "luaLevel": "LUA51",
+      "target": "REDIS:7+",
+      "domain": "redis",
+      "cohort": "established",
+      "licence": "NOASSERTION"
+    },
+    {
+      "name": "kong",
+      "url": "https://github.com/Kong/kong.git",
+      "commit": "21032122ab80c973f368f6bc539f53985e7164e8",
+      "roots": [
+        "kong/clustering",
+        "kong/plugins"
+      ],
+      "luaLevel": "LUA51",
+      "target": "NGX:latest",
+      "definitionLibraries": [
+        "openresty"
+      ],
+      "domain": "openresty",
+      "cohort": "established",
+      "licence": "Apache-2.0"
+    },
+    {
+      "name": "apisix",
+      "url": "https://github.com/apache/apisix.git",
+      "commit": "4a9d5d5679eeb52fb9d0d7a753eb1ead84adb509",
+      "roots": [
+        "apisix/core",
+        "apisix/discovery"
+      ],
+      "luaLevel": "LUA51",
+      "target": "NGX:latest",
+      "definitionLibraries": [
+        "openresty"
+      ],
+      "domain": "openresty",
+      "cohort": "established",
+      "licence": "Apache-2.0"
+    },
+    {
+      "name": "restyhttp",
+      "url": "https://github.com/ledgetech/lua-resty-http.git",
+      "commit": "b1b2bfbec17b5345263e9a0be0ecd1d8411dcbb6",
+      "roots": [
+        "lib"
+      ],
+      "luaLevel": "LUA51",
+      "moduleRoot": "lib",
+      "target": "NGX:latest",
+      "definitionLibraries": [
+        "openresty"
+      ],
+      "domain": "openresty",
+      "cohort": "established",
+      "licence": "BSD-2-Clause"
+    },
+    {
+      "name": "tntmetrics",
+      "url": "https://github.com/tarantool/metrics.git",
+      "commit": "6868a310e8608bc9d27ea5ff654cf913a37f9191",
+      "roots": [
+        "metrics"
+      ],
+      "luaLevel": "LUA51",
+      "target": "TARANTOOL:2.10",
+      "domain": "tarantool",
+      "cohort": "small",
+      "licence": "MIT"
+    },
+    {
+      "name": "tntcrud",
+      "url": "https://github.com/tarantool/crud.git",
+      "commit": "d47f0be34dec6885965fcca1ded2e3924d292f37",
+      "roots": [
+        "crud"
+      ],
+      "luaLevel": "LUA51",
+      "target": "TARANTOOL:2.10",
+      "domain": "tarantool",
+      "cohort": "small",
+      "licence": "BSD-2-Clause"
+    },
+    {
+      "name": "tntqueue",
+      "url": "https://github.com/tarantool/queue.git",
+      "commit": "d28002cce4a48634ab4dd3b72e147be1fecd59f2",
+      "roots": [
+        "queue"
+      ],
+      "luaLevel": "LUA51",
+      "target": "TARANTOOL:2.10",
+      "domain": "tarantool",
+      "cohort": "established",
+      "licence": "NOASSERTION"
+    },
+    {
+      "name": "pokisample",
+      "url": "https://github.com/defold/sample-poki.git",
+      "commit": "92d74c7d49fa3ef2fb397c521d03485119329265",
+      "roots": [
+        "game",
+        "app",
+        "common",
+        "ui"
+      ],
+      "luaLevel": "LUA51",
+      "target": "LUAJIT:2.1",
+      "domain": "defold",
+      "cohort": "young",
+      "licence": "MIT"
+    },
+    {
+      "name": "druid",
+      "url": "https://github.com/Insality/druid.git",
+      "commit": "3eeb5c7ab701bd99503cc83ff5aa49cbeffbea24",
+      "roots": [
+        "druid"
+      ],
+      "luaLevel": "LUA51",
+      "target": "LUAJIT:2.1",
+      "domain": "defold",
+      "cohort": "established",
+      "licence": "MIT"
+    },
+    {
+      "name": "monarch",
+      "url": "https://github.com/britzl/monarch.git",
+      "commit": "5c33c39830489925493163e741d5b22b4e5e3b9d",
+      "roots": [
+        "monarch"
+      ],
+      "luaLevel": "LUA51",
+      "target": "LUAJIT:2.1",
+      "domain": "defold",
+      "cohort": "established",
+      "licence": "MIT"
+    },
+    {
+      "name": "luals",
+      "url": "https://github.com/LuaLS/lua-language-server.git",
+      "commit": "a58fc7b01e1746c46275c71b0e61bfed40a6296d",
+      "roots": [
+        "script/vm"
+      ],
+      "luaLevel": "LUA54",
+      "moduleRoot": "script",
+      "domain": "puc",
+      "cohort": "established",
+      "licence": "MIT"
+    },
+    {
+      "name": "ldoc",
+      "url": "https://github.com/lunarmodules/ldoc.git",
+      "commit": "e1dff24e1c519c96bbf95647c9aeac2dfb3b9ae0",
+      "roots": [
+        "ldoc"
+      ],
+      "luaLevel": "LUA54",
+      "domain": "puc",
+      "cohort": "established",
+      "licence": "NOASSERTION"
+    },
+    {
+      "name": "lnko",
+      "url": "https://github.com/Owloops/lnko.git",
+      "commit": "e37475fb10473b6a9efd844630cc3b2a1a366690",
+      "roots": [
+        "lnko"
+      ],
+      "luaLevel": "LUA54",
+      "domain": "puc",
+      "cohort": "young",
+      "licence": "GPL-3.0"
+    },
+    {
+      "name": "fallo",
+      "url": "https://github.com/NTBBloodbath/fallo.git",
+      "commit": "b95e4996477e4f023bf1b86190c946476cca210e",
+      "roots": [
+        "lua"
+      ],
+      "luaLevel": "LUA54",
+      "domain": "puc",
+      "cohort": "young",
+      "licence": "LGPL-3.0"
+    },
+    {
+      "name": "lde",
+      "url": "https://github.com/lde-org/lde.git",
+      "commit": "04a08edb7c6113508688ac65ccd34b085333bac2",
+      "roots": [
+        "packages/lde-core"
+      ],
+      "luaLevel": "LUA51",
+      "target": "LUAJIT:2.1",
+      "domain": "luajit",
+      "cohort": "young",
+      "licence": "MIT"
+    },
+    {
+      "name": "snabb",
+      "url": "https://github.com/snabbco/snabb.git",
+      "commit": "f32729274b0a1b0da612bface2eabd8b57eef200",
+      "roots": [
+        "src/lib/yang"
+      ],
+      "luaLevel": "LUA51",
+      "moduleRoot": "src",
+      "target": "LUAJIT:2.1",
+      "domain": "luajit",
+      "cohort": "established",
+      "licence": "Apache-2.0"
+    },
+    {
+      "name": "ljtk",
+      "url": "https://github.com/franko/luajit-lang-toolkit.git",
+      "commit": "73c51557d9a8bb1e2f0a93fcf21d3ca49e69af74",
+      "roots": [
+        "lang"
+      ],
+      "luaLevel": "LUA51",
+      "target": "LUAJIT:2.1",
+      "domain": "luajit",
+      "cohort": "established",
+      "licence": "NOASSERTION"
+    }
+  ]
+}

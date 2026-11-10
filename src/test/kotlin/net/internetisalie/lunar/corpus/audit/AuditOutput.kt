@@ -23,9 +23,15 @@ object AuditOutput {
         repoRoot: File,
         member: String,
         payload: AuditPayload,
+    ) = writeTo(file(repoRoot, member).parentFile, member, payload)
+
+    /** `<directory>/<member>.json`: MAINT-56's representative run writes the same schema elsewhere. */
+    fun writeTo(
+        directory: File,
+        member: String,
+        payload: AuditPayload,
     ) {
-        val target = file(repoRoot, member)
-        target.parentFile.mkdirs()
-        target.writeText(render(payload), Charsets.UTF_8)
+        directory.mkdirs()
+        File(directory, "$member.json").writeText(render(payload), Charsets.UTF_8)
     }
 }

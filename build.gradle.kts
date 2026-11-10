@@ -440,6 +440,18 @@ tasks {
             val typeAuditDir = layout.buildDirectory.dir("type-audit").get().asFile
             doFirst { typeAuditDir.deleteRecursively() }
         }
+        // MAINT-56: MAINT-54's audit over the representative type corpus (tooling/corpus/type-corpus.json).
+        // Its own opt-in, never with -PwithCorpus or -PwithTypeAudit (BUG-418):
+        // `./gradlew test -PwithTypeCorpus --tests '*RepresentativeTypeAudit*'`.
+        if (!project.hasProperty("withTypeCorpus")) {
+            filter {
+                excludeTestsMatching("*RepresentativeTypeAudit*")
+                isFailOnNoMatchingTests = false
+            }
+        } else {
+            val typeCorpusDir = layout.buildDirectory.dir("type-corpus").get().asFile
+            doFirst { typeCorpusDir.deleteRecursively() }
+        }
         // MAINT-40: the findings directory holds exactly one invocation's files, which is what lets
         // tooling/corpus/corpus_ctrf.py read the run's shape from it.
         if (project.hasProperty("withCorpus")) {

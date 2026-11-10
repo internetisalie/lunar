@@ -234,3 +234,21 @@ unsupported entry above is a Lua-syntax file, so association is close to free.
 
 Groups unclaimed purely because the headless fixture lacks the bundled Markdown/YAML plugins
 (`md`, `yml`, `sh`, `png`, …) are noise, not findings.
+
+## Type corpus
+
+A second manifest, `type-corpus.json`, lists the members of MAINT-56's representative type-checking
+corpus, stratified by the host domains of `type-domains.json`. It is audited, not swept: no member
+has a sweep method or a baseline, and no name may also be in `corpus.json`.
+
+```bash
+python3 tooling/corpus/fetch-corpus.py --manifest tooling/corpus/type-corpus.json
+python3 tooling/corpus/type_corpus.py check --checkouts test/corpus
+```
+
+The fetch puts each member in `test/corpus/<name>` as above; an entry with `"sparse": true` fetches
+only its roots and `moduleRoot`. `type_corpus.py check` validates the manifest against the domains
+and, with `--checkouts`, the per-file line cap; `type_corpus.py usage` re-measures the domains'
+usage counts with `gh`. The
+fields, formulas and commands are in
+[the design](../../docs/features/maint/56-representative-type-corpus/design.md).

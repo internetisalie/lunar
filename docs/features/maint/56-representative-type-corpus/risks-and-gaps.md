@@ -320,6 +320,23 @@ redis 9.0, openresty 1.9, awesome 0.0; all members, 352.0 kloc.
 for the WoW API) is not in Lunar's catalog, so WoW members run without host definitions — that is the
 gap the WoW weight prices.
 
+### DR-14 — One MAINT-54 call verdict depends on which tests the run selects, not on the audit code (executed, builder)
+**Runs** (`test -PwithTypeAudit --rerun --no-build-cache --tests '*FalseNegativeAudit*'`, libvirt):
+base `5ee2660e`, twice, the second with the 35 type-corpus checkouts present: byte-identical to each
+other. The Phase 2 tree, twice: byte-identical to each other. The Phase 2 tree with `--tests
+'*FalseNegativeAudit*.testLuacheckMember'`, once. Luacheck is the first method in every run.
+**Site:** luacheck `spec/samples/defined2.lua` offset 0, `foo.bar()`. `NO_TAG` on base and in the
+luacheck-alone run; `UNRESOLVED_CALLEE` in both Phase 2 five-member runs (`unresolvedCallee` 1776 → 1777,
+`noTag` 1976 → 1975). Every other byte of the five payloads is identical.
+**Declarations:** `function foo.bar()` in `spec/samples/defined.lua` (`foo = {}`, global) and `function
+foo.bar(baz)` in `spec/samples/unused_code.lua` (`local foo = {}`), both untagged.
+**Branch:** `LuaNameReference.doMultiResolve` takes `LuaMemberResolution.typedTargets` first. One typed
+target (`defined.lua`) makes `resolve()` return it, so the verdict is `NO_TAG`. With none, the text path
+returns both `LuaGlobalDeclarationIndex` entries for `foo.bar`, `resolve()` returns null for two results,
+and the verdict is `UNRESOLVED_CALLEE`.
+**Applied:** TC-8 is `diff -r` empty except this site's two `coverage` counters in `luacheck.json`.
+The engine defect is [[BUG-95]].
+
 ## Risks
 
 ### Risk 1.1: Small samples per domain cell

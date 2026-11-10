@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch the pinned corpus fixtures listed in corpus.json into <repo>/test/corpus/<name>.
+"""Fetch the pinned corpus fixtures listed in corpus.json (or `--manifest`) into <repo>/test/corpus/<name>.
 
 The checkouts are stripped of .git so the gce-builder rsync (which pushes the whole test/ tree
 dereferenced) stays small. A .corpus-sha stamp makes re-runs a no-op when already at the pin.
@@ -11,6 +11,7 @@ stdlib json removes the hand-written parser rather than repairing it.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import shutil
@@ -54,8 +55,13 @@ def fetch_one(entry: dict) -> None:
     dest.mkdir(parents=True)
     git("init", "--quiet", cwd=dest)
     git("remote", "add", "origin", url, cwd=dest)
-    # Depth-1 fetch of a specific SHA; fine for tag tips, which is all the manifest pins.
-    git("fetch", "--quiet", "--depth", "1", "origin", commit, cwd=dest)
+    if entry.get("sparse"):
+        # MAINT-56 design §5.1 (risks-and-gaps DR-09): a 250 MB repository holding a few kloc of Lua.
+        git("fetch", "--quiet", "--depth", "1", "--filter=blob:none", "origin", commit, cwd=dest)
+        git("sparse-checkout", "set", "--no-cone", *sparse_patterns(entry), cwd=dest)
+    else:
+        # Depth-1 fetch of a specific SHA; fine for tag tips, which is all the manifest pins.
+        git("fetch", "--quiet", "--depth", "1", "origin", commit, cwd=dest)
     git("checkout", "--quiet", "FETCH_HEAD", cwd=dest)
     shutil.rmtree(dest / ".git", ignore_errors=True)
 
@@ -76,6 +82,12 @@ def fetch_one(entry: dict) -> None:
     log(f"{name} → {lua_files} .lua files, {size}")
 
 
+def sparse_patterns(entry: dict) -> list[str]:
+    """The `--no-cone` patterns of a sparse entry: each root, then its moduleRoot."""
+    module_root = [entry["moduleRoot"]] if entry.get("moduleRoot") else []
+    return [f"/{path}/" for path in [*entry["roots"], *module_root]]
+
+
 def fetch_definition_archives(manifest: dict) -> None:
     try:
         libraries = resolve_libraries(manifest, load_catalog(CATALOG))
@@ -86,10 +98,13 @@ def fetch_definition_archives(manifest: dict) -> None:
         die(str(failure))
 
 
-def main() -> None:
-    if not MANIFEST.is_file():
-        die(f"Manifest not found: {MANIFEST}")
-    manifest = json.loads(MANIFEST.read_text())
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Fetch the pinned corpus checkouts of a manifest.")
+    parser.add_argument("--manifest", type=Path, default=MANIFEST, help="manifest to fetch (default corpus.json)")
+    manifest_path = parser.parse_args(argv).manifest
+    if not manifest_path.is_file():
+        die(f"Manifest not found: {manifest_path}")
+    manifest = json.loads(manifest_path.read_text())
 
     CORPUS_ROOT.mkdir(parents=True, exist_ok=True)
     for entry in manifest["corpora"]:

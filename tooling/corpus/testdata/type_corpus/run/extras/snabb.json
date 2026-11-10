@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "member": "snabb",
+  "commit": "c2",
+  "files": 1,
+  "baseline": {
+    "arity.tooMany": 0,
+    "arity.tooFew": 0,
+    "field.missing": 0,
+    "return.mismatch": 0,
+    "assign.other": 2
+  },
+  "samples": {
+    "arity.tooMany": [],
+    "arity.tooFew": [],
+    "field.missing": [],
+    "return.mismatch": [],
+    "assign.other": []
+  }
+}

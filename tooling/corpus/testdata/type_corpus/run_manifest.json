@@ -1,0 +1,28 @@
+{
+  "corpora": [
+    {
+      "name": "lde",
+      "url": "https://github.com/a/lde.git",
+      "commit": "c1",
+      "roots": [
+        "src"
+      ],
+      "luaLevel": "LUA51",
+      "domain": "x",
+      "cohort": "young",
+      "licence": "MIT"
+    },
+    {
+      "name": "snabb",
+      "url": "https://github.com/a/snabb.git",
+      "commit": "c2",
+      "roots": [
+        "lib"
+      ],
+      "luaLevel": "LUA51",
+      "domain": "y",
+      "cohort": "established",
+      "licence": "MIT"
+    }
+  ]
+}

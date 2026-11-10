@@ -1,0 +1,383 @@
+{
+  "$comment": [
+    "MAINT-56 host domains and their measured public usage (docs/features/maint/56-representative-type-corpus/design.md §2.0).",
+    "Edited by hand, except counts and measuredAt, which `type_corpus.py usage` rewrites.",
+    "Fields:",
+    "  measuredAt  UTC date of the GitHub code-search measurement (risks-and-gaps DR-12)",
+    "  query       the search query; <signature> is replaced by each host signature",
+    "  domains     id; kind host|interpreter; sampled (has members in type-corpus.json; frozen at DR-12);",
+    "              weighted (false: usage not measurable, reason says why; never weighted by assumption);",
+    "              lunar (Lunar's support for the host); hosts [{name, counts {signature: files}}].",
+    "              A host's count is the max over its signatures, a domain's the sum over its hosts.",
+    "  excluded    dialects Lunar cannot parse; counts recorded, never weighted or in any share",
+    "  channels    distribution-channel package counts beside GitHub topic repositories: bias checks, not",
+    "              weights. CurseForge (WoW) answers 403 without an API key and is not measured."
+  ],
+  "schema": 1,
+  "measuredAt": "2026-11-08",
+  "query": "\"<signature>\" extension:lua",
+  "domains": [
+    {
+      "id": "neovim",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "library neovim; target LUAJIT 2.1",
+      "hosts": [
+        {
+          "name": "neovim",
+          "counts": {
+            "vim.api": 616448
+          }
+        }
+      ]
+    },
+    {
+      "id": "wow",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "none: no target or library; members run as LUA51 stdlib",
+      "hosts": [
+        {
+          "name": "wow",
+          "counts": {
+            "RegisterEvent": 247808
+          }
+        }
+      ]
+    },
+    {
+      "id": "love",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "library love2d",
+      "hosts": [
+        {
+          "name": "love",
+          "counts": {
+            "love.graphics": 111360
+          }
+        }
+      ]
+    },
+    {
+      "id": "factorio",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "none; LUA52 stdlib",
+      "hosts": [
+        {
+          "name": "factorio",
+          "counts": {
+            "data:extend": 33088
+          }
+        }
+      ]
+    },
+    {
+      "id": "awesome",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "none; LUA53 stdlib",
+      "hosts": [
+        {
+          "name": "awesome",
+          "counts": {
+            "require(\"awful\")": 30528
+          }
+        }
+      ]
+    },
+    {
+      "id": "redis",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "targets REDIS 5/6/7 (runtime/redis), VALKEY 7.2/8 (runtime/valkey)",
+      "hosts": [
+        {
+          "name": "redis",
+          "counts": {
+            "redis.call": 27008
+          }
+        },
+        {
+          "name": "valkey",
+          "counts": {
+            "server.call": 318
+          }
+        }
+      ]
+    },
+    {
+      "id": "openresty",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "library openresty; target NGX (runtime/ngx holds no stubs)",
+      "hosts": [
+        {
+          "name": "openresty",
+          "counts": {
+            "ngx.log": 18656
+          }
+        }
+      ]
+    },
+    {
+      "id": "tarantool",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "target TARANTOOL 2.10; runtime/tarantool holds no stubs",
+      "hosts": [
+        {
+          "name": "tarantool",
+          "counts": {
+            "box.schema": 3004
+          }
+        }
+      ]
+    },
+    {
+      "id": "defold",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "none; LUAJIT 2.1 stdlib",
+      "hosts": [
+        {
+          "name": "defold",
+          "counts": {
+            "msg.post": 1532
+          }
+        }
+      ]
+    },
+    {
+      "id": "puc",
+      "kind": "interpreter",
+      "sampled": true,
+      "weighted": false,
+      "reason": "no host signature: standalone code names no host API, so a shebang or ffi.cdef count is a lower bound of unknown recall (risks-and-gaps DR-12)",
+      "lunar": "target STANDARD 5.1-5.5 stdlib stubs; no definitions for lfs, luasocket or luaposix",
+      "hosts": [
+        {
+          "name": "puc",
+          "counts": {
+            "#!/usr/bin/env lua": 19616
+          }
+        }
+      ]
+    },
+    {
+      "id": "luajit",
+      "kind": "interpreter",
+      "sampled": true,
+      "weighted": false,
+      "reason": "no host signature: standalone code names no host API, so a shebang or ffi.cdef count is a lower bound of unknown recall (risks-and-gaps DR-12)",
+      "lunar": "target LUAJIT 2.0/2.1 stubs (runtime/luajit, incl. ffi.lua)",
+      "hosts": [
+        {
+          "name": "luajit",
+          "counts": {
+            "ffi.cdef": 36160
+          }
+        }
+      ]
+    },
+    {
+      "id": "luanti",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "luanti",
+          "counts": {
+            "minetest.get_node": 20160
+          }
+        }
+      ]
+    },
+    {
+      "id": "mpv",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "mpv",
+          "counts": {
+            "mp.get_property": 18160
+          }
+        }
+      ]
+    },
+    {
+      "id": "pandoc",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "target PANDOC; runtime/pandoc holds no stubs",
+      "hosts": [
+        {
+          "name": "pandoc",
+          "counts": {
+            "pandoc.utils": 16672
+          }
+        }
+      ]
+    },
+    {
+      "id": "nmap",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "nmap",
+          "counts": {
+            "stdnse": 15968
+          }
+        }
+      ]
+    },
+    {
+      "id": "wezterm",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "wezterm",
+          "counts": {
+            "wezterm.action": 12064
+          }
+        }
+      ]
+    },
+    {
+      "id": "wireshark",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "wireshark",
+          "counts": {
+            "Proto(": 11792
+          }
+        }
+      ]
+    },
+    {
+      "id": "koreader",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "koreader",
+          "counts": {
+            "UIManager:show": 8480
+          }
+        }
+      ]
+    },
+    {
+      "id": "solar2d",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "solar2d",
+          "counts": {
+            "display.newImage": 7168
+          }
+        }
+      ]
+    },
+    {
+      "id": "hammerspoon",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "hammerspoon",
+          "counts": {
+            "hs.hotkey": 6648
+          }
+        }
+      ]
+    },
+    {
+      "id": "computercraft",
+      "kind": "host",
+      "sampled": false,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "computercraft",
+          "counts": {
+            "peripheral.wrap": 4392
+          }
+        }
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "name": "roblox",
+      "counts": {
+        "game:GetService": 251904
+      },
+      "reason": "Luau"
+    },
+    {
+      "name": "gmod",
+      "counts": {
+        "hook.Add": 85632
+      },
+      "reason": "GLua: !=, &&, continue and C comments"
+    },
+    {
+      "name": "playdate",
+      "counts": {
+        "playdate.graphics": 4232
+      },
+      "reason": "the SDK's compound assignment operators"
+    }
+  ],
+  "channels": [
+    {
+      "host": "factorio",
+      "source": "https://mods.factorio.com/api/mods?page_size=1 pagination.count",
+      "count": 24824,
+      "githubTopic": "factorio-mod",
+      "githubRepos": 866
+    },
+    {
+      "host": "luanti",
+      "source": "https://content.luanti.org/api/packages/?type=mod",
+      "count": 3204,
+      "githubTopic": "minetest-mod",
+      "githubRepos": 637
+    }
+  ]
+}

@@ -3,7 +3,7 @@ id: "MAINT-56"
 title: "56: Representative Type-Checking Corpus and Real-World Rule Frequencies"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -50,20 +50,20 @@ which comes from bug-fix mining, [[MAINT-58]].
 
 ## Functional Requirements
 
-| ID | Requirement | Priority | Description |
-|----|-------------|----------|-------------|
-| MAINT-56-01 | **Stratified manifest** | M | `type-corpus.json` lists the members of design §2.1; every entry has a `domain` from `type-domains.json`, a `cohort` and a `licence`; every sampled domain has ≥ 3 members; no name also appears in `corpus.json`. `type_corpus.py check` enforces this. |
-| MAINT-56-02 | **Annotation density** | M | Per member and per domain, LuaCATS tag lines per 1 000 non-blank lines of the member's roots (design §3.1). The results document reports it beside every domain figure. |
-| MAINT-56-03 | **Fetch** | M | `fetch-corpus.py --manifest tooling/corpus/type-corpus.json` fetches every member into `test/corpus/<name>`; an entry with `"sparse": true` fetches only its roots and `moduleRoot`. Without `--manifest` the fetcher's behaviour is unchanged. |
-| MAINT-56-04 | **Representative audit run** | M | Under `-PwithTypeCorpus` only, each member is audited by MAINT-54's harness with the member's target pinned and its definition libraries enabled; it writes `build/type-corpus/audit/<member>.json` (MAINT-54 schema 1) and `build/type-corpus/extras/<member>.json` (design §4). MAINT-54's own run writes byte-identical payloads before and after the shared code moves. |
-| MAINT-56-05 | **Exposure per rule** | M | Per shape and domain, sites per 1 000 lines (design §3.3). |
-| MAINT-56-06 | **Catch rate and verdicts** | M | Per shape and domain, the silent rate; per domain, MAINT-54's `F`, `R` and verdict; the usage-weighted verdict (the headline), the unweighted domain-mean and pooled verdicts beside it, and the non-`LIBRARY` stratum (design §3.4). |
-| MAINT-56-07 | **Suspected false positives** | M | Per error family and domain, reported errors on the unedited members per 1 000 lines (design §3.2, §3.5). |
-| MAINT-56-08 | **Rule-weights file** | M | `type_corpus.py summarize` writes `tooling/corpus/rule-weights.json` in the schema of design §4.3 — the interface MAINT-55 and MAINT-58 read. |
-| MAINT-56-09 | **Bug → rule mapping** | S | Each silent cell is mapped to an open BUG by design §3.6's rules, and `rule-weights.json` lists each mapped bug with the rules (shapes) of its cells. A bug no rule reaches carries no rule weight. |
-| MAINT-56-10 | **Results document** | M | `results.md` here holds the run command and commits, the summary output verbatim, the density table, and the two decision readings of design §3.7. |
-| MAINT-56-11 | **False-positive sample** | S | For each family with ≥ 1 finding, up to 10 findings (design §3.8 selection) are read and classified `real defect` / `false positive` / `unclear` in `results.md`. |
-| MAINT-56-12 | **Host domains and usage weights** | M | `type-domains.json` holds the domains of design §2.0, each host's signatures and their GitHub code-search counts with the measurement date; `type_corpus.py usage` re-measures them. A weighted domain's weight is its share of the measured counts (design §2.0); nothing about the corpus's own members (count, size) enters a weight. |
+| ID | Requirement | Priority | Status | Description |
+|----|-------------|----------|--------|-------------|
+| MAINT-56-01 | **Stratified manifest** | M | Full | `type-corpus.json` lists the members of design §2.1; every entry has a `domain` from `type-domains.json`, a `cohort` and a `licence`; every sampled domain has ≥ 3 members; no name also appears in `corpus.json`. `type_corpus.py check` enforces this. |
+| MAINT-56-02 | **Annotation density** | M | Partial | Per member and per domain, LuaCATS tag lines per 1 000 non-blank lines of the member's roots (design §3.1). The results document reports it beside every domain figure. |
+| MAINT-56-03 | **Fetch** | M | Full | `fetch-corpus.py --manifest tooling/corpus/type-corpus.json` fetches every member into `test/corpus/<name>`; an entry with `"sparse": true` fetches only its roots and `moduleRoot`. Without `--manifest` the fetcher's behaviour is unchanged. |
+| MAINT-56-04 | **Representative audit run** | M | Partial | Under `-PwithTypeCorpus` only, each member is audited by MAINT-54's harness with the member's target pinned and its definition libraries enabled; it writes `build/type-corpus/audit/<member>.json` (MAINT-54 schema 1) and `build/type-corpus/extras/<member>.json` (design §4). MAINT-54's own run writes byte-identical payloads before and after the shared code moves, except the one call verdict of risks-and-gaps DR-14. |
+| MAINT-56-05 | **Exposure per rule** | M | Partial | Per shape and domain, sites per 1 000 lines (design §3.3). |
+| MAINT-56-06 | **Catch rate and verdicts** | M | Partial | Per shape and domain, the silent rate; per domain, MAINT-54's `F`, `R` and verdict; the usage-weighted verdict (the headline), the unweighted domain-mean and pooled verdicts beside it, and the non-`LIBRARY` stratum (design §3.4). |
+| MAINT-56-07 | **Suspected false positives** | M | Partial | Per error family and domain, reported errors on the unedited members per 1 000 lines (design §3.2, §3.5). |
+| MAINT-56-08 | **Rule-weights file** | M | Partial | `type_corpus.py summarize` writes `tooling/corpus/rule-weights.json` in the schema of design §4.3 — the interface MAINT-55 and MAINT-58 read. |
+| MAINT-56-09 | **Bug → rule mapping** | S | Partial | Each silent cell is mapped to an open BUG by design §3.6's rules, and `rule-weights.json` lists each mapped bug with the rules (shapes) of its cells. A bug no rule reaches carries no rule weight. |
+| MAINT-56-10 | **Results document** | M | Not Implemented | `results.md` here holds the run command and commits, the summary output verbatim, the density table, and the two decision readings of design §3.7. |
+| MAINT-56-11 | **False-positive sample** | S | Not Implemented | For each family with ≥ 1 finding, up to 10 findings (design §3.8 selection) are read and classified `real defect` / `false positive` / `unclear` in `results.md`. |
+| MAINT-56-12 | **Host domains and usage weights** | M | Partial | `type-domains.json` holds the domains of design §2.0, each host's signatures and their GitHub code-search counts with the measurement date; `type_corpus.py usage` re-measures them. A weighted domain's weight is its share of the measured counts (design §2.0); nothing about the corpus's own members (count, size) enters a weight. |
 
 ## Behavior Rules
 - The thresholds, formulas and bug → rule map are fixed before the run; they are not tuned to a result.
@@ -87,7 +87,7 @@ Python cases live in `tooling/corpus/test_type_corpus.py` (fixtures under
 | TC-5 | 03 | entry `{"roots": ["a/b"], "moduleRoot": "c"}` | `sparse_patterns(entry)` | `["/a/b/", "/c/"]` | omit `moduleRoot` |
 | TC-6 | 04 | `type-corpus.json`; `LuaRepresentativeTypeAuditTest`'s `@Test` methods | `RepresentativeMemberSetTest` | `test<Name>Member` names == manifest names, each first letter upper-cased | delete `testLdeMember` |
 | TC-7 | 04 | `AuditPayload(1, "m", "c", 4, AuditCoverage(), emptyList(), emptyList())`, a temp dir `tmp/out` | `AuditOutput.writeTo(tmp/out, "m", payload)` | `tmp/out/m.json` exists and its text == `AuditOutput.render(payload)` | `writeTo` writing to `directory.parentFile` |
-| TC-8 | 04 | MAINT-54 payloads from a run on the base commit, saved | the same run after Phase 2 | `diff -r` of `build/type-audit` empty | change `AuditSelection.CAP` |
+| TC-8 | 04 | MAINT-54 payloads from a run on the base commit, saved | the same run after Phase 2 | `diff -r` of `build/type-audit` empty except the DR-14 site (luacheck `spec/samples/defined2.lua` offset 0: `unresolvedCallee`/`noTag` ±1) | write the audit to another directory (`AuditRunMode.FALSE_NEGATIVE.auditDir`) |
 | TC-9 | 08 | `build/type-corpus/` missing `extras/lde.json` | `summarize` | exit 2, stderr `missing payload: extras/lde.json` | completeness check removed |
 | TC-10 | 05 | testdata payloads: member `a` (domain `x`, 2 000 lines) has `arg.table` populations 1 + 1 in two cells; member `b` (domain `x`, 1 000 lines) has one cell of 2 | `exposure(...)["arg.table"]["x"]` | `(2/2 + 2/1) / 2 = 1.50` | lines pooled across members (`4/3 = 1.33`) |
 | TC-11 | 06, 12 | domain `x` cells give `F` 0.50 with `P` 1 000, weight 0.75; domain `y` give `F` 0.10 with `P` 10, weight 0.25 | `domain_verdicts(...)` | `F_w = 0.40`; `F_dm = 0.30`; pooled `F` 0.50 | `F_w` as the unweighted mean (0.30) |

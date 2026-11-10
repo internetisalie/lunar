@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "measuredAt": "2026-11-08",
+  "query": "\"<signature>\" extension:lua",
+  "domains": [
+    {
+      "id": "x",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "x",
+          "counts": {
+            "x.api": 300
+          }
+        }
+      ]
+    },
+    {
+      "id": "y",
+      "kind": "host",
+      "sampled": true,
+      "weighted": true,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "y",
+          "counts": {
+            "y.api": 100
+          }
+        }
+      ]
+    },
+    {
+      "id": "z",
+      "kind": "interpreter",
+      "sampled": true,
+      "weighted": false,
+      "lunar": "none",
+      "hosts": [
+        {
+          "name": "z",
+          "counts": {
+            "z.api": 50
+          }
+        }
+      ]
+    }
+  ],
+  "excluded": []
+}

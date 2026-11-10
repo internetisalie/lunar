@@ -45,28 +45,35 @@ data class CorpusEntry(
 object CorpusManifest {
     const val CORPUS_DIR = "test/corpus"
 
-    private const val MANIFEST_PATH = "tooling/corpus/corpus.json"
+    const val MANIFEST_PATH = "tooling/corpus/corpus.json"
 
-    fun load(repoRoot: File): List<CorpusEntry> {
-        val manifest = File(repoRoot, MANIFEST_PATH)
-        require(manifest.isFile) { "No corpus manifest at $MANIFEST_PATH" }
+    /** MAINT-56's representative type corpus: same entry shape, audited rather than swept. */
+    const val TYPE_MANIFEST_PATH = "tooling/corpus/type-corpus.json"
+
+    fun load(
+        repoRoot: File,
+        manifestPath: String = MANIFEST_PATH,
+    ): List<CorpusEntry> {
+        val manifest = File(repoRoot, manifestPath)
+        require(manifest.isFile) { "No corpus manifest at $manifestPath" }
         return JsonParser
             .parseString(manifest.readText())
             .asJsonObject
             .getAsJsonArray("corpora")
-            .map { parseEntry(it.asJsonObject) }
+            .map { parseEntry(it.asJsonObject, manifestPath) }
     }
 
     fun entry(
         repoRoot: File,
         name: String,
+        manifestPath: String = MANIFEST_PATH,
     ): CorpusEntry {
-        val matches = load(repoRoot).filter { it.name == name }
+        val matches = load(repoRoot, manifestPath).filter { it.name == name }
         // Distinguished deliberately: a bare singleOrNull would report a duplicate as absent,
         // sending the reader to fetch-corpus.py for a manifest problem.
-        require(matches.size <= 1) { "Duplicate corpus entry '$name' in $MANIFEST_PATH" }
+        require(matches.size <= 1) { "Duplicate corpus entry '$name' in $manifestPath" }
         return matches.singleOrNull()
-            ?: error("No corpus entry named '$name' in $MANIFEST_PATH")
+            ?: error("No corpus entry named '$name' in $manifestPath")
     }
 
     /** The commit actually on disk, stamped by `fetch-corpus.py`; null when the corpus is absent. */
@@ -81,11 +88,14 @@ object CorpusManifest {
         name: String,
     ): File = File(repoRoot, "$CORPUS_DIR/$name")
 
-    private fun parseEntry(entry: JsonObject): CorpusEntry {
-        val name = entry.required("name")
+    private fun parseEntry(
+        entry: JsonObject,
+        manifestPath: String,
+    ): CorpusEntry {
+        val name = entry.required("name", manifestPath)
         return CorpusEntry(
             name = name,
-            commit = entry.required("commit"),
+            commit = entry.required("commit", manifestPath),
             roots =
                 entry.getAsJsonArray("roots")?.map { it.asString }
                     ?: error("Corpus entry '$name' declares no roots"),
@@ -104,16 +114,19 @@ object CorpusManifest {
                     ?.trim()
                     ?.takeIf { it.isNotEmpty() },
             definitionLibraries = entry.distinctIds("definitionLibraries"),
-        ).let { parsed -> parsed.copy(target = entry.target(parsed)) }
+        ).let { parsed -> parsed.copy(target = entry.target(parsed, manifestPath)) }
     }
 
     /** Absent means Standard at `luaLevel`; a target whose implicit level differs is refused. */
-    private fun JsonObject.target(parsed: CorpusEntry): Target? {
+    private fun JsonObject.target(
+        parsed: CorpusEntry,
+        manifestPath: String,
+    ): Target? {
         val spec = get("target")?.asString?.trim()?.takeIf { it.isNotEmpty() } ?: return null
         val platform = LuaPlatform.valueOf(spec.substringBefore(':'))
         val version =
             requireNotNull(PlatformVersionRegistry.findVersion(platform, spec.substringAfter(':', ""))) {
-                "Corpus entry '${parsed.name}' names unknown target '$spec' in $MANIFEST_PATH"
+                "Corpus entry '${parsed.name}' names unknown target '$spec' in $manifestPath"
             }
         val target = Target(platform, version)
         require(target.getImplicitLanguageLevel() == parsed.luaLevel) {
@@ -133,7 +146,10 @@ object CorpusManifest {
             ?.distinct()
             ?: emptyList()
 
-    private fun JsonObject.required(key: String): String =
+    private fun JsonObject.required(
+        key: String,
+        manifestPath: String,
+    ): String =
         get(key)?.asString?.takeIf { it.isNotBlank() }
-            ?: error("Corpus entry is missing required key '$key' in $MANIFEST_PATH")
+            ?: error("Corpus entry is missing required key '$key' in $manifestPath")
 }

@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "member": "snabb",
+  "commit": "c2",
+  "cap": 4,
+  "coverage": {
+    "calls": 0,
+    "stringOrTableArgs": 0,
+    "unresolvedCallee": 0,
+    "unresolvedMethod": 0,
+    "formMismatch": 0,
+    "noTag": 0,
+    "arityGuard": 0,
+    "eligible": 0,
+    "fieldUntagged": 0,
+    "ldocParam": 0
+  },
+  "cells": [
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "MEMBER"
+      },
+      "population": 8
+    },
+    {
+      "cell": {
+        "shape": "arity.tooFew",
+        "path": "CHECKOUT_FILE",
+        "form": "MEMBER"
+      },
+      "population": 3
+    }
+  ],
+  "records": [
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "MEMBER"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "REPORTED",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "MEMBER"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "REPORTED",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "MEMBER"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "REPORTED",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arg.primitive",
+        "path": "PROJECT_FILE",
+        "form": "MEMBER"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arity.tooFew",
+        "path": "CHECKOUT_FILE",
+        "form": "MEMBER"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arity.tooFew",
+        "path": "CHECKOUT_FILE",
+        "form": "MEMBER"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    },
+    {
+      "cell": {
+        "shape": "arity.tooFew",
+        "path": "CHECKOUT_FILE",
+        "form": "MEMBER"
+      },
+      "file": "a.lua",
+      "line": 1,
+      "declaredType": "t",
+      "wrong": "true",
+      "outcome": "SILENT",
+      "newErrors": []
+    }
+  ]
+}

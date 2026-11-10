@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "measuredAt": "2026-11-08",
+  "query": "\"<signature>\" extension:lua",
+  "domains": [
+    {"id": "love", "kind": "host", "sampled": true, "weighted": true, "lunar": "library love2d",
+     "hosts": [{"name": "love", "counts": {"love.graphics": 100}}]}
+  ],
+  "excluded": []
+}

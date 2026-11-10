@@ -1,0 +1,18 @@
+{
+  "$comment": [
+    "MAINT-56 design §3.6: silent audit cells (shape, path, form) -> the open BUG whose route they take.",
+    "Fixed before the run, never tuned to a result. Rules are tried in order; the first match wins; \"*\"",
+    "matches anything; exceptShapes lists shapes a \"*\" shape list excludes; no match is `unmapped`.",
+    "BUG-38 (arity across files) is done, so an arity.* cell it once explained is now `unmapped`."
+  ],
+  "schema": 1,
+  "cells": [
+    {"bug": "BUG-44", "shapes": ["field.assign"], "paths": "*", "forms": "*"},
+    {"bug": "BUG-43", "shapes": "*", "paths": ["LIBRARY"], "forms": ["METHOD"]},
+    {"bug": "BUG-40", "shapes": ["arg.table", "arg.class", "arg.record"], "paths": ["LIBRARY", "PROJECT_FILE", "CHECKOUT_FILE"], "forms": "*"},
+    {"bug": "BUG-41", "shapes": ["arg.array", "arg.function", "arg.optional", "arg.primitive"], "paths": ["PROJECT_FILE", "CHECKOUT_FILE"], "forms": "*"},
+    {"bug": "BUG-42", "shapes": "*", "exceptShapes": ["return.mismatch", "field.assign"], "paths": ["SAME_FILE"], "forms": ["MEMBER", "METHOD"]},
+    {"bug": "BUG-45", "shapes": ["arg.optional", "arg.primitive", "arg.union"], "paths": ["LIBRARY"], "forms": ["MEMBER", "GLOBAL"]},
+    {"bug": "BUG-45", "shapes": ["return.mismatch"], "paths": "*", "forms": "*"}
+  ]
+}
