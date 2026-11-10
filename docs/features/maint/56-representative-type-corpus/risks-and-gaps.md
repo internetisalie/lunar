@@ -355,6 +355,86 @@ slowest site measured costs about 6.5 min (3 × 130 s), which bounds the overrun
 stays in the manifest and enters no figure (design §4.3). Its weights are re-measured once both bugs
 are fixed.
 
+### DR-16 — Snapshot cost per corpus file, one cold read each (executed, builder)
+**Run** (2026-11-10, libvirt, `d64890df`, GoLand 2026.2.3 test platform): a throwaway light-fixture
+test, not committed, run with
+`builder-run libvirt "test --rerun --no-build-cache --tests '*ProbeSnapshotSweep*'"`, one test method
+per member. The setup is the representative audit's (`AuditMemberRun`): the member's target pinned,
+its definition libraries provisioned, `moduleRoot` on the source path, and its roots copied with
+`copyDirectoryToProject`. Each member's files are then read in path order, once each, with
+`LuaTypesSnapshot.forFile(file).getErrors()` on the EDT, timed. No edits and no injection. Each read runs
+under a progress indicator that is cancelled at 120 s. After a timeout, the member's remaining files
+are abandoned. The run ended in 7 min 45 s. All 2 026 selected files were read, with no exceptions and
+no member skipped.
+**What a file's figure includes:** a read also builds the snapshots of other files its inference
+reaches that are not yet built (BUG-97). A file is counted as *already built* when its snapshot was
+up to date before its own read, because an earlier file in the same member had built it. Its figure
+is then about 0 ms. A member's first file therefore carries the cost of everything it reaches, and
+first files account for 71.7 % of the summed time. The first file of the whole run also pays JVM
+warm-up.
+
+| member | files read / selected | already built | total ms | max file ms | max file | timeouts |
+|---|---|---|---|---|---|---|
+| fallo | 1 / 1 | 0 | 121 987 | 121 987 | `lua/fallo/init.lua` (514 lines) | 1: cancelled at the deadline, ended at 121 987 ms; no files left to abandon |
+| luals | 21 / 21 | 20 | 48 675 | 48 675 | `script/vm/compiler.lua` (2807 lines) | 0 |
+| druid | 45 / 45 | 11 | 24 393 | 8 991 | `druid/druid.lua` (249 lines) | 0 |
+| gitsigns | 61 / 61 | 21 | 7 119 | 6 258 | `lua/gitsigns.lua` (282 lines) | 0 |
+| telescope | 73 / 73 | 11 | 11 960 | 5 950 | `lua/telescope/actions/generate.lua` (119 lines) | 0 |
+| differ | 79 / 79 | 24 | 7 915 | 5 452 | `lua/differ/command.lua` (472 lines) | 0 |
+| opensmce | 126 / 126 | 51 | 11 653 | 4 690 | `src/Game/DummyLevel.lua` (37 lines) | 0 |
+| blinkcmp | 121 / 121 | 32 | 5 298 | 4 114 | `lua/blink-cmp.lua` (1 lines) | 0 |
+| factoryplanner | 124 / 124 | 101 | 4 921 | 3 932 | `modfiles/backend/calculation/LUDecomposition.lua` (429 lines) | 0 |
+| snabb | 14 / 14 | 10 | 3 884 | 3 627 | `src/lib/yang/alarms.lua` (945 lines) | 0 |
+| awesome | 40 / 40 | 19 | 3 371 | 3 116 | `lib/gears/color.lua` (448 lines) | 0 |
+| ljtk | 16 / 16 | 10 | 2 132 | 1 886 | `lang/bcsave.lua` (698 lines) | 0 |
+| prism | 85 / 85 | 3 | 6 277 | 1 169 | `spectrum/display.lua` (705 lines) | 0 |
+| restyhttp | 3 / 3 | 1 | 1 037 | 1 035 | `lib/resty/http.lua` (1213 lines) | 0 |
+| apisix | 50 / 50 | 14 | 1 420 | 989 | `apisix/core/config_etcd.lua` (1281 lines) | 0 |
+| kristal | 50 / 50 | 0 | 5 165 | 720 | `src/engine/game/battle/arena.lua` (285 lines) | 0 |
+| tntqueue | 14 / 14 | 13 | 600 | 600 | `queue/abstract.lua` (1062 lines) | 0 |
+| weakauras | 17 / 17 | 6 | 1 055 | 561 | `WeakAuras/RegionTypes/AuraBar.lua` (1428 lines) | 0 |
+| tntcrud | 78 / 78 | 51 | 1 314 | 477 | `crud/atomic_batch.lua` (75 lines) | 0 |
+| tntmetrics | 42 / 42 | 38 | 688 | 428 | `metrics/api.lua` (300 lines) | 0 |
+| kong | 260 / 260 | 49 | 2 663 | 415 | `kong/clustering/init.lua` (130 lines) | 0 |
+| rampant | 39 / 39 | 17 | 1 638 | 400 | `prototypes/EnergyThief.lua` (290 lines) | 0 |
+| lde | 84 / 84 | 12 | 1 823 | 329 | `packages/lde-core/tests/build.test.lua` (2327 lines) | 0 |
+| pokisample | 68 / 68 | 49 | 743 | 328 | `game/modules/bootstrap/entry.lua` (173 lines) | 0 |
+| ldoc | 31 / 31 | 4 | 681 | 293 | `ldoc/markdown.lua` (1357 lines) | 0 |
+| omniinv | 27 / 27 | 1 | 1 588 | 288 | `OmniInventory/Omni/API.lua` (521 lines) | 0 |
+| somewm | 56 / 56 | 25 | 621 | 241 | `fishlive/autostart/init.lua` (347 lines) | 0 |
+| monarch | 5 / 5 | 2 | 257 | 234 | `monarch/monarch.lua` (1395 lines) | 0 |
+| lnko | 10 / 10 | 9 | 212 | 212 | `lnko/cli.lua` (471 lines) | 0 |
+| lain | 31 / 31 | 4 | 520 | 159 | `widget/alsa.lua` (54 lines) | 0 |
+| facc | 115 / 115 | 1 | 851 | 132 | `scripts/remote/public_api.lua` (947 lines) | 0 |
+| inngest | 66 / 66 | 0 | 671 | 128 | `pkg/constraintapi/lua/acquire.lua` (497 lines) | 0 |
+| beequeue | 5 / 5 | 0 | 104 | 82 | `lib/lua/addDelayedJob.lua` (28 lines) | 0 |
+| ouf | 33 / 33 | 0 | 655 | 74 | `elements/additionalpower.lua` (423 lines) | 0 |
+| bullmq | 136 / 136 | 0 | 876 | 47 | `src/commands/includes/relayIndex.lua` (112 lines) | 0 |
+
+**Distribution per file** (ms): all 2 026 files: median 3, p90 60, p99 866, max 121 987. The 1 417
+files not already built: median 7, p90 93, p99 1 327, max 121 987. 18 files took ≥ 1 s and 2 took
+≥ 10 s.
+
+**Slowest 10 files** (ms, member, file, lines, position in the member's read order):
+
+| ms | member | file | lines | read position |
+|---|---|---|---|---|
+| 121 987 (timeout) | fallo | `lua/fallo/init.lua` | 514 | 1st |
+| 48 675 | luals | `script/vm/compiler.lua` | 2 807 | 1st |
+| 8 991 | druid | `druid/druid.lua` | 249 | 18th |
+| 7 796 | druid | `druid/system/druid_instance.lua` | 818 | 42nd |
+| 6 258 | gitsigns | `lua/gitsigns.lua` | 282 | 1st |
+| 5 950 | telescope | `lua/telescope/actions/generate.lua` | 119 | 2nd |
+| 5 452 | differ | `lua/differ/command.lua` | 472 | 1st |
+| 4 690 | opensmce | `src/Game/DummyLevel.lua` | 37 | 69th |
+| 4 114 | blinkcmp | `lua/blink-cmp.lua` | 1 | 1st |
+| 3 932 | factoryplanner | `modfiles/backend/calculation/LUDecomposition.lua` | 429 | 1st |
+
+**Reading:** outside fallo ([[BUG-96]]) and luals ([[BUG-97]]), no file's cold read reached 9 s, and
+fallo's is the only timeout. The indicator's cancellation took effect about 2 s after the deadline.
+Not established: how much of each first file's figure belongs to the file itself and how much to the
+files it reaches, and how much JVM warm-up contributes to telescope's first two files.
+
 ## Risks
 
 ### Risk 1.1: Small samples per domain cell
