@@ -118,6 +118,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | MAINT-56 | Representative type corpus and real-world rule frequencies (host-API domains weighted by measured usage) | planned | M | — | unblocks MAINT-58; weights MAINT-54's F and MAINT-55's rules | ✓ |
 | MAINT-57 | Live verification backlog: run the unrecorded live-IDE checklists of shipped features | todo | M | — | real-flow evidence for done features with no recorded live run | ✓ |
 | MAINT-58 | Bug-fix mining and real-bug-rate rule weighting (fix-commit codebook, parent/child Lunar run) | todo | M | MAINT-56 | multiplies MAINT-56's rule weights by how often each rule's mistake is a real bug | ✓ |
+| MAINT-59 | Cancel superseded CI runs: `concurrency:` + `cancel-in-progress` in both platforms' `build-plugin.yml` / `docs-lint.yml`, events kept apart, never `main` or tags | todo | S | loom LGR-112 (tested form) | Gitea 1.26 dropped auto-cancel; frees `lunar-ci` slots | ✓ |
 | TOOLING-09 | Prebuilt Lua binaries — our own static `lua`/`luac` per minor version and platform, published from a build repository and added to the feed as release assets | todo | S | — | — | ✓ |
 | BUG-403 | Lunar hard-depends on the `glimmer/luacheck` fork without declaring or enforcing it | todo | S | — | — | ✓ |
 | BUG-405 | OpenResty/NGX target emits no luacheck std although `ngx_lua` exists | todo | C | — | — | ✓ |
