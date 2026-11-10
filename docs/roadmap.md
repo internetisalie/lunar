@@ -73,6 +73,16 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 > the v0.21.0 tag and its published release are unchanged. Wave 20 closed with v0.20.1; the
 > rows filed under it after that release moved here on 2026-11-02.
 
+> **v0.21.21 goal — type checking you can trust on real code.** Cut when all three hold and main is green:
+> 1. **Fast:** every type-corpus file's snapshot builds in under 250 ms, cold and after an edit, with
+>    the per-file p99 under 100 ms (MAINT-60, BUG-96, BUG-97). The limits stand unless MAINT-60's
+>    prototype probes show a file cannot reach them without incremental re-inference; such a file gets
+>    its own item rather than a looser limit.
+> 2. **No wrong warnings:** every MAINT-55 conformance case scored `false-report` reaches `agree`
+>    (BUG-75, BUG-81, BUG-85, BUG-91, BUG-94).
+> 3. **No regressions:** the MAINT-55 ratchet stays green, and the MAINT-54 audit is unchanged except for
+>    recorded corrections.
+
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | ANALYSIS-07 | Value constraints over the CFG — the type engine and the control-flow graph are two flow analyses that never speak | planned | **L** | ANALYSIS-06 *(CFG, done)*, TYPE-08 *(flow-sensitive, done)* | — | — |
