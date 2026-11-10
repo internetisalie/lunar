@@ -225,6 +225,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4 # for CHANGELOG.md
+        with:
+          fetch-depth: 0 # release notes read the previous tag's CHANGELOG.md
 
       - name: Derive version from tag
         id: version
@@ -247,12 +249,10 @@ jobs:
           echo "Release asset: $ZIP"
 
       - name: Extract release notes from CHANGELOG.md
-        # Grab the body of the top-most "## [..]" section (whatever it's labelled) — tag-agnostic.
+        # The entries of the top "## [..]" block that the previous v* tag lacked: CHANGELOG.md is
+        # per-milestone, so the whole block would repeat every earlier patch of the minor.
         run: |
-          awk '
-            /^## \[/ { if (seen) exit; seen=1; next }
-            seen { print }
-          ' CHANGELOG.md > release-notes.md
+          scripts/release-notes.sh "${GITHUB_REF_NAME}" > release-notes.md
           if [ ! -s release-notes.md ]; then
             echo "Release ${{ steps.version.outputs.version }}" > release-notes.md
           fi
