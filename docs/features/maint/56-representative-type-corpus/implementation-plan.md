@@ -64,6 +64,10 @@ There is no live-IDE surface, so there is no `human-verification-checklists.md`.
   - [ ] `python3 tooling/corpus/type_corpus.py usage`; commit the re-measured `type-domains.json`. The
         sampled set and the members stay as they are whatever the new shares; a 2 % crossing is only
         reported, by `summarize` (design §2.0, "The sampled set is frozen").
+  - [ ] Amendment (DR-15; [[BUG-96]], [[BUG-97]]): the per-member deadline of design §5.2 (`MemberDeadline`,
+        `AuditRunMode.memberLimit` = 30 min, `ExtrasPayload.timedOut`) with TC-28, and `summarize`'s
+        `timedOut` list (design §4.3) with TC-27. The member set stays frozen: a timed-out member stays in
+        the manifest and is listed, not dropped.
   - [ ] Run design §5.3's command; copy back; `python3 tooling/corpus/type_corpus.py summarize
         build/type-corpus --checkouts test/corpus --lunar-commit <the run's commit> --out
         tooling/corpus/rule-weights.json`.

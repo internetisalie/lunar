@@ -119,6 +119,15 @@ class TypeDomainsTest(unittest.TestCase):
         self.assertEqual({"vim.api": 7}, measured["domains"][0]["hosts"][0]["counts"])
         self.assertEqual("2026-11-08", measured["measuredAt"])
 
+    def test_TC_26_measure_usage_escapes_quotes_inside_a_signature(self):
+        def search(query: str) -> int:
+            return 7 if query == '"require(\\"awful\\")" extension:lua' else 0
+
+        domains = {"query": '"<signature>" extension:lua',
+                   "domains": [{"id": "awesome", "hosts": [{"name": "awesome", "counts": {'require("awful")': 1}}]}]}
+        measured = type_corpus.measure_usage(domains, search, "2026-11-10")
+        self.assertEqual({'require("awful")': 7}, measured["domains"][0]["hosts"][0]["counts"])
+
 
 def member(name: str, domain: str, lines: int, cases: list[tuple], baseline: dict | None = None) -> dict:
     """A `load_run` record from (shape, path, form, population, outcomes) cases."""
@@ -175,10 +184,24 @@ class TypeCorpusSummaryTest(unittest.TestCase):
         document = json.loads(text)
         self.assertEqual(
             {"schema", "corpus", "lunarCommit", "thresholds", "usage", "domains", "verdicts", "shapes", "families",
-             "bugs"},
+             "bugs", "timedOut"},
             set(document),
         )
         self.assertEqual(1, document["schema"])
+
+    def test_TC_27_a_timed_out_member_is_listed_and_enters_no_figure(self):
+        run_dir = self.scratch / "run"
+        shutil.copytree(DATA / "run", run_dir)
+        extras = run_dir / "extras" / "snabb.json"
+        extras.write_text(json.dumps(dict(json.loads(extras.read_text(encoding="utf-8")), timedOut=True)), encoding="utf-8")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(0, self.summarize(run_dir, self.scratch / "out.json"))
+        document = json.loads((self.scratch / "out.json").read_text(encoding="utf-8"))
+        self.assertEqual(["snabb"], document["timedOut"])
+        self.assertEqual({"x"}, set(document["domains"]))
+        self.assertEqual({"lde", "snabb"}, set(document["corpus"]["members"]))
+        self.assertIn("- Timed out, in no figure above: snabb", out.getvalue())
 
     def test_TC_10_exposure_is_the_mean_of_member_rates(self):
         members = [

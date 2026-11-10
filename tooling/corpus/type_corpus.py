@@ -175,7 +175,8 @@ def measure_usage(domains: dict, search, today: str) -> dict:
     counted += [entry["counts"] for entry in measured.get("excluded", [])]
     for counts in counted:
         for signature in counts:
-            counts[signature] = search(measured["query"].replace("<signature>", signature))
+            phrase = signature.replace('"', '\\"')
+            counts[signature] = search(measured["query"].replace("<signature>", phrase))
     measured["measuredAt"] = today
     return measured
 
@@ -405,14 +406,23 @@ def rounded(value):
     return value
 
 
+def timed_out(members: list[dict]) -> list[str]:
+    """Members whose run passed the per-member deadline (design §5.2); they enter no figure."""
+    return sorted(member["name"] for member in members if member["extras"].get("timedOut"))
+
+
 def weights(members: list[dict], domains: dict, rules: dict, meta: dict) -> dict:
     """Design §4.3: the rule-weights document; `meta` holds `manifest`, `domains` and `lunarCommit`."""
     w = weights_of(domains)
+    corpus = {"manifest": meta["manifest"], "members": {m["name"]: m["audit"]["commit"] for m in members}}
+    stopped = timed_out(members)
+    members = [member for member in members if member["name"] not in stopped]
     verdicts = domain_verdicts(members, w, drop_library=False)
     stratum = domain_verdicts(members, w, drop_library=True)
     return rounded({
         "schema": SCHEMA,
-        "corpus": {"manifest": meta["manifest"], "members": {m["name"]: m["audit"]["commit"] for m in members}},
+        "corpus": corpus,
+        "timedOut": stopped,
         "lunarCommit": meta["lunarCommit"],
         "thresholds": {"F": F_THRESHOLD, "R": R_THRESHOLD},
         "usage": {"domains": meta["domains"], "measuredAt": domains["measuredAt"], "coverage": coverage(domains),
@@ -486,7 +496,8 @@ def reading_redesign(doc: dict) -> list[str]:
               verdict_line("Non-LIBRARY stratum (weighted)", verdicts["nonLibrary"]),
               f"- Coverage of measured usage: {usage['coverage'] * 100:.1f} % (measured {usage['measuredAt']})"]
     lines += [f"- {line}" for line in usage["crossings"]] or ["- Sampling-line crossings: none"]
-    return lines + [""]
+    stopped = ", ".join(doc["timedOut"]) or "none"
+    return lines + [f"- Timed out, in no figure above: {stopped}", ""]
 
 
 def render(doc: dict) -> str:

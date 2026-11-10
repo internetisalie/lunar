@@ -270,7 +270,8 @@ reported types), `false positive`, or `unclear`.
 
 ### 4.1 `build/type-corpus/extras/<member>.json`
 Gson as `AuditOutput` (`disableHtmlEscaping`, pretty). `ExtrasPayload(schema: Int = 1, member: String,
-commit: String, files: Int, baseline: Map<String, Int>, samples: Map<String, List<ExtrasSample>>)`,
+commit: String, files: Int, baseline: Map<String, Int>, samples: Map<String, List<ExtrasSample>>,
+timedOut: Boolean = false)` (`timedOut`: §5.2's member deadline stopped the measurement),
 `ExtrasSample(file: String, line: Int, message: String)` (`file` relative to the copied root, `line`
 1-based). Maps are `sortedMapOf` so key order is fixed.
 
@@ -285,7 +286,8 @@ commit: String, files: Int, baseline: Map<String, Int>, samples: Map<String, Lis
   `gh api -X GET search/code -f q=<query> -f per_page=1 --jq .total_count` and sleeps 7 s after each call
   (code search allows 10 requests a minute); a non-zero exit stops the command with exit 2 and the
   `gh` stderr. `measure_usage` replaces every count in `domains` and `excluded` with
-  `search(query.replace("<signature>", sig))` and sets `measuredAt`.
+  `search(query.replace("<signature>", sig))`, each `"` in `sig` escaped as `\"` (unescaped, `require("awful")`
+  makes a malformed phrase that counts 0; TC-26), and sets `measuredAt`.
 - `summarize <run-dir> --checkouts <dir> --lunar-commit <sha> --out <file> [--manifest P] [--domains P]` —
   `<run-dir>` holds `audit/` and `extras/`; `<sha>` is the commit the run was built from. Exits 2 on a
   missing payload (`missing payload: <sub>/<name>.json`), a `commit` that differs from the manifest, or
@@ -309,8 +311,14 @@ sampled domain.
   "verdicts": {"weighted": {"F", "R", "verdict"}, "domainMean": {...}, "pooled": {...}, "nonLibrary": {...}},
   "shapes": {"<shape>": {"family": "<family>", "byDomain": {"<d>": {"exposurePerKloc": x, "silentRate": x|null, "missedPerKloc": x|null}}, "pooled": {...same three}}},
   "families": {"<family>": {"byDomain": {"<d>": {"findingsPerKloc": x}}, "pooled": {"findingsPerKloc": x}}},
-  "bugs": {"<BUG-nn>": ["<shape>", ...], "unmapped": [{"shape", "path", "form", "domain"}]} }
+  "bugs": {"<BUG-nn>": ["<shape>", ...], "unmapped": [{"shape", "path", "form", "domain"}]},
+  "timedOut": ["<name>", ...] }
 ```
+A member whose extras payload has `timedOut: true` is listed in `timedOut`, sorted, and enters no other
+figure: `summarize` drops it before every measure of §3, so it is in no domain's `members`, `kloc`,
+exposure, rate, verdict or bug list. Its commit stays in `corpus.members`. Reading 2 ends with
+`- Timed out, in no figure above: <names|none>` (TC-27). A partial measurement is not used, because the
+sites a member reaches before its deadline are the sites of its first files only.
 A consumer multiplies `missedPerKloc` (or `findingsPerKloc`) by its own per-shape rate; the file holds
 no real-bug rate.
 
@@ -335,7 +343,7 @@ no real-bug rate.
   `check(entries, sweep_names, domains, checkouts=None) -> list[str]`, `density`, `bug_for_cell(cell, rules) -> str`,
   `weights(members, domains, rules, meta) -> dict`, `render(weights) -> str`, `main`. Imports
   `type_audit_summary` (same directory, run as a script).
-- `tooling/corpus/test_type_corpus.py` (TC-1–5, 9–12, 16, 18–25) and fixtures under
+- `tooling/corpus/test_type_corpus.py` (TC-1–5, 9–12, 16, 18–27) and fixtures under
   `tooling/corpus/testdata/type_corpus/`.
 
 ### 5.2 Kotlin (all `src/test/kotlin/net/internetisalie/lunar/…`)
@@ -343,7 +351,9 @@ no real-bug rate.
 |---|---|
 | `corpus.CorpusManifest` | `MANIFEST_PATH` becomes public; add `const val TYPE_MANIFEST_PATH = "tooling/corpus/type-corpus.json"`; `load(repoRoot: File, manifestPath: String = MANIFEST_PATH)`, `entry(repoRoot: File, name: String, manifestPath: String = MANIFEST_PATH)`; `parseEntry`, `required` and `target` take the path for their messages. |
 | `corpus.audit.AuditOutput` | add `fun writeTo(directory: File, member: String, payload: AuditPayload)`; `write` = `writeTo(file(repoRoot, member).parentFile, member, payload)`. |
-| `corpus.audit.AuditRunMode` (new enum) | `(manifestPath: String, auditDir: String, extrasDir: String?, logTag: String, enablesLibraries: Boolean)`: `FALSE_NEGATIVE(MANIFEST_PATH, "build/type-audit", null, "type-audit", false)`, `REPRESENTATIVE(TYPE_MANIFEST_PATH, "build/type-corpus/audit", "build/type-corpus/extras", "type-corpus", true)`. |
+| `corpus.audit.AuditRunMode` (new enum) | `(manifestPath: String, auditDir: String, extrasDir: String?, logTag: String, enablesLibraries: Boolean, memberLimit: Duration?)`: `FALSE_NEGATIVE(MANIFEST_PATH, "build/type-audit", null, "type-audit", false, null)`, `REPRESENTATIVE(TYPE_MANIFEST_PATH, "build/type-corpus/audit", "build/type-corpus/extras", "type-corpus", true, 30.minutes)`. |
+| `corpus.audit.MemberDeadline` (new) | `MemberDeadline(limitNanos: Long?, clock: () -> Long = System::nanoTime)`, `expired()`; `measureWithin(sites, deadline, measure): Bounded<T>(results, timedOut)` measures in order and stops before the first site at which `expired()`. A null limit never expires. |
+| `corpus.audit.MemberDeadlineTest` (new, routine) | plain JUnit 4; TC-28. |
 | `corpus.audit.AuditMemberRun` (new) | `internal class AuditMemberRun(fixture: CodeInsightTestFixture, mode: AuditRunMode)`; `fun run(name: String)`; `fun restore(savedSourcePath: String)`. Holds `savedTarget: SavedTarget?` and `provisioned: List<Path>`. `applyModuleRoot`, `copyRoots`, `luaFiles` move here verbatim from `LuaTypeFalseNegativeAuditTest`. |
 | `corpus.audit.TypeAuditExtras` (new object) | `baselineFamilies(file: LuaFile): Map<String, Int>`, `internal fun family(error: ElementError): String`, `payload(member: String, commit: String, files: List<LuaFile>): ExtrasPayload`, `writeTo(directory: File, member: String, payload: ExtrasPayload)`; `ExtrasPayload`, `ExtrasSample` in the same file. |
 | `corpus.audit.LuaTypeFalseNegativeAuditTest` | `setUp` unchanged plus `runner = AuditMemberRun(myFixture, AuditRunMode.FALSE_NEGATIVE)`; `tearDown` = `runner.restore(savedSourcePath)` then `super.tearDown()` in `finally`; each test calls `runner.run(name)`. |
@@ -362,6 +372,11 @@ then MAINT-54's scan, select, measure and payload steps unchanged, written with
 `AuditOutput.writeTo(File(repoRoot, mode.auditDir), name, payload)`; if `mode.extrasDir` is set,
 `TypeAuditExtras.writeTo(File(repoRoot, it), name, TypeAuditExtras.payload(name, entry.commit, files))`;
 print `[<logTag>:<name>] files=… population=… sites=… elapsedMs=…`, elapsed to just after the last write.
+**Member deadline** ([[BUG-96]], [[BUG-97]]; risks-and-gaps DR-15): `run` starts `MemberDeadline(mode.memberLimit)`
+first, and the measure step is `measureWithin(selected, deadline) { injector.measure(it) }`. When it
+stops early, the audit payload holds the sites measured so far, the extras payload has `timedOut: true`,
+and the log line ends ` TIMED_OUT limit=30m`. A member overruns the limit by at most one site. For
+`FALSE_NEGATIVE` the limit is null, so MAINT-54's run is unchanged.
 Split into private helpers to stay within 30 lines.
 
 **`restore(savedSourcePath)`**: `restored = CorpusSourcePath.restore(project, savedSourcePath)`;

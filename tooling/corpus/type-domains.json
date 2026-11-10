@@ -14,7 +14,7 @@
     "              weights. CurseForge (WoW) answers 403 without an API key and is not measured."
   ],
   "schema": 1,
-  "measuredAt": "2026-11-08",
+  "measuredAt": "2026-11-10",
   "query": "\"<signature>\" extension:lua",
   "domains": [
     {
@@ -27,7 +27,7 @@
         {
           "name": "neovim",
           "counts": {
-            "vim.api": 616448
+            "vim.api": 612352
           }
         }
       ]
@@ -42,7 +42,7 @@
         {
           "name": "wow",
           "counts": {
-            "RegisterEvent": 247808
+            "RegisterEvent": 251904
           }
         }
       ]
@@ -57,7 +57,7 @@
         {
           "name": "love",
           "counts": {
-            "love.graphics": 111360
+            "love.graphics": 110592
           }
         }
       ]
@@ -72,7 +72,7 @@
         {
           "name": "factorio",
           "counts": {
-            "data:extend": 33088
+            "data:extend": 33024
           }
         }
       ]
@@ -102,13 +102,13 @@
         {
           "name": "redis",
           "counts": {
-            "redis.call": 27008
+            "redis.call": 26944
           }
         },
         {
           "name": "valkey",
           "counts": {
-            "server.call": 318
+            "server.call": 319
           }
         }
       ]
@@ -138,7 +138,7 @@
         {
           "name": "tarantool",
           "counts": {
-            "box.schema": 3004
+            "box.schema": 3012
           }
         }
       ]
@@ -153,7 +153,7 @@
         {
           "name": "defold",
           "counts": {
-            "msg.post": 1532
+            "msg.post": 1544
           }
         }
       ]
@@ -169,7 +169,7 @@
         {
           "name": "puc",
           "counts": {
-            "#!/usr/bin/env lua": 19616
+            "#!/usr/bin/env lua": 19744
           }
         }
       ]
@@ -185,7 +185,7 @@
         {
           "name": "luajit",
           "counts": {
-            "ffi.cdef": 36160
+            "ffi.cdef": 36480
           }
         }
       ]
@@ -200,7 +200,7 @@
         {
           "name": "luanti",
           "counts": {
-            "minetest.get_node": 20160
+            "minetest.get_node": 20128
           }
         }
       ]
@@ -215,7 +215,7 @@
         {
           "name": "mpv",
           "counts": {
-            "mp.get_property": 18160
+            "mp.get_property": 18560
           }
         }
       ]
@@ -230,7 +230,7 @@
         {
           "name": "pandoc",
           "counts": {
-            "pandoc.utils": 16672
+            "pandoc.utils": 17248
           }
         }
       ]
@@ -260,7 +260,7 @@
         {
           "name": "wezterm",
           "counts": {
-            "wezterm.action": 12064
+            "wezterm.action": 12128
           }
         }
       ]
@@ -275,7 +275,7 @@
         {
           "name": "wireshark",
           "counts": {
-            "Proto(": 11792
+            "Proto(": 12320
           }
         }
       ]
@@ -290,7 +290,7 @@
         {
           "name": "koreader",
           "counts": {
-            "UIManager:show": 8480
+            "UIManager:show": 8640
           }
         }
       ]
@@ -305,7 +305,7 @@
         {
           "name": "solar2d",
           "counts": {
-            "display.newImage": 7168
+            "display.newImage": 7104
           }
         }
       ]
@@ -320,7 +320,7 @@
         {
           "name": "hammerspoon",
           "counts": {
-            "hs.hotkey": 6648
+            "hs.hotkey": 6680
           }
         }
       ]
@@ -335,7 +335,7 @@
         {
           "name": "computercraft",
           "counts": {
-            "peripheral.wrap": 4392
+            "peripheral.wrap": 4384
           }
         }
       ]
@@ -345,14 +345,14 @@
     {
       "name": "roblox",
       "counts": {
-        "game:GetService": 251904
+        "game:GetService": 249856
       },
       "reason": "Luau"
     },
     {
       "name": "gmod",
       "counts": {
-        "hook.Add": 85632
+        "hook.Add": 87424
       },
       "reason": "GLua: !=, &&, continue and C comments"
     },

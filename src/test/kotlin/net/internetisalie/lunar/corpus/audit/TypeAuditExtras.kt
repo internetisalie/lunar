@@ -26,6 +26,7 @@ data class ExtrasPayload(
     val files: Int,
     val baseline: SortedMap<String, Int>,
     val samples: SortedMap<String, List<ExtrasSample>>,
+    val timedOut: Boolean = false,
 )
 
 /** A classified error, with where it sits, so samples sort by file then offset (design §3.8). */

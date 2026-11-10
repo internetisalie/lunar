@@ -20,6 +20,7 @@ import java.nio.file.Path
 private data class MemberAudit(
     val payload: AuditPayload,
     val population: Int,
+    val timedOut: Boolean,
 )
 
 /**
@@ -33,11 +34,13 @@ internal class AuditMemberRun(
 ) {
     private var savedTarget: SavedTarget? = null
     private var provisioned: List<Path> = emptyList()
+    private var deadline = MemberDeadline(null)
 
     private val project get() = fixture.project
 
     fun run(name: String) {
         val startedAt = System.nanoTime()
+        deadline = MemberDeadline(mode.memberLimit?.inWholeNanoseconds)
         val repoRoot = File(fixture.testDataPath)
         val entry = CorpusManifest.entry(repoRoot, name, mode.manifestPath)
         CorpusGuards.assertCorpusFetched(repoRoot, entry)
@@ -49,12 +52,14 @@ internal class AuditMemberRun(
         val audit = measure(entry, files, checkoutDir)
         AuditOutput.writeTo(File(repoRoot, mode.auditDir), name, audit.payload)
         mode.extrasDir?.let {
-            TypeAuditExtras.writeTo(File(repoRoot, it), name, TypeAuditExtras.payload(name, entry.commit, files))
+            val extras = TypeAuditExtras.payload(name, entry.commit, files).copy(timedOut = audit.timedOut)
+            TypeAuditExtras.writeTo(File(repoRoot, it), name, extras)
         }
         val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
         println(
             "[${mode.logTag}:$name] files=${files.size} population=${audit.population} " +
-                "sites=${audit.payload.records.size} elapsedMs=$elapsedMs",
+                "sites=${audit.payload.records.size} elapsedMs=$elapsedMs" +
+                if (audit.timedOut) " TIMED_OUT limit=${mode.memberLimit}" else "",
         )
     }
 
@@ -79,7 +84,7 @@ internal class AuditMemberRun(
         val sites = scans.flatMap { it.sites }
         val selected = AuditSelection.select(sites)
         val injector = AuditInjector(fixture)
-        val records = selected.map { injector.measure(it) }
+        val bounded = measureWithin(selected, deadline) { injector.measure(it) }
         val coverage = scans.fold(AuditCoverage()) { total, scan -> total + scan.coverage }
         val payload =
             AuditPayload(
@@ -89,9 +94,9 @@ internal class AuditMemberRun(
                 AuditSelection.CAP,
                 coverage,
                 AuditSelection.populations(sites),
-                records,
+                bounded.results,
             )
-        return MemberAudit(payload, sites.size)
+        return MemberAudit(payload, sites.size, bounded.timedOut)
     }
 
     /** As `CorpusSweep.applyModuleRoot`: module names resolve against the on-disk checkout. */

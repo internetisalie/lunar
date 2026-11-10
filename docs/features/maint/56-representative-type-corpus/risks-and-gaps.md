@@ -337,6 +337,24 @@ and the verdict is `UNRESOLVED_CALLEE`.
 **Applied:** TC-8 is `diff -r` empty except this site's two `coverage` counters in `luacheck.json`.
 The engine defect is [[BUG-95]].
 
+### DR-15 — Two members stall the run; a per-member deadline (executed, builder)
+**Run** (2026-11-10, libvirt, design §5.3's command on `a9e0b581`): stopped by hand after 4 h 47 min.
+Members in run order, `elapsedMs` from the log line: inngest 20 697, facc 20 194, ouf 9 222, gitsigns
+1 417 291, fallo 6 821 246 (one 514-line file, 53 sites). Then luals ran 149 min without finishing.
+**Probes** (throwaway light-fixture tests, `LuaTypesSnapshot.forFile(file).getErrors()` timed):
+fallo's file costs 122–130 s on its first read and after each edit. A 40-line file, its generic
+`Result<T, E>` header plus its `with_context` method, costs 129 s ([[BUG-96]]). In luals's `script/vm`
+any edit costs 53–72 s, even in a 15-line file. The first read of one file took 68 s, and every
+other file's first read after it took 0 ms ([[BUG-97]]). Per site, MAINT-54's harness reads a snapshot up to three times, so these members cost
+minutes per site.
+**Applied:** a per-member deadline of **30 min** (design §5.2). Every member that finished at normal
+cost took at most 23.6 min (gitsigns), so the deadline is above that; it is below fallo's 114 min.
+The ruling's example of 10× the slowest finished member would be 236 min, which is more than the
+whole run's 180-min budget, so it was not used. The deadline is checked between sites, and the
+slowest site measured costs about 6.5 min (3 × 130 s), which bounds the overrun. A timed-out member
+stays in the manifest and enters no figure (design §4.3). Its weights are re-measured once both bugs
+are fixed.
+
 ## Risks
 
 ### Risk 1.1: Small samples per domain cell
