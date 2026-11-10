@@ -110,6 +110,26 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-72 | An unannotated parameter takes nil from a caller in the same file instead of reading as `any` | todo | S | — | found by MAINT-55 DR-07; blocks re-measuring the `uncertain-nil` deviation | ✓ |
 | BUG-73 | An `a and b or c` value keeps a nil arm despite the `or` default | todo | S | — | found by MAINT-55 DR-07; blocks re-measuring the `uncertain-nil` deviation | ✓ |
 | BUG-74 | A `@class` method reads as `fun(a) \| fun()`, so a correct call is checked against the empty arm | todo | S | — | found by MAINT-55 DR-07: 113 of 129 `undeclared-arity` reports | ✓ |
+| BUG-75 | Assigning a wrong value to an annotated class field also reports the earlier valid assignment, and `t.x = {}` reports a missing required field | todo | S | — | found by MAINT-55 conformance suite (4 cases) | ✓ |
+| BUG-76 | A wrong value in a table constructor assigned to a typed local (`local t = { x = true }` for `{x: integer}`) is not reported | todo | S | — | found by MAINT-55 conformance suite (6 cases) | ✓ |
+| BUG-77 | A wrong value assigned to a typed local is reported on the local's declaration line instead of the assignment | todo | S | — | found by MAINT-55 conformance suite (5 cases) | ✓ |
+| BUG-78 | Assigning a wrong value to a typed local (`x = f()`, a literal outside `1\|2`, a mismatched `table<K, V>`) is not reported | todo | S | — | found by MAINT-55 conformance suite (10 cases) | ✓ |
+| BUG-79 | Assigning a field the class or record type does not declare (`m.yy = 1` on a `@type Class` value) is not reported | todo | S | — | found by MAINT-55 conformance suite (5 cases) | ✓ |
+| BUG-80 | A table constructor missing a required `@field` (`@type A` `return {}`; `{x = 1}` without `[1]`) is not reported | todo | S | — | found by MAINT-55 conformance suite (3 cases) | ✓ |
+| BUG-81 | A call that passes `...` (or fewer arguments to optional trailing parameters) is reported as too few arguments | todo | S | — | found by MAINT-55 conformance suite (3 cases) | ✓ |
+| BUG-82 | Calling a colon-defined method with a dot (`t.init()` for `function t:init()`) is not reported as missing `self`, and has no quick fix | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
+| BUG-83 | A function annotated to return a value, whose end is reachable without a `return`, is not reported | todo | S | — | found by MAINT-55 conformance suite (8 cases) | ✓ |
+| BUG-84 | A `return` with too few or too many values for the declared returns (`return` for `fun():number`; `return 1, true`) is not reported | todo | S | — | found by MAINT-55 conformance suite (6 cases) | ✓ |
+| BUG-85 | `return 1` in a function declared `@return number, number?` is reported as `nil` not assignable to `number` | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
+| BUG-86 | A wrong primitive argument (`f(true)` for `number`) is reported on the callee's parameter declaration instead of the call | todo | S | — | found by MAINT-55 conformance suite (2 cases) | ✓ |
+| BUG-87 | An argument that is not an `@enum` member (`f(t)`, `f(3)`, `f({ h = 1 })`), or does not fit an `@overload` constructor (`MyClass(1)`), is not reported | todo | S | — | found by MAINT-55 conformance suite (4 cases) | ✓ |
+| BUG-88 | An argument outside a generic's constraint (`f(1)` for `T: string \| boolean \| table`) is not reported | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
+| BUG-89 | An inline record argument whose fields differ (`{c, d}` passed where `{a, b}` is declared) is not reported | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
+| BUG-90 | Extra arguments to a standard-library function (`next({}, 1, 2)`, `table.insert({}, 1, 2, 3)`) are not reported | todo | S | — | found by MAINT-55 conformance suite (2 cases) | ✓ |
+| BUG-91 | `return nil` for `@return number?`, and `return false` where an `@overload` returns `boolean`, are reported as not assignable | todo | S | — | found by MAINT-55 conformance suite (3 cases) | ✓ |
+| BUG-92 | `return true` inside a `@type fun():number` local function is not reported | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
+| BUG-93 | Reading an undeclared field or calling an undeclared method on a class-typed value (`v.field3`, `Foo:method2()`) is not reported | todo | S | — | found by MAINT-55 conformance suite (10 cases) | ✓ |
+| BUG-94 | A class method annotated `@generic T: SomeClass` / `@param self T` reports missing fields and too many arguments, and not the undefined field | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
 | BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
 | BUG-44 | Assigning a wrong value to a class `@field` (`self.b = 'x'` for a `boolean`) is reported only as a hypothesis | todo | S | — | found by MAINT-54's false-negative audit | ✓ |

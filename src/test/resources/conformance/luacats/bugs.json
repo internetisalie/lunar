@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "bugs": {
+    "BUG-44": [
+      "assign-type-mismatch-003",
+      "assign-type-mismatch-004",
+      "assign-type-mismatch-005",
+      "assign-type-mismatch-013"
+    ],
+    "BUG-75": [
+      "assign-type-mismatch-002",
+      "assign-type-mismatch-006",
+      "assign-type-mismatch-007",
+      "assign-type-mismatch-016"
+    ],
+    "BUG-76": [
+      "assign-type-mismatch-008",
+      "assign-type-mismatch-028",
+      "assign-type-mismatch-032",
+      "assign-type-mismatch-038",
+      "assign-type-mismatch-041",
+      "assign-type-mismatch-048"
+    ],
+    "BUG-77": [
+      "cast-local-type-002",
+      "cast-local-type-009",
+      "cast-local-type-017",
+      "cast-local-type-027",
+      "cast-local-type-037"
+    ],
+    "BUG-78": [
+      "cast-local-type-011",
+      "cast-local-type-013",
+      "cast-local-type-015",
+      "cast-local-type-023",
+      "cast-local-type-028",
+      "cast-local-type-029",
+      "cast-local-type-031",
+      "cast-local-type-032",
+      "cast-local-type-034",
+      "cast-local-type-035"
+    ],
+    "BUG-79": [
+      "inject-field-001",
+      "inject-field-003",
+      "inject-field-005",
+      "inject-field-007",
+      "inject-field-008"
+    ],
+    "BUG-80": [
+      "missing-fields-019",
+      "missing-fields-027",
+      "missing-fields-038"
+    ],
+    "BUG-81": [
+      "missing-parameter-005",
+      "missing-parameter-006",
+      "missing-parameter-009"
+    ],
+    "BUG-82": [
+      "missing-parameter-010"
+    ],
+    "BUG-83": [
+      "missing-return-001",
+      "missing-return-004",
+      "missing-return-005",
+      "missing-return-006",
+      "missing-return-008",
+      "missing-return-010",
+      "missing-return-011",
+      "missing-return-015"
+    ],
+    "BUG-84": [
+      "missing-return-value-001",
+      "missing-return-value-002",
+      "redundant-return-value-001",
+      "redundant-return-value-002",
+      "redundant-return-value-003",
+      "redundant-return-value-004"
+    ],
+    "BUG-85": [
+      "missing-return-value-004"
+    ],
+    "BUG-86": [
+      "param-type-mismatch-001",
+      "param-type-mismatch-018"
+    ],
+    "BUG-87": [
+      "param-type-mismatch-006",
+      "param-type-mismatch-007",
+      "param-type-mismatch-008",
+      "param-type-mismatch-020"
+    ],
+    "BUG-88": [
+      "param-type-mismatch-009"
+    ],
+    "BUG-89": [
+      "param-type-mismatch-011"
+    ],
+    "BUG-90": [
+      "redundant-parameter-013",
+      "redundant-parameter-018"
+    ],
+    "BUG-91": [
+      "return-type-mismatch-003",
+      "return-type-mismatch-012",
+      "return-type-mismatch-015"
+    ],
+    "BUG-92": [
+      "return-type-mismatch-016"
+    ],
+    "BUG-93": [
+      "undefined-field-001",
+      "undefined-field-002",
+      "undefined-field-003",
+      "undefined-field-004",
+      "undefined-field-006",
+      "undefined-field-007",
+      "undefined-field-008",
+      "undefined-field-012",
+      "undefined-field-014",
+      "undefined-field-015"
+    ],
+    "BUG-94": [
+      "undefined-field-013"
+    ],
+    "BUG-481": [
+      "assign-type-mismatch-001",
+      "assign-type-mismatch-009",
+      "assign-type-mismatch-018",
+      "assign-type-mismatch-043",
+      "assign-type-mismatch-044",
+      "assign-type-mismatch-046",
+      "missing-fields-017"
+    ]
+  }
+}

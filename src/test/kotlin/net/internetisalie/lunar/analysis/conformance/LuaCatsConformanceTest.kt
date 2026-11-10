@@ -80,7 +80,8 @@ class LuaCatsConformanceTest : BasePlatformTestCase() {
         if (!baselineFile.isFile) fail("no baseline; record with -PrecordConformance")
         val baseline = ConformanceResultsJson.parse(baselineFile.readText(Charsets.UTF_8))
         ConformanceRatchet.notes(baseline, actual).forEach { println("[conformance] $it") }
-        val violations = ConformanceRatchet.violations(baseline, actual)
+        val bugs = ConformanceBugs.load(ConformancePaths.bugs())
+        val violations = ConformanceRatchet.violations(baseline, actual) + ConformanceBugs.problems(actual, bugs)
         if (violations.isNotEmpty()) fail(violations.joinToString("\n"))
     }
 

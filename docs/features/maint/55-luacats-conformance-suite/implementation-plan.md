@@ -67,10 +67,10 @@ there is no `human-verification-checklists.md`.
 
 ### Phase 4: Bugs [Should]
 - **Tasks**:
-  - [ ] File the disagreements by design §3.7 (the missing-`self` group's report requires the
+  - [x] File the disagreements by design §3.7 (the missing-`self` group's report requires the
         `t.init()` → `t:init()` quick fix): `loom-cli id mint BUG` per new group, a `report-bug`
         report listing the group's case ids and one case body as the reproduction, a roadmap row each.
-  - [ ] Write `src/test/resources/conformance/luacats/bugs.json` (design §2.7) and enable the
+  - [x] Write `src/test/resources/conformance/luacats/bugs.json` (design §2.7) and enable the
         `ConformanceBugs.problems` check in `LuaCatsConformanceTest` (design §3.4 step 5).
 - **Exit criteria**: full `run test` green; deleting one case id from `bugs.json` turns
   `LuaCatsConformanceTest` red with `unfiled <id>`, then reverted.
