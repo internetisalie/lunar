@@ -1,0 +1,2567 @@
+{
+  "schema": 1,
+  "luals": "a58fc7b01e1746c46275c71b0e61bfed40a6296d",
+  "level": "5.4",
+  "cases": {
+    "assign-type-mismatch-001": {
+      "rule": "field.assign",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "4-4:{ ... } is not assignable to number[]"
+      ]
+    },
+    "assign-type-mismatch-002": {
+      "rule": "field.assign",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "7-7:Missing required field 'x'"
+      ]
+    },
+    "assign-type-mismatch-003": {
+      "rule": "field.assign",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-004": {
+      "rule": "field.assign",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-005": {
+      "rule": "field.assign",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        9
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-006": {
+      "rule": "field.assign",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": [
+        "5-5:boolean is not assignable to number",
+        "5-5:boolean | number is not assignable to number",
+        "5-5:number | boolean is not assignable to number",
+        "7-7:boolean is not assignable to number",
+        "7-7:number | boolean is not assignable to number"
+      ]
+    },
+    "assign-type-mismatch-007": {
+      "rule": "field.assign",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "5-5:boolean is not assignable to number",
+        "5-5:boolean | number is not assignable to number",
+        "5-5:number | boolean is not assignable to number",
+        "8-8:boolean is not assignable to number",
+        "8-8:number | boolean is not assignable to number"
+      ]
+    },
+    "assign-type-mismatch-008": {
+      "rule": "assign.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        6
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-009": {
+      "rule": "field.assign",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "2-2:{ ... } is not assignable to boolean[]"
+      ]
+    },
+    "assign-type-mismatch-010": {
+      "rule": "field.assign",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-011": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        2
+      ],
+      "may": [],
+      "findings": [
+        "2-2:{ ... } is not assignable to any[]"
+      ]
+    },
+    "assign-type-mismatch-012": {
+      "rule": "field.assign",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-013": {
+      "rule": "field.assign",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        6
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-014": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-015": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-016": {
+      "rule": "field.assign",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": [
+        "5-5:number | { ... } is not assignable to number",
+        "5-5:{ ... } is not assignable to number",
+        "5-5:{ ... } | number is not assignable to number",
+        "7-7:number | { ... } is not assignable to number",
+        "7-7:{ ... } is not assignable to number"
+      ]
+    },
+    "assign-type-mismatch-017": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-018": {
+      "rule": "field.assign",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "2-2:{ ... } is not assignable to boolean[]"
+      ]
+    },
+    "assign-type-mismatch-023": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-028": {
+      "rule": "assign.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-029": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-030": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-031": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-032": {
+      "rule": "assign.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-033": {
+      "rule": "field.assign",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-034": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-035": {
+      "rule": "field.assign",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-038": {
+      "rule": "assign.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-039": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-040": {
+      "rule": "field.assign",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-041": {
+      "rule": "assign.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3,
+        4,
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-042": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        2
+      ],
+      "may": [],
+      "findings": [
+        "2-2:{ ... } is not assignable to boolean[]"
+      ]
+    },
+    "assign-type-mismatch-043": {
+      "rule": "assign.local",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "2-2:{ ... } is not assignable to boolean[]"
+      ]
+    },
+    "assign-type-mismatch-044": {
+      "rule": "assign.local",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "5-5:{ ... } is not assignable to boolean[]"
+      ]
+    },
+    "assign-type-mismatch-045": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-046": {
+      "rule": "assign.local",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "2-2:{ ... } is not assignable to union string | string[]"
+      ]
+    },
+    "assign-type-mismatch-047": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-048": {
+      "rule": "assign.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5,
+        6,
+        7
+      ],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-049": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "assign-type-mismatch-050": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": [
+        "2-4:{ ... } is not assignable to string[]"
+      ]
+    },
+    "assign-type-mismatch-051": {
+      "rule": "assign.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": [
+        "2-4:{ ... } is not assignable to boolean | string[]"
+      ]
+    },
+    "assign-type-mismatch-052": {
+      "rule": "field.assign",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-001": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-002": {
+      "rule": "cast.local",
+      "observed": "misplaced",
+      "outcome": "misplaced",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": [
+        "2-2:boolean is not assignable to number"
+      ]
+    },
+    "cast-local-type-003": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-004": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-005": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-006": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-008": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-009": {
+      "rule": "cast.local",
+      "observed": "misplaced",
+      "outcome": "misplaced",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": [
+        "2-2:nil value is not assignable to { ... }"
+      ]
+    },
+    "cast-local-type-010": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-011": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-012": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-013": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-014": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-015": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-016": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-017": {
+      "rule": "cast.local",
+      "observed": "misplaced",
+      "outcome": "misplaced",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": [
+        "2-2:number is not assignable to boolean"
+      ]
+    },
+    "cast-local-type-018": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-019": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-020": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-021": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-022": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-023": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-024": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-025": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-026": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-027": {
+      "rule": "cast.local",
+      "observed": "misplaced",
+      "outcome": "misplaced",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": [
+        "2-2:string is not assignable to string[]"
+      ]
+    },
+    "cast-local-type-028": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        6
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-029": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        6
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-030": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-031": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-032": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-033": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-034": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-035": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-036": {
+      "rule": "cast.local",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        13
+      ],
+      "may": [],
+      "findings": []
+    },
+    "cast-local-type-037": {
+      "rule": "cast.local",
+      "observed": "misplaced",
+      "outcome": "misplaced",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": [
+        "2-2:nil value is not assignable to string"
+      ]
+    },
+    "cast-local-type-038": {
+      "rule": "cast.local",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "cast-type-mismatch-001": {
+      "rule": "cast.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "inject-field-001": {
+      "rule": "field.inject",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": []
+    },
+    "inject-field-002": {
+      "rule": "field.inject",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "inject-field-003": {
+      "rule": "field.inject",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "inject-field-004": {
+      "rule": "field.inject",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "inject-field-005": {
+      "rule": "field.inject",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    },
+    "inject-field-006": {
+      "rule": "field.inject",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "inject-field-007": {
+      "rule": "field.inject",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5,
+        9,
+        13,
+        14
+      ],
+      "may": [],
+      "findings": []
+    },
+    "inject-field-008": {
+      "rule": "field.inject",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-001": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "8-8:Missing required field 'x'",
+        "8-8:Missing required field 'z'"
+      ]
+    },
+    "missing-fields-002": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "8-10:Missing required field 'z'"
+      ]
+    },
+    "missing-fields-003": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "8-11:Missing required field 'z'"
+      ]
+    },
+    "missing-fields-004": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-005": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-006": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        20
+      ],
+      "may": [],
+      "findings": [
+        "20-23:Missing required field 'a'",
+        "20-23:Missing required field 'z'"
+      ]
+    },
+    "missing-fields-007": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-008": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        12
+      ],
+      "may": [],
+      "findings": [
+        "12-15:Missing required field 'z'"
+      ]
+    },
+    "missing-fields-009": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-010": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": [
+        "10-10:Missing required field 'x'",
+        "10-10:Missing required field 'z'"
+      ]
+    },
+    "missing-fields-011": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": [
+        "10-12:Missing required field 'z'"
+      ]
+    },
+    "missing-fields-012": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": [
+        "10-13:Missing required field 'z'"
+      ]
+    },
+    "missing-fields-013": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-014": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-015": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-016": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-017": {
+      "rule": "field.missing",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "9-15:{ ... } is not assignable to union Foo | Foo[]"
+      ]
+    },
+    "missing-fields-018": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-019": {
+      "rule": "field.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-020": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "8-10:{ ... } is not assignable to union A | B"
+      ]
+    },
+    "missing-fields-021": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-022": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-023": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-024": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        19
+      ],
+      "may": [],
+      "findings": [
+        "19-22:{ ... } is not assignable to Bar | Foo; closest match 'Foo': missing field 'c'"
+      ]
+    },
+    "missing-fields-025": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        19
+      ],
+      "may": [],
+      "findings": [
+        "19-23:{ ... } is not assignable to Bar | Foo; closest match 'Bar': missing field 'bc'"
+      ]
+    },
+    "missing-fields-026": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-027": {
+      "rule": "field.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        6
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-028": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": [
+        "7-7:Missing required field 'x'"
+      ]
+    },
+    "missing-fields-029": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "8-8:Missing required field 'x'"
+      ]
+    },
+    "missing-fields-030": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "8-8:Missing required field 'x'"
+      ]
+    },
+    "missing-fields-031": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-032": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-033": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-034": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        9
+      ],
+      "may": [],
+      "findings": [
+        "9-9:Missing required field 'x'"
+      ]
+    },
+    "missing-fields-035": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": [
+        "10-10:Missing required field 'x'"
+      ]
+    },
+    "missing-fields-036": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": [
+        "10-10:Missing required field 'x'"
+      ]
+    },
+    "missing-fields-037": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-038": {
+      "rule": "field.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-fields-039": {
+      "rule": "field.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-parameter-001": {
+      "rule": "arity.tooFew",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-parameter-002": {
+      "rule": "arity.tooFew",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        6
+      ],
+      "may": [],
+      "findings": [
+        "6-6:Too few arguments: expected at least 2, got 1"
+      ]
+    },
+    "missing-parameter-003": {
+      "rule": "arity.tooFew",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        6
+      ],
+      "may": [],
+      "findings": [
+        "6-6:Too few arguments: expected at least 2, got 0"
+      ]
+    },
+    "missing-parameter-004": {
+      "rule": "arity.tooFew",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-parameter-005": {
+      "rule": "arity.tooFew",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "6-6:Too few arguments: expected at least 2, got 1"
+      ]
+    },
+    "missing-parameter-006": {
+      "rule": "arity.tooFew",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "10-10:Too few arguments: expected at least 2, got 1"
+      ]
+    },
+    "missing-parameter-007": {
+      "rule": "arity.tooFew",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-parameter-008": {
+      "rule": "arity.tooFew",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-parameter-009": {
+      "rule": "arity.tooFew",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "5-5:Too few arguments: expected at least 2, got 1"
+      ]
+    },
+    "missing-parameter-010": {
+      "rule": "arity.tooFew",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-001": {
+      "rule": "return.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-002": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-003": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-004": {
+      "rule": "return.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-005": {
+      "rule": "return.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        6
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-006": {
+      "rule": "return.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-007": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-008": {
+      "rule": "return.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        9
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-009": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-010": {
+      "rule": "return.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-011": {
+      "rule": "return.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-012": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-013": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-014": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-015": {
+      "rule": "return.missing",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-016": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-017": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-018": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-019": {
+      "rule": "return.missing",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-value-001": {
+      "rule": "return.count",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-value-002": {
+      "rule": "return.count",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "missing-return-value-003": {
+      "rule": "return.count",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": [
+        "2-4:nil value is not assignable to number"
+      ]
+    },
+    "missing-return-value-004": {
+      "rule": "return.count",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "2-4:nil value is not assignable to number"
+      ]
+    },
+    "missing-return-value-005": {
+      "rule": "return.count",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-001": {
+      "rule": "nil.check",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-002": {
+      "rule": "nil.check",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-003": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-004": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-005": {
+      "rule": "nil.check",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-006": {
+      "rule": "nil.check",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-007": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-008": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-009": {
+      "rule": "nil.check",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        9,
+        10
+      ],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-010": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-011": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-012": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-013": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-014": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-015": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-016": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-017": {
+      "rule": "nil.check",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": []
+    },
+    "need-check-nil-018": {
+      "rule": "nil.check",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-001": {
+      "rule": "arg.primitive",
+      "observed": "misplaced",
+      "outcome": "misplaced",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": [
+        "2-2:boolean is not assignable to number"
+      ]
+    },
+    "param-type-mismatch-002": {
+      "rule": "arg.class",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-003": {
+      "rule": "arg.union",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-004": {
+      "rule": "arg.other",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-005": {
+      "rule": "arg.primitive",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-006": {
+      "rule": "arg.other",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        11,
+        14
+      ],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-007": {
+      "rule": "arg.other",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        13
+      ],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-008": {
+      "rule": "arg.other",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        13
+      ],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-009": {
+      "rule": "arg.generic",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-010": {
+      "rule": "arg.record",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-011": {
+      "rule": "arg.record",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-012": {
+      "rule": "arg.record",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-013": {
+      "rule": "arg.generic",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-014": {
+      "rule": "arg.function",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-015": {
+      "rule": "arg.function",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-016": {
+      "rule": "arg.primitive",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-017": {
+      "rule": "arg.union",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-018": {
+      "rule": "arg.primitive",
+      "observed": "misplaced",
+      "outcome": "misplaced",
+      "must": [
+        9,
+        10
+      ],
+      "may": [],
+      "findings": [
+        "5-5:boolean is not assignable to string",
+        "5-7:boolean is not assignable to string",
+        "5-7:string | boolean is not assignable to string",
+        "9-9:boolean is not assignable to string"
+      ]
+    },
+    "param-type-mismatch-019": {
+      "rule": "arg.class",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-020": {
+      "rule": "arg.other",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-021": {
+      "rule": "arg.other",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "param-type-mismatch-022": {
+      "rule": "arg.class",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-001": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-002": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-003": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-004": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-005": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-006": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-007": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-008": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        4
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-009": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-010": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-011": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-012": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-013": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        1
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-014": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-015": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-016": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-017": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-018": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        1
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-019": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-020": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-021": {
+      "rule": "arity.tooMany",
+      "observed": "missed",
+      "outcome": "deviation",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-022": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-023": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-024": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-parameter-025": {
+      "rule": "arity.tooMany",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "redundant-return-value-001": {
+      "rule": "return.count",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-return-value-002": {
+      "rule": "return.count",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-return-value-003": {
+      "rule": "return.count",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "redundant-return-value-004": {
+      "rule": "return.count",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    },
+    "return-type-mismatch-001": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": [
+        "2-4:boolean is not assignable to number"
+      ]
+    },
+    "return-type-mismatch-002": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "return-type-mismatch-003": {
+      "rule": "return.mismatch",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "2-4:nil value is not assignable to number"
+      ]
+    },
+    "return-type-mismatch-004": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "7-9:number is not assignable to boolean",
+        "8-8:number is not assignable to boolean"
+      ]
+    },
+    "return-type-mismatch-005": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "7-9:boolean is not assignable to number",
+        "7-9:number is not assignable to boolean",
+        "8-8:boolean is not assignable to number",
+        "8-8:number is not assignable to boolean"
+      ]
+    },
+    "return-type-mismatch-006": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "return-type-mismatch-007": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": [
+        "7-9:number is not assignable to boolean",
+        "8-8:number is not assignable to boolean"
+      ]
+    },
+    "return-type-mismatch-008": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "return-type-mismatch-009": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "return-type-mismatch-010": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "return-type-mismatch-011": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "return-type-mismatch-012": {
+      "rule": "return.mismatch",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "4-10:boolean is not assignable to number"
+      ]
+    },
+    "return-type-mismatch-013": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "return-type-mismatch-014": {
+      "rule": "return.mismatch",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "return-type-mismatch-015": {
+      "rule": "return.mismatch",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [],
+      "may": [],
+      "findings": [
+        "4-10:boolean is not assignable to number"
+      ]
+    },
+    "return-type-mismatch-016": {
+      "rule": "return.mismatch",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        3
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-001": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        18,
+        21,
+        27,
+        31
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-002": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-003": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        11
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-004": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        4,
+        5
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-005": {
+      "rule": "field.undefined",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-006": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        4,
+        6
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-007": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        15
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-008": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        6
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-009": {
+      "rule": "field.undefined",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-010": {
+      "rule": "field.undefined",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-011": {
+      "rule": "field.undefined",
+      "observed": "agree",
+      "outcome": "agree",
+      "must": [],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-012": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        7
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-013": {
+      "rule": "field.undefined",
+      "observed": "false-report",
+      "outcome": "false-report",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": [
+        "3-3:Missing required field 'someExistingVar'",
+        "8-12:{ ... } | SomeClass is not assignable to SomeClass",
+        "8-8:Too many arguments: expected at most 0, got 1"
+      ]
+    },
+    "undefined-field-014": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        10
+      ],
+      "may": [],
+      "findings": []
+    },
+    "undefined-field-015": {
+      "rule": "field.undefined",
+      "observed": "missed",
+      "outcome": "missed",
+      "must": [
+        8
+      ],
+      "may": [],
+      "findings": []
+    }
+  },
+  "rules": {
+    "arg.class": {
+      "agree": 3
+    },
+    "arg.function": {
+      "agree": 2
+    },
+    "arg.generic": {
+      "agree": 1,
+      "missed": 1
+    },
+    "arg.other": {
+      "agree": 2,
+      "missed": 4
+    },
+    "arg.primitive": {
+      "agree": 2,
+      "misplaced": 2
+    },
+    "arg.record": {
+      "agree": 2,
+      "missed": 1
+    },
+    "arg.union": {
+      "agree": 2
+    },
+    "arity.tooFew": {
+      "agree": 6,
+      "false-report": 3,
+      "missed": 1
+    },
+    "arity.tooMany": {
+      "agree": 14,
+      "deviation": 9,
+      "missed": 2
+    },
+    "assign.local": {
+      "agree": 16,
+      "false-report": 3,
+      "missed": 6
+    },
+    "cast.local": {
+      "agree": 20,
+      "deviation": 2,
+      "misplaced": 5,
+      "missed": 10
+    },
+    "cast.mismatch": {
+      "agree": 1
+    },
+    "field.assign": {
+      "agree": 6,
+      "false-report": 7,
+      "missed": 4
+    },
+    "field.inject": {
+      "agree": 3,
+      "missed": 5
+    },
+    "field.missing": {
+      "agree": 35,
+      "false-report": 1,
+      "missed": 3
+    },
+    "field.undefined": {
+      "agree": 4,
+      "false-report": 1,
+      "missed": 10
+    },
+    "nil.check": {
+      "agree": 12,
+      "deviation": 6
+    },
+    "return.count": {
+      "agree": 2,
+      "false-report": 1,
+      "missed": 6
+    },
+    "return.mismatch": {
+      "agree": 12,
+      "false-report": 3,
+      "missed": 1
+    },
+    "return.missing": {
+      "agree": 11,
+      "missed": 8
+    }
+  }
+}

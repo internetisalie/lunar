@@ -137,6 +137,18 @@ file's header.
   - `src/main/resources/runtime/luajit/luajit-2.{0,1}/{builtin,coroutine,debug,io,math,os,package,string,table}.lua` (copies of `lua-5.1`)
 - **Upstream:** https://www.lua.org/
 
+### lua-language-server (LuaLS)
+
+- **Copyright:** (c) 2018 最萌小汐
+- **License:** MIT
+- **Version:** `a58fc7b01e1746c46275c71b0e61bfed40a6296d`
+- **Usage:** Test data only — the diagnostic test cases of LuaLS's `type-check` and `unbalanced`
+  groups, converted by `tooling/conformance/import_luals.py` into the LuaCATS conformance suite
+  (MAINT-55). Nothing from LuaLS ships in the plugin.
+- **Files:**
+  - `src/test/resources/conformance/luacats/cases/*.lua`
+- **Upstream:** https://github.com/LuaLS/lua-language-server
+
 ---
 
 ## License texts
@@ -147,6 +159,7 @@ file's header.
 - **MIT (Lua)** — the full notice is preserved at the top of each stub file
   under `src/main/resources/runtime/standard/` and of each `lua-5.1` copy under `src/main/resources/runtime/luajit/`.
 - **MIT (LuaJIT)** — the full notice is preserved at the top of each LuaJIT-specific stub file under `src/main/resources/runtime/luajit/`.
+- **MIT (LuaLS)** — see `src/test/resources/conformance/luacats/LICENSE-LuaLS`, LuaLS's `LICENSE` verbatim.
 
 ## Maintaining this file
 

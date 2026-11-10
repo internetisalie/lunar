@@ -57,6 +57,10 @@ Lua standard-library API stubs
   Type-annotation stubs for the Lua 5.1-5.4 standard libraries, distributed
   under the Lua (MIT) license.
 
+lua-language-server (LuaLS)
+  Copyright (c) 2018 最萌小汐
+  Diagnostic test cases adapted as the LuaCATS conformance suite (test data only).
+
 --------------------------------------------------------------------------------
 
 The full text of each third-party license, and the complete list of affected

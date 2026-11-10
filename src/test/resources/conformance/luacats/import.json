@@ -1,0 +1,168 @@
+{
+  "codes": {
+    "assign-type-mismatch": {
+      "blocks": 52,
+      "imported": 42
+    },
+    "cast-local-type": {
+      "blocks": 42,
+      "imported": 37
+    },
+    "cast-type-mismatch": {
+      "blocks": 2,
+      "imported": 1
+    },
+    "inject-field": {
+      "blocks": 8,
+      "imported": 8
+    },
+    "missing-fields": {
+      "blocks": 39,
+      "imported": 39
+    },
+    "missing-parameter": {
+      "blocks": 10,
+      "imported": 10
+    },
+    "missing-return": {
+      "blocks": 19,
+      "imported": 19
+    },
+    "missing-return-value": {
+      "blocks": 5,
+      "imported": 5
+    },
+    "need-check-nil": {
+      "blocks": 18,
+      "imported": 18
+    },
+    "param-type-mismatch": {
+      "blocks": 31,
+      "imported": 22
+    },
+    "redundant-parameter": {
+      "blocks": 25,
+      "imported": 25
+    },
+    "redundant-return-value": {
+      "blocks": 4,
+      "imported": 4
+    },
+    "return-type-mismatch": {
+      "blocks": 16,
+      "imported": 16
+    },
+    "undefined-field": {
+      "blocks": 15,
+      "imported": 15
+    }
+  },
+  "excluded": [
+    {
+      "reason": "foreign-marker",
+      "source": "assign-type-mismatch.lua#19"
+    },
+    {
+      "reason": "config",
+      "source": "assign-type-mismatch.lua#20"
+    },
+    {
+      "reason": "foreign-marker",
+      "source": "assign-type-mismatch.lua#21"
+    },
+    {
+      "reason": "config",
+      "source": "assign-type-mismatch.lua#22"
+    },
+    {
+      "reason": "config",
+      "source": "assign-type-mismatch.lua#24"
+    },
+    {
+      "reason": "config",
+      "source": "assign-type-mismatch.lua#25"
+    },
+    {
+      "reason": "config",
+      "source": "assign-type-mismatch.lua#26"
+    },
+    {
+      "reason": "config",
+      "source": "assign-type-mismatch.lua#27"
+    },
+    {
+      "reason": "config",
+      "source": "assign-type-mismatch.lua#36"
+    },
+    {
+      "reason": "config",
+      "source": "assign-type-mismatch.lua#37"
+    },
+    {
+      "reason": "foreign-marker",
+      "source": "cast-local-type.lua#7"
+    },
+    {
+      "reason": "config",
+      "source": "cast-local-type.lua#39"
+    },
+    {
+      "reason": "config",
+      "source": "cast-local-type.lua#40"
+    },
+    {
+      "reason": "config",
+      "source": "cast-local-type.lua#41"
+    },
+    {
+      "reason": "config",
+      "source": "cast-local-type.lua#42"
+    },
+    {
+      "reason": "marker-on-doc-line",
+      "source": "cast-type-mismatch.lua#2"
+    },
+    {
+      "reason": "config",
+      "source": "param-type-mismatch.lua#23"
+    },
+    {
+      "reason": "config",
+      "source": "param-type-mismatch.lua#24"
+    },
+    {
+      "reason": "config",
+      "source": "param-type-mismatch.lua#25"
+    },
+    {
+      "reason": "config",
+      "source": "param-type-mismatch.lua#26"
+    },
+    {
+      "reason": "config",
+      "source": "param-type-mismatch.lua#27"
+    },
+    {
+      "reason": "config",
+      "source": "param-type-mismatch.lua#28"
+    },
+    {
+      "reason": "config",
+      "source": "param-type-mismatch.lua#29"
+    },
+    {
+      "reason": "config",
+      "source": "param-type-mismatch.lua#30"
+    },
+    {
+      "reason": "config",
+      "source": "param-type-mismatch.lua#31"
+    }
+  ],
+  "luals": {
+    "commit": "a58fc7b01e1746c46275c71b0e61bfed40a6296d",
+    "license": "MIT",
+    "repository": "https://github.com/LuaLS/lua-language-server"
+  },
+  "schema": 1
+}

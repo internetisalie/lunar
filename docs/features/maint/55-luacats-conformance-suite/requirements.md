@@ -3,7 +3,7 @@ id: "MAINT-55"
 title: "55: LuaCATS Type-Checking Conformance Suite"
 type: "feature"
 parent_id: "MAINT"
-status: "planned"
+status: "in_progress"
 priority: "medium"
 folders:
   - "[[features/maint/requirements|maint]]"
@@ -46,14 +46,14 @@ cross-implementation standard.
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-55-01 | Case format | M | Not Implemented | Case files parse into cases with must, may and silent lines by design §2.1; malformed headers and duplicate ids are errors. |
-| MAINT-55-02 | Seed cases from LuaLS | M | Not Implemented | `import_luals.py` converts every in-scope LuaLS case (design §2.2) at the pinned commit, records each case's source and every exclusion with its reason, and refuses a pin whose diagnostic groups no longer match. |
-| MAINT-55-03 | Results table | M | Not Implemented | Every case is run alone at 5.4 and scored `agree`, `missed`, `false-report` or `misplaced` (design §3.2) under a rule (design §2.3); `results.json` is committed. |
-| MAINT-55-04 | Ratchet, not gate | S | Not Implemented | The run fails on the conditions of design §3.5 only — never because a known disagreement persists or changes kind. |
+| MAINT-55-01 | Case format | M | Full | Case files parse into cases with must, may and silent lines by design §2.1; malformed headers and duplicate ids are errors. |
+| MAINT-55-02 | Seed cases from LuaLS | M | Full | `import_luals.py` converts every in-scope LuaLS case (design §2.2) at the pinned commit, records each case's source and every exclusion with its reason, and refuses a pin whose diagnostic groups no longer match. |
+| MAINT-55-03 | Results table | M | Full | Every case is run alone at 5.4 and scored `agree`, `missed`, `false-report` or `misplaced` (design §3.2) under a rule (design §2.3); `results.json` is committed. |
+| MAINT-55-04 | Ratchet, not gate | S | Full | The run fails on the conditions of design §3.5 only — never because a known disagreement persists or changes kind. |
 | MAINT-55-05 | Disagreements become bugs | S | Not Implemented | Every disagreeing case is filed under exactly one BUG by design §3.7, recorded in `bugs.json`, and the run checks it. |
-| MAINT-55-06 | Deviations record | M | Not Implemented | `deviations.json` records each ruling (case, rule, policy, expected outcome, reason, reference, who decided, when); a ruled case scores `deviation`, or `deviation-broken` when Lunar's behaviour no longer matches the ruling. |
-| MAINT-55-07 | Isolation and level | M | Not Implemented | Each case runs as the only case file in the light project, at language level 5.4 whatever the project held before (risks-and-gaps DR-03, DR-04). |
-| MAINT-55-08 | Attribution | M | Not Implemented | LuaLS's copyright and MIT notice ship with the cases, and `NOTICE` and `THIRD-PARTY.md` name them (design §5.4). |
+| MAINT-55-06 | Deviations record | M | Full | `deviations.json` records each ruling (case, rule, policy, expected outcome, reason, reference, who decided, when); a ruled case scores `deviation`, or `deviation-broken` when Lunar's behaviour no longer matches the ruling. |
+| MAINT-55-07 | Isolation and level | M | Full | Each case runs as the only case file in the light project, at language level 5.4 whatever the project held before (risks-and-gaps DR-03, DR-04). |
+| MAINT-55-08 | Attribution | M | Full | LuaLS's copyright and MIT notice ship with the cases, and `NOTICE` and `THIRD-PARTY.md` name them (design §5.4). |
 | MAINT-55-09 | Rule ranking | S | Not Implemented | `conformance_rank.py` ranks rules by MAINT-56 exposure × disagreement rate and weights bugs only through their rules (design §3.6). |
 
 ## Behavior Rules

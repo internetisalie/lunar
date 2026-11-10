@@ -1,0 +1,175 @@
+{
+  "schema": 1,
+  "deviations": [
+    {
+      "case": "cast-local-type-001",
+      "rule": "cast.local",
+      "policy": "inferred-vs-inferred",
+      "expect": "missed",
+      "reason": "a local whose type was only inferred may be reassigned any type",
+      "ref": "BUG-419",
+      "decidedBy": "Michael Crawford",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "cast-local-type-036",
+      "rule": "cast.local",
+      "policy": "inferred-vs-inferred",
+      "expect": "missed",
+      "reason": "a local whose type was only inferred may be reassigned any type",
+      "ref": "BUG-419",
+      "decidedBy": "Michael Crawford",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "need-check-nil-001",
+      "rule": "nil.check",
+      "policy": "uncertain-nil",
+      "expect": "missed",
+      "reason": "a value that is only possibly nil is used without a check",
+      "ref": "BUG-416",
+      "decidedBy": "Michael Crawford",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "need-check-nil-002",
+      "rule": "nil.check",
+      "policy": "uncertain-nil",
+      "expect": "missed",
+      "reason": "a value that is only possibly nil is used without a check",
+      "ref": "BUG-416",
+      "decidedBy": "Michael Crawford",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "need-check-nil-005",
+      "rule": "nil.check",
+      "policy": "uncertain-nil",
+      "expect": "missed",
+      "reason": "a value that is only possibly nil is used without a check",
+      "ref": "BUG-416",
+      "decidedBy": "Michael Crawford",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "need-check-nil-006",
+      "rule": "nil.check",
+      "policy": "uncertain-nil",
+      "expect": "missed",
+      "reason": "a value that is only possibly nil is used without a check",
+      "ref": "BUG-416",
+      "decidedBy": "Michael Crawford",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "need-check-nil-009",
+      "rule": "nil.check",
+      "policy": "uncertain-nil",
+      "expect": "missed",
+      "reason": "a value that is only possibly nil is used without a check",
+      "ref": "BUG-416",
+      "decidedBy": "Michael Crawford",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "need-check-nil-017",
+      "rule": "nil.check",
+      "policy": "luals-syntax",
+      "expect": "missed",
+      "reason": "`?.` is a LuaLS opt-in nonstandard symbol, not standard Lua",
+      "ref": "TARGET-13",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "redundant-parameter-001",
+      "rule": "arity.tooMany",
+      "policy": "undeclared-arity",
+      "expect": "missed",
+      "reason": "arity against a signature nobody declared is a hypothesis, never shown",
+      "ref": "LuaTypeGraph.kt:860",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "redundant-parameter-004",
+      "rule": "arity.tooMany",
+      "policy": "undeclared-arity",
+      "expect": "missed",
+      "reason": "arity against a signature nobody declared is a hypothesis, never shown",
+      "ref": "LuaTypeGraph.kt:860",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "redundant-parameter-005",
+      "rule": "arity.tooMany",
+      "policy": "undeclared-arity",
+      "expect": "missed",
+      "reason": "arity against a signature nobody declared is a hypothesis, never shown",
+      "ref": "LuaTypeGraph.kt:860",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "redundant-parameter-006",
+      "rule": "arity.tooMany",
+      "policy": "undeclared-arity",
+      "expect": "missed",
+      "reason": "arity against a signature nobody declared is a hypothesis, never shown",
+      "ref": "LuaTypeGraph.kt:860",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "redundant-parameter-008",
+      "rule": "arity.tooMany",
+      "policy": "undeclared-arity",
+      "expect": "missed",
+      "reason": "arity against a signature nobody declared is a hypothesis, never shown",
+      "ref": "LuaTypeGraph.kt:860",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "redundant-parameter-009",
+      "rule": "arity.tooMany",
+      "policy": "undeclared-arity",
+      "expect": "missed",
+      "reason": "arity against a signature nobody declared is a hypothesis, never shown",
+      "ref": "LuaTypeGraph.kt:860",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "redundant-parameter-010",
+      "rule": "arity.tooMany",
+      "policy": "undeclared-arity",
+      "expect": "missed",
+      "reason": "arity against a signature nobody declared is a hypothesis, never shown",
+      "ref": "LuaTypeGraph.kt:860",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "redundant-parameter-011",
+      "rule": "arity.tooMany",
+      "policy": "undeclared-arity",
+      "expect": "missed",
+      "reason": "arity against a signature nobody declared is a hypothesis, never shown",
+      "ref": "LuaTypeGraph.kt:860",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    },
+    {
+      "case": "redundant-parameter-021",
+      "rule": "arity.tooMany",
+      "policy": "undeclared-arity",
+      "expect": "missed",
+      "reason": "arity against a signature nobody declared is a hypothesis, never shown",
+      "ref": "LuaTypeGraph.kt:860",
+      "decidedBy": "lunar.supervisor",
+      "decidedOn": "2026-11-09"
+    }
+  ]
+}

@@ -513,6 +513,11 @@ tasks {
         if (project.hasProperty("recordTypeGolden")) {
             systemProperty("lunar.typegolden.record", "true")
         }
+        // MAINT-55: record the LuaCATS conformance results into build/conformance/recorded/ instead of
+        // ratcheting on them; the recording is copied back into src/test/resources by hand.
+        if (project.hasProperty("recordConformance")) {
+            systemProperty("lunar.conformance.record", "true")
+        }
     }
 
     val integrationTest by intellijPlatformTesting.testIdeUi.registering {
