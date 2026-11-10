@@ -73,7 +73,8 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 > the v0.21.0 tag and its published release are unchanged. Wave 20 closed with v0.20.1; the
 > rows filed under it after that release moved here on 2026-11-02.
 
-> **v0.21.21 goal — type checking you can trust on real code.** Cut when all three hold and main is green:
+> **v0.21.21 goal — LuaLS parity: no wrong warnings against LuaLS's own tests, and LuaLS-scale code at
+> editor speed.** Cut when all three hold and main is green:
 > 1. **Fast:** every type-corpus file's snapshot builds in under 250 ms, cold and after an edit, with
 >    the per-file p99 under 100 ms (MAINT-60, BUG-96, BUG-97). The limits stand unless MAINT-60's
 >    prototype probes show a file cannot reach them without incremental re-inference; such a file gets
