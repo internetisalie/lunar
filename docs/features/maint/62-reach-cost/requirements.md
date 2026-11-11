@@ -29,7 +29,7 @@ Direction (not designed): Build fewer or cheaper dependency snapshots on a cold 
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-62-01 | **Every listed pass under 250 ms** | M | Not Implemented | Every pass in the table below clears its bound, and its row is removed from `src/test/resources/snapshot-cost/exceptions.tsv`. |
+| MAINT-62-01 | **Every listed pass under 250 ms** | M | Not Implemented | Every pass in the table below clears its bound in the MAINT-60 sweep (no `miss:` line for it in `verdict.txt`). |
 | MAINT-62-02 | **Findings unchanged or recorded** | M | Not Implemented | The MAINT-54 audit's `luacheck` member, the MAINT-55 conformance results and the sweep digests are identical before and after the change, or each difference is recorded as a correction (MAINT-60-03). |
 
 ## Files over target

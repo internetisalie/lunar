@@ -2,7 +2,7 @@
 id: "MAINT-63"
 title: "63: Edit-Cascade Cost of After-Edit Reads"
 type: "feature"
-status: "todo"
+status: "blocked"
 priority: "high"
 parent_id: "MAINT"
 folders:
@@ -12,25 +12,44 @@ folders:
 # MAINT-63: Edit-Cascade Cost of After-Edit Reads
 
 ## Overview
-An edit invalidates the snapshot of every file that reaches the edited one, so reading the edited file again rebuilds all of them. Filed by MAINT-60 Phase 3 from the sweeps' `ranked.tsv`; MAINT-60-02 requires every pass that
-missed a 250 ms bound to be named in the table of its cause item. v0.21.21 is held on this item
-(`release HOLD` in MAINT-60's `verdict.txt` until no pass misses). Parent:
-[[features/maint/requirements|MAINT]]. Measurement feature: [[MAINT-60]].
+An edit invalidates the snapshot of every file that reaches the edited one, so reading the edited
+file again rebuilds all of them. Filed by MAINT-60 Phase 3 from the sweeps' `ranked.tsv`;
+MAINT-60-02 requires every pass that missed a 250 ms bound to be named in the table of its cause
+item. v0.21.21 is held on this item (`release HOLD` in MAINT-60's `verdict.txt` until no pass
+misses). Parent: [[features/maint/requirements|MAINT]]. Measurement feature: [[MAINT-60]].
+
+**Blocked on [[MAINT-65]].** Per-file invalidation (rebuild only the snapshots whose recorded
+sources changed) was prototyped. Under a sound provisional rule it misses more passes than base:
+298 of 338 against 281 (risks DR-08). The cause is cycle-provisional builds: the module guard fires
+inside import cycles, and replay of the guarded module answers marks most edit-phase builds
+provisional, so they keep today's full invalidation. MAINT-63 is revisited after MAINT-65 lands.
 
 ## Measured Cause
-DR-04 (TYPE-11 frames as edit dependencies: 0 of 106 builds qualified after an edit; refuted as a fix) and DR-09 (524 files at or over 250 ms after an edit; median 37 ms).
+MAINT-60 DR-04 (TYPE-11 frames as edit dependencies: 0 of 106 builds qualified after an edit;
+refuted as a fix) and MAINT-60 DR-09 (524 files at or over 250 ms after an edit; median 37 ms).
+Why per-file invalidation alone does not clear them: risks DR-08.
 
 ## Scope
-Holds: Every after-edit pass whose own build is under 250 ms and whose dominant dependency's own build is also under 250 ms.
+Holds: Every after-edit pass whose own build is under 250 ms and whose dominant dependency's own
+build is also under 250 ms.
 
-Direction (not designed): Rebuild, after an edit, only the snapshots whose inputs changed, or make a rebuilt dependency cheap.
+Out of scope: findings-changing work (MAINT-64), own build cost (MAINT-61), cold reach (MAINT-62),
+import cycles (MAINT-65).
 
 ## Functional Requirements
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-63-01 | **Every listed pass under 250 ms** | M | Not Implemented | Every pass in the table below clears its bound, and its row is removed from `src/test/resources/snapshot-cost/exceptions.tsv`. |
-| MAINT-63-02 | **Findings unchanged or recorded** | M | Not Implemented | The MAINT-54 audit's `luacheck` member, the MAINT-55 conformance results and the sweep digests are identical before and after the change, or each difference is recorded as a correction (MAINT-60-03). |
+| MAINT-63-01 | **Every listed pass under 250 ms** | M | Not Implemented | Every pass in the table below clears its bound in the MAINT-60 sweep (no `miss:` line for it in `verdict.txt`). |
+| MAINT-63-02 | **Findings unchanged** | M | Not Implemented | The MAINT-54 audit's `luacheck` member and the MAINT-55 conformance results are byte-identical before and after the change, and every swept file's after-edit digest equals its cold digest. |
+
+## Test Cases
+
+| # | Requirement | Given (input) | When (action) | Then (expected) |
+|---|-------------|---------------|---------------|-----------------|
+| 1 | MAINT-63-01 | `test -PwithSnapshotSweep --tests '*SnapshotCostSweep*' --rerun --no-build-cache` on the libvirt builder at the change's commit | read `build/snapshot-cost/verdict.txt` | no `miss:` line names a file in this table |
+| 2 | MAINT-63-02 | `test -PwithTypeAudit -PrecordConformance --tests '*FalseNegativeAudit*testLuacheckMember' --tests '*LuaCatsConformanceTest*'`, run before and after the change | compare `build/type-audit/luacheck.json` and `build/conformance/results.json` | byte-identical |
+| 3 | MAINT-63-02 | the sweep of TC-1, with an `editDigest` field added to `SweepRow` (today's `sweep.jsonl` records only the cold `digest`) | compare `editDigest` with `digest` on every row of `build/snapshot-cost/sweep.jsonl` | equal on every row |
 
 ## Files over target
 
@@ -38,7 +57,7 @@ Direction (not designed): Rebuild, after an edit, only the snapshots whose input
 builder, run at commit `9fb91435` (the engine and sweep code the sweeps measured). A pass is in the
 table when it missed in at least one run. *Value* is the largest measured time across the runs that
 missed, or `timeout`, `not-run` or `unmeasured` when a run did not complete the pass. *Item* is the
-item most of those runs filed the pass under (design 3.3 rule 4 reads a dependency's time in the
+item most of those runs filed the pass under (the attribution reads a dependency's time in the
 run being judged, so a pass near 250 ms moves between items); on a tie, the second run's. *Runs
 missed* is how many of the 3 runs the pass missed in.
 
