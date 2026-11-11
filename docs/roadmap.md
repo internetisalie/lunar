@@ -76,9 +76,11 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 > **v0.21.21 goal — LuaLS parity: no wrong warnings against LuaLS's own tests, and LuaLS-scale code at
 > editor speed.** Cut when all three hold and main is green:
 > 1. **Fast:** every type-corpus file's snapshot builds in under 250 ms, cold and after an edit, with
->    the per-file p99 under 100 ms (MAINT-60, BUG-96, BUG-97). The limits stand unless MAINT-60's
->    prototype probes show a file cannot reach them without incremental re-inference; such a file gets
->    its own item rather than a looser limit.
+>    the per-file p99 under 100 ms (MAINT-60, BUG-96, BUG-97). MAINT-60's probes showed targeted
+>    changes cannot reach them; the patch is held until they are met, including by the larger engine
+>    work (pair-model redesign, incremental re-inference) that MAINT-60 files one item per cause.
+>    Met when MAINT-60's sweep, run on the libvirt builder at the release candidate's commit, prints
+>    `release READY` (MAINT-60-07).
 > 2. **No wrong warnings:** every MAINT-55 conformance case scored `false-report` reaches `agree`
 >    (BUG-75, BUG-81, BUG-85, BUG-91, BUG-94).
 > 3. **No regressions:** the MAINT-55 ratchet stays green, and the MAINT-54 audit is unchanged except for
@@ -121,7 +123,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-72 | An unannotated parameter takes nil from a caller in the same file instead of reading as `any` | todo | S | — | found by MAINT-55 DR-07; blocks re-measuring the `uncertain-nil` deviation | ✓ |
 | BUG-73 | An `a and b or c` value keeps a nil arm despite the `or` default | todo | S | — | found by MAINT-55 DR-07; blocks re-measuring the `uncertain-nil` deviation | ✓ |
 | BUG-74 | A `@class` method reads as `fun(a) \| fun()`, so a correct call is checked against the empty arm | todo | S | — | found by MAINT-55 DR-07: 113 of 129 `undeclared-arity` reports | ✓ |
-| MAINT-60 | Type-inference performance: fix the snapshot-build tail (BUG-96, BUG-97), add inference workloads to MAINT-45's records, commit the per-file sweep | todo | L | — | unblocks MAINT-56 Phase 4 | ✓ |
+| MAINT-60 | Type-inference performance: commit the per-file snapshot-cost sweep with a verdict and `release READY`/`HOLD` signal, file one item per measured cause of every file over 250 ms (re-scoping BUG-96, BUG-97), add inference workloads to MAINT-45's records; changes nothing the engine computes | todo | L | — | files the cause items that unblock MAINT-56 Phase 4 and v0.21.21 goal 1 | ✓ |
 | BUG-96 | Type inference of fallo's 514-line `init.lua` (a generic `Result<T, E>` class) takes about two minutes | todo | M | — | found by MAINT-56's representative run (fallo: 114 min for one file); MAINT-56 weights re-measured after it | ✓ |
 | BUG-97 | Any edit to any file of lua-language-server's `script/vm` costs about a minute of type inference, even in a 15-line file | todo | M | — | found by MAINT-56's representative run (luals: unfinished after 149 min); MAINT-56 weights re-measured after it | ✓ |
 | BUG-75 | Assigning a wrong value to an annotated class field also reports the earlier valid assignment, and `t.x = {}` reports a missing required field | todo | S | — | found by MAINT-55 conformance suite (4 cases) | ✓ |
