@@ -22,8 +22,8 @@ folders:
 | The 5 s cutoff bounds a build | runtime | DR-08 — **refuted**: it is checked between passes, and fallo's and `compile.lua`'s first pass runs past 45 s |
 | A pair budget can replace the cutoff without changing results | runtime | DR-08 — **refuted**: pairs do not order builds by time |
 | The checker's pair loop cannot be cancelled | runtime | DR-11 — **refuted**: PSI access inside it polls; a cancelled fallo build stops in 1–134 ms |
-| The listed workloads give equal counts across two passes | runtime | DR-10 — only after a prime |
-| The prime is still needed under the records harness, which resets the workspace between passes | runtime | not executed; Phase 2's exit runs the workloads without it and decides, and if they stay green proves the equal-passes wiring by a temporary count perturbation instead (implementation-plan Phase 2) |
+| The listed workloads give equal counts across two passes | runtime | DR-10 (probe harness: only after a prime), DR-12 (records harness: equal without one) |
+| The prime is still needed under the records harness, which resets the workspace between passes | runtime | DR-12 — **refuted**: the workloads are equal across passes without it |
 | The targets of MAINT-60-01/-06 are reachable with targeted changes | runtime | DR-05, DR-06 — **refuted** |
 
 Constraints treated as chosen, not fixed: the sweep's selection and order are MAINT-56 DR-16's, so its
@@ -260,8 +260,24 @@ a prime (the same text read from another file first) before each pass. **Observe
 | beequeue `lib/lua/raiseDelayedJobs.lua` | 25 / 8 / 8 | 25 / 8 / 8 | 25 / 8 / 8 | 25 / 8 / 8 | 25–101 | 0 |
 
 Errors: 148, 16, 0 in every pass; the 5 s cutoff never fired. **Verdict:** counts are equal across
-passes only when the library snapshots the file reaches are already built, so each workload primes
-(design §2.3). The largest build is 2.4× under the cutoff.
+passes only when the library snapshots the file reaches are already built, so a probe reading each pass in
+a fresh project primes (the records harness needs none, DR-12). The largest build is 2.4× under the cutoff.
+
+### DR-12 — Equal passes under the records harness without a prime (executed)
+**How:** Phase 2, `LuaPerfRecordWorkloadsTest.recordEveryWorkload`, libvirt builder,
+`test --rerun --no-build-cache -PwithPerfRecords --tests '*PerfRecord*'`: once with the prime line (a
+second file of the same text read first), once with it deleted. Then, with the prime deleted, the
+`recorded` list handed to `passFailures` had `infer-luals-compiler`'s `write` raised by 1.
+**Observed:** both runs passed. Primed counts (demand / read / write) were luals 1 875 / 3 637 / 9 650,
+ldoc 1 530 / 1 863 / 4 483, beequeue 8 / 8 / 25, equal in both passes. Unprimed, luals read 3 673 and
+wrote 9 984 in **both** passes (DR-10's unprimed pass-1 figure, 9 984), ldoc and beequeue unchanged. The
+perturbation failed with `infer-luals-compiler: counts differ across passes: write 9984 -> 9985`.
+Priming through `myFixture.addFileToProject` also failed the second pass (`File prime.lua already exists
+in /root`: the harness's reset does not clear the fixture's temp root). **Verdict:** the harness's own
+warm pass is the prime; the counts are equal across passes without one, though a primed file records
+different counts (luals `write` 9 650 against 9 984), so the recorded numbers are those of the
+library-cold state. The prime is removed from design §2.3 and the code; the equal-passes wiring is proven
+by the perturbation.
 
 ### DR-11 — Cancellation latency with and without a poll in the pair loop (executed)
 **How:** `ProbeMaint60Tc7Test`, fallo `init.lua`'s text alone, read under an `EmptyProgressIndicator`
@@ -402,7 +418,7 @@ the edit cascade. The per-file list is the Phase 3 sweep's `ranked.tsv`, which t
   slowest read (design §3.3), and the run's length is asserted (MAINT-60-05).
 
 ### Risk 1.4: CI time for the workloads
-- **Impact**: two passes, each a prime and a measured read, at DR-10's read times, plus fetching
+- **Impact**: two passes, each a measured read, at DR-10's read times, plus fetching
   the type-corpus members named by `--only` (design §7).
 - **Likelihood**: low.
 - **Mitigation**: the workloads read the file's text only, so nothing else in the member is built.

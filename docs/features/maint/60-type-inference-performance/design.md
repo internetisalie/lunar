@@ -109,14 +109,13 @@ cause (§3.3). The targets of MAINT-60-01/-06 become true as those items land; t
   positive-output check: beequeue's file has no errors, DR-10). The run's whole body is one
   `EdtTestUtil.runInEdtAndGet<Measured, RuntimeException> { … }` block, as `snapshotWorkload`'s is,
   because `CorpusTarget` runs on the test's EDT (`CorpusTarget.kt:27`). Inside it:
-  `val saved = CorpusTarget.pin(project, CorpusTarget.memberTarget(entry))`, then in `try`: prime with
-  `LuaTypesSnapshot.forFile(myFixture.addFileToProject("prime.lua", text))`, call
+  `val saved = CorpusTarget.pin(project, CorpusTarget.memberTarget(entry))`, then in `try`: call
   `configureByText(text)`, read `val types = LuaTypesSnapshot.forFile(myFixture.file) as LuaTypesSnapshot`
   (`forFile` returns the `LuaTypes` interface; `rootCounts` takes the class, as `snapshotWorkload`
   does), return `Measured(rootCounts(types), mapOf("errors" to types.getErrors().size.toLong()))`; in
   `finally`: `CorpusTarget.restore(project, saved)`, still inside the block. The text alone is the fixture: no source path, so no other project
-  file is reached. The prime exists so that the library snapshots the file reaches are built before
-  the measured read (DR-10).
+  file is reached. There is no prime: under the records harness the warm pass builds the library
+  snapshots the file reaches, so the recorded pass starts from the same state (DR-12).
 - **Equal passes** (MAINT-60-04): `WorkloadChecks` gains a last field
   `val equalPasses: Boolean = false`, so every existing call site is unchanged. `PerfRecordChecks.kt`
   gains
@@ -397,7 +396,7 @@ performance-records step, so it needs no fetch.
 | MAINT-60-01 | M | §2.1, §3.2 | TC 1: V1, V2, P1, P2, P3, P10 | per case below |
 | MAINT-60-02 | M | §3.2, §3.3, §4.1, Phase 3 | TC 3: V3–V7, V9, V11–V13, A1–A7, E1–E4, R1, K1; the Phase 3 sweep run | per case below |
 | MAINT-60-03 | M | Phase 1's exit check | TC 4: audit + conformance + sweep digests before/after | none of its own: an artifact comparison, red exactly when the files differ (risks-and-gaps "Test Case Gaps") |
-| MAINT-60-04 | M | §2.3, §2.4, §7 | TC 5: D1–D3; the workloads run | D1–D3 below; in the workloads run, drop the prime from `inferenceWorkload` (expected red from DR-10's probe harness, which is not the records harness; executed in Phase 2), or, if that stays green, Phase 2's temporary count perturbation in `recordEveryWorkload` |
+| MAINT-60-04 | M | §2.3, §2.4, §7 | TC 5: D1–D3; the workloads run | D1–D3 below; in the workloads run, Phase 2's temporary count perturbation in `recordEveryWorkload` (the prime that was expected to matter is not needed, DR-12) |
 | MAINT-60-05 | M | §2.1, §3.1, §3.4, §4.1 | TC 6: C1–C4, V10, T1, T2; the Phase 1 sweep run | per case below; in the run, set `RUN_BUDGET_MS` above 45 min |
 | MAINT-60-06 | M | §2.1, §3.2 | TC 2: V8, P4 | per case below |
 | MAINT-60-07 | M | §3.2 `releaseLines`, `runTimeFailures` | TC 7: P5–P10, T1 | per case below |

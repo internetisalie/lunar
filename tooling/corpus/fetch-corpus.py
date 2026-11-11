@@ -98,13 +98,25 @@ def fetch_definition_archives(manifest: dict) -> None:
         die(str(failure))
 
 
+def select_members(manifest: dict, only: str) -> dict:
+    """The manifest restricted to the members `only` names (comma-separated); all of it when empty."""
+    wanted = [name for name in only.split(",") if name]
+    known = {entry["name"] for entry in manifest["corpora"]}
+    missing = [name for name in wanted if name not in known]
+    if missing:
+        die(f"--only: unknown member(s): {', '.join(missing)}")
+    return {**manifest, "corpora": [e for e in manifest["corpora"] if not wanted or e["name"] in wanted]}
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Fetch the pinned corpus checkouts of a manifest.")
     parser.add_argument("--manifest", type=Path, default=MANIFEST, help="manifest to fetch (default corpus.json)")
-    manifest_path = parser.parse_args(argv).manifest
+    parser.add_argument("--only", default="", help="comma-separated member names to fetch (default: all)")
+    args = parser.parse_args(argv)
+    manifest_path = args.manifest
     if not manifest_path.is_file():
         die(f"Manifest not found: {manifest_path}")
-    manifest = json.loads(manifest_path.read_text())
+    manifest = select_members(json.loads(manifest_path.read_text()), args.only)
 
     CORPUS_ROOT.mkdir(parents=True, exist_ok=True)
     for entry in manifest["corpora"]:

@@ -10,6 +10,10 @@ import com.intellij.testFramework.EdtTestUtil
 import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.LightPlatformTestCase
 import net.internetisalie.lunar.IndexedDocumentTest
+import net.internetisalie.lunar.corpus.CorpusEntry
+import net.internetisalie.lunar.corpus.CorpusGuards
+import net.internetisalie.lunar.corpus.CorpusManifest
+import net.internetisalie.lunar.corpus.CorpusTarget
 import net.internetisalie.lunar.lang.LuaParserDefinition
 import net.internetisalie.lunar.lang.indexing.LuaGlobalDeclarationIndex
 import net.internetisalie.lunar.lang.parser.LuaParser
@@ -34,13 +38,24 @@ class LuaPerfRecordWorkloadsTest : IndexedDocumentTest() {
         val failures =
             workloads.zip(recorded).flatMap { (workload, pass) ->
                 violations(workload.checks, pass.rawCounts, pass.outputs).map { "${workload.spec.name}: $it" }
-            }
+            } + passFailures(workloads, warm, recorded)
         assertTrue(failures.isEmpty(), failures.joinToString("\n"))
         val repoRoot = File(System.getProperty("user.dir"))
         workloads.indices.forEach { i ->
             PerfRecordFile.write(repoRoot, toRecord(workloads[i].spec, warm[i], recorded[i]))
         }
     }
+
+    private fun passFailures(
+        workloads: List<Workload>,
+        warm: List<Pass>,
+        recorded: List<Pass>,
+    ): List<String> =
+        workloads.indices
+            .filter { workloads[it].checks.equalPasses }
+            .flatMap { i ->
+                passDisagreements(warm[i], recorded[i]).map { "${workloads[i].spec.name}: $it" }
+            }
 
     private fun workloads(): List<Workload> =
         listOf(500, 2000).map { parseWorkload("parse-flat-$it", flat(it)) } +
@@ -50,7 +65,8 @@ class LuaPerfRecordWorkloadsTest : IndexedDocumentTest() {
             listOf(80, 320).map(::resolveWorkload) +
             listOf(200, 800).map(::completionMemberWorkload) +
             listOf(200, 800).map(::completionGlobalWorkload) +
-            listOf(200, 800).map(::completionCrossfileWorkload)
+            listOf(200, 800).map(::completionCrossfileWorkload) +
+            inferenceWorkloads()
 
     private fun measurePass(workload: Workload): Pass {
         resetWorkspace()
@@ -103,6 +119,45 @@ class LuaPerfRecordWorkloadsTest : IndexedDocumentTest() {
                 configureByText(text)
                 Measured(rootCounts(LuaTypesSnapshot.forFile(myFixture.file) as LuaTypesSnapshot), emptyMap())
             }
+        }
+    }
+
+    private fun inferenceWorkloads(): List<Workload> =
+        listOf(
+            inferenceWorkload("infer-luals-compiler", "luals", "script/vm/compiler.lua"),
+            inferenceWorkload("infer-ldoc-markdown", "ldoc", "ldoc/markdown.lua"),
+            inferenceWorkload("infer-beequeue-raisedelayed", "beequeue", "lib/lua/raiseDelayedJobs.lua"),
+        )
+
+    /** MAINT-60-04: one corpus file's text alone, inferred, with equal counts across passes. */
+    private fun inferenceWorkload(
+        name: String,
+        member: String,
+        path: String,
+    ): Workload {
+        val repoRoot = File(System.getProperty("user.dir"))
+        val entry = CorpusManifest.entry(repoRoot, member, CorpusManifest.TYPE_MANIFEST_PATH)
+        CorpusGuards.assertCorpusFetched(repoRoot, entry)
+        val text = File(CorpusManifest.checkoutDir(repoRoot, member), path).readText()
+        return Workload(
+            WorkloadSpec(name, "inference", text),
+            WorkloadChecks(setOf("write", "read", "demand"), emptyMap(), emptySet(), equalPasses = true),
+        ) {
+            EdtTestUtil.runInEdtAndGet<Measured, RuntimeException> { inferPinned(entry, text) }
+        }
+    }
+
+    private fun inferPinned(
+        entry: CorpusEntry,
+        text: String,
+    ): Measured {
+        val saved = CorpusTarget.pin(myFixture.project, CorpusTarget.memberTarget(entry))
+        try {
+            configureByText(text)
+            val types = LuaTypesSnapshot.forFile(myFixture.file) as LuaTypesSnapshot
+            return Measured(rootCounts(types), mapOf("errors" to types.getErrors().size.toLong()))
+        } finally {
+            CorpusTarget.restore(myFixture.project, saved)
         }
     }
 

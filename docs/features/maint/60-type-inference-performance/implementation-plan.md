@@ -53,10 +53,10 @@ their outputs compared byte for byte, plus the sweep digest comparison below (TC
 ### Phase 2: Inference workloads [Must]
 - **Goal**: MAINT-60-04.
 - **Tasks**:
-  - [ ] Add `--only` to `tooling/corpus/fetch-corpus.py` and `tooling/corpus/test_fetch_corpus_only.py` — design §2.4
-  - [ ] Add `equalPasses` to `WorkloadChecks` and `ROOT_COUNT_KEYS` and `passDisagreements` to `PerfRecordChecks.kt`, with the D cases in `PerfRecordChecksTest` — design §2.3, §8
-  - [ ] Add `inferenceWorkload` and the design §2.3 workloads to `LuaPerfRecordWorkloadsTest`, and the equal-passes failure to `recordEveryWorkload` — design §2.3
-  - [ ] Extend the `build` job's fixtures step in `.gitea/workflows/build-plugin.yml` — design §7
+  - [x] Add `--only` to `tooling/corpus/fetch-corpus.py` and `tooling/corpus/test_fetch_corpus_only.py` — design §2.4
+  - [x] Add `equalPasses` to `WorkloadChecks` and `ROOT_COUNT_KEYS` and `passDisagreements` to `PerfRecordChecks.kt`, with the D cases in `PerfRecordChecksTest` — design §2.3, §8
+  - [x] Add `inferenceWorkload` and the design §2.3 workloads to `LuaPerfRecordWorkloadsTest`, and the equal-passes failure to `recordEveryWorkload` — design §2.3
+  - [x] Extend the `build` job's fixtures step in `.gitea/workflows/build-plugin.yml` — design §7
 - **Exit criteria**: `python3 -I -m unittest tooling/corpus/test_fetch_corpus_only.py` green;
   each D case red under its mutation; `-PwithPerfRecords --tests '*PerfRecord*'` writes
   `build/perf-records/infer-*.json` and passes (TC 5); the same run with the prime removed from
@@ -111,6 +111,6 @@ their outputs compared byte for byte, plus the sweep digest comparison below (TC
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: The sweep and its verdict | todo | Must |
-| Phase 2: Inference workloads | todo | Must |
+| Phase 1: The sweep and its verdict | done | Must |
+| Phase 2: Inference workloads | done | Must |
 | Phase 3: Name every file over target | todo | Must |

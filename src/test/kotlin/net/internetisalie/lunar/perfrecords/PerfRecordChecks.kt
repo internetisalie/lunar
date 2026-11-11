@@ -12,6 +12,7 @@ internal data class WorkloadChecks(
     val required: Set<String>,
     val exactOutputs: Map<String, Long>,
     val positiveOutputs: Set<String>,
+    val equalPasses: Boolean = false,
 )
 
 internal data class Measured(
@@ -30,6 +31,9 @@ internal data class Pass(
     val outputs: Map<String, Long>,
     val durationMs: Long,
 )
+
+/** The root counts `rootCounts` writes, in the order a disagreement is reported. */
+internal val ROOT_COUNT_KEYS = listOf("demand", "read", "write")
 
 private const val FIXTURE_HASH_CHARS = 16
 private const val RECORD_SCHEMA = 1
@@ -53,6 +57,17 @@ internal fun violations(
             .map { "output $it is zero" }
     return missingCounters + wrongOutputs + emptyOutputs
 }
+
+/** MAINT-60-04: the root counts that differ between the warm and the recorded pass. */
+internal fun passDisagreements(
+    warm: Pass,
+    recorded: Pass,
+): List<String> =
+    ROOT_COUNT_KEYS.mapNotNull { key ->
+        val before = warm.rawCounts.getOrDefault(key, 0L)
+        val after = recorded.rawCounts.getOrDefault(key, 0L)
+        "counts differ across passes: $key $before -> $after".takeIf { before != after }
+    }
 
 internal fun toRecord(
     spec: WorkloadSpec,

@@ -41,4 +41,28 @@ class PerfRecordChecksTest {
         assertEquals(mapOf("x" to 2L), record.counts)
         assertEquals(7L, record.durationMs)
     }
+
+    @Test
+    fun `D1 a root count that differs across passes is named with both values`() {
+        val warm = Pass(mapOf("write" to 2L), emptyMap(), 0L)
+        val recorded = Pass(mapOf("write" to 3L), emptyMap(), 0L)
+        assertEquals(listOf("counts differ across passes: write 2 -> 3"), passDisagreements(warm, recorded))
+    }
+
+    @Test
+    fun `D2 a key absent from a pass reads as zero and keys report in root order`() {
+        val warm = Pass(mapOf("write" to 2L, "read" to 1L), emptyMap(), 0L)
+        val recorded = Pass(mapOf("write" to 3L), emptyMap(), 0L)
+        assertEquals(
+            listOf("counts differ across passes: read 1 -> 0", "counts differ across passes: write 2 -> 3"),
+            passDisagreements(warm, recorded),
+        )
+    }
+
+    @Test
+    fun `D3 stub counts are not compared`() {
+        val warm = Pass(mapOf("write" to 2L, "stub:lunar.global.decl" to 5L), emptyMap(), 0L)
+        val recorded = Pass(mapOf("write" to 2L, "stub:lunar.global.decl" to 7L), emptyMap(), 0L)
+        assertEquals(emptyList(), passDisagreements(warm, recorded))
+    }
 }
