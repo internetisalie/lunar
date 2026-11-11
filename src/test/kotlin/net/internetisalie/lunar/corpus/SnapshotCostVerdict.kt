@@ -23,14 +23,6 @@ data class SweepRow(
     val digest: Int,
 )
 
-/** One row of `exceptions.tsv` (design §4.2); its `ms` column is documentation and is not kept. */
-data class CostException(
-    val member: String,
-    val file: String,
-    val bound: String,
-    val item: String,
-)
-
 /** Why a pass missed its bound, and the roadmap item it is filed under (design §3.3). */
 data class Attribution(
     val cause: String,
@@ -51,13 +43,13 @@ private data class SweepPass(
 )
 
 /**
- * MAINT-60's verdict over a snapshot cost sweep (design §3.2–§3.4, §4): which passes miss their bound,
- * which listings are stale or misfiled, whether every selected file has a row, and the release lines.
+ * MAINT-60's verdict over a snapshot cost sweep (design §3.2–§3.4, §4): which passes miss their bound
+ * and under which item, whether every selected file has a row, and the release lines.
  * Pure: no fixture, PSI or clock, so `SnapshotCostVerdictTest` drives it from rows alone.
  */
 object SnapshotCostVerdict {
     const val BOUND_MS = 250L
-    const val STALE_BELOW_MS = 200L
+    const val IN_BAND_FROM_MS = 200L
     const val P99_MS = 100L
     const val RUN_LIMIT_MS = 45 * 60_000L
     const val COLD_DEADLINE_MS = 60_000L
@@ -78,12 +70,10 @@ object SnapshotCostVerdict {
     const val EDIT_CASCADE_ITEM = "MAINT-63"
     val OWN_BUILD_ITEMS = mapOf("/lua/fallo/init.lua" to "BUG-96", "/script/parser/compile.lua" to "BUG-97")
 
-    const val RANKED_HEADER = "member\tfile\tbound\tvalue\tcause\titem\tdependency\tdependencyMs\texcepted"
+    const val RANKED_HEADER = "member\tfile\tbound\tvalue\tcause\titem\tdependency\tdependencyMs"
 
     private val BOUNDS = listOf(COLD_BOUND, EDIT_BOUND)
     private val NOT_READ = setOf(SKIPPED, NOT_RUN, UNMEASURED)
-    private val ROADMAP_TABLE_HEADER = Regex("""^\|\s*ID\s*\|\s*Title\s*\|\s*Status\s*\|""")
-    private val ROADMAP_ROW = Regex("""^\|\s*([A-Z]+-\d+)\s*\|""")
 
     /** Design §3.1 step 1: every `.lua` file under the member's roots, as `<root>/<relative path>`, sorted. */
     fun selectedFiles(
@@ -100,37 +90,9 @@ object SnapshotCostVerdict {
                     .toList()
             }.sorted()
 
-    fun violations(
-        rows: List<SweepRow>,
-        exceptions: List<CostException>,
-        roadmapIds: Set<String>,
-    ): List<String> {
-        val passes = rows.flatMap { it.passes() }
-        val listed = exceptions.map { it.key() }.toSet()
-        val sweepErrors =
-            passes.filter { it.isSweepError() }.map { "${it.label()} ${it.status}: sweep error" }
-        val unlisted =
-            passes
-                .filter { !it.isSweepError() && it.misses() && it.key() !in listed }
-                .map { "${it.label()} ${it.value()}: no exception" }
-        val unselected =
-            exceptions
-                .filter { listing -> rows.none { it.member == listing.member && it.file == listing.file } }
-                .map { "${it.member}/${it.file}: exception for an unselected file" }
-        val unknownItems = exceptions.filter { it.item !in roadmapIds }.map { "${it.item}: no roadmap row" }
-        return sweepErrors + unlisted + unselected + unknownItems + exceptions.mapNotNull { misfiled(it, rows) }
-    }
-
-    fun staleExceptions(
-        rows: List<SweepRow>,
-        exceptions: List<CostException>,
-    ): List<String> {
-        val listed = exceptions.map { it.key() }.toSet()
-        return rows
-            .flatMap { it.passes() }
-            .filter { it.key() in listed && it.clears() }
-            .map { "${it.label()} ${it.value()}: stale exception: remove" }
-    }
+    /** Design §3.2: a pass the sweep could not read because the tool failed, not because it was slow. */
+    fun sweepErrors(rows: List<SweepRow>): List<String> =
+        rows.flatMap { it.passes() }.filter { it.isSweepError() }.map { "${it.label()} ${it.status}: sweep error" }
 
     fun coverage(
         selected: Map<String, List<String>>,
@@ -152,43 +114,35 @@ object SnapshotCostVerdict {
     fun runTimeFailures(elapsedMs: Long): List<String> =
         if (elapsedMs >= RUN_LIMIT_MS) listOf("sweep took ${elapsedMs / 60_000} min") else emptyList()
 
-    fun rankedLines(
-        rows: List<SweepRow>,
-        exceptions: List<CostException>,
-    ): List<String> {
-        val listed = exceptions.map { it.key() }.toSet()
+    fun rankedLines(rows: List<SweepRow>): List<String> {
         val ranked =
             rows
                 .flatMap { it.passes() }
-                .filter { it.misses() || it.ms >= STALE_BELOW_MS }
+                .filter { it.misses() || it.ms >= IN_BAND_FROM_MS }
                 .sortedWith(
                     compareByDescending<SweepPass> { it.rankMs() }
                         .thenBy { it.row.member }
                         .thenBy { it.row.file }
                         .thenBy { it.bound },
                 )
-        return listOf(RANKED_HEADER) + ranked.map { rankedLine(it, rows, it.key() in listed) }
+        return listOf(RANKED_HEADER) + ranked.map { rankedLine(it, rows) }
     }
 
     fun releaseLines(
         rows: List<SweepRow>,
-        exceptions: List<CostException>,
         checkFailures: Int,
     ): List<String> {
-        val missCount = rows.flatMap { it.passes() }.count { it.misses() }
+        val misses = rows.flatMap { it.passes() }.filter { it.misses() }
         val gated =
             listOf(
                 p99Line(rows, COLD_BOUND),
                 p99Line(rows, EDIT_BOUND),
-                "misses $missCount: ${verdictOf(missCount == 0)}",
+                "misses ${misses.size}: ${verdictOf(misses.isEmpty())}",
                 "checks $checkFailures: ${verdictOf(checkFailures == 0)}",
             )
-        val removable =
-            exceptions
-                .filter { listing -> rowOf(listing, rows)?.pass(listing.bound)?.misses() == false }
-                .map { "remove before tagging: ${it.member}/${it.file} ${it.bound}" }
+        val named = misses.map { "miss: ${it.label()} ${it.value()} ${attribute(it.row, it.bound, rows).item}" }
         val release = if (gated.all { it.endsWith(PASS) }) "release READY" else "release HOLD"
-        return gated + removable + release
+        return gated + named + release
     }
 
     /** Design §3.3: only for a pass that misses its bound. */
@@ -206,44 +160,9 @@ object SnapshotCostVerdict {
         }
     }
 
-    fun parseExceptions(text: String): List<CostException> {
-        val parsed = mutableListOf<CostException>()
-        text.lines().forEachIndexed { index, line ->
-            if (index == 0 || line.isBlank()) return@forEachIndexed
-            val listing = parseException(line, index + 1)
-            require(parsed.none { it.key() == listing.key() }) { "exceptions.tsv line ${index + 1}: duplicate key" }
-            parsed += listing
-        }
-        return parsed
-    }
-
-    fun parseRoadmapIds(text: String): Set<String> {
-        val ids = mutableSetOf<String>()
-        var inWaveTable = false
-        for (line in text.lines()) {
-            if (ROADMAP_TABLE_HEADER.containsMatchIn(line)) {
-                inWaveTable = true
-                continue
-            }
-            if (!line.startsWith("|")) inWaveTable = false
-            if (inWaveTable) ROADMAP_ROW.find(line)?.let { ids += it.groupValues[1] }
-        }
-        return ids
-    }
-
     private const val PASS = "PASS"
 
     private fun verdictOf(passed: Boolean): String = if (passed) PASS else "FAIL"
-
-    private fun parseException(
-        line: String,
-        lineNumber: Int,
-    ): CostException {
-        val fields = line.split('\t')
-        require(fields.size == 5) { "exceptions.tsv line $lineNumber: ${fields.size} fields, expected 5" }
-        require(fields[2] in BOUNDS) { "exceptions.tsv line $lineNumber: bound '${fields[2]}' is not one of $BOUNDS" }
-        return CostException(fields[0], fields[1], fields[2], fields[3])
-    }
 
     private fun p99Line(
         rows: List<SweepRow>,
@@ -258,7 +177,6 @@ object SnapshotCostVerdict {
     private fun rankedLine(
         pass: SweepPass,
         rows: List<SweepRow>,
-        excepted: Boolean,
     ): String {
         val attribution =
             if (pass.misses()) attribute(pass.row, pass.bound, rows) else Attribution("in band", "", "", -1)
@@ -271,20 +189,7 @@ object SnapshotCostVerdict {
             attribution.item,
             attribution.dependency,
             attribution.dependencyMs.toString(),
-            if (excepted) "yes" else "no",
         ).joinToString("\t")
-    }
-
-    private fun misfiled(
-        listing: CostException,
-        rows: List<SweepRow>,
-    ): String? {
-        val row = rowOf(listing, rows) ?: return null
-        if (!row.pass(listing.bound).misses()) return null
-        val computed = attribute(row, listing.bound, rows).item
-        if (computed.isEmpty() || computed == listing.item) return null
-        return "${listing.member}/${listing.file} ${listing.bound}: " +
-            "misfiled under ${listing.item}, attributed to $computed"
     }
 
     private fun blockingItem(
@@ -314,11 +219,6 @@ object SnapshotCostVerdict {
     private fun ownItem(path: String): String =
         OWN_BUILD_ITEMS.entries.firstOrNull { path.endsWith(it.key) }?.value ?: OWN_BUILD_ITEM
 
-    private fun rowOf(
-        listing: CostException,
-        rows: List<SweepRow>,
-    ): SweepRow? = rows.firstOrNull { it.member == listing.member && it.file == listing.file }
-
     private fun SweepRow.pass(bound: String): SweepPass =
         if (bound == COLD_BOUND) {
             SweepPass(this, bound, coldMs, coldStatus, rootSelfMs, topDep, topDepSelfMs)
@@ -328,17 +228,11 @@ object SnapshotCostVerdict {
 
     private fun SweepRow.passes(): List<SweepPass> = BOUNDS.map { pass(it) }
 
-    private fun CostException.key(): Triple<String, String, String> = Triple(member, file, bound)
-
-    private fun SweepPass.key(): Triple<String, String, String> = Triple(row.member, row.file, bound)
-
     private fun SweepPass.label(): String = "${row.member}/${row.file} $bound"
 
     private fun SweepPass.isSweepError(): Boolean = status.startsWith(EXCEPTION_PREFIX)
 
     private fun SweepPass.misses(): Boolean = status != OK || ms >= BOUND_MS
-
-    private fun SweepPass.clears(): Boolean = status == OK && ms < STALE_BELOW_MS
 
     private fun SweepPass.value(): String = if (status == OK) "$ms ms" else status
 

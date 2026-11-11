@@ -1,6 +1,6 @@
 ---
 id: "BUG-97"
-title: "Any edit to any file of lua-language-server's script/vm costs about a minute of type inference, even in a 15-line file"
+title: "Passes that depend on luals script/parser/compile.lua are over 250 ms because its own build takes up to 43 seconds"
 type: "bug"
 parent_id: "BUG"
 status: "todo"
@@ -9,7 +9,27 @@ folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
 
-# BUG-97: Any edit to any file of lua-language-server's `script/vm` costs about a minute of type inference, even in a 15-line file
+# BUG-97: Passes that depend on luals `script/parser/compile.lua` are over 250 ms because its own build takes up to 43 seconds
+
+## Scope (MAINT-60 Phase 3)
+MAINT-60's sweep (design 3.3, `attribute`) files this bug for one cause: **the own build of luals
+`script/parser/compile.lua`**, the dominant dependency of the `script/vm` files (DR-01, DR-08: 354 039
+checked pairs, cancelled in pass 1). A pass is filed here when its own build is under 250 ms and its
+dominant dependency is that file with 250 ms or more of self time. That file's own time was 43 573 ms
+in the first sweep and 1 440 ms in the second, where it was the edit-pass dependency of `script/vm/init.lua`
+(filed here by that run). Across the three sweeps no pass is filed here by the majority rule, so
+the table is empty; luals `script/vm/compiler.lua` (own self time 297 ms in the first sweep, at the
+250 ms boundary) and the other `script/vm` files are filed under MAINT-61 and MAINT-63. A fix to
+`compile.lua` moves the `script/vm` passes with it. Fixing it must keep MAINT-60-03: audit,
+conformance and sweep digests unchanged or each difference recorded.
+
+### Files over target
+Generated from the union of three MAINT-60 Phase 3 sweeps (libvirt builder, commit `9fb91435`). A pass
+is here when it missed in at least one run and the item most of those runs filed it under is this
+one (on a tie, the second run's). *Value* is the largest time measured, or the status when a run did
+not complete the pass.
+
+No pass is filed under this item by the rule above.
 
 Found by MAINT-56's representative run. Its `luals` member had been running for 149 minutes without
 finishing when the run was stopped. The same run measured gitsigns, 61 files, in 23.6 minutes.

@@ -188,38 +188,23 @@ cause (§3.3). The targets of MAINT-60-01/-06 become true as those items land; t
 `net.internetisalie.lunar.corpus.SnapshotCostVerdict` (test sources, `object`):
 ```kotlin
 const val BOUND_MS = 250L
-const val STALE_BELOW_MS = 200L
+const val IN_BAND_FROM_MS = 200L
 const val P99_MS = 100L
 const val RUN_LIMIT_MS = 45 * 60_000L
-fun violations(rows: List<SweepRow>, exceptions: List<CostException>, roadmapIds: Set<String>): List<String>
-fun staleExceptions(rows: List<SweepRow>, exceptions: List<CostException>): List<String>
+fun sweepErrors(rows: List<SweepRow>): List<String>
 fun coverage(selected: Map<String, List<String>>, rows: List<SweepRow>): List<String>
 fun runTimeFailures(elapsedMs: Long): List<String>
-fun rankedLines(rows: List<SweepRow>, exceptions: List<CostException>): List<String>
-fun releaseLines(rows: List<SweepRow>, exceptions: List<CostException>, checkFailures: Int): List<String>
+fun rankedLines(rows: List<SweepRow>): List<String>
+fun releaseLines(rows: List<SweepRow>, checkFailures: Int): List<String>
 ```
 A row has two passes, `cold` (bound `cold-250`: `coldMs`, `coldStatus`) and `edit` (bound
 `edit-250`: `editMs`, `editStatus`). A pass's **value** is `"<ms> ms"` when its status is `ok`, else
-the status. A pass **misses** its bound when its status is not `ok` or its ms is `>= BOUND_MS`; it
-**clears** its bound when its status is `ok` and its ms is `< STALE_BELOW_MS`. A key is
-`(member, file, bound)`.
+the status. A pass **misses** its bound when its status is not `ok` or its ms is `>= BOUND_MS`.
 
-`violations`, in this order:
-1. Each pass whose status starts with `exception:`: `"<m>/<f> <bound> <status>: sweep error"`, whether
-   or not an exception lists it.
-2. Each other pass that misses its bound and whose key is not in `exceptions`:
-   `"<m>/<f> <bound> <value>: no exception"`.
-3. Each exception whose `(member, file)` has no row: `"<m>/<f>: exception for an unselected file"`.
-4. Each exception whose `item` is not in `roadmapIds`: `"<item>: no roadmap row"`.
-5. Each exception whose row exists, whose pass misses its bound and whose `item` differs from
-   `attribute(row, bound, rows).item` (§3.3), skipping a computed item of `""` (a sweep error, step 1):
-   `"<m>/<f> <bound>: misfiled under <item>, attributed to <computed>"`.
+The sweep's assertion covers the health of the tool only: `sweepErrors`, `coverage` and
+`runTimeFailures`. Which passes are slow is not asserted; it is reported by `releaseLines`.
 
-`staleExceptions`: each pass whose key is in `exceptions` and that clears its bound:
-`"<m>/<f> <bound> <value>: stale exception: remove"`. A listed pass at `STALE_BELOW_MS` ≤ ms <
-`BOUND_MS` is not stale: this band is the hysteresis that keeps a listed pass from going stale on a
-small gain. Phase 3 lists only passes that miss (§4.1), so an unlisted pass in the band is not a
-violation and needs no listing.
+`sweepErrors`: each pass whose status starts with `exception:`: `"<m>/<f> <bound> <status>: sweep error"`.
 
 `coverage(selected, rows)`, where `selected` maps every member of `CorpusManifest.load(repoRoot,
 TYPE_MANIFEST_PATH)` to its `selectedFiles`: `"<m>: no selected files"` for a member with an empty
@@ -231,29 +216,23 @@ row already has.
 `elapsedMs >= RUN_LIMIT_MS`, else `[]`. The elapsed time is an argument, so the check is unit-tested
 without a clock (T1, T2).
 
-`releaseLines(rows, exceptions, checkFailures)`, in this order, each of the first four lines ending
-`PASS` or `FAIL`:
+`releaseLines(rows, checkFailures)`, in this order, each of the first four lines ending `PASS` or `FAIL`:
 - `"p99 cold <v>: <verdict>"` and `"p99 edit <v>: <verdict>"`: the nearest-rank 99th percentile over
-  **all** rows, excepted or not: sort the pass's ms ascending, a pass whose status is not `ok` as
-  `Long.MAX_VALUE`, take index `ceil(0.99 × n) − 1`; `<v>` is `"<ms> ms"`, or `unmeasured` for
-  `Long.MAX_VALUE` or when `n == 0` (no rows: no index is taken). `PASS` when the value is
-  `< P99_MS`.
-- `"misses <n>: <verdict>"`: `n` = the passes of `rows` that miss their bound, listed or not; `PASS`
-  when `n == 0`.
+  **all** rows: sort the pass's ms ascending, a pass whose status is not `ok` as `Long.MAX_VALUE`,
+  take index `ceil(0.99 × n) − 1`; `<v>` is `"<ms> ms"`, or `unmeasured` for `Long.MAX_VALUE` or when
+  `n == 0` (no rows: no index is taken). `PASS` when the value is `< P99_MS`.
+- `"misses <n>: <verdict>"`: `n` = the passes of `rows` that miss their bound; `PASS` when `n == 0`.
 - `"checks <checkFailures>: <verdict>"`, `PASS` when `0`.
-- `"remove before tagging: <m>/<f> <bound>"` for each exception, in `exceptions` order, whose row
-  exists and whose pass does not miss. These lines carry no verdict: such a listing does not block
-  `release READY`; the supervisor deletes those rows in the release commit.
+- `"miss: <m>/<f> <bound> <value> <item>"` for each pass that misses, in `rows` order, `<item>` being
+  `attribute`'s (§3.3): a `release HOLD` names what blocks it. These lines carry no verdict.
 - last, `"release READY"` when each of the first four lines ends `PASS`, else `"release HOLD"`.
 
-`testZzVerdict`: parses `sweep.jsonl` (§4.1), `exceptions.tsv` (§4.2) and `docs/roadmap.md` (§4.3);
-computes `checks = coverage(...) + violations(...) + runTimeFailures(System.currentTimeMillis() − RUN_START_MS)`
-and `stale = staleExceptions(rows, exceptions)`; writes `ranked.tsv` = `rankedLines(rows, exceptions)`
-and `verdict.txt` = `releaseLines(rows, exceptions, checks.size)`, each joined by `\n`; prints
-`checks`, `stale` and the release lines; then asserts `checks + stale` is empty. So a stale listing
-fails the test but not `release`, and a run of 45 minutes or more fails both. The release lines are
-written, not asserted: `release HOLD` is the expected state until the cause items land, and
-MAINT-60-07 reads it.
+`testZzVerdict`: parses `sweep.jsonl` (§4.1); computes
+`checks = coverage(...) + sweepErrors(rows) + runTimeFailures(System.currentTimeMillis() − RUN_START_MS)`;
+writes `ranked.tsv` = `rankedLines(rows)` and `verdict.txt` = `releaseLines(rows, checks.size)`, each
+joined by `\n`; prints `checks` and the release lines; then asserts `checks` is empty. So a run of 45
+minutes or more fails both the test and `release`. The release lines are written, not asserted:
+`release HOLD` is the expected state until the cause items land, and MAINT-60-07 reads it.
 
 ### 3.3 Cause of a missed bound (`attribute`)
 ```kotlin
@@ -263,8 +242,8 @@ const val OWN_BUILD_ITEM = "MAINT-61"; const val REACH_ITEM = "MAINT-62"; const 
 val OWN_BUILD_ITEMS = mapOf("/lua/fallo/init.lua" to "BUG-96", "/script/parser/compile.lua" to "BUG-97")
 ```
 `ownItem(path)` = the value of the first `OWN_BUILD_ITEMS` key that `path` ends with, else
-`OWN_BUILD_ITEM`. `attribute` files only passes that miss their bound: its callers are `violations` step 5 and
-`rankedLines`, and both call it for a missing pass only. For the row's pass of `bound` (status `s`, root self `r`, top dependency `d` with
+`OWN_BUILD_ITEM`. `attribute` files only passes that miss their bound: its callers are `rankedLines` and
+`releaseLines`, and both call it for a missing pass only. For the row's pass of `bound` (status `s`, root self `r`, top dependency `d` with
 self `ds`), the first rule that applies:
 1. `s` is `skipped`, `not-run` or `unmeasured`: cause **unmeasured**, item = the item of the row that
    blocks measuring it, `dependency = ""`, `dependencyMs = -1`:
@@ -287,7 +266,7 @@ read takes rules 3–4 like any other, its records carrying the time up to the c
 is reach under BUG-97, and fallo `init.lua`'s cold pass is own build and its `not-run` edit pass is
 unmeasured, both under BUG-96.
 
-Items, one per cause; Phase 3 sets `OWN_BUILD_ITEM`, `REACH_ITEM` and `EDIT_CASCADE_ITEM` to the minted IDs:
+Items, one per cause; `OWN_BUILD_ITEM`, `REACH_ITEM` and `EDIT_CASCADE_ITEM` are:
 
 | Item | Files it holds | Measured in |
 |---|---|---|
@@ -298,7 +277,10 @@ Items, one per cause; Phase 3 sets `OWN_BUILD_ITEM`, `REACH_ITEM` and `EDIT_CASC
 | MAINT-63 (new) | edit cascade with no dominant dependency at or over 250 ms | DR-04, DR-09 |
 | MAINT-64 (new) | none: the measured walk flattenings, which change findings | DR-06 |
 
-The MAINT IDs are placeholders for the next free `MAINT-` numbers at commit time.
+Phase 3 minted MAINT-61 to MAINT-64 and set the three constants to them. The rule 4 threshold reads a
+dependency's time in the run being judged, so a pass near it is filed under a different item from
+one run to the next (DR-13); each item's file table names the item chosen by the majority of the runs
+in which the pass missed.
 
 ### 3.4 Budgets
 `COLD_DEADLINE_MS = 60_000`, `EDIT_DEADLINE_MS = 1_000`, `RUN_BUDGET_MS = 35 × 60_000`. A read over its
@@ -311,7 +293,7 @@ deadline misses its bound either way, so a deadline only caps what an over-targe
   timeout, as the probes did): cold reads 4.18 min (DR-06), after-edit reads capped at 1 s 8.0 min
   (DR-09), everything else at most 7.0 min (DR-09's run less its summed reads). About 19 min.
 - **Worst case**: 35 min + one cold deadline (1 min) + one member's setup (≤ 7 min, the whole run's
-  non-read time in DR-09) + the verdict, which reads `sweep.jsonl`, `exceptions.tsv` and the roadmap. Under 45 min if the
+  non-read time in DR-09) + the verdict, which reads `sweep.jsonl`. Under 45 min if the
   verdict takes under 2 min. Phase 1's run confirms it: `testZzVerdict` asserts the 45 minutes (§3.2).
 
 ## 4. External Data & Parsing
@@ -324,29 +306,15 @@ class with these fields in this order; the verdict parses each line with
 `com.google.gson.Gson().fromJson(line, SweepRow::class.java)` (Gson is on the test classpath via the
 platform).
 
-`ranked.tsv` = `rankedLines(rows, exceptions)`: first the header
-`member\tfile\tbound\tvalue\tcause\titem\tdependency\tdependencyMs\texcepted`, then one line per pass
-that misses its bound or is `ok` at `>= STALE_BELOW_MS`; `excepted` = `yes`/`no` by key; sorted by ms
-descending, a non-`ok` pass first (as `Long.MAX_VALUE`), then by member, file, bound. A missing pass
-takes `cause`/`item`/`dependency`/`dependencyMs` from `attribute`. An in-band pass (`ok`,
-`STALE_BELOW_MS` ≤ ms < `BOUND_MS`) is there for information only: `cause` = `in band`, `item` and
-`dependency` empty, `dependencyMs` = `-1`; it is never listed. Phase 3 commits the lines whose cause
-is not `in band`.
+`ranked.tsv` = `rankedLines(rows)`: first the header
+`member\tfile\tbound\tvalue\tcause\titem\tdependency\tdependencyMs`, then one line per pass
+that misses its bound or is `ok` at `>= IN_BAND_FROM_MS`; sorted by ms descending, a non-`ok` pass
+first (as `Long.MAX_VALUE`), then by member, file, bound. A missing pass takes
+`cause`/`item`/`dependency`/`dependencyMs` from `attribute`. An in-band pass (`ok`,
+`IN_BAND_FROM_MS` ≤ ms < `BOUND_MS`) is there for information only: `cause` = `in band`, `item` and
+`dependency` empty, `dependencyMs` = `-1`.
 
 `verdict.txt`: `releaseLines`, one per line (§3.2).
-
-### 4.2 `src/test/resources/snapshot-cost/exceptions.tsv` (committed)
-Header `member\tfile\tbound\titem\tms`, then one row per key; `bound` ∈ `cold-250|edit-250`; `ms` the
-value when listed (documentation only, never compared). `parseExceptions(text): List<CostException>`
-with `CostException(member, file, bound, item)`: skip the header line and blank lines, split on `\t`;
-fail naming the 1-based line number when a line has other than five fields, a `bound` outside the two,
-or a key already seen. Empty (header only) until Phase 3.
-
-### 4.3 `docs/roadmap.md` item IDs
-`parseRoadmapIds(text): Set<String>`: a line matching `^\|\s*ID\s*\|\s*Title\s*\|\s*Status\s*\|` opens
-a wave table; the table runs until the first line not starting with `|`. Inside a wave table, each
-line matching `^\|\s*([A-Z]+-\d+)\s*\|` contributes group 1. Lines outside wave tables contribute
-nothing. A closed item's row is deleted from the roadmap, so its exceptions fail step 4 until removed.
 
 ## 5. Data Flow
 
@@ -393,54 +361,43 @@ performance-records step, so it needs no fetch.
 
 | Requirement | Priority | Implemented by | Test | Mutation that turns it red |
 |---|---|---|---|---|
-| MAINT-60-01 | M | §2.1, §3.2 | TC 1: V1, V2, P1, P2, P3, P10 | per case below |
-| MAINT-60-02 | M | §3.2, §3.3, §4.1, Phase 3 | TC 3: V3–V7, V9, V11–V13, A1–A7, E1–E4, R1, K1; the Phase 3 sweep run | per case below |
+| MAINT-60-01 | M | §2.1, §3.2 | TC 1: P1, P2, P3, P10 | per case below |
+| MAINT-60-02 | M | §3.3, §4.1, Phase 3 | TC 3: A1–A7, K1, P9; the item tables | per case below |
 | MAINT-60-03 | M | Phase 1's exit check | TC 4: audit + conformance + sweep digests before/after | none of its own: an artifact comparison, red exactly when the files differ (risks-and-gaps "Test Case Gaps") |
 | MAINT-60-04 | M | §2.3, §2.4, §7 | TC 5: D1–D3; the workloads run | D1–D3 below; in the workloads run, Phase 2's temporary count perturbation in `recordEveryWorkload` (the prime that was expected to matter is not needed, DR-12) |
-| MAINT-60-05 | M | §2.1, §3.1, §3.4, §4.1 | TC 6: C1–C4, V10, T1, T2; the Phase 1 sweep run | per case below; in the run, set `RUN_BUDGET_MS` above 45 min |
-| MAINT-60-06 | M | §2.1, §3.2 | TC 2: V8, P4 | per case below |
+| MAINT-60-05 | M | §2.1, §3.1, §3.4, §4.1 | TC 6: C1–C4, V1, T1, T2; the Phase 1 sweep run | per case below; in the run, set `RUN_BUDGET_MS` above 45 min |
+| MAINT-60-06 | M | §2.1, §3.2 | TC 2: P4 | per case below |
 | MAINT-60-07 | M | §3.2 `releaseLines`, `runTimeFailures` | TC 7: P5–P10, T1 | per case below |
 
 **`SnapshotCostVerdictTest`** (`net.internetisalie.lunar.corpus`, JUnit 5, no fixture). `row(cold,
 edit, coldStatus = "ok", editStatus = "ok", file = "f.lua")` builds a `SweepRow` for member `m` with
 `rootSelfMs = editRootSelfMs = -1`, `topDep = editTopDep = ""`, other numbers 0, so `attribute` files
 its missing cold pass under `REACH_ITEM` and its missing edit pass under `EDIT_CASCADE_ITEM` (§3.3
-rule 4); `ids` = `setOf(OWN_BUILD_ITEM, REACH_ITEM, EDIT_CASCADE_ITEM)`; `ex(bound, file = "f.lua")` =
-`CostException("m", file, bound, if (bound == "cold-250") REACH_ITEM else EDIT_CASCADE_ITEM)`. Expected
-strings that contain an item are written with the constant interpolated (`"…$REACH_ITEM"`).
-`violations(rows, exceptions, ids)` and, where the column says so, `staleExceptions(rows, exceptions)`:
+rule 4). Expected strings that contain an item are written with the constant interpolated
+(`"…$REACH_ITEM"`).
 
-| Case | rows | exceptions | expected | mutation |
-|---|---|---|---|---|
-| V1 | `row(300, 10)` | none | `["m/f.lua cold-250 300 ms: no exception"]` | drop the `ms >= BOUND_MS` arm of *misses* |
-| V2 | `row(300, 10)` | `ex("cold-250")` | `[]` | ignore `exceptions` in step 2 |
-| V3 | `row(300, 10)` | `CostException("m", "f.lua", "cold-250", "MAINT-99")` | `["MAINT-99: no roadmap row", "m/f.lua cold-250: misfiled under MAINT-99, attributed to $REACH_ITEM"]` | drop step 4 |
-| V4 | `row(300, 10)` | `ex("edit-250")` | `violations` = `["m/f.lua cold-250 300 ms: no exception"]`; `staleExceptions` = `["m/f.lua edit-250 10 ms: stale exception: remove"]` | match keys without `bound` |
-| V5 | `row(150, 10)` | `ex("cold-250")` | `violations` = `[]`; `staleExceptions` = `["m/f.lua cold-250 150 ms: stale exception: remove"]` | `staleExceptions` returns `emptyList()` |
-| V6 | `row(220, 10)` | `ex("cold-250")` | `violations` = `[]`; `staleExceptions` = `[]` | *clears* at `ms < BOUND_MS` instead of `STALE_BELOW_MS` |
-| V7 | `row(240, 10)` | none | `[]` | *misses* at `ms >= STALE_BELOW_MS` |
-| V8 | `row(10, 300)` | none | `["m/f.lua edit-250 300 ms: no exception"]` | read the edit pass's ms from `coldMs` |
-| V9 | `row(10, 0, editStatus = "not-run")` | none | `["m/f.lua edit-250 not-run: no exception"]` | treat `not-run` as `ok` |
-| V10 | `row(0, 0, "skipped", "skipped")` | none | `["m/f.lua cold-250 skipped: no exception", "m/f.lua edit-250 skipped: no exception"]` | treat `skipped` as `ok` |
-| V11 | `row(0, 0, "exception:IllegalStateException", "not-run")` | `ex("cold-250")`, `ex("edit-250")` | `["m/f.lua cold-250 exception:IllegalStateException: sweep error"]` | let an exception cover step 1 |
-| V12 | `row(10, 10)` | `ex("cold-250", "g.lua")` | `["m/g.lua: exception for an unselected file"]` | drop step 3 |
-| V13 | `row(300, 10)` | `CostException("m", "f.lua", "cold-250", OWN_BUILD_ITEM)` | `["m/f.lua cold-250: misfiled under $OWN_BUILD_ITEM, attributed to $REACH_ITEM"]` | drop step 5 |
+`sweepErrors(rows)`:
 
-`releaseLines(rows, exceptions, checkFailures)`, `checkFailures = 0` unless the case says otherwise;
+| Case | rows | expected | mutation |
+|---|---|---|---|
+| V1 | `row(0, 0, "exception:IllegalStateException", "not-run")` | `["m/f.lua cold-250 exception:IllegalStateException: sweep error"]` | return `emptyList()` |
+| V2 | `row(300, 0, editStatus = "not-run")`, `row(0, 0, "timeout")` | `[]` | report every pass that misses |
+
+`releaseLines(rows, checkFailures)`, `checkFailures = 0` unless the case says otherwise;
 `tens(k)` = `k` rows `row(10, 10, file = "f<i>.lua")` for `i` in `0 until k`:
 
-| Case | rows | exceptions | expected | mutation |
-|---|---|---|---|---|
-| P1 | `tens(99)` + `row(500, 10)` | none | contains `"p99 cold 10 ms: PASS"` | index `ceil(0.99 n)` without `− 1` |
-| P2 | `tens(98)` + `row(500, 10, file = "x.lua")` + `row(500, 10, file = "y.lua")` | `ex("cold-250", "x.lua")`, `ex("cold-250", "y.lua")` | contains `"p99 cold 500 ms: FAIL"` | compute p99 over unexcepted rows only |
-| P3 | `tens(98)` + `row(0, 10, "timeout", file = "x.lua")` + `row(0, 10, "timeout", file = "y.lua")` | none | contains `"p99 cold unmeasured: FAIL"` | use a non-`ok` pass's ms |
-| P4 | `tens(98)` + `row(10, 500, file = "x.lua")` + `row(10, 500, file = "y.lua")` | none | contains `"p99 cold 10 ms: PASS"` and `"p99 edit 500 ms: FAIL"` | compute the edit line from `coldMs` |
-| P5 | `tens(100)` | none | last line `"release READY"` | always `HOLD` |
-| P6 | `tens(100)` | `ex("cold-250", "f1.lua")` | contains `"remove before tagging: m/f1.lua cold-250"`, last line `"release READY"` | count every listing as a miss (gives `HOLD`); or drop the `remove before tagging` lines |
-| P7 | `tens(98)` + `row(150, 10, file = "x.lua")` + `row(150, 10, file = "y.lua")` | none | contains `"p99 cold 150 ms: FAIL"` and `"misses 0: PASS"`, last line `"release HOLD"` | leave the p99 lines out of `release` |
-| P8 | `tens(100)`, `checkFailures = 1` | none | contains `"checks 1: FAIL"`, last line `"release HOLD"` | leave the checks line out of `release` |
-| P9 | `tens(99)` + `row(300, 10, file = "x.lua")` | `ex("cold-250", "x.lua")` | contains `"p99 cold 10 ms: PASS"` and `"misses 1: FAIL"`, last line `"release HOLD"` | count only unlisted passes as misses |
-| P10 | no rows | none | contains `"p99 cold unmeasured: FAIL"` and `"p99 edit unmeasured: FAIL"`, last line `"release HOLD"` | drop the `n == 0` guard (index `−1` throws) |
+| Case | rows | expected | mutation |
+|---|---|---|---|
+| P1 | `tens(99)` + `row(500, 10)` | contains `"p99 cold 10 ms: PASS"` | index `ceil(0.99 n)` without `− 1` |
+| P2 | `tens(98)` + `row(500, 10, file = "x.lua")` + `row(500, 10, file = "y.lua")` | contains `"p99 cold 500 ms: FAIL"` | compute p99 over rows that do not miss |
+| P3 | `tens(98)` + `row(0, 10, "timeout", file = "x.lua")` + `row(0, 10, "timeout", file = "y.lua")` | contains `"p99 cold unmeasured: FAIL"` | use a non-`ok` pass's ms |
+| P4 | `tens(98)` + `row(10, 500, file = "x.lua")` + `row(10, 500, file = "y.lua")` | contains `"p99 cold 10 ms: PASS"` and `"p99 edit 500 ms: FAIL"` | compute the edit line from `coldMs` |
+| P5 | `tens(100)` | last line `"release READY"` | always `HOLD` |
+| P6 | `tens(100)` | no line starts with `"remove before tagging"` | emit the old `remove before tagging` lines |
+| P7 | `tens(98)` + `row(150, 10, file = "x.lua")` + `row(150, 10, file = "y.lua")` | contains `"p99 cold 150 ms: FAIL"` and `"misses 0: PASS"`, last line `"release HOLD"` | leave the p99 lines out of `release` |
+| P8 | `tens(100)`, `checkFailures = 1` | contains `"checks 1: FAIL"`, last line `"release HOLD"` | leave the checks line out of `release` |
+| P9 | `tens(99)` + `row(300, 10, file = "x.lua")` | contains `"p99 cold 10 ms: PASS"`, `"misses 1: FAIL"` and `"miss: m/x.lua cold-250 300 ms $REACH_ITEM"`, last line `"release HOLD"` | drop the `miss:` lines; or count no pass as a miss |
+| P10 | no rows | contains `"p99 cold unmeasured: FAIL"` and `"p99 edit unmeasured: FAIL"`, last line `"release HOLD"` | drop the `n == 0` guard (index `−1` throws) |
 
 `runTimeFailures(elapsedMs)`:
 
@@ -470,21 +427,11 @@ strings that contain an item are written with the constant interpolated (`"…$R
 | A6 | rows, in order: `m/x.lua` cold `ok` 900 ms (`rootSelfMs = -1`); A1's row (`coldMs = 60 047`); `m/z.lua` cold `skipped`; `z.lua`, `cold-250` | `(unmeasured, BUG-96)` | take the first `ok`/`timeout` row as `top` (gives `REACH_ITEM`); or consider `ok` rows only |
 | A7 | `m/f.lua`, cold `exception:IllegalStateException`; `cold-250` | `(sweep error, "")` | drop rule 2 (gives `(reach, REACH_ITEM)`) |
 
-Parsers:
+`rankedLines(rows)`:
 
-| Case | input | expected | mutation |
+| Case | rows | expected | mutation |
 |---|---|---|---|
-| E1 | header + `m\tf.lua\tcold-250\tMAINT-61\t300` | `[CostException("m", "f.lua", "cold-250", "MAINT-61")]` | skip no header |
-| E2 | header + `m\tf.lua\tcold-250\tMAINT-61` | fails, message contains `line 2` | accept four or more fields |
-| E3 | header + the E1 line twice | fails, message contains `line 3` | drop the duplicate check |
-| E4 | header + `m\tf.lua\tcold-300\tMAINT-61\t300` | fails, message contains `line 2` | drop the `bound` check |
-| R1 | `"| Branch | Tip |\n| BUG-1 | x |\n\n| ID | Title | Status |\n| :--- | :--- | :--- |\n| MAINT-61 | t | todo |\n\ntext\n| BUG-2 | y |"` | `setOf("MAINT-61")` | match the row regex on every line |
-
-`rankedLines(rows, exceptions)`:
-
-| Case | rows | exceptions | expected | mutation |
-|---|---|---|---|---|
-| K1 | `row(220, 10)`, `row(150, 10, file = "g.lua")` | none | `[header, "m\tf.lua\tcold-250\t220 ms\tin band\t\t\t-1\tno"]` | rank only passes that miss (drops the line); or rank every `ok` pass (adds `g.lua`) |
+| K1 | `row(220, 10)`, `row(150, 10, file = "g.lua")` | `[header, "m\tf.lua\tcold-250\t220 ms\tin band\t\t\t-1"]` | rank only passes that miss (drops the line); or rank every `ok` pass (adds `g.lua`) |
 
 **`PerfRecordChecksTest`** gains: D1 `passDisagreements(Pass(mapOf("write" to 2L), emptyMap(), 0), Pass(mapOf("write" to 3L), emptyMap(), 0))`
 = `["counts differ across passes: write 2 -> 3"]` (mutation: return `emptyList()`); D2 the same with

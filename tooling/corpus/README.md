@@ -265,8 +265,8 @@ baseline. Fetch the type corpus first, then run:
 
 It writes three files under `build/snapshot-cost/`. `sweep.jsonl` has one row per selected file.
 `ranked.tsv` lists every pass that misses its 250 ms bound, with its cause and roadmap item, plus
-every pass at 200–249 ms. `verdict.txt` holds the release lines. A pass that misses its bound fails
-the run unless `src/test/resources/snapshot-cost/exceptions.tsv` lists it under the item for its
-measured cause. v0.21.21's release-ready signal (MAINT-60-07) is `release READY` in `verdict.txt`,
+every pass at 200–249 ms. `verdict.txt` holds the release lines, ending with one `miss:` line per
+missing pass and its item. The run fails only when the tool itself fails (a selected file with no
+row, a sweep error, 45 minutes or more); a slow pass is reported, not asserted. v0.21.21's release-ready signal (MAINT-60-07) is `release READY` in `verdict.txt`,
 from this sweep run on the libvirt builder at the release candidate's commit. The verdict rules are in
 [the design](../../docs/features/maint/60-type-inference-performance/design.md).

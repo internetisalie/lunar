@@ -292,6 +292,23 @@ way (0–3 ms with, 2–6 ms without). An indicator cancelled before `runProcess
 refuted; PSI access inside it already polls. MAINT-56 DR-16's 1 987 ms overrun is not explained by
 this and is not established.
 
+### DR-13 — Per-run bookkeeping of misses is not stable (executed)
+**How:** the sweep of design §3.1 run three times with the Phase 3 code, on the libvirt builder, at
+commit `9fb91435`. A committed listing of misses, checked by the verdict, was tried against the second
+and third runs. **Observed:** passes missing a bound: 651, 655 and 698; union 729; 606 miss in all
+three; 453 of those 606 keep one item across the runs. Against the union of the first two runs, the
+third run had 34 misses not listed (all in band or absent before), 137 passes whose `attribute` item
+differed from the listed one, and 14 listings under 200 ms. The item changes come from rule 4, which
+reads a dependency's own time in the run being judged: MAINT-61 to MAINT-63 for 84, MAINT-63 to
+MAINT-61 for 47, MAINT-62 to MAINT-61 for 4, MAINT-61 to MAINT-62 for 1 and BUG-97 to MAINT-61 for 1.
+luals moved most: `script/vm/compiler.lua` timed out at 60 965 ms in the first run and finished in
+56 758 ms in the second, and `script/parser/compile.lua`'s own time was 43 573 ms and 1 440 ms.
+**Verdict:** about 700 passes sit near thresholds that move between runs, so no committed listing
+stays true. The sweep asserts tool health only; `release READY` already requires zero misses, listed
+or not (MAINT-60-07), and `verdict.txt` names each miss with its item. The item tables are built from
+the union of the runs: value the largest time or the status, item the one most of the passes' missing
+runs gave (a tie: the second run's), and the number of runs that missed.
+
 ## Files Over Target After This Feature
 
 This feature changes nothing the engine computes, so DR-06's `base` is the state after it.
@@ -394,13 +411,12 @@ the edit cascade. The per-file list is the Phase 3 sweep's `ranked.tsv`, which t
 ## Risks
 
 ### Risk 1.1: Near-threshold files flip between runs
-- **Impact**: the verdict reports a file at 240–260 ms as a new violation on one run and not the next
-  (DR-06: DR-16 and `base` differ by 5 files at 250 ms on the same commit's engine).
+- **Impact**: the count of passes at or over 250 ms, and the item `attribute` files a pass under,
+  differ from run to run (DR-13: 651, 655 and 698 misses in three runs).
 - **Likelihood**: high
-- **Mitigation**: a listing is stale only under 200 ms (design §3.2), so a listed pass that drops
-  into 200–249 ms does not flip to a stale-exception failure. Phase 3 lists only passes that miss, so
-  an unlisted pass that crosses 250 ms on a later run is a real miss of the target: it fails as
-  `no exception` and is listed then under `attribute`'s item, whose roadmap row already exists.
+- **Mitigation**: the verdict asserts tool health only and reports the misses (design §3.2); the
+  release line is `HOLD` while any pass misses, so a pass that crosses 250 ms on one run holds the
+  release on that run. The item tables take the union of runs (DR-13).
 
 ### Risk 1.2: A workload's build near the 5 s cutoff
 - **Impact**: the cutoff is wall-clock (DR-08); a runner slow enough to trip it on one pass and not
@@ -431,7 +447,7 @@ the edit cascade. The per-file list is the Phase 3 sweep's `ranked.tsv`, which t
   goal 1). MAINT-60 closes when its phases' exit criteria hold, with -01 and -06 `Partial`, tracked by
   the cause items and gated by the release-ready signal (MAINT-60-07).
 
-### Gap 2.2: Grouping exceptions by cause (product)
+### Gap 2.2: Grouping misses by cause (product)
 - **Question**: one item per missing file, or one per measured cause naming every file?
 - **Decision** (supervisor, 2026-11-10): one item per cause (design §3.3).
 

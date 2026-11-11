@@ -1,6 +1,6 @@
 ---
 id: "BUG-96"
-title: "Type inference of fallo's 514-line `init.lua` takes about two minutes"
+title: "fallo's `init.lua` has an own snapshot build that does not finish within 60 seconds"
 type: "bug"
 parent_id: "BUG"
 status: "todo"
@@ -9,7 +9,29 @@ folders:
   - "[[features/bug-fixes|bug-fixes]]"
 ---
 
-# BUG-96: Type inference of fallo's 514-line `init.lua` takes about two minutes
+# BUG-96: fallo's `init.lua` has an own snapshot build that does not finish within 60 seconds
+
+## Scope (MAINT-60 Phase 3)
+MAINT-60's sweep (design 3.3, `attribute`) files this bug for one cause: **the own build of fallo
+`lua/fallo/init.lua`** is the only build that takes 250 ms or more because of that file alone and is not
+shared with other files. Its cold read hit the 60 s deadline with 60 016 ms of its own self time and 7
+builds (DR-06, DR-08: 970 215 checked pairs in one pass, cancelled in pass 1), so its after-edit pass is
+`not-run` and is filed here as unmeasured. Any other file whose dominant dependency is this one is
+filed here too; the sweep found none. The profile in section 4 locates the time in `checkNodePairs`,
+`VariableElement.resolveRead`/`resolveWrite` and `LuaGraphType$Table.hashCode`. Fixing it must keep
+MAINT-60-03: audit, conformance and sweep digests unchanged or each difference recorded. MAINT-60-04's
+workload on `init.lua` is added by this fix.
+
+### Files over target
+Generated from the union of three MAINT-60 Phase 3 sweeps (libvirt builder, commit `9fb91435`). A pass
+is here when it missed in at least one run and the item most of those runs filed it under is this
+one (on a tie, the second run's). *Value* is the largest time measured, or the status when a run did
+not complete the pass.
+
+| Member | File | Bound | Value | Runs missed | Cause |
+|---|---|---|---|---|---|
+| fallo | `lua/fallo/init.lua` | cold-250 | timeout | 3/3 | own build |
+| fallo | `lua/fallo/init.lua` | edit-250 | not-run | 3/3 | unmeasured |
 
 Found by MAINT-56's representative run. Its `fallo` member is one 514-line file and took 6 821 s to
 measure (`[type-corpus:fallo] files=1 population=149 sites=53 elapsedMs=6821246`). MAINT-54's harness

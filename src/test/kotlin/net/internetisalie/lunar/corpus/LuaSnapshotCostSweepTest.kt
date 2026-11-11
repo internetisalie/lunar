@@ -220,22 +220,18 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
     @Test
     fun testZzVerdict() {
         val rows = readRows()
-        val exceptions = SnapshotCostVerdict.parseExceptions(File(repoRoot, EXCEPTIONS_PATH).readText())
-        val roadmapIds = SnapshotCostVerdict.parseRoadmapIds(File(repoRoot, ROADMAP_PATH).readText())
         val checks =
             SnapshotCostVerdict.coverage(selectedByMember(), rows) +
-                SnapshotCostVerdict.violations(rows, exceptions, roadmapIds) +
+                SnapshotCostVerdict.sweepErrors(rows) +
                 SnapshotCostVerdict.runTimeFailures(System.currentTimeMillis() - RUN_START_MS)
-        val stale = SnapshotCostVerdict.staleExceptions(rows, exceptions)
-        File(outputDir, "ranked.tsv").writeText(SnapshotCostVerdict.rankedLines(rows, exceptions).joinToString("\n"))
-        val release = SnapshotCostVerdict.releaseLines(rows, exceptions, checks.size)
+        File(outputDir, "ranked.tsv").writeText(SnapshotCostVerdict.rankedLines(rows).joinToString("\n"))
+        val release = SnapshotCostVerdict.releaseLines(rows, checks.size)
         File(outputDir, "verdict.txt").writeText(release.joinToString("\n"))
-        (checks + stale + release).forEach { println("[snapshot-cost] $it") }
-        val failures = checks + stale
+        (checks + release).forEach { println("[snapshot-cost] $it") }
         assertTrue(
-            "${failures.size} snapshot cost check(s) failed; first ${FAILURES_SHOWN}:\n" +
-                failures.take(FAILURES_SHOWN).joinToString("\n"),
-            failures.isEmpty(),
+            "${checks.size} snapshot cost check(s) failed; first ${FAILURES_SHOWN}:\n" +
+                checks.take(FAILURES_SHOWN).joinToString("\n"),
+            checks.isEmpty(),
         )
     }
 
@@ -422,8 +418,6 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
         val RUN_START_MS: Long = System.currentTimeMillis()
 
         const val OUTPUT_DIR = "build/snapshot-cost"
-        const val EXCEPTIONS_PATH = "src/test/resources/snapshot-cost/exceptions.tsv"
-        const val ROADMAP_PATH = "docs/roadmap.md"
         const val FAILURES_SHOWN = 40
     }
 }
