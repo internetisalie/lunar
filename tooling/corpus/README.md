@@ -252,3 +252,21 @@ and, with `--checkouts`, the per-file line cap; `type_corpus.py usage` re-measur
 usage counts with `gh`. The
 fields, formulas and commands are in
 [the design](../../docs/features/maint/56-representative-type-corpus/design.md).
+
+### Snapshot cost sweep
+
+MAINT-60's sweep measures how long each type-corpus file's type snapshot takes: once cold, and once
+after `"\n"` is appended to the file. It is separate from the findings sweep above and has no
+baseline. Fetch the type corpus first, then run:
+
+```bash
+./gradlew test -PwithSnapshotSweep --rerun --no-build-cache --tests '*SnapshotCostSweep*'
+```
+
+It writes three files under `build/snapshot-cost/`. `sweep.jsonl` has one row per selected file.
+`ranked.tsv` lists every pass that misses its 250 ms bound, with its cause and roadmap item, plus
+every pass at 200–249 ms. `verdict.txt` holds the release lines. A pass that misses its bound fails
+the run unless `src/test/resources/snapshot-cost/exceptions.tsv` lists it under the item for its
+measured cause. v0.21.21's release-ready signal (MAINT-60-07) is `release READY` in `verdict.txt`,
+from this sweep run on the libvirt builder at the release candidate's commit. The verdict rules are in
+[the design](../../docs/features/maint/60-type-inference-performance/design.md).

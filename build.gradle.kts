@@ -452,6 +452,17 @@ tasks {
             val typeCorpusDir = layout.buildDirectory.dir("type-corpus").get().asFile
             doFirst { typeCorpusDir.deleteRecursively() }
         }
+        // MAINT-60: per-file snapshot cost over the type corpus. Its own opt-in (BUG-418):
+        // `./gradlew test -PwithSnapshotSweep --tests '*SnapshotCostSweep*'`.
+        if (!project.hasProperty("withSnapshotSweep")) {
+            filter {
+                excludeTestsMatching("*SnapshotCostSweep*")
+                isFailOnNoMatchingTests = false
+            }
+        } else {
+            val snapshotCostDir = layout.buildDirectory.dir("snapshot-cost").get().asFile
+            doFirst { snapshotCostDir.deleteRecursively() }
+        }
         // MAINT-40: the findings directory holds exactly one invocation's files, which is what lets
         // tooling/corpus/corpus_ctrf.py read the run's shape from it.
         if (project.hasProperty("withCorpus")) {

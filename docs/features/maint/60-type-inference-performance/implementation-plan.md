@@ -20,17 +20,17 @@ their outputs compared byte for byte, plus the sweep digest comparison below (TC
 ### Phase 1: The sweep and its verdict [Must]
 - **Goal**: MAINT-60-05's tool, with the verdict of MAINT-60-01/-02/-06/-07.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.lang.psi.types.LuaSnapshotBuildMeter`, not yet called from `buildSnapshot` — design §2.2
-  - [ ] Create `net.internetisalie.lunar.corpus.SnapshotCostVerdict` (`SweepRow`, `CostException`, `Attribution`, `selectedFiles`, `violations`, `staleExceptions`, `coverage`, `runTimeFailures`, `rankedLines`, `releaseLines`, `attribute`, `parseExceptions`, `parseRoadmapIds`) — design §3.1–§3.3, §4
-  - [ ] Create `SnapshotCostVerdictTest` (routine, no fixture) with design §8's V, P, T, C, A, E, R and K cases — TC 1, 2, 3, 6, 7
-  - [ ] Create `net.internetisalie.lunar.corpus.LuaSnapshotCostSweepTest` — design §2.1, §3.1, §3.4
-  - [ ] Create `src/test/resources/snapshot-cost/exceptions.tsv` with its header only — design §4.2
-  - [ ] Add the `withSnapshotSweep` block to `build.gradle.kts` — design §7
-  - [ ] Digest baseline (MAINT-60-03): run the sweep before the wrap below; on the builder, copy
+  - [x] Create `net.internetisalie.lunar.lang.psi.types.LuaSnapshotBuildMeter`, not yet called from `buildSnapshot` — design §2.2
+  - [x] Create `net.internetisalie.lunar.corpus.SnapshotCostVerdict` (`SweepRow`, `CostException`, `Attribution`, `selectedFiles`, `violations`, `staleExceptions`, `coverage`, `runTimeFailures`, `rankedLines`, `releaseLines`, `attribute`, `parseExceptions`, `parseRoadmapIds`) — design §3.1–§3.3, §4
+  - [x] Create `SnapshotCostVerdictTest` (routine, no fixture) with design §8's V, P, T, C, A, E, R and K cases — TC 1, 2, 3, 6, 7
+  - [x] Create `net.internetisalie.lunar.corpus.LuaSnapshotCostSweepTest` — design §2.1, §3.1, §3.4
+  - [x] Create `src/test/resources/snapshot-cost/exceptions.tsv` with its header only — design §4.2
+  - [x] Add the `withSnapshotSweep` block to `build.gradle.kts` — design §7
+  - [x] Digest baseline (MAINT-60-03): run the sweep before the wrap below; on the builder, copy
         `build/snapshot-cost/sweep.jsonl` to `build/snapshot-cost-before.jsonl` (outside the directory
         the next sweep's `doFirst` deletes)
-  - [ ] Wrap `LuaTypesVisitor.buildSnapshot(file)` in `LuaSnapshotBuildMeter.measure` — design §2.2
-  - [ ] Digest comparison (MAINT-60-03), after the exit sweep run, on the builder: the command below
+  - [x] Wrap `LuaTypesVisitor.buildSnapshot(file)` in `LuaSnapshotBuildMeter.measure` — design §2.2
+  - [x] Digest comparison (MAINT-60-03), after the exit sweep run, on the builder: the command below
         prints the `member file` of each file read `ok` and not `prebuilt` in both runs whose
         `digest` differs. Empty output passes; each printed file is recorded in the PR as a
         correction with its cause.
@@ -42,7 +42,7 @@ their outputs compared byte for byte, plus the sweep digest comparison below (TC
             x,y=a[k],b[k]
             if x["coldStatus"]==y["coldStatus"]=="ok" and not x["prebuilt"] and not y["prebuilt"] and x["digest"]!=y["digest"]: print(*k)' build/snapshot-cost-before.jsonl build/snapshot-cost/sweep.jsonl
         ```
-  - [ ] Add a "Snapshot cost sweep" paragraph to `tooling/corpus/README.md`: the command, the outputs, the exceptions file, and that `release READY` in `verdict.txt` at the release candidate's commit is v0.21.21's release-ready signal (MAINT-60-07)
+  - [x] Add a "Snapshot cost sweep" paragraph to `tooling/corpus/README.md`: the command, the outputs, the exceptions file, and that `release READY` in `verdict.txt` at the release candidate's commit is v0.21.21's release-ready signal (MAINT-60-07)
 - **Exit criteria**: `SnapshotCostVerdictTest` green and each case red under its design §8 mutation;
   `builder-run libvirt "test --rerun --no-build-cache -PwithSnapshotSweep --tests '*SnapshotCostSweep*'"`
   writes `sweep.jsonl`, `ranked.tsv` and `verdict.txt`, reports no coverage violation and no

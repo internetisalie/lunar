@@ -1665,18 +1665,19 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 "userdata" to { LuaGraphType.Any },
             )
 
-        internal fun buildSnapshot(file: PsiFile): LuaTypes {
-            val visitor = LuaTypesVisitor()
-            val builds = inProgressBuilds.get()
-            builds[file] = visitor
-            try {
-                visitor.seedAmbientGlobals(file)
-                file.accept(visitor)
-                visitor.graph.checkTypes()
-                return visitor.buildSnapshot(file)
-            } finally {
-                builds.remove(file)
+        internal fun buildSnapshot(file: PsiFile): LuaTypes =
+            LuaSnapshotBuildMeter.measure(file) {
+                val visitor = LuaTypesVisitor()
+                val builds = inProgressBuilds.get()
+                builds[file] = visitor
+                try {
+                    visitor.seedAmbientGlobals(file)
+                    file.accept(visitor)
+                    visitor.graph.checkTypes()
+                    visitor.buildSnapshot(file)
+                } finally {
+                    builds.remove(file)
+                }
             }
-        }
     }
 }
