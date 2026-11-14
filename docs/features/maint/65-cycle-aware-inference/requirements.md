@@ -2,7 +2,7 @@
 id: "MAINT-65"
 title: "65: Lambda-Gated Callee Resolution"
 type: "feature"
-status: "planned"
+status: "done"
 priority: "high"
 parent_id: "MAINT"
 folders:
@@ -37,9 +37,9 @@ call. On base invalidation, skipping it for calls without a lambda argument is t
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-65-01 | **No callee resolution without a lambda argument** | M | Not Implemented | When no argument of a call unwraps to a `LuaFuncDef`, the caller's snapshot build does not resolve the callee's expected callback type. Observable effect: that call adds no entry to the `inProgressHits` of the built snapshot's TYPE-11 frame (`LuaTypeSourceRecorder.snapshotFrames`). TYPE-10's lambda seeding is unchanged, including the argument index each lambda is seeded from. |
-| MAINT-65-02 | **Findings unchanged** | M | Not Implemented | The MAINT-54 audit's `luacheck` member and the MAINT-55 conformance results are byte-identical before and after the change. Every candidate file has the same findings digest before and after the change when it is read alone. "Read alone" means read first, in a fresh fixture. Candidates are selected by design §3.2. BUG-98 lands before this item's acceptance runs. The digest check excludes no sites. |
-| MAINT-65-03 | **Fewer edit misses, no more cold misses** | M | Not Implemented | The full MAINT-60 sweep is used, and each commit is swept twice. For each bound (`cold-250` and `edit-250`), a miss is counted exactly as `SnapshotCostVerdict` counts it: over every sweep row, a pass misses when its status is not `ok` or its time is 250 ms or more. Base's run-to-run spread is taken from four base sweeps of one commit (risks DR-09): 41 for `edit-250` and 24 for `cold-250`. **`edit-250`**: the higher change count must be more than 41 below the lower base count. **`cold-250`**: the higher change count must be no more than 24 above the lower base count. |
+| MAINT-65-01 | **No callee resolution without a lambda argument** | M | Full | When no argument of a call unwraps to a `LuaFuncDef`, the caller's snapshot build does not resolve the callee's expected callback type. Observable effect: that call adds no entry to the `inProgressHits` of the built snapshot's TYPE-11 frame (`LuaTypeSourceRecorder.snapshotFrames`). TYPE-10's lambda seeding is unchanged, including the argument index each lambda is seeded from. |
+| MAINT-65-02 | **Findings unchanged** | M | Full | The MAINT-54 audit's `luacheck` member and the MAINT-55 conformance results are byte-identical before and after the change. Every candidate file has the same findings digest before and after the change when it is read alone. "Read alone" means read first, in a fresh fixture. Candidates are selected by design §3.2. BUG-98 lands before this item's acceptance runs. The digest check excludes no sites. |
+| MAINT-65-03 | **Fewer edit misses, no more cold misses** | M | Full | The full MAINT-60 sweep is used, and each commit is swept twice. For each bound (`cold-250` and `edit-250`), a miss is counted exactly as `SnapshotCostVerdict` counts it: over every sweep row, a pass misses when its status is not `ok` or its time is 250 ms or more. Base's run-to-run spread is taken from four base sweeps of one commit (risks DR-09): 41 for `edit-250` and 24 for `cold-250`. **`edit-250`**: the higher change count must be more than 41 below the lower base count. **`cold-250`**: the higher change count must be no more than 24 above the lower base count. |
 
 ## Test Cases
 The base commit is this item's Phase 1 commit (implementation plan): it has `LuaAloneDigestTest`
@@ -51,6 +51,7 @@ and not the gate. TC 1 to TC 4 read `snapshot = LuaTypesSnapshot.forFile(file)` 
 | 1 | MAINT-65-01 | `---@param cb fun(x: string)`, then `local function run(cb) end`, then `run(1)` | read `snapshot` and `frame` | `frame.inProgressHits` is empty |
 | 2 | MAINT-65-01 | as TC 1, with the last line `run(function(x) end)` | read `snapshot`, `frame` and the type of `x` | `frame.inProgressHits` holds `main.lua`'s URL; `x` is `string` |
 | 3 | MAINT-65-01 | `---@param n number`, then `---@param cb fun(x: string)`, then `local function run2(n, cb) end`, then `run2(1, function(x) end)` | read the type of `x` | `x` is `string` |
+| 3b | MAINT-65-01 | as TC 3 on a member function: `local M = {}`, the two `---@param` lines, `function M.run2(n, cb) end`, `M.run2(1, function(x) end)` | read the type of `x` | `x` is `string`. A same-file local function also reaches `x` through its declared signature, so TC 3 does not turn mutation 3 red; TC 3b does |
 | 4 | MAINT-65-01 | the existing tests of `LambdaParamInferenceTest` and `ExpectedCallbackResolverTest` | run them, unmodified | all pass |
 | 5 | MAINT-65-02 | `test -PwithTypeAudit -PrecordConformance --tests '*LuaTypeFalseNegativeAuditTest.testLuacheckMember' --tests '*LuaCatsConformanceTest*'`, at the base commit and at this item's commit | compare `build/type-audit/luacheck.json` and `build/conformance/results.json` | byte-identical |
 | 6 | MAINT-65-03 | `test -PwithSnapshotSweep --tests '*SnapshotCostSweep*'`, twice at the base commit and twice at this item's commit | for each `sweep.jsonl`, count rows with `coldStatus != "ok"` or `coldMs >= 250`, and separately rows with `editStatus != "ok"` or `editMs >= 250` | each bound meets MAINT-65-03's rule |

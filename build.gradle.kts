@@ -463,6 +463,17 @@ tasks {
             val snapshotCostDir = layout.buildDirectory.dir("snapshot-cost").get().asFile
             doFirst { snapshotCostDir.deleteRecursively() }
         }
+        // MAINT-65: alone-read findings digests (MAINT-65-02). Opt-in:
+        // `./gradlew test -PwithAloneDigest -PaloneDigestBase=<sweep.jsonl> -PaloneDigestChange=<sweep.jsonl> --tests '*LuaAloneDigestTest*'`.
+        if (!project.hasProperty("withAloneDigest")) {
+            filter {
+                excludeTestsMatching("*AloneDigest*")
+                isFailOnNoMatchingTests = false
+            }
+        } else {
+            systemProperty("lunar.aloneDigest.baseSweep", project.findProperty("aloneDigestBase")?.toString() ?: "")
+            systemProperty("lunar.aloneDigest.changeSweep", project.findProperty("aloneDigestChange")?.toString() ?: "")
+        }
         // MAINT-40: the findings directory holds exactly one invocation's files, which is what lets
         // tooling/corpus/corpus_ctrf.py read the run's shape from it.
         if (project.hasProperty("withCorpus")) {

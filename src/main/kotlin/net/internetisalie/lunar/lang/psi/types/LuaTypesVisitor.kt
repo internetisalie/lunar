@@ -1196,13 +1196,17 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         argExprs: List<PsiElement>,
         calleeUnwrapped: PsiElement?,
     ) {
+        val lambdas =
+            argExprs.withIndex().mapNotNull { (index, argExpr) ->
+                (unwrapExpression(argExpr) as? LuaFuncDef)?.let { IndexedValue(index, it) }
+            }
+        if (lambdas.isEmpty()) return
         val resolver = LuaExpectedCallbackResolver(o, calleeUnwrapped)
         val calleeType = resolver.resolveCalleeType() ?: return
         val nameAndArgs = o.nameAndArgsList.firstOrNull() ?: return
         val selfOffset = if (nameAndArgs.methodExpr != null && calleeType.params.firstOrNull()?.name == "self") 1 else 0
-        argExprs.forEachIndexed { index, argExpr ->
-            val lambda = unwrapExpression(argExpr) as? LuaFuncDef ?: return@forEachIndexed
-            val expected = resolver.expectedCallbackAt(index, calleeType, selfOffset) ?: return@forEachIndexed
+        lambdas.forEach { (index, lambda) ->
+            val expected = resolver.expectedCallbackAt(index, calleeType, selfOffset) ?: return@forEach
             seedLambdaParams(lambda, expected)
         }
     }

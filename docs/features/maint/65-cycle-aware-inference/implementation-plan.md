@@ -16,13 +16,13 @@ folders:
 ### Phase 1: Alone-digest harness [Must]
 - **Goal**: the base commit for TC 5 to TC 7. It has the harness and does not have the gate.
 - **Tasks**:
-  - [ ] Create `net.internetisalie.lunar.corpus.CorpusSnapshotReads` (design §2.3). Move
+  - [x] Create `net.internetisalie.lunar.corpus.CorpusSnapshotReads` (design §2.3). Move
     `readErrors` and `errorDigest` out of `LuaSnapshotCostSweepTest` into it, and call them from
     the sweep.
-  - [ ] Create `net.internetisalie.lunar.corpus.LuaAloneDigestTest` (design §2.2), implementing
+  - [x] Create `net.internetisalie.lunar.corpus.LuaAloneDigestTest` (design §2.2), implementing
     §3.2 and §3.3.
-  - [ ] Add the `withAloneDigest` block to `build.gradle.kts` (design §7).
-  - [ ] Smoke-run the harness. Write two one-row files on the builder VM,
+  - [x] Add the `withAloneDigest` block to `build.gradle.kts` (design §7).
+  - [x] Smoke-run the harness. Write two one-row files on the builder VM,
     `/home/builder/maint-65-acceptance/smoke-a.jsonl` and `smoke-b.jsonl`. Both hold the row below
     on one line, except that `digest` is `1` in the first file and `2` in the second:
     ```json
@@ -39,7 +39,7 @@ folders:
 ### Phase 2: Gate and tests [Must]
 - **Goal**: lambda-less calls stop resolving their callee.
 - **Tasks**:
-  - [ ] Add TC 1 to TC 3 to `src/test/kotlin/net/internetisalie/lunar/lang/types/LambdaParamInferenceTest.kt`.
+  - [x] Add TC 1 to TC 3 to `src/test/kotlin/net/internetisalie/lunar/lang/types/LambdaParamInferenceTest.kt`.
     - Name them `testNoLambdaArgResolvesNoCallee_MAINT65_TC1`,
       `testLambdaArgStillResolvesCallee_MAINT65_TC2` and `testLambdaAfterOtherArgKeepsIndex_MAINT65_TC3`.
     - Use `myFixture.configureByText("main.lua", …)` with the requirements' text.
@@ -47,7 +47,7 @@ folders:
       `LuaTypeSourceRecorder.snapshotFrames[snapshot]`.
     - Assert on `inProgressHits`, and on `snapshot.getValueType(x).displayName()` for the lambda
       parameter `x`, found as in `testLuaCatsLocalCalleeSeedsLambdaParam_TC4`.
-  - [ ] In `net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor`, rewrite
+  - [x] In `net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor`, rewrite
     `propagateExpectedLambdaParams` as design §3.1 steps 1 to 6. This realizes design §2.1 and §3.1.
 - **Exit criteria**:
   - TC 1 to TC 4 pass.
@@ -64,11 +64,11 @@ folders:
     runs one way only.
   - TC 7's `-PaloneDigest*` arguments are VM paths under that directory.
   - Pull the directory back with `scp` for the PR record.
-  - [ ] At the Phase 1 commit: run TC 5's command, then TC 6's sweep twice.
-  - [ ] At the Phase 2 commit: the same three runs.
-  - [ ] Run TC 7 (design §7's command) at the Phase 1 commit, then at the Phase 2 commit. Pass
+  - [x] At the Phase 1 commit: run TC 5's command, then TC 6's sweep twice.
+  - [x] At the Phase 2 commit: the same three runs.
+  - [x] Run TC 7 (design §7's command) at the Phase 1 commit, then at the Phase 2 commit. Pass
     the first sweep of each commit as `-PaloneDigestBase` and `-PaloneDigestChange`.
-  - [ ] Compare as TC 5, TC 6 and TC 7 specify. Record the four miss counts per bound, the
+  - [x] Compare as TC 5, TC 6 and TC 7 specify. Record the four miss counts per bound, the
     candidate count (including "0 candidates") and the digest comparison in the PR description.
 - **On slot overflow** (`testSlot00` fails with "candidates exceed 40 slots"):
   1. Add `@Test` methods `testSlot40()` onward, up to the candidate count rounded up to the next
@@ -91,14 +91,14 @@ folders:
 | MAINT-65-03 | M | Phase 3 |
 
 ## Verification Tasks
-- [ ] TC 1 to TC 3: the new tests in `LambdaParamInferenceTest`.
-- [ ] TC 4: the existing `LambdaParamInferenceTest` and `ExpectedCallbackResolverTest`.
-- [ ] TC 5 to TC 7: the Phase 3 runs.
+- [x] TC 1 to TC 3: the new tests in `LambdaParamInferenceTest`.
+- [x] TC 4: the existing `LambdaParamInferenceTest` and `ExpectedCallbackResolverTest`.
+- [x] TC 5 to TC 7: the Phase 3 runs.
 
 ## Task Summary
 
 | Phase | Status | Priority |
 |-------|--------|----------|
-| Phase 1: Alone-digest harness | todo | Must |
-| Phase 2: Gate and tests | todo | Must |
-| Phase 3: Acceptance runs | todo | Must |
+| Phase 1: Alone-digest harness | done | Must |
+| Phase 2: Gate and tests | done | Must |
+| Phase 3: Acceptance runs | done | Must |

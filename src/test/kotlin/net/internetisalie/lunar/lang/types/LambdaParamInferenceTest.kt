@@ -3,6 +3,8 @@ package net.internetisalie.lunar.lang.types
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.EdtTestUtil
 import net.internetisalie.lunar.lang.psi.LuaNameRef
+import net.internetisalie.lunar.lang.psi.types.LuaTypeSourceRecorder
+import net.internetisalie.lunar.lang.psi.types.LuaTypes
 import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import net.internetisalie.lunar.platform.LuaPlatform
 import net.internetisalie.lunar.platform.target.Target
@@ -219,5 +221,78 @@ class LambdaParamInferenceTest : IndexedBasePlatformTestCase() {
             snapshot.getValueType(literal).displayName(),
         )
         assertTrue("run(42) must not introduce a lambda-seed exception", true)
+    }
+
+    private fun lambdaParamX() =
+        PsiTreeUtil
+            .findChildrenOfType(myFixture.file, LuaNameRef::class.java)
+            .first { it.text == "x" && it.parent is net.internetisalie.lunar.lang.psi.LuaNameList }
+
+    private fun inProgressHitsOf(snapshot: LuaTypes): Set<String> =
+        LuaTypeSourceRecorder.snapshotFrames[snapshot]?.inProgressHits ?: error("no recorded frame for the snapshot")
+
+    // MAINT-65 TC 1: a call with no lambda argument resolves no callee, so the build records no in-progress hit.
+    @Test
+    fun testNoLambdaArgResolvesNoCallee_MAINT65_TC1() {
+        myFixture.configureByText(
+            "main.lua",
+            """
+            ---@param cb fun(x: string)
+            local function run(cb) end
+            run(1)
+            """.trimIndent(),
+        )
+        val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
+        assertEquals(emptySet<String>(), inProgressHitsOf(snapshot))
+    }
+
+    // MAINT-65 TC 2: a call with a lambda argument still resolves its callee and seeds the lambda.
+    @Test
+    fun testLambdaArgStillResolvesCallee_MAINT65_TC2() {
+        myFixture.configureByText(
+            "main.lua",
+            """
+            ---@param cb fun(x: string)
+            local function run(cb) end
+            run(function(x) end)
+            """.trimIndent(),
+        )
+        val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
+        assertEquals(setOf(myFixture.file.virtualFile.url), inProgressHitsOf(snapshot))
+        assertEquals("string", snapshot.getValueType(lambdaParamX()).displayName())
+    }
+
+    // MAINT-65 TC 3: a lambda after another argument is seeded from its argument index, not its lambda index.
+    @Test
+    fun testLambdaAfterOtherArgKeepsIndex_MAINT65_TC3() {
+        myFixture.configureByText(
+            "main.lua",
+            """
+            ---@param n number
+            ---@param cb fun(x: string)
+            local function run2(n, cb) end
+            run2(1, function(x) end)
+            """.trimIndent(),
+        )
+        val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
+        assertEquals("string", snapshot.getValueType(lambdaParamX()).displayName())
+    }
+
+    // MAINT-65 TC 3b: as TC 3 on a member function, where seeding is the only route to `x` (a same-file
+    // local function also reaches `x` through its declared signature, so TC 3 alone cannot see an index mutant).
+    @Test
+    fun testLambdaAfterOtherArgKeepsIndexOnMemberFunction_MAINT65_TC3b() {
+        myFixture.configureByText(
+            "main.lua",
+            """
+            local M = {}
+            ---@param n number
+            ---@param cb fun(x: string)
+            function M.run2(n, cb) end
+            M.run2(1, function(x) end)
+            """.trimIndent(),
+        )
+        val snapshot = LuaTypesSnapshot.forFile(myFixture.file)
+        assertEquals("string", snapshot.getValueType(lambdaParamX()).displayName())
     }
 }

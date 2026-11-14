@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Type inference after an edit is faster** (MAINT-65). A call with no function argument no longer
+  resolves the callee's type to look for a callback to seed, so it no longer builds the callee
+  file's types inside the caller's. Across the type corpus, the files whose types take 250 ms or
+  more to rebuild after an edit fall by about a third.
 - **`---@cast` now changes a variable's type** (BUG-99). A variable narrowed with `---@cast name T`,
   `+T`, `-T` or `-?` kept its original type for every later use, so values the cast excluded were
   still reported as "not assignable" at those uses and at the callers that passed them. The cast now

@@ -1,20 +1,13 @@
 package net.internetisalie.lunar.corpus
 
 import com.google.gson.Gson
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.progress.EmptyProgressIndicator
-import com.intellij.openapi.progress.ProcessCanceledException
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.ParameterizedCachedValue
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.intellij.util.concurrency.AppExecutorUtil
-import net.internetisalie.lunar.corpus.SnapshotCostVerdict.EXCEPTION_PREFIX
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.NOT_RUN
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.OK
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.SKIPPED
@@ -22,9 +15,7 @@ import net.internetisalie.lunar.corpus.SnapshotCostVerdict.TIMEOUT
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.UNMEASURED
 import net.internetisalie.lunar.definitions.LuaDefinitionLibraryFetcher
 import net.internetisalie.lunar.lang.psi.LuaFile
-import net.internetisalie.lunar.lang.psi.types.ElementError
 import net.internetisalie.lunar.lang.psi.types.LuaSnapshotBuildMeter
-import net.internetisalie.lunar.lang.psi.types.LuaTypesSnapshot
 import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import org.junit.FixMethodOrder
@@ -34,7 +25,6 @@ import org.junit.runners.JUnit4
 import org.junit.runners.MethodSorters
 import java.io.File
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 
 /** One read of a file's snapshot errors (MAINT-60 design §2.1): its time, status, findings digest and builds. */
 private data class Read(
@@ -315,44 +305,14 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
         val startNs = System.nanoTime()
         val outcome =
             try {
-                readErrors(file, deadlineMs)
+                CorpusSnapshotReads.readErrors(file, deadlineMs)
             } finally {
                 LuaSnapshotBuildMeter.sink = null
             }
         val ms = (System.nanoTime() - startNs) / 1_000_000L
-        val digest = outcome.second?.let { errorDigest(it) } ?: 0
+        val digest = outcome.second?.let { CorpusSnapshotReads.errorDigest(it) } ?: 0
         return Read(ms, outcome.first, digest, records.toList())
     }
-
-    private fun readErrors(
-        file: LuaFile,
-        deadlineMs: Long,
-    ): Pair<String, List<ElementError>?> {
-        val indicator = EmptyProgressIndicator()
-        val cancel =
-            AppExecutorUtil
-                .getAppScheduledExecutorService()
-                .schedule({ indicator.cancel() }, deadlineMs, TimeUnit.MILLISECONDS)
-        return try {
-            val errors =
-                ProgressManager.getInstance().runProcess(
-                    Computable { runReadAction { LuaTypesSnapshot.forFile(file).getErrors() } },
-                    indicator,
-                )
-            OK to errors
-        } catch (canceled: ProcessCanceledException) {
-            TIMEOUT to null
-        } catch (failure: Exception) {
-            "$EXCEPTION_PREFIX${failure.javaClass.simpleName}" to null
-        } finally {
-            cancel.cancel(false)
-        }
-    }
-
-    private fun errorDigest(errors: List<ElementError>): Int =
-        runReadAction {
-            errors.map { "${it.element.textOffset}:${it.severity}:${it.message}" }.sorted().hashCode()
-        }
 
     private fun appendNewline(file: LuaFile) {
         val documentManager = PsiDocumentManager.getInstance(project)
