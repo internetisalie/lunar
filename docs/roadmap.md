@@ -153,6 +153,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-93 | Reading an undeclared field or calling an undeclared method on a class-typed value (`v.field3`, `Foo:method2()`) is not reported | todo | S | — | found by MAINT-55 conformance suite (10 cases) | ✓ |
 | BUG-94 | A class method annotated `@generic T: SomeClass` / `@param self T` reports missing fields and too many arguments, and not the undefined field | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-95 | A member call whose name has two untagged declarations (`foo.bar` on a global and on a local table in another file) resolves to one target or to none, depending on which tests the run selects | todo | S | — | found by MAINT-56 TC-8 (DR-14) | ✓ |
+| BUG-101 | The package browser runs a downloaded rockspec in a Lua interpreter whenever its fields are built from locals or concatenation; the literal reader should follow them | todo | S | — | — | ✓ |
 | BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
 | BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
 | BUG-44 | Assigning a wrong value to a class `@field` (`self.b = 'x'` for a `boolean`) is reported only as a hypothesis | todo | S | — | found by MAINT-54's false-negative audit | ✓ |
