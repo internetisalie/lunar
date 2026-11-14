@@ -257,13 +257,13 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // addOrSubtract? type
+  // addOrSubtract? (type | '?')
   public static boolean castModifier(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "castModifier")) return false;
     boolean result_;
     Marker marker_ = enter_section_(builder_, level_, _NONE_, CAST_MODIFIER, "<cast modifier>");
     result_ = castModifier_0(builder_, level_ + 1);
-    result_ = result_ && type(builder_, level_ + 1);
+    result_ = result_ && castModifier_1(builder_, level_ + 1);
     exit_section_(builder_, level_, marker_, result_, false, null);
     return result_;
   }
@@ -273,6 +273,15 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(builder_, level_, "castModifier_0")) return false;
     addOrSubtract(builder_, level_ + 1);
     return true;
+  }
+
+  // type | '?'
+  private static boolean castModifier_1(PsiBuilder builder_, int level_) {
+    if (!recursion_guard_(builder_, level_, "castModifier_1")) return false;
+    boolean result_;
+    result_ = type(builder_, level_ + 1);
+    if (!result_) result_ = consumeToken(builder_, "?");
+    return result_;
   }
 
   /* ********************************************************** */

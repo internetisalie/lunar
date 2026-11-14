@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **`---@cast` now changes a variable's type** (BUG-99). A variable narrowed with `---@cast name T`,
+  `+T`, `-T` or `-?` kept its original type for every later use, so values the cast excluded were
+  still reported as "not assignable" at those uses and at the callers that passed them. The cast now
+  takes effect from the next statement on, including a cast on the first line of a function body.
 - **A `require`d `@class` module is one class** (BUG-98). A local holding a module whose returned
   table is annotated `@class` was reported as `Class | { ... } is not assignable to { ... }` on its
   member accesses. The class annotation and the table constructor now merge into a single class, so

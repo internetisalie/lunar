@@ -10,7 +10,7 @@ public interface LuaCatsCastModifier extends PsiElement {
   @Nullable
   LuaCatsAddOrSubtract getAddOrSubtract();
 
-  @NotNull
+  @Nullable
   LuaCatsType getType();
 
 }

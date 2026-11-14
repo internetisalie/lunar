@@ -85,7 +85,7 @@ asyncTag ::= '@async' description?
 
 castTag ::= '@cast' <<ArgName castName>> <<ArgType castModifier>> { ',' <<ArgType castModifier>> }* description?
 private castName ::= NAME
-castModifier ::= addOrSubtract? type
+castModifier ::= addOrSubtract? (type | '?')
 addOrSubtract ::= '+' | '-'
 
 classTag ::= '@class' <<ArgKeyword exactKeyword>>? <<ArgType typeName>> [':' parentTypes] description?

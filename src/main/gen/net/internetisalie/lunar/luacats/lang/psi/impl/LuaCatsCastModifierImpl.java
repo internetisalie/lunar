@@ -34,9 +34,9 @@ public class LuaCatsCastModifierImpl extends LuaCatsBaseElement implements LuaCa
   }
 
   @Override
-  @NotNull
+  @Nullable
   public LuaCatsType getType() {
-    return findNotNullChildByClass(LuaCatsType.class);
+    return findChildByClass(LuaCatsType.class);
   }
 
 }

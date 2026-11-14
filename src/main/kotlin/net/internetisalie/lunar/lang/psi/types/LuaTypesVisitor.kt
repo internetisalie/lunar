@@ -23,6 +23,7 @@ import net.internetisalie.lunar.settings.LuaProjectSettings
 class LuaTypesVisitor : LuaRecursiveVisitor() {
     private val graph = LuaTypeGraph()
     private val signatureCopier = LuaSignatureCopier(graph)
+    private val castBinder = LuaCastBinder(graph)
     private val instantiation = LuaGenericInstantiation(graph, signatureCopier)
     private val elementNodes: MutableMap<PsiElement, List<TypeNode>> = mutableMapOf()
     private var fileReturnType: LuaGraphType = LuaGraphType.Any
@@ -464,10 +465,22 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         val previousScope = scope
         scope = scope.child()
         try {
-            super.visitBlock(o)
+            // A cast on a body's first line parents to the enclosing declaration, as a sibling of the block.
+            applyCasts(o)
+            o.children.forEach { child ->
+                if (child is LuaStatement) applyCasts(child)
+                child.accept(this)
+            }
         } finally {
             scope = previousScope
         }
+    }
+
+    /** BUG-99: the `---@cast` tags written above [anchor] take effect before it is visited. */
+    private fun applyCasts(anchor: PsiElement) {
+        getAllCatsComments(anchor)
+            .flatMap { it.castTagList }
+            .forEach { castBinder.apply(it, scope) }
     }
 
     /**

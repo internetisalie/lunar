@@ -3,7 +3,7 @@ id: "BUG-99"
 title: "A `@cast` is ignored, so values the cast excludes are still reported at the uses after it and at every caller"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
