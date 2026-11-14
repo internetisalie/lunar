@@ -11,19 +11,19 @@ folders:
 
 ## Critical Risks
 
-### Risk 1.1: Per-file invalidation stays no better than base after MAINT-65
+### Risk 1.1: Per-file invalidation adds nothing once MAINT-65 has landed
 - **Impact**: MAINT-63 needs a different approach, and v0.21.21 goal 1 stays held on its table.
-- **Likelihood**: unknown. DR-08 attributes most edit-phase provisional builds to module-guard
-  replay inside import cycles, which MAINT-65 removes; what remains has not been measured.
-- **Mitigation**: MAINT-65-01's exit is a re-probe of svca under the r10 rule that misses fewer
-  passes than base.
+- **Likelihood**: high. MAINT-65 refuted the cycle premise (its DR-03), and on DR-08's subset
+  its lambda gate alone missed fewer passes than the gate combined with svca/r10 (MAINT-65 DR-04).
+- **Mitigation**: re-measure this item's table after MAINT-65 lands, and re-plan from what still
+  misses.
 
 ### Risk 1.2: A stale snapshot served after an edit
 - **Impact**: a wrong type, and therefore a wrong finding.
 - **Likelihood**: low for require, global, class and cycle routes (DR-03, DR-08: every soundness
   re-read rebuilt). Unknown for `@alias` consumers: DR-08 found them never rebuilt and did not check
   whether the served type is stale.
-- **Mitigation**: the first probe on resumption (Gap 2.2) and an alias soundness check.
+- **Mitigation**: an alias soundness check on resumption. A 1 s after-edit digest is not a soundness reference (Gap 2.2).
 
 ## Design Gaps
 
@@ -39,8 +39,8 @@ folders:
   cold digest, while every settled re-read matches base. Base's 1 s after-edit digest was never
   recorded. It is not established whether this is a regression, an artefact of the 1 s deadline, or
   a pre-existing property of base.
-- **Resolved by**: the first probe for whoever resumes MAINT-63. Record base's 1 s after-edit digest
-  on the DR-08 subset and compare it with the cold digest.
+- **Answered (MAINT-65 DR-06)**: it is a pre-existing property of base, which depends on build order
+  inside the tnt* require cycles. A 1 s digest is not a usable soundness reference for this item.
 
 ## Technical Debt & Future Work
 - **BUG-519** (definition-library snapshots never pinned) is independent of this item; most of
