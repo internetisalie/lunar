@@ -280,7 +280,23 @@ class LuaTypeManagerImpl(
         val snapshot = LuaTypesSnapshot.forFile(psiFile)
         val graphType = snapshot.getFileReturnType()
         if (graphType == LuaGraphType.Any || graphType == LuaGraphType.Undefined) return null
-        return snapshot.graphTypeToLuaType(graphType)
+        return snapshot.graphTypeToLuaType(classExportOf(graphType))
+    }
+
+    /**
+     * BUG-98: a `@class` local has two value sources, the class annotation and its constructor table,
+     * which the file's return type holds as a union of two tables. They are one runtime table, so fold
+     * the anonymous arms' members into the class arm (the class arm's own members win a name clash).
+     * Any other union shape is left as it is.
+     */
+    private fun classExportOf(type: LuaGraphType): LuaGraphType {
+        val union = type as? LuaGraphType.Union ?: return type
+        val tables = union.types.filterIsInstance<LuaGraphType.Table>()
+        val classArm = tables.singleOrNull { it.className != null } ?: return type
+        val others = union.types - classArm
+        if (others.any { it !is LuaGraphType.Table || it.className != null }) return type
+        val constructorMembers = tables.filter { it !== classArm }.flatMap { it.localMembers.entries }
+        return classArm.copy(localMembers = constructorMembers.associate { it.key to it.value } + classArm.localMembers)
     }
 
     /**

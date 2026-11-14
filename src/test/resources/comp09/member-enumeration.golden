@@ -42,10 +42,12 @@ Busted|class|<unresolvable>
 Busted|completion|unregister
 Busted|completion:|<none>
 OM|shape|opaque binding plus syntactic: R = require(x) + function R.f()
+OM|global|extra:fun()
 OM|global|unregister:fun(n) | fun(n)
 OM|class|<unresolvable>
+OM|completion|extra
 OM|completion|unregister
-OM|completion:|<none>
+OM|completion:|extra
 luassert|shape|@class on a local, dot member — the require target
 luassert|global|<unresolvable>
 luassert|class|unregister:fun(n)

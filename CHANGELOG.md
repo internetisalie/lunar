@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A `require`d `@class` module is one class** (BUG-98). A local holding a module whose returned
+  table is annotated `@class` was reported as `Class | { ... } is not assignable to { ... }` on its
+  member accesses. The class annotation and the table constructor now merge into a single class, so
+  both its methods and its constructor fields resolve.
 - **The packages browser keeps up with what you install** (BUG-64, BUG-65, BUG-66, BUG-69). The
   Installed tab lists each rock as `name  version` and refreshes after an install, update or
   uninstall. An installed rock with a newer version shows an update marker and an Update button in
