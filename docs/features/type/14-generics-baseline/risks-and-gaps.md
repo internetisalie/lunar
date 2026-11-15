@@ -357,7 +357,7 @@ probe source and outputs are listed in the Phase 6 handoff.
 | Survey item | Why deferred |
 | :-- | :-- |
 | Q2 scoped `---@type T` in a body | needs a per-function type-parameter scope for `@type`; no upstream design |
-| Q3 `fun<K>(...)` method-level parameters on class fields | annotation-syntax extension; LuaLS has none |
+| Q3 `fun<K>(...)` method-level parameters on class fields | annotation-syntax extension; LuaLS has had the syntax since 3.17.0, tracked as [[TYPE-16]] |
 | Q4 vararg generics (`xpcall`, `unpack`, `assert`) | parser and engine extension for `...` positions; upstream open |
 | Q5 `Object.\`T\`` prefixed capture | rare; the plain capture (TYPE-14-13) covers the documented use |
 | Q7 `` `T`[] `` keyed tables, Q9 `T[key]` | no upstream semantics |
