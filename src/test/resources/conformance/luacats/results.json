@@ -2415,16 +2415,14 @@
     },
     "undefined-field-013": {
       "rule": "field.undefined",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [
         10
       ],
       "may": [],
       "findings": [
-        "3-3:Missing required field 'someExistingVar'",
-        "8-12:{ ... } | SomeClass is not assignable to SomeClass",
-        "8-8:Too many arguments: expected at most 0, got 1"
+        "10-10:Undefined field 'doesNotExist'"
       ]
     },
     "undefined-field-014": {
@@ -2512,8 +2510,7 @@
       "missed": 3
     },
     "field.undefined": {
-      "agree": 4,
-      "false-report": 1,
+      "agree": 5,
       "missed": 10
     },
     "nil.check": {

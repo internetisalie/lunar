@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A method whose `self` is a constrained generic reports only the field it lacks** (BUG-94). In
+  `---@generic T: SomeClass` with `---@param self T` on a `:` method, `self` now reads as `SomeClass`:
+  a field the class declares is accepted and one it does not declare is reported as undefined.
+  `return self` for `---@return T` is no longer reported as a missing field or a mismatch. A
+  `---@param self X` tag on any `:` method is no longer counted as an extra argument, and no longer
+  types the method's first declared parameter.
 - **Assigning a wrong value to a class field is reported once, on that line** (BUG-75). With
   `---@type integer` on `m.x = 1`, a later `m.x = true` was also reported on the earlier, valid
   assignment. And `t.x = {}`, with `---@field x A`, was reported as a missing required field.

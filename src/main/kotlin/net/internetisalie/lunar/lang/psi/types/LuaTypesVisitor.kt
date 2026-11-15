@@ -1569,7 +1569,8 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         if (selfBinding != null) {
             val selfNode = graph.variable(selfBinding.anchor)
             funcScope.declare("self", selfNode)
-            graph.addEdge(selfBinding.receiver, selfNode)
+            val typedByGeneric = allCats.any { LuaTypeGraphBridge.injectGenericSelf(it, selfNode, graph, element) }
+            if (!typedByGeneric) graph.addEdge(selfBinding.receiver, selfNode)
         }
 
         try {

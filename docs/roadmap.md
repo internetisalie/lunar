@@ -81,8 +81,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 >    work (pair-model redesign, incremental re-inference) that MAINT-60 files one item per cause.
 >    Met when MAINT-60's sweep, run on the libvirt builder at the release candidate's commit, prints
 >    `release READY` (MAINT-60-07).
-> 2. **No wrong warnings:** every MAINT-55 conformance case scored `false-report` reaches `agree`
->    (BUG-94).
+> 2. **No wrong warnings:** every MAINT-55 conformance case scored `false-report` reaches `agree`.
 > 3. **No regressions:** the MAINT-55 ratchet stays green, and the MAINT-54 audit is unchanged except for
 >    recorded corrections.
 
@@ -152,7 +151,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-90 | Extra arguments to a standard-library function (`next({}, 1, 2)`, `table.insert({}, 1, 2, 3)`) are not reported | todo | S | — | found by MAINT-55 conformance suite (2 cases) | ✓ |
 | BUG-92 | `return true` inside a `@type fun():number` local function is not reported | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-93 | Reading an undeclared field or calling an undeclared method on a class-typed value (`v.field3`, `Foo:method2()`) is not reported | todo | S | — | found by MAINT-55 conformance suite (10 cases) | ✓ |
-| BUG-94 | A class method annotated `@generic T: SomeClass` / `@param self T` reports missing fields and too many arguments, and not the undefined field | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-95 | A member call whose name has two untagged declarations (`foo.bar` on a global and on a local table in another file) resolves to one target or to none, depending on which tests the run selects | todo | S | — | found by MAINT-56 TC-8 (DR-14) | ✓ |
 | BUG-101 | The package browser runs a downloaded rockspec in a Lua interpreter whenever its fields are built from locals or concatenation; the literal reader should follow them | todo | S | — | — | ✓ |
 | BUG-104 | Type checking stops after 5 s of wall-clock time, so a large file's findings depend on machine speed | todo | S | — | MAINT-63 digest gates on luals | ✓ |

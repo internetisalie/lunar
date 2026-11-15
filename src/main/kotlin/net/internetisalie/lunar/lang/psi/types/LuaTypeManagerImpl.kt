@@ -687,7 +687,15 @@ class LuaTypeManagerImpl(
         val params: List<LuaCatsDeclarations.ParamDecl>,
         val rawReturn: String?,
         val generics: List<LuaCatsDeclarations.GenericParameter>,
-    )
+    ) {
+        /**
+         * `---@param self T` on a `:` method types the receiver the `:` already declares, so it is no
+         * argument of its own (BUG-94): counted, it made the member one parameter longer than the
+         * function it describes.
+         */
+        fun withoutImplicitSelf(implicitSelf: Boolean): DeclaredSignature =
+            if (!implicitSelf) this else DeclaredSignature(params.filterNot { it.name == "self" }, rawReturn, generics)
+    }
 
     /**
      * Prefer the stub (no AST load) but fall back to the cats comment for AST-backed decls — the stub
@@ -739,7 +747,7 @@ class LuaTypeManagerImpl(
         decl: LuaFuncDecl,
         implicitSelf: Boolean,
     ): LuaFunctionType {
-        val signature = declaredSignatureOf(decl)
+        val signature = declaredSignatureOf(decl).withoutImplicitSelf(implicitSelf)
         return methodType(MethodSite(scan, decl, implicitSelf), signature) { LuaTypeReference(it, decl) }
     }
 

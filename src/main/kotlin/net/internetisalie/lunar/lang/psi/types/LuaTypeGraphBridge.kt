@@ -140,7 +140,9 @@ object LuaTypeGraphBridge {
     ) {
         val typeParameters = typeParametersOf(cats, context)
 
-        cats.getParamTagList().forEachIndexed { index, paramTag ->
+        // A `self` tag on a `:` method types the implicit receiver, not the parameter at its position.
+        val paramTags = cats.getParamTagList().filterNot { it.argName?.text?.trim() == "self" && "self" !in paramNames }
+        paramTags.forEachIndexed { index, paramTag ->
             val paramName = paramTag.argName?.text?.trim() ?: return@forEachIndexed
             var astIndex = paramNames.indexOf(paramName)
             if (astIndex == -1) {
@@ -161,6 +163,26 @@ object LuaTypeGraphBridge {
             // Use the graph API to add the edge instead of direct downSet manipulation.
             graph.addEdge(paramNode, useNode)
         }
+    }
+
+    /**
+     * Types the implicit `self` of a `:` method from a `---@param self T` tag that names one of the
+     * comment's generics, so `self` reads as `T` and its bound (BUG-94). A `self` tag naming a plain
+     * class leaves `self` as the receiver. Returns whether [selfNode] was typed.
+     */
+    fun injectGenericSelf(
+        cats: LuaCatsComment,
+        selfNode: VariableNode,
+        graph: LuaTypeGraph,
+        context: PsiElement,
+    ): Boolean {
+        val tag = cats.getParamTagList().firstOrNull { it.argName?.text?.trim() == "self" } ?: return false
+        val typeParameters = typeParametersOf(cats, context)
+        val typeName = tag.argType.text.trim()
+        if (typeName !in typeParameters) return false
+        val generic = resolveTypeWithGenerics(typeName, context, typeParameters) as? LuaGenericType ?: return false
+        graph.addEdge(graph.value(context, LuaGraphType.fromLuaType(generic, graph)), selfNode)
+        return true
     }
 
     /**

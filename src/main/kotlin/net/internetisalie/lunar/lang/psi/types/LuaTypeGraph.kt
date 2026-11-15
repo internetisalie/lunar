@@ -560,6 +560,7 @@ class LuaTypeGraph {
         if (valueType == LuaGraphType.Undefined || useType == LuaGraphType.Undefined) return
         if (valueType == useType) return
         if (valueType is LuaGraphType.Generic || useType is LuaGraphType.Generic) {
+            if (valueType is LuaGraphType.Generic) reportUndefinedFields(valueType, useType, useElement)
             LuaTypeAlgebra.genericStep(valueType, useType)?.let { (boundValue, boundUse) ->
                 checkCompatibility(
                     boundValue,
@@ -1006,6 +1007,25 @@ class LuaTypeGraph {
         return value.params.indices
             .filter { it + delta in use.params.indices }
             .map { value.params[it] to use.params[it + delta] }
+    }
+
+    /**
+     * A field read through a constrained generic is looked up on its bound (LuaLS 3.19.2), and a field
+     * the bound class lacks is undefined (BUG-94). A write declares the field, so it is not read here.
+     */
+    private fun reportUndefinedFields(
+        value: LuaGraphType.Generic,
+        use: LuaGraphType,
+        useElement: PsiElement,
+    ) {
+        val bound = value.bound as? LuaGraphType.Table ?: return
+        if (bound.className == null || use !is LuaGraphType.Table) return
+        val declared = bound.getMembers()
+        use.getMembers().forEach { (key, node) ->
+            if (key !in declared && !node.declaresMember) {
+                addError(ElementError(useElement, "Undefined field '$key'", ErrorSeverity.WARNING))
+            }
+        }
     }
 
     private fun checkTableCompatibility(
