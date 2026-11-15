@@ -15,13 +15,11 @@
     },
     "assign-type-mismatch-002": {
       "rule": "field.assign",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "7-7:Missing required field 'x'"
-      ]
+      "findings": []
     },
     "assign-type-mismatch-003": {
       "rule": "field.assign",
@@ -55,34 +53,26 @@
     },
     "assign-type-mismatch-006": {
       "rule": "field.assign",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [
         7
       ],
       "may": [],
       "findings": [
-        "5-5:boolean is not assignable to number",
-        "5-5:boolean | number is not assignable to number",
-        "5-5:number | boolean is not assignable to number",
-        "7-7:boolean is not assignable to number",
-        "7-7:number | boolean is not assignable to number"
+        "7-7:boolean is not assignable to number"
       ]
     },
     "assign-type-mismatch-007": {
       "rule": "field.assign",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [
         8
       ],
       "may": [],
       "findings": [
-        "5-5:boolean is not assignable to number",
-        "5-5:boolean | number is not assignable to number",
-        "5-5:number | boolean is not assignable to number",
-        "8-8:boolean is not assignable to number",
-        "8-8:number | boolean is not assignable to number"
+        "8-8:boolean is not assignable to number"
       ]
     },
     "assign-type-mismatch-008": {
@@ -161,17 +151,13 @@
     },
     "assign-type-mismatch-016": {
       "rule": "field.assign",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [
         7
       ],
       "may": [],
       "findings": [
-        "5-5:number | { ... } is not assignable to number",
-        "5-5:{ ... } is not assignable to number",
-        "5-5:{ ... } | number is not assignable to number",
-        "7-7:number | { ... } is not assignable to number",
         "7-7:{ ... } is not assignable to number"
       ]
     },
@@ -2512,8 +2498,8 @@
       "agree": 1
     },
     "field.assign": {
-      "agree": 6,
-      "false-report": 7,
+      "agree": 10,
+      "false-report": 3,
       "missed": 4
     },
     "field.inject": {

@@ -82,7 +82,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 >    Met when MAINT-60's sweep, run on the libvirt builder at the release candidate's commit, prints
 >    `release READY` (MAINT-60-07).
 > 2. **No wrong warnings:** every MAINT-55 conformance case scored `false-report` reaches `agree`
->    (BUG-75, BUG-94).
+>    (BUG-94).
 > 3. **No regressions:** the MAINT-55 ratchet stays green, and the MAINT-54 audit is unchanged except for
 >    recorded corrections.
 
@@ -137,7 +137,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-96 | Own build of fallo's 514-line `init.lua` (a generic `Result<T, E>` class) never finishes: 60 s cold deadline hit, edit pass not run | todo | M | MAINT-60 *(sweep, done)* | v0.21.21 goal 1; MAINT-56 weights re-measured after it | ✓ |
 | BUG-97 | Luals `script/parser/compile.lua` builds in up to 43.6 s and is the dominant dependency of the `script/vm` files, so an edit under `script/vm` costs a minute of type inference | todo | M | MAINT-60 *(sweep, done)* | v0.21.21 goal 1; MAINT-56 weights re-measured after it | ✓ |
 | BUG-100 | In a chained call `a():b()`, the result takes `a()`'s type, so `x = a():b()` and its uses are reported against the wrong class; MAINT-65's gate promotes the luals line-2508 finding to ERROR | todo | M | — | v0.21.21 goal 2 (false ERRORs in luals `compiler.lua`) | ✓ |
-| BUG-75 | Assigning a wrong value to an annotated class field also reports the earlier valid assignment, and `t.x = {}` reports a missing required field | todo | S | — | found by MAINT-55 conformance suite (4 cases) | ✓ |
 | BUG-76 | A wrong value in a table constructor assigned to a typed local (`local t = { x = true }` for `{x: integer}`) is not reported | todo | S | — | found by MAINT-55 conformance suite (6 cases) | ✓ |
 | BUG-77 | A wrong value assigned to a typed local is reported on the local's declaration line instead of the assignment | todo | S | — | found by MAINT-55 conformance suite (5 cases) | ✓ |
 | BUG-78 | Assigning a wrong value to a typed local (`x = f()`, a literal outside `1\|2`, a mismatched `table<K, V>`) is not reported | todo | S | — | found by MAINT-55 conformance suite (10 cases) | ✓ |

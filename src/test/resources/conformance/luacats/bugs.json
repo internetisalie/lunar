@@ -7,12 +7,6 @@
       "assign-type-mismatch-005",
       "assign-type-mismatch-013"
     ],
-    "BUG-75": [
-      "assign-type-mismatch-002",
-      "assign-type-mismatch-006",
-      "assign-type-mismatch-007",
-      "assign-type-mismatch-016"
-    ],
     "BUG-76": [
       "assign-type-mismatch-008",
       "assign-type-mismatch-028",

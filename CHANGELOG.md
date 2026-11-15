@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Assigning a wrong value to a class field is reported once, on that line** (BUG-75). With
+  `---@type integer` on `m.x = 1`, a later `m.x = true` was also reported on the earlier, valid
+  assignment. And `t.x = {}`, with `---@field x A`, was reported as a missing required field.
+  The wrong assignment is still reported on its own line, and a table written to a class-typed
+  field is no longer checked for missing fields.
 - **A call that passes `...` or another call's results is no longer reported as too few arguments**
   (BUG-81). `f(...)` and `f(g())` supply as many values as are available at run time, so Lunar no
   longer counts them as one argument. A `---@param b integer|nil` parameter may also be omitted,

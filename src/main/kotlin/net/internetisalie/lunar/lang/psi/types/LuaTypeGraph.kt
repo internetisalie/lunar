@@ -286,6 +286,7 @@ class LuaTypeGraph {
                 !isFileWide(valueElement) -> valueElement
                 else -> return
             }
+        if (LuaMemberAssignmentSites.isMergedValue(useElement, valueElement)) return
         // BUG-419: an incompatibility is a DIAGNOSTIC only when the expectation is one the user
         // wrote. Against a demand the engine synthesized from usage, both sides are its own
         // inferences and the conflict is evidence the model is incomplete — measured at 7 430 of
@@ -1037,7 +1038,9 @@ class LuaTypeGraph {
                 val isRequired = use.isExact && !isMethodOnClass
 
                 // If the field is missing, it's only an error if it's required (non-optional).
-                if (!LuaTypeAlgebra.isOptional(readType) && isRequired) {
+                // BUG-75: a table literal written to a member is not a construction of the member's class.
+                val constructs = !LuaMemberAssignmentSites.isWrittenToMember(valueElement)
+                if (!LuaTypeAlgebra.isOptional(readType) && isRequired && constructs) {
                     addError(ElementError(valueElement, "Missing required field '$key'", ErrorSeverity.ERROR))
                 }
             }
