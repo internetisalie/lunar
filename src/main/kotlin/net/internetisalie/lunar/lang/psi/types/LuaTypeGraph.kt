@@ -48,8 +48,8 @@ class LuaTypeGraph {
      * Monotonic stamp over this graph's node and edge state, and the key every walk-root memo in
      * [VariableElement] is validated against (BUG-473).
      *
-     * It is bumped by the four node factories below and — via [OrderedSet]'s mutation hook — by
-     * every successful `upSet`/`downSet` addition, including the ones that bypass [addEdge]
+     * It is bumped by the four node factories below and — via [OrderedSet]'s mutation hook,
+     * [onEdgeAdded] — by every successful `upSet`/`downSet` addition, including the ones that bypass [addEdge]
      * (`LuaGraphType.memberNodeFor`, and graph-building tests). Putting the bump in the set rather
      * than at those call sites is what makes the key complete without a checklist.
      *
@@ -69,6 +69,23 @@ class LuaTypeGraph {
 
     internal fun bumpRevision() {
         currentRevision++
+    }
+
+    private var edgeAdds = 0L
+    private var pairAttempts = 0L
+    private var scanComparisons = 0L
+
+    /** MAINT-61: each variable's set sizes at its last visit, only while [checkTypes] runs. */
+    private var scanMarks: java.util.IdentityHashMap<VariableElement, PairScanMark>? = null
+
+    /**
+     * The [OrderedSet] hook of every `upSet`/`downSet`: counts the edge, so [runFixedPointPass]
+     * reads its progress from [edgeAdds] instead of summing every set (MAINT-61 design §3.3), then
+     * bumps [revision].
+     */
+    internal fun onEdgeAdded() {
+        edgeAdds++
+        bumpRevision()
     }
 
     /** Counts a walk root that missed its memo and was actually re-derived (BUG-473). */
@@ -303,24 +320,33 @@ class LuaTypeGraph {
         var iterations = 0
         val startTime = System.currentTimeMillis()
 
-        do {
-            iterations++
-            // Clear the compatibility memo each fixed-point iteration (not just once per run):
-            // addEdge grows up/down sets between iterations, so a (value, use) result cached in an
-            // earlier iteration can become stale and leak a false negative. Per-iteration clearing
-            // keeps the within-pass cache benefit while guaranteeing soundness (TYPE-09-P2-05;
-            // perf headroom confirmed by the P0 spike).
-            compatMemo.clear()
-            if (iterations > maxIterations) {
-                log.warn("Type checking exceeded max iterations ($maxIterations). Potential infinite loop detected.")
-                break
-            }
-            if (System.currentTimeMillis() - startTime > timeLimitMs) {
-                log.warn("Type checking exceeded time limit (${timeLimitMs}ms). Potential performance bottleneck.")
-                break
-            }
-            changed = runFixedPointPass(checkedPairs)
-        } while (changed)
+        // Dropped, not cleared, in the finally: a cached snapshot keeps this graph, and a cleared
+        // IdentityHashMap keeps its table at its peak size (MAINT-61 design §5).
+        scanMarks = java.util.IdentityHashMap()
+        try {
+            do {
+                iterations++
+                // Clear the compatibility memo each fixed-point iteration (not just once per run):
+                // addEdge grows up/down sets between iterations, so a (value, use) result cached in an
+                // earlier iteration can become stale and leak a false negative. Per-iteration clearing
+                // keeps the within-pass cache benefit while guaranteeing soundness (TYPE-09-P2-05;
+                // perf headroom confirmed by the P0 spike).
+                compatMemo.clear()
+                if (iterations > maxIterations) {
+                    log.warn(
+                        "Type checking exceeded max iterations ($maxIterations). Potential infinite loop detected.",
+                    )
+                    break
+                }
+                if (System.currentTimeMillis() - startTime > timeLimitMs) {
+                    log.warn("Type checking exceeded time limit (${timeLimitMs}ms). Potential performance bottleneck.")
+                    break
+                }
+                changed = runFixedPointPass(checkedPairs)
+            } while (changed)
+        } finally {
+            scanMarks = null
+        }
     }
 
     /**
@@ -335,14 +361,17 @@ class LuaTypeGraph {
      */
     private fun runFixedPointPass(checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>): Boolean {
         val initialCheckedCount = checkedPairs.size
-        val initialEdgeCount = edgeCount()
+        val initialEdgeCount = edgeAdds
         for (node in _nodes.toList()) {
             if (node is VariableElement) checkNodePairs(node, checkedPairs)
         }
-        return edgeCount() > initialEdgeCount || checkedPairs.size > initialCheckedCount
+        return edgeAdds > initialEdgeCount || checkedPairs.size > initialCheckedCount
     }
 
-    /** Total up/down-set membership across every variable node — the pass's progress signal. */
+    /**
+     * Total up/down-set membership across every variable node. Equal to [edgeAdds] at every point
+     * (MAINT-61 design §3.3), which is what [runFixedPointPass] reads instead.
+     */
     private fun edgeCount(): Int =
         _nodes.sumOf {
             (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size }
@@ -353,8 +382,13 @@ class LuaTypeGraph {
      * Check every (reaching definition, use) pair of one variable, each pair at most once for the
      * life of the run.
      *
+     * **MAINT-61.** A revisit tries only the pairs with a value or a use added since the variable's
+     * last visit ([PairScanMark], [LuaPairScan.firstValueIndex]). The others are the previous visit's
+     * product, which that visit left in [checkedPairs], so `checkedPairs.add` would fail on each of
+     * them: the admitted pairs and their order are unchanged (design §3.1). [verifyScan] is the gate.
+     *
      * **BUG-473 Phase 2.** `write` is resolved for a given `valueNode` AT MOST ONCE PER VISIT of
-     * [node] — into `writesInVisit`, filled lazily on first need — rather than once per admitted
+     * [node] — into [VisitScan]'s `writes`, filled lazily on first need — rather than once per admitted
      * pair. The inner loop re-reads the same value node for every use node, so this turns
      * Θ(|upSet| × |downSet|) walk roots into Θ(|upSet|). On the one-`---@class` reproduction at 160
      * call sites that is 27 372 root `write` resolutions down to 1 132 — quadratic to linear, 7n +
@@ -378,38 +412,83 @@ class LuaTypeGraph {
         node: VariableElement,
         checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>,
     ) {
-        val currentDownSet = node.downSet.toList()
-        val currentUpSet = node.upSet.toList()
-        // BUG-416: a value reaching a use through a variable is one REACHING DEFINITION.
-        // With several of them, a Nil among the writes is optionality — the branch that
-        // did not run — and flagging it produced 959 false positives on one corpus
-        // member. With exactly one, the variable can hold nothing else, and a Nil is
-        // certain (`local nothing = nil; count(nothing)` stays an error).
-        //
-        // BUG-441 (RC-2): this loop checks each reaching definition against the demand
-        // ON ITS OWN — the variable's merged type is never the thing being checked, which
-        // is why every "make the union gradual" design aimed at the type algebra failed.
-        // Unknown-ness is therefore a property of the upSet as a whole and can only be
-        // computed here: the string write in `local d = wx.thing; if c then d = "s" end`
-        // is itself perfectly known, and what makes it unreportable is a SIBLING.
-        val facts =
-            VisitFacts(
-                certain = currentUpSet.count { it is ValueNode && !it.declaredOrigin } == 1,
-                unknownProvenance = currentUpSet.any { it is ValueNode && isUnknown(it.write) },
-            )
-        val writesInVisit = arrayOfNulls<LuaGraphType>(currentUpSet.size)
-        for (useNode in currentDownSet) {
-            if (useNode !is UseNode) continue
-            for (valueIndex in currentUpSet.indices) {
-                val valueNode = currentUpSet[valueIndex]
+        val upSnapshot = node.upSet.toList()
+        val downSnapshot = node.downSet.toList()
+        val marks = checkNotNull(scanMarks)
+        val mark = marks[node]
+        marks[node] = PairScanMark(upSnapshot.size, downSnapshot.size)
+        val scan = VisitScan(upSnapshot, checkedPairs)
+        for (downIndex in downSnapshot.indices) {
+            val useNode = downSnapshot[downIndex]
+            if (useNode is UseNode) scan.scanUse(useNode, LuaPairScan.firstValueIndex(downIndex, mark))
+        }
+        if (LuaTypePairScanDifferential.enabled) verifyScan(upSnapshot, downSnapshot, checkedPairs)
+    }
+
+    /**
+     * The facts of one visit, over its up-set snapshot.
+     *
+     * BUG-416: a value reaching a use through a variable is one REACHING DEFINITION. With several of
+     * them, a Nil among the writes is optionality — the branch that did not run — and flagging it
+     * produced 959 false positives on one corpus member. With exactly one, the variable can hold
+     * nothing else, and a Nil is certain (`local nothing = nil; count(nothing)` stays an error).
+     *
+     * BUG-441 (RC-2): each reaching definition is checked against the demand ON ITS OWN — the
+     * variable's merged type is never the thing being checked, which is why every "make the union
+     * gradual" design aimed at the type algebra failed. Unknown-ness is therefore a property of the
+     * upSet as a whole and can only be computed per visit: the string write in
+     * `local d = wx.thing; if c then d = "s" end` is itself perfectly known, and what makes it
+     * unreportable is a SIBLING.
+     */
+    private fun visitFactsOf(upSnapshot: List<TypeNode>): VisitFacts =
+        VisitFacts(
+            certain = upSnapshot.count { it is ValueNode && !it.declaredOrigin } == 1,
+            unknownProvenance = upSnapshot.any { it is ValueNode && isUnknown(it.write) },
+        )
+
+    /**
+     * One visit's scan state (MAINT-61 design §3.1). [facts] is computed at the visit's start, as
+     * before MAINT-61: computing it lazily moved `write` root resolutions from the build onto later
+     * cross-file call-site resolution (NAV-13-06; MAINT-61 risks Gap 2.4).
+     */
+    private inner class VisitScan(
+        private val upSnapshot: List<TypeNode>,
+        private val checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>,
+    ) {
+        private val facts = visitFactsOf(upSnapshot)
+        private val writes = arrayOfNulls<LuaGraphType>(upSnapshot.size)
+
+        fun scanUse(
+            useNode: UseNode,
+            firstValue: Int,
+        ) {
+            for (valueIndex in firstValue until upSnapshot.size) {
+                val valueNode = upSnapshot[valueIndex]
                 if (valueNode !is ValueNode) continue
+                pairAttempts++
                 if (!checkedPairs.add(Pair(valueNode, useNode))) continue
 
-                val valueWrite = writesInVisit[valueIndex] ?: valueNode.write.also { writesInVisit[valueIndex] = it }
+                val valueWrite = writes[valueIndex] ?: valueNode.write.also { writes[valueIndex] = it }
                 if (LuaTypePairWriteDifferential.enabled) {
                     LuaTypePairWriteDifferential.compare(valueWrite, valueNode.write)
                 }
                 checkAdmittedPair(AdmittedPair(valueNode, useNode, valueWrite), facts)
+            }
+        }
+    }
+
+    /** Reports to [LuaTypePairScanDifferential] whether each pair of the visit's product was examined (§3.4). */
+    private fun verifyScan(
+        upSnapshot: List<TypeNode>,
+        downSnapshot: List<TypeNode>,
+        checkedPairs: Set<Pair<TypeNode, TypeNode>>,
+    ) {
+        for (useNode in downSnapshot) {
+            if (useNode !is UseNode) continue
+            for (valueNode in upSnapshot) {
+                if (valueNode !is ValueNode) continue
+                scanComparisons++
+                LuaTypePairScanDifferential.observe(Pair(valueNode, useNode) in checkedPairs)
             }
         }
     }
@@ -1055,6 +1134,21 @@ class LuaTypeGraph {
     @org.jetbrains.annotations.TestOnly
     internal fun rootResolutionCount(accessor: RootAccessor): Long = rootResolutions[accessor.ordinal]
 
+    /** MAINT-61: successful `upSet`/`downSet` additions over this graph's lifetime. Equals [closureSize]. */
+    @org.jetbrains.annotations.TestOnly
+    internal fun edgeAddCount(): Long = edgeAdds
+
+    /** MAINT-61: `(value, use)` pairs the checker tried to admit, the revisit skip excluded. */
+    @org.jetbrains.annotations.TestOnly
+    internal fun pairAttemptCount(): Long = pairAttempts
+
+    /** MAINT-61: pairs [verifyScan] compared while [LuaTypePairScanDifferential] was enabled. */
+    @org.jetbrains.annotations.TestOnly
+    internal fun scanComparisonCount(): Long = scanComparisons
+
+    @org.jetbrains.annotations.TestOnly
+    internal fun scanMarksRetained(): Boolean = scanMarks != null
+
     internal companion object {
         /** Distribution-nesting cutoff (TYPE-09-P2-04); assume-compatible beyond it (TYPE-DR-04). */
         internal const val MAX_DISTRIBUTION_DEPTH = 10
@@ -1155,6 +1249,54 @@ internal object LuaTypePairWriteDifferential {
         if (mismatchShapes.size < MAX_SAMPLES) {
             mismatchShapes.add("${hoisted.displayName()} -> ${live.displayName()}")
         }
+    }
+}
+
+/**
+ * MAINT-61: a variable's up- and down-set sizes at the start of its last checker visit. The sets
+ * only grow by appending, so the pairs below both sizes are the product that visit examined.
+ */
+internal class PairScanMark(
+    val up: Int,
+    val down: Int,
+)
+
+/** MAINT-61 design §2.3: where a revisit's scan of one use starts in the up-set snapshot. */
+internal object LuaPairScan {
+    /** A use seen at [mark] was already paired with every value below `mark.up`; a newer use with none. */
+    fun firstValueIndex(
+        downIndex: Int,
+        mark: PairScanMark?,
+    ): Int = if (mark == null || downIndex >= mark.down) 0 else mark.up
+}
+
+/**
+ * MAINT-61 — the gate for the revisit skip in [LuaTypeGraph.checkNodePairs]. While [enabled], every
+ * visit reports, for each pair of its product, whether the pair is in `checkedPairs`; a skipped pair
+ * that was never examined is a miss. Shaped like [LuaTypePairWriteDifferential], and like it holds
+ * only a counter, never a node, element, file or graph.
+ */
+@org.jetbrains.annotations.TestOnly
+internal object LuaTypePairScanDifferential {
+    private var missCount = 0L
+
+    var enabled: Boolean = false
+        private set
+
+    /** Arm the differential and discard any previous run's count. */
+    fun start() {
+        missCount = 0L
+        enabled = true
+    }
+
+    fun stop() {
+        enabled = false
+    }
+
+    fun misses(): Long = missCount
+
+    fun observe(examined: Boolean) {
+        if (!examined) missCount++
     }
 }
 

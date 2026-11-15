@@ -464,6 +464,8 @@ tasks {
             doFirst { snapshotCostDir.deleteRecursively() }
             // MAINT-63: the after-edit oracle runs apart from timing sweeps: `-PwithSnapshotOracle`.
             systemProperty("lunar.snapshotCost.oracle", project.hasProperty("withSnapshotOracle").toString())
+            // MAINT-61: the pair-scan differential over a sweep: `-PwithPairScanDifferential`.
+            systemProperty("lunar.pairScan.differential", project.hasProperty("withPairScanDifferential").toString())
         }
         // MAINT-65: alone-read findings digests (MAINT-65-02). Opt-in:
         // `./gradlew test -PwithAloneDigest -PaloneDigestBase=<sweep.jsonl> -PaloneDigestChange=<sweep.jsonl> --tests '*LuaAloneDigestTest*'`.

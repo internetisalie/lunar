@@ -12,19 +12,20 @@ folders:
 ## Critical Risks
 
 ### Risk 1.1: Lazy visit facts change what the checker sees
-- **Impact**: different findings, if computing `VisitFacts` changes the graph revision (a new node or edge), because the change
-  computes them on fewer visits (design §3.2). Either one bumps the graph revision.
+- **Impact**: different findings, had the facts been computed on fewer visits and their computation
+  changed the graph revision (a new node or edge).
 - **Likelihood**: low. Over 19 hub files read 15 times each in DR-08, every file gave one digest.
   It is unproven that `isUnknown(write)` never runs a `LazyValueElement` compute that adds a node or an edge.
-- **Mitigation**: TC 11, TC 12 and TC 13 (requirements). DR-09 measures it in Phase 0.
+- **Mitigation**: TC 11, TC 12 and TC 13 (requirements). DR-09 measured it in Phase 0: no computation changed the revision. Lazy facts were then dropped for another reason (Gap 2.4), so this risk no longer applies.
 
 ### Risk 1.2: The sweep gain is inside run-to-run noise
 - **Impact**: MAINT-61-05 stays unestablished even though the change cuts checker time.
 - **Likelihood**: medium. DR-05's `ctl1` (unmodified) and `p4both` (delta scan and edge counter)
   admit the same pairs, yet their miss counts differ by 8 per bound. The checker time fell by 30 % in DR-08's
-  interleaved reads, but a sweep reads each file once. DR-08's probe also indexed the sets directly, while
-  design §3.1 indexes the `toList()` copies of today, so DR-08 can overstate this design's gain by the
-  copy's cost.
+  interleaved reads, but a sweep reads each file once. This design's gain is the delta scan and
+  edge counter only (DR-08 mode 1, the `p4both` configuration: 13 386 → 10 465 ms, 22 %), because
+  lazy facts were dropped (Gap 2.4). DR-08's probe also indexed the sets directly, while design §3.1
+  indexes the `toList()` copies of today, so DR-08 can overstate this design's gain by the copy's cost.
 - **Mitigation**: MAINT-61-05 is a Should with its own measure. MAINT-61-03 is the deterministic
   Must.
 
@@ -48,6 +49,14 @@ DR-01 did not sample luals, gitsigns or telescope. Their rows (luals `script/vm/
 neovim definition files `uv/_meta.lua` and `vim/lsp.lua`, gitsigns `hunks.lua` and `actions.lua`)
 stay with this item. DR-10 profiles them.
 
+### Gap 2.4: Lazy facts and NAV-13-06's fan-out guard (answered: lazy facts dropped)
+With lazy facts (design §3.2 as first written), `LuaColonCallCrossFileFanOutTest` (NAV-13-06)
+measured 3 WRITE root resolutions per resolved cross-file call site against 1 with facts computed
+at visit start, at every ring size (K = 2 to 16, linear in K). Eager facts resolve `write` for the
+whole up-set and so leave the walk-root memos that call-site resolution reads already filled. The
+supervisor chose to drop lazy facts and keep NAV-13-06's guard as it is: MAINT-61-03 takes its branch
+text, and TC 5 and mutation 7 are removed.
+
 ## Pre-Implementation De-risking Tasks
 
 ### Premises
@@ -57,10 +66,10 @@ stay with this item. DR-10 profiles them.
 | factoryplanner's misses are own-build cost | runtime | DR-02, DR-03: **refuted**. They come from edit fan-out (MAINT-67) |
 | Skipping pairs examined on an earlier visit changes no pair the checker admits | runtime | DR-06: no skipped pair was unexamined |
 | The skip changes the work on small fixtures | runtime | DR-07 |
-| Delta scan and lazy facts cut checker time without changing findings | runtime | DR-05, DR-08 |
+| Delta scan cuts checker time without changing findings | runtime | DR-05, DR-08 |
 | The edge counter decides convergence as `edgeCount` does | read | design §3.3 |
 | Sweep-to-sweep spread of one commit is within MAINT-61-04's margin | runtime | MAINT-63 DR-25 (four sweeps at `bceb8e3e`: edit 11, cold 4) and MAINT-63's Phase 2 base sweeps at `353974b7`, recorded in its PR (edit 266 and 277, cold 52 and 52). Neither is at an engine with MAINT-63's change, so MAINT-61-04 also takes this item's own base spread |
-| Lazy facts change no graph revision | runtime | open: DR-09 |
+| Lazy facts change no graph revision | runtime | DR-09: none of 45 981 110 computations changed it |
 
 ### Results
 All runs used the libvirt builder at `67508823` with the probe applied as a temporary edit. Each
@@ -80,5 +89,5 @@ ljtk. The probe and its outputs are in `~/.cache/claude-scratch/maint-61-plan/` 
 | DR-06 | Twelve members with the delta scan (`p6inv`, `p7reach`). On each revisit, the probe counted the skipped pairs that were not in `checkedPairs`. It also counted the unexamined pairs that two wrong skips would drop: M1 skips old values for new uses, M2 skips new values for old uses. It also counted the passes that added edges but no pairs | exactness of the skip; reachability of its mutants | done. Unexamined skipped pairs: **0** over 28 563 456 revisits. M1 would drop 33 783 unexamined pairs in 773 builds, M2 29 402 in 684 (for example druid `component.lua`, 840 and 575). Passes with edges but no new pairs: 0, so the edge term never decides convergence alone on this corpus |
 | DR-07 | Six light fixtures (`Probe61FixtureTest`, texts in `probe-final.diff`) with the delta scan. The probe counted revisits, revisits whose sets grew, and `checkedPairs.add` calls with and without the skip | TC 3 | done. Each fixture converges in 2 passes. Attempts with the skip / without: `callback` 23 / 46, `callback2` 122 / 232, `method` 407 / 796, `fwd` 296 / 520, `chain` 253 / 506, `hof` 737 / 1 474; the six without the skip sum to 3 574. `method` has 41 revisits, 1 of them with growth. M1 and M2 drop no pair on any of the fixtures |
 | DR-08 | Twelve members (`p9ab`). After the cold pass, each of 19 hub files was rebuilt alone 5 times (differ `lua/differ/view.lua`; prism `engine/math/color.lua`, `engine/math/vector.lua`, `spectrum/display.lua`; opensmce `src/Configs/utils.lua`, `src/Game/Shooter.lua`, `src/Game/SphereGroup.lua`; factoryplanner `modfiles/backend/data/Machine.lua`, `modfiles/backend/handlers/generator.lua`; druid `druid/base/button.lua`, `druid/base/scroll.lua`, `druid/component.lua`, `druid/custom/rich_input/rich_input.lua`, `druid/druid.lua`, `druid/extended/input.lua`, `druid/system/druid_instance.lua`; ldoc `ldoc/markdown.lua`; snabb `src/lib/yang/schema.lua`; ljtk `lang/parser.lua`), with `putUserData(LuaTypesVisitor.KEY, null)` and a 60 s read. Each repetition cycled modes 0 (unmodified), 1 (delta scan plus edge counter) and 2 (mode 1 plus lazy facts), timing the check phase | the design's effect, interleaved | done. Sum of median check ms: **13 386, 10 465, 9 344** (mode 2 is 30 % below mode 0). Per file, mode 0 → 2: `SphereGroup.lua` 2 710 → 1 310, `druid_instance.lua` 1 963 → 1 116, `Machine.lua` 522 → 327, `generator.lua` 249 → 97, `Shooter.lua` 540 → 370, `color.lua` 1 062 → 948, `display.lua` 1 036 → 906, `lang/parser.lua` 1 435 → 1 302. All 285 reads `ok`; each file gave one digest across its 15 reads |
-| DR-09 | Phase 0: on the twelve members, compare the graph's `revision` before and after every `VisitFacts` computation, and count the computations where it changed | Risk 1.1, MAINT-61-03's branch | open |
+| DR-09 | Phase 0: on the twelve members, compare the graph's `revision` before and after every `VisitFacts` computation, and count the computations where it changed. Run at `60f36c9b`, not `67508823`, with the probe as a temporary edit (`~/.cache/claude-scratch/maint-61-impl/dr09-probe.diff`, not committed) | Risk 1.1, MAINT-61-03's branch | done. **0** of 45 981 110 computations changed the revision; all 12 members' 770 cold reads `ok`. Lazy facts were implemented on this result, then dropped for NAV-13-06 (Gap 2.4): MAINT-61-03 takes its branch text |
 | DR-10 | Profile the luals, gitsigns and telescope hubs as DR-01 did | Gap 2.3 | open |

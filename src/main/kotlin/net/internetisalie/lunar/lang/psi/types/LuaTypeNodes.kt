@@ -129,8 +129,8 @@ internal class VariableElement(
     private val graph: LuaTypeGraph,
     override val declaresMember: Boolean = false,
 ) : VariableNode {
-    override val upSet: OrderedSet<TypeNode> = OrderedSet(graph::bumpRevision)
-    override val downSet: OrderedSet<TypeNode> = OrderedSet(graph::bumpRevision)
+    override val upSet: OrderedSet<TypeNode> = OrderedSet(graph::onEdgeAdded)
+    override val downSet: OrderedSet<TypeNode> = OrderedSet(graph::onEdgeAdded)
 
     private val writeMemo = RootMemo<LuaGraphType>()
     private val readMemo = RootMemo<LuaGraphType>()
@@ -284,7 +284,8 @@ internal class VariableElement(
  * to ensure edge propagation is deterministic across runs.
  *
  * [onAdd] fires on every successful insertion. `VariableElement` passes
- * [LuaTypeGraph.bumpRevision], which makes "an edge addition invalidates the walk-root memos"
+ * [LuaTypeGraph.onEdgeAdded], which counts the edge and bumps the revision. That makes "an edge
+ * addition invalidates the walk-root memos"
  * (BUG-473) a property of the set itself rather than a checklist of call sites — the up/down sets
  * are mutated directly, bypassing `addEdge`, by `LuaGraphType.memberNodeFor` and by graph-building
  * tests, and an enumerated key would have to name each one.

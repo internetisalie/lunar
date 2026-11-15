@@ -114,6 +114,19 @@ class LuaTypesSnapshot(
     @org.jetbrains.annotations.TestOnly
     internal fun closureSize(): Int = graph.closureSize()
 
+    /** MAINT-61: the checker meters of this snapshot's graph (design §2.2). */
+    @org.jetbrains.annotations.TestOnly
+    internal fun edgeAddCount(): Long = graph.edgeAddCount()
+
+    @org.jetbrains.annotations.TestOnly
+    internal fun pairAttemptCount(): Long = graph.pairAttemptCount()
+
+    @org.jetbrains.annotations.TestOnly
+    internal fun scanComparisonCount(): Long = graph.scanComparisonCount()
+
+    @org.jetbrains.annotations.TestOnly
+    internal fun scanMarksRetained(): Boolean = graph.scanMarksRetained()
+
     @org.jetbrains.annotations.TestOnly
     internal fun mappedElements(): Set<PsiElement> = elementNodes.keys
 

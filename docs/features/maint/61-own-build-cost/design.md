@@ -29,13 +29,13 @@ are most of the pair loop's samples (risks DR-01).
 | `OrderedSet` | `LuaTypeNodes.kt:292` | **unchanged** |
 | `VariableElement.upSet` / `downSet` hooks | `LuaTypeNodes.kt:132-133` | **edited**: `graph::onEdgeAdded` |
 | `LuaTypePairWriteDifferential` and its test | `LuaTypeGraph.kt:1118`; `lang/types/LuaTypePairWriteDifferentialTest.kt` | **unchanged**, still called for every admitted pair. `LuaTypePairScanDifferential` follows its shape |
-| `closureSize`, `rootResolutionCount` meters | `LuaTypeGraph.kt:1047, 1056`; `LuaTypes.kt:73, 115` | **unchanged**. Five meters are added beside them (§2.2) |
+| `closureSize`, `rootResolutionCount` meters | `LuaTypeGraph.kt:1047, 1056`; `LuaTypes.kt:73, 115` | **unchanged**. Four meters are added beside them (§2.2) |
 | MAINT-60 delta configuration (MAINT-60 DR-06) | probe only, never shipped | **replaced** by §3.1, which keeps the order of admitted pairs |
 
 ### Target State
 The admitted pairs, their order and the convergence test are as today. A revisit scans only pairs
 with a value or a use added since the variable's last visit (§3.1). The facts are computed at the
-first admitted pair (§3.2), and the convergence test reads a counter (§3.3). There are no
+visit's start, as today (§3.2), and the convergence test reads a counter (§3.3). There are no
 `plugin.xml` changes. Everything runs on the thread that builds the snapshot, inside its read action,
 as today.
 
@@ -50,19 +50,17 @@ as today.
 private var edgeAdds = 0L
 private var pairAttempts = 0L
 private var scanComparisons = 0L
-private var factlessVisits = 0L
 private var scanMarks: java.util.IdentityHashMap<VariableElement, PairScanMark>? = null
 internal fun onEdgeAdded()                              // edgeAdds++, then bumpRevision()
 @TestOnly internal fun edgeAddCount(): Long = edgeAdds
 @TestOnly internal fun pairAttemptCount(): Long = pairAttempts
 @TestOnly internal fun scanComparisonCount(): Long = scanComparisons
-@TestOnly internal fun factlessVisitCount(): Long = factlessVisits
 @TestOnly internal fun scanMarksRetained(): Boolean = scanMarks != null
 private fun checkNodePairs(node: VariableElement, checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>)  // §3.1
 private fun visitFactsOf(upSnapshot: List<TypeNode>): VisitFacts                                     // §3.2
 private fun verifyScan(upSnapshot: List<TypeNode>, downSnapshot: List<TypeNode>, checkedPairs: Set<Pair<TypeNode, TypeNode>>)  // §3.4
 private inner class VisitScan(val upSnapshot: List<TypeNode>, val checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>) {
-    var facts: VisitFacts? = null
+    val facts = visitFactsOf(upSnapshot)
     val writes = arrayOfNulls<LuaGraphType>(upSnapshot.size)
     fun scanUse(useNode: UseNode, firstValue: Int)      // §3.1 step 4
 }
@@ -91,7 +89,7 @@ build however many builds ran while the differential was armed.
 
 ### 2.5 `LuaTypesSnapshot` (`LuaTypes.kt`, edit)
 One `@TestOnly internal` delegate per meter of §2.2 (`edgeAddCount`, `pairAttemptCount`,
-`scanComparisonCount`, `factlessVisitCount`, `scanMarksRetained`), next to `closureSize()`.
+`scanComparisonCount`, `scanMarksRetained`), next to `closureSize()`.
 
 ### 2.6 Sweep switch (`build.gradle.kts`, `LuaSnapshotCostSweepTest`, `SnapshotCostVerdict`; edit)
 - `build.gradle.kts`, inside the `withSnapshotSweep` block, next to the oracle line (`:466`):
@@ -120,12 +118,10 @@ One `@TestOnly internal` delegate per meter of §2.2 (`edgeAddCount`, `pairAttem
    - skip it unless it is a `ValueNode`;
    - `pairAttempts++`;
    - skip it if `!checkedPairs.add(Pair(valueNode, useNode))`;
-   - `visitFacts = facts ?: visitFactsOf(upSnapshot).also { facts = it }`;
    - take `write` from `writes`, filling the slot on first use as today, and call
      `LuaTypePairWriteDifferential` as today;
-   - `checkAdmittedPair(AdmittedPair(valueNode, useNode, write), visitFacts)`.
-5. If `scan.facts == null`, `factlessVisits++`.
-6. When `LuaTypePairScanDifferential.enabled`: `verifyScan(upSnapshot, downSnapshot, checkedPairs)`.
+   - `checkAdmittedPair(AdmittedPair(valueNode, useNode, write), facts)`.
+5. When `LuaTypePairScanDifferential.enabled`: `verifyScan(upSnapshot, downSnapshot, checkedPairs)`.
 
 **Why the skipped pairs change nothing**, by induction over the visits of `node` in one
 `checkTypes` call. Claim: after each visit, every pair of the snapshots' product is in
@@ -138,12 +134,11 @@ meets the skipped pairs in the same positions and does nothing with them, becaus
 unchanged. DR-06 found no skipped pair
 outside `checkedPairs` over 28 563 456 revisits.
 
-### 3.2 Lazy visit facts
+### 3.2 Visit facts
 `visitFactsOf` holds today's two expressions (`certain`, `unknownProvenance`, `:395-398`),
-computed over `upSnapshot`. Between the start of a visit and its first admitted pair, the loop only
-calls `checkedPairs.add`, so the graph is the same at both points, and facts computed at either point
-are equal. A visit that admits no pair never computes them. Whether computing them changes the
-graph, which would make the visits that skip them differ, is Risk 1.1, measured by DR-09.
+computed over `upSnapshot` when `VisitScan` is built, at the visit's start as today. Computing them
+only at the first admitted pair was dropped: it moved `write` root resolutions onto cross-file
+call-site resolution, against NAV-13-06's guard (risks Gap 2.4).
 
 ### 3.3 Convergence by counter
 `runFixedPointPass` sets `initialEdgeCount = edgeAdds` and returns
@@ -162,10 +157,10 @@ its full-scan pair count (requirements TC 2).
 ## 4. Test Fixtures and Files
 - `src/test/kotlin/net/internetisalie/lunar/lang/types/LuaPairScanTest.kt` (new, `BaseDocumentTest`,
   JUnit 5, `EdtTestUtil.runInEdtAndWait`, as `LuaTypePairWriteDifferentialTest`). It holds TC 1 to
-  TC 5. TC 2 to TC 5 read, in this order and in one test method's project,
+  TC 4. TC 2 to TC 4 read, in this order and in one test method's project,
   `myFixture.configureByText("<name>.lua", text)` and then
   `LuaTypesSnapshot.forFile(myFixture.file) as LuaTypesSnapshot`. TC 2 calls
-  `LuaTypePairScanDifferential.start()` before each read and `stop()` after it. TC 3 and TC 5 read `method` as the
+  `LuaTypePairScanDifferential.start()` before each read and `stop()` after it. TC 3 reads `method` as the
   third text of that sequence. The texts, in DR-07's order:
   - `callback`: `---@param cb fun(x: string)\nlocal function f(cb) end\nf(function(x) local y = x print(y) end)\n`
   - `callback2`: `---@param cb fun(x: string): number\nlocal function f(cb) return cb('a') end\nlocal r = f(function(x) return #x end)\nprint(r + 1)\n`
@@ -180,7 +175,7 @@ its full-scan pair count (requirements TC 2).
 
 ## 5. Contract Conformance
 A cached snapshot keeps its graph (`LuaTypes.kt:56`), so a graph field is retained memory. This
-design adds four `Long` counters and one nullable field per graph, and nothing per node or per
+design adds three `Long` counters and one nullable field per graph, and nothing per node or per
 edge: `OrderedSet` is unchanged, and the snapshots are the transient copies of today. `scanMarks`
 exists, with one entry per visited variable, only while `checkTypes` runs; the `finally` of §2.2
 drops the map, so a retained graph holds `null`. TC 4 asserts `scanMarksRetained() == false` after
@@ -194,7 +189,7 @@ write actions.
 |---|---|
 | MAINT-61-01 | §3.1, §3.3, §3.4 |
 | MAINT-61-02 | §3 (exactness); acceptance in the implementation plan, Phase 2 |
-| MAINT-61-03 | §3.1 step 4, §3.2 |
+| MAINT-61-03 | §3.1 step 4 |
 | MAINT-61-04, -05 | implementation plan, Phase 2 |
 
 ## 7. Alternatives Considered

@@ -122,6 +122,10 @@ object SnapshotCostVerdict {
     fun runTimeFailures(elapsedMs: Long): List<String> =
         if (elapsedMs >= RUN_LIMIT_MS) listOf("sweep took ${elapsedMs / 60_000} min") else emptyList()
 
+    /** MAINT-61 design §2.6: the pairs a checker visit left unexamined (`LuaTypePairScanDifferential`). */
+    fun pairScanChecks(misses: Long): List<String> =
+        if (misses > 0) listOf("pair scan: $misses unexamined pairs after a visit") else emptyList()
+
     /** MAINT-63 design §2.6: the after-edit read against a full rebuild's, and whether the rebuild ran as designed. */
     fun oracleChecks(rows: List<SweepRow>): List<String> =
         oracleMismatches(rows) +

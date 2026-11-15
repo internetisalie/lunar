@@ -21,31 +21,32 @@ on `main`. The **change commit** is Phase 1's. *Reading a sweep*, *Oracle over b
 ### Phase 0: Lazy-facts premise [Must]
 - **Goal**: settle DR-09 before the code depends on it.
 - **Tasks**:
-  - [ ] As a temporary edit (`temporary-edits` skill) at the base commit, read `revision` before and
+  - [x] As a temporary edit (`temporary-edits` skill) at the base commit, read `revision` before and
     after the `VisitFacts` computation in `checkNodePairs`, and count the computations where it
     changed. Run the twelve members of risks *Results*, then restore.
-  - [ ] Record the count as DR-09's outcome in `risks-and-gaps.md`.
+  - [x] Record the count as DR-09's outcome in `risks-and-gaps.md`.
 - **Exit criteria**: DR-09 is `done`. If the count is above 0, take the branch MAINT-61-03 states:
   design §3.2 is not implemented (Phase 1 computes the facts at visit start, as today, and
   `factlessVisitCount` is not added), TC 5 and mutation 7 are removed, and the requirement's text is
-  replaced by the branch text. Record this in DR-09 and report it.
+  replaced by the branch text. Record this in DR-09 and report it. DR-09 found 0, but the branch
+  was taken in Phase 1 for NAV-13-06's guard (risks Gap 2.4).
 
-### Phase 1: Delta scan, edge counter and lazy facts [Must]
+### Phase 1: Delta scan and edge counter [Must]
 - **Tasks**:
-  - [ ] `LuaTypeNodes.kt`: design §2.1, and the `upSet`/`downSet` hooks (§2.2).
-  - [ ] `LuaTypeGraph.kt`: design §2.2 to §2.4 and §3.
-  - [ ] `LuaTypes.kt`: design §2.5.
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/lang/types/LuaPairScanTest.kt` with TC 1 to
-    TC 5 (design §4).
-  - [ ] Design §2.6: `build.gradle.kts`, `LuaSnapshotCostSweepTest`, `SnapshotCostVerdict`, and
+  - [x] `LuaTypeNodes.kt`: design §2.1, and the `upSet`/`downSet` hooks (§2.2).
+  - [x] `LuaTypeGraph.kt`: design §2.2 to §2.4 and §3.
+  - [x] `LuaTypes.kt`: design §2.5.
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/lang/types/LuaPairScanTest.kt` with TC 1 to
+    TC 4 (design §4).
+  - [x] Design §2.6: `build.gradle.kts`, `LuaSnapshotCostSweepTest`, `SnapshotCostVerdict`, and
     `testPairScanChecks` in `SnapshotCostVerdictTest`.
 - **Exit criteria**:
-  - TC 1 to TC 6 and `testPairScanChecks` pass.
+  - TC 1 to TC 4, TC 6 and `testPairScanChecks` pass.
   - TC 7: `test -PwithSnapshotSweep -PwithPairScanDifferential --tests '*LuaSnapshotCostSweepTest.<method>' --tests '*LuaSnapshotCostSweepTest.testZzVerdict'`,
     with `<method>` set to druid's and then blinkcmp's `testM…` method. Neither `verdict.txt` holds
     a `pair scan:` line. Coverage lines for other members are expected, as in MAINT-63's one-member
     runs.
-  - Every mutation of requirements *Mutation checks* (rows 1 to 8) turns its named check red. Run each
+  - Every mutation of requirements *Mutation checks* (rows 1 to 7) turns its named check red. Run each
     once, record the red check in the PR, and restore. Mutations 1 and 2 use TC 7's druid run. A
     mutant that stays green fails this phase.
   - The full `test` suite has no new failures; `ktlintCheck` passes.
@@ -75,5 +76,5 @@ on `main`. The **change commit** is Phase 1's. *Reading a sweep*, *Oracle over b
 | MAINT-61-05 | S | Phase 2 |
 
 ## Verification Tasks
-- [ ] TC 1 to TC 5 (`LuaPairScanTest`); TC 6's tests, unmodified; TC 7 (Phase 1 runs).
+- [x] TC 1 to TC 4 (`LuaPairScanTest`); TC 6's tests, unmodified; TC 7 (Phase 1 runs).
 - [ ] TC 8 to TC 11 (Phase 2 runs).

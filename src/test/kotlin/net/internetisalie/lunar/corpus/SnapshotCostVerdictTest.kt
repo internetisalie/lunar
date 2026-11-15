@@ -5,6 +5,7 @@ import net.internetisalie.lunar.corpus.SnapshotCostVerdict.REACH_ITEM
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.RUN_LIMIT_MS
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.attribute
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.coverage
+import net.internetisalie.lunar.corpus.SnapshotCostVerdict.pairScanChecks
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.rankedLines
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.releaseLines
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.runTimeFailures
@@ -65,6 +66,13 @@ class SnapshotCostVerdictTest {
     fun testV2SlowOrUnreadPassIsNotASweepError() {
         val rows = listOf(row(300, 0).copy(editStatus = "not-run"), row(0, 0).copy(coldStatus = "timeout"))
         assertEquals(emptyList(), sweepErrors(rows))
+    }
+
+    /** MAINT-61 design §4. Red if `pairScanChecks` drops its `misses > 0` guard or its count. */
+    @Test
+    fun testPairScanChecks() {
+        assertEquals(emptyList<String>(), pairScanChecks(0))
+        assertEquals(listOf("pair scan: 3 unexamined pairs after a visit"), pairScanChecks(3))
     }
 
     @Test

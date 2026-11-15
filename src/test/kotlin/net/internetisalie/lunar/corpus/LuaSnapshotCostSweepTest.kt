@@ -17,6 +17,7 @@ import net.internetisalie.lunar.corpus.SnapshotCostVerdict.UNMEASURED
 import net.internetisalie.lunar.definitions.LuaDefinitionLibraryFetcher
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.types.LuaSnapshotBuildMeter
+import net.internetisalie.lunar.lang.psi.types.LuaTypePairScanDifferential
 import net.internetisalie.lunar.lang.psi.types.LuaTypesVisitor
 import net.internetisalie.lunar.settings.LuaProjectSettings
 import org.junit.FixMethodOrder
@@ -94,6 +95,7 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
         VfsRootAccess.allowRootAccess(testRootDisposable, LuaDefinitionLibraryFetcher.defaultCacheRoot().toString())
         LuaProjectSettings.getInstance(project).state.enabledDefinitionLibraries = mutableListOf()
         savedSourcePath = CorpusSourcePath.snapshot(project)
+        if (PAIR_SCAN_ON && !LuaTypePairScanDifferential.enabled) LuaTypePairScanDifferential.start()
     }
 
     override fun tearDown() {
@@ -217,7 +219,9 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
             SnapshotCostVerdict.coverage(selectedByMember(), rows) +
                 SnapshotCostVerdict.sweepErrors(rows) +
                 SnapshotCostVerdict.runTimeFailures(measuredMs()) +
-                (if (ORACLE_ON) SnapshotCostVerdict.oracleChecks(rows) else emptyList())
+                (if (ORACLE_ON) SnapshotCostVerdict.oracleChecks(rows) else emptyList()) +
+                (if (PAIR_SCAN_ON) SnapshotCostVerdict.pairScanChecks(pairScanMisses()) else emptyList())
+        LuaTypePairScanDifferential.stop()
         File(outputDir, "ranked.tsv").writeText(SnapshotCostVerdict.rankedLines(rows).joinToString("\n"))
         val release = SnapshotCostVerdict.releaseLines(rows, checks.size)
         val counts = if (ORACLE_ON) listOf(SnapshotCostVerdict.oracleCounts(rows)) else emptyList()
@@ -409,6 +413,8 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
         return sweep.readLines().filter { it.isNotBlank() }.map { gson.fromJson(it, SweepRow::class.java) }
     }
 
+    private fun pairScanMisses(): Long = LuaTypePairScanDifferential.misses()
+
     private fun selectedByMember(): Map<String, List<String>> =
         CorpusManifest
             .load(repoRoot, CorpusManifest.TYPE_MANIFEST_PATH)
@@ -418,6 +424,7 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
         val RUN_START_MS: Long = System.currentTimeMillis()
         val REBUILD_MS = AtomicLong()
         val ORACLE_ON: Boolean = System.getProperty("lunar.snapshotCost.oracle") == "true"
+        val PAIR_SCAN_ON: Boolean = System.getProperty("lunar.pairScan.differential") == "true"
 
         const val OUTPUT_DIR = "build/snapshot-cost"
         const val FAILURES_SHOWN = 40
