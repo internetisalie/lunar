@@ -987,30 +987,42 @@ class LuaTypeGraph {
         useClass: String,
     ): Boolean = valueClass == useClass || ('<' !in useClass && valueClass.substringBefore('<').trim() == useClass)
 
+    /**
+     * BUG-103: the closure walk keeps its frames on an explicit stack, not the thread's. Each frame
+     * is one newly added pair, so its depth is the number of pairs one edge adds, which reached
+     * 8,099 on luals `script/parser/compile.lua`. [DownwardStep] visits the pairs in the order the
+     * recursive form did, so the sets' insertion order, and everything that iterates them, is
+     * unchanged.
+     */
     private fun propagateDownward(
         from: TypeNode,
         to: VariableElement,
     ) {
-        if (to.upSet.add(from)) {
-            if (from is VariableElement) {
-                for (upstream in from.upSet) propagateDownward(upstream, to)
-            }
-            for (downstream in to.downSet) {
-                if (downstream is VariableElement) propagateDownward(from, downstream)
+        if (!to.upSet.add(from)) return
+        val steps = ArrayDeque<DownwardStep>()
+        steps.addLast(DownwardStep(from, to))
+        while (steps.isNotEmpty()) {
+            val pair = steps.last().next()
+            when {
+                pair == null -> steps.removeLast()
+                pair.second.upSet.add(pair.first) -> steps.addLast(DownwardStep(pair.first, pair.second))
             }
         }
     }
 
+    /** BUG-103: [propagateDownward]'s mirror, on an explicit stack of [UpwardStep]s. */
     private fun propagateUpward(
         from: VariableElement,
         to: TypeNode,
     ) {
-        if (from.downSet.add(to)) {
-            if (to is VariableElement) {
-                for (downstream in to.downSet) propagateUpward(from, downstream)
-            }
-            for (upstream in from.upSet) {
-                if (upstream is VariableElement) propagateUpward(upstream, to)
+        if (!from.downSet.add(to)) return
+        val steps = ArrayDeque<UpwardStep>()
+        steps.addLast(UpwardStep(from, to))
+        while (steps.isNotEmpty()) {
+            val pair = steps.last().next()
+            when {
+                pair == null -> steps.removeLast()
+                pair.first.downSet.add(pair.second) -> steps.addLast(UpwardStep(pair.first, pair.second))
             }
         }
     }
@@ -1143,5 +1155,50 @@ internal object LuaTypePairWriteDifferential {
         if (mismatchShapes.size < MAX_SAMPLES) {
             mismatchShapes.add("${hoisted.displayName()} -> ${live.displayName()}")
         }
+    }
+}
+
+/**
+ * BUG-103: one frame of [LuaTypeGraph.propagateDownward]'s walk: the pair it added, `from` into
+ * `to.upSet`, and how far it has got through its two loops. The first iterator is opened when the
+ * frame is, right after the add, and the second only when the first is exhausted, as in the
+ * recursive form.
+ */
+private class DownwardStep(
+    private val from: TypeNode,
+    private val to: VariableElement,
+) {
+    private val upstreams: Iterator<TypeNode>? = (from as? VariableElement)?.upSet?.iterator()
+    private var downstreams: Iterator<TypeNode>? = null
+
+    /** The next pair to add, upstreams of [from] into [to] first, then [from] into each downstream of [to]. */
+    fun next(): Pair<TypeNode, VariableElement>? {
+        if (upstreams != null && upstreams.hasNext()) return upstreams.next() to to
+        val pending = downstreams ?: to.downSet.iterator().also { downstreams = it }
+        while (pending.hasNext()) {
+            val downstream = pending.next()
+            if (downstream is VariableElement) return from to downstream
+        }
+        return null
+    }
+}
+
+/** BUG-103: [DownwardStep]'s mirror for [LuaTypeGraph.propagateUpward]: `to` into `from.downSet`. */
+private class UpwardStep(
+    private val from: VariableElement,
+    private val to: TypeNode,
+) {
+    private val downstreams: Iterator<TypeNode>? = (to as? VariableElement)?.downSet?.iterator()
+    private var upstreams: Iterator<TypeNode>? = null
+
+    /** The next pair to add, [from] onto each downstream of [to] first, then each upstream of [from] onto [to]. */
+    fun next(): Pair<VariableElement, TypeNode>? {
+        if (downstreams != null && downstreams.hasNext()) return from to downstreams.next()
+        val pending = upstreams ?: from.upSet.iterator().also { upstreams = it }
+        while (pending.hasNext()) {
+            val upstream = pending.next()
+            if (upstream is VariableElement) return upstream to to
+        }
+        return null
     }
 }
