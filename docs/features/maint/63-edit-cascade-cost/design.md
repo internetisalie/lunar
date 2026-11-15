@@ -218,8 +218,10 @@ including sources consumed before the reader's frame was opened (requirements TC
    through `private fun <K, V> stampOf(id: ID<K, V>): Long`, as explicit calls in this order:
    `StubUpdatingIndex.INDEX_ID`, `LuaGlobalAssignmentIndex.KEY`, `LuaCatsTypeNameIndex.KEY`,
    `LuaReceiverMemberIndex.KEY`, `LuaMemberFieldIndex.KEY`.
-4. On `IndexNotReadyException` from step 3, return as step 2. Any `ProcessCanceledException`,
-   including `ServiceNotReadyException`, propagates.
+4. On `IndexNotReadyException` or `ServiceNotReadyException` from step 3, return as step 2. Both
+   mean an index is not available yet; the second is thrown in smart mode while a forced rebuild
+   is pending, as after a target switch (risks Gap 2.4). Any other `ProcessCanceledException`
+   propagates.
 5. Return `stampTotal.advance(stamps, shared)`.
 
 `LuaStampTotal.advance(stamps, shared)`:

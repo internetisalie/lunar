@@ -3,6 +3,7 @@ package net.internetisalie.lunar.lang.psi.types
 import com.intellij.psi.PsiFile
 import java.util.Collections
 import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * TYPE-11 §2.1 / §3.1 — records, for the duration of one `buildSnapshot`, every file whose content
@@ -38,13 +39,19 @@ object LuaTypeSourceRecorder {
      *   thread, whose frame is incomplete by construction (design §1.10 V1).
      * @property rescuedGlobals a global the project scope did not answer and the all-scope fallback
      *   did, which a later project declaration out-ranks (design §1.10 V2).
+     * @property pendingFrames the frames of in-progress builds this build read, held by identity
+     *   and still filling: what they consume later is consumed by this build too (MAINT-63 §3.2).
+     *
+     * Every set is concurrent: a `LuaSourceSetTracker` reads a pending frame while another
+     * thread's build may still be adding to it (MAINT-63 design §2.2).
      */
     class SourceFrame {
-        val urls: MutableSet<String> = mutableSetOf()
-        val absences: MutableSet<String> = mutableSetOf()
-        val unreplayedWarm: MutableSet<String> = mutableSetOf()
-        val inProgressHits: MutableSet<String> = mutableSetOf()
-        val rescuedGlobals: MutableSet<String> = mutableSetOf()
+        val urls: MutableSet<String> = ConcurrentHashMap.newKeySet()
+        val absences: MutableSet<String> = ConcurrentHashMap.newKeySet()
+        val unreplayedWarm: MutableSet<String> = ConcurrentHashMap.newKeySet()
+        val inProgressHits: MutableSet<String> = ConcurrentHashMap.newKeySet()
+        val rescuedGlobals: MutableSet<String> = ConcurrentHashMap.newKeySet()
+        val pendingFrames: MutableSet<SourceFrame> = ConcurrentHashMap.newKeySet()
 
         fun absorb(other: SourceFrame) {
             urls.addAll(other.urls)
@@ -52,6 +59,7 @@ object LuaTypeSourceRecorder {
             unreplayedWarm.addAll(other.unreplayedWarm)
             inProgressHits.addAll(other.inProgressHits)
             rescuedGlobals.addAll(other.rescuedGlobals)
+            pendingFrames.addAll(other.pendingFrames)
         }
 
         /** Nothing was consumed and nothing was unknown — [absorb]ing this frame cannot change one. */
@@ -60,10 +68,14 @@ object LuaTypeSourceRecorder {
                 absences.isEmpty() &&
                 unreplayedWarm.isEmpty() &&
                 inProgressHits.isEmpty() &&
-                rescuedGlobals.isEmpty()
+                rescuedGlobals.isEmpty() &&
+                pendingFrames.isEmpty()
     }
 
     private val openFrames = ThreadLocal.withInitial { ArrayDeque<SourceFrame>() }
+
+    /** The frame of each `forFile` build in flight on this thread, keyed as `inProgressBuilds` is. */
+    private val inProgressFrames = ThreadLocal.withInitial { HashMap<PsiFile, SourceFrame>() }
 
     /**
      * Stands in for a URL that could not be determined, so a mark can still be made.
@@ -101,8 +113,32 @@ object LuaTypeSourceRecorder {
      * Runs [body] with a fresh frame open, and returns its result paired with what was recorded.
      * The frame is popped in a `finally`, so a cancelled or failing build leaves no frame behind.
      */
-    fun <T> recording(body: () -> T): Pair<T, SourceFrame> {
+    fun <T> recording(body: () -> T): Pair<T, SourceFrame> = recordingInto(SourceFrame(), body)
+
+    /**
+     * [recording] for the build of [psiFile]'s own snapshot: while [body] runs, a nested
+     * [reportInProgressHit] on [psiFile] can name this frame as pending (MAINT-63 design §3.2).
+     */
+    fun <T> recordingFor(
+        psiFile: PsiFile,
+        body: () -> T,
+    ): Pair<T, SourceFrame> {
         val frame = SourceFrame()
+        val building = inProgressFrames.get()
+        building[psiFile] = frame
+        try {
+            return recordingInto(frame, body)
+        } finally {
+            building.remove(psiFile)
+        }
+    }
+
+    internal fun isUnidentified(url: String): Boolean = url.startsWith(UNIDENTIFIED_SOURCE)
+
+    private fun <T> recordingInto(
+        frame: SourceFrame,
+        body: () -> T,
+    ): Pair<T, SourceFrame> {
         val stack = openFrames.get()
         stack.addLast(frame)
         return try {
@@ -169,10 +205,16 @@ object LuaTypeSourceRecorder {
      * Marks with [UNIDENTIFIED_IN_PROGRESS] when the URL is unavailable; §3.7 states the invariant
      * ("whenever it answers non-null at `depth() > 0` … §3.3 step 6 makes the outer file
      * unpinnable") without an escape hatch, and a `return` here would grant the pin instead.
+     *
+     * Then every other open frame takes [psiFile]'s build frame as pending, so it also depends on
+     * what that build consumed before this frame opened and consumes after it closes (MAINT-63
+     * design §3.2).
      */
     fun reportInProgressHit(psiFile: PsiFile) {
         val sourceUrl = psiFile.originalFile.virtualFile?.url ?: UNIDENTIFIED_IN_PROGRESS
         openFrames.get().forEach { it.inProgressHits.add(sourceUrl) }
+        val building = inProgressFrames.get()[psiFile] ?: return
+        openFrames.get().forEach { if (it !== building) it.pendingFrames.add(building) }
     }
 
     /**

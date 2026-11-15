@@ -71,16 +71,16 @@ budget is split as above, and TC 12 is re-run after a slot overflow (Phase 2).
 ### Phase 1: Per-source trackers and tests [Must]
 - **Goal**: unpinned snapshots depend on their recorded sources.
 - **Tasks**:
-  - [ ] `LuaTypeSourceRecorder`: design §2.4.
-  - [ ] Create `src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaSourceChangeTracker.kt`
+  - [x] `LuaTypeSourceRecorder`: design §2.4.
+  - [x] Create `src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaSourceChangeTracker.kt`
     holding `LuaSourceChangeTracker` (design §2.1, §3.1, §3.3), `LuaSourceSetTracker` (§2.2, §3.3)
     and `LuaStampTotal` (§2.2a, §3.3).
-  - [ ] Create `src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaSourceChangePreprocessor.kt`
+  - [x] Create `src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaSourceChangePreprocessor.kt`
     (design §2.3, §3.4).
-  - [ ] Register both in `src/main/resources/META-INF/plugin.xml` (design §6).
-  - [ ] `LuaTypes.kt`: `forFile` uses `recordingFor`; `churnDependencyFor`'s unpinned branch and
+  - [x] Register both in `src/main/resources/META-INF/plugin.xml` (design §6).
+  - [x] `LuaTypes.kt`: `forFile` uses `recordingFor`; `churnDependencyFor`'s unpinned branch and
     both KDocs (design §2.4).
-  - [ ] Create `src/test/kotlin/net/internetisalie/lunar/type/LuaSourceChangeTrackerTest.kt`
+  - [x] Create `src/test/kotlin/net/internetisalie/lunar/type/LuaSourceChangeTrackerTest.kt`
     (design §2.5) with TC 1 to TC 8, TC 14 (one method per fixture), TC 15 and TC 16, using the
     requirements' fixture texts exactly.
 - **Exit criteria**:
@@ -145,5 +145,5 @@ budget is split as above, and TC 12 is re-run after a slot overflow (Phase 2).
 | MAINT-63-04 | M | Phase 0 (oracle), Phase 2 |
 
 ## Verification Tasks
-- [ ] TC 1 to TC 8 and TC 14 to TC 16 (`LuaSourceChangeTrackerTest`); TC 9's tests, unmodified.
+- [x] TC 1 to TC 8 and TC 14 to TC 16 (`LuaSourceChangeTrackerTest`); TC 9's tests, unmodified.
 - [ ] O1 to O8 (`SnapshotCostVerdictTest`); TC 10 to TC 13 (the Phase 2 runs).

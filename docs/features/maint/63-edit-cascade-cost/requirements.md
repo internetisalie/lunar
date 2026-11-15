@@ -2,7 +2,7 @@
 id: "MAINT-63"
 title: "63: Edit-Cascade Cost of After-Edit Reads"
 type: "feature"
-status: "planned"
+status: "in_progress"
 priority: "high"
 parent_id: "MAINT"
 folders:
@@ -37,8 +37,8 @@ held on this item. Parent: [[features/maint/requirements|MAINT]]. Measurement fe
 
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
-| MAINT-63-01 | **An edit discards only the snapshots it can affect** | M | Not Implemented | After an edit to file F, a cached unpinned snapshot stays valid when F is not among its recorded sources and none of design §3.3's resolution terms changed. Recorded sources: the frame's `urls` and `inProgressHits`, the file's own URL, and the same sets of every in-progress build it read (design §3.2). |
-| MAINT-63-02 | **No stale snapshot** | M | Not Implemented | An unpinned snapshot is rebuilt when one of its recorded sources changes, when a change can alter one of design §3.3's index answers, and on a PSI event that names no file (design §3.4). A frame whose sources cannot be identified keeps `MODIFICATION_COUNT`. Reading a snapshot in dumb mode does not throw. |
+| MAINT-63-01 | **An edit discards only the snapshots it can affect** | M | Full | After an edit to file F, a cached unpinned snapshot stays valid when F is not among its recorded sources and none of design §3.3's resolution terms changed. Recorded sources: the frame's `urls` and `inProgressHits`, the file's own URL, and the same sets of every in-progress build it read (design §3.2). |
+| MAINT-63-02 | **No stale snapshot** | M | Full | An unpinned snapshot is rebuilt when one of its recorded sources changes, when a change can alter one of design §3.3's index answers, and on a PSI event that names no file (design §3.4). A frame whose sources cannot be identified keeps `MODIFICATION_COUNT`. Reading a snapshot in dumb mode does not throw. |
 | MAINT-63-03 | **Fewer edit misses, no more cold misses** | M | Not Implemented | The full MAINT-60 sweep, twice at the base commit and twice at this item's commit. A pass misses its bound (`cold-250`, `edit-250`) exactly as `SnapshotCostVerdict` counts it: status not `ok`, or time 250 ms or more. **`edit-250`**: the higher change count is more than risks DR-25's edit margin below the lower base count. **`cold-250`**: the higher change count is no more than DR-25's cold margin above the lower base count. The cold margin also absorbs the tracker's measured per-read cost (Risk 1.4), so a cold failure is a real regression signal. |
 | MAINT-63-04 | **Findings unchanged** | M | Not Implemented | (a) The MAINT-54 audit's `luacheck` member and the MAINT-55 conformance results are byte-identical before and after the change. (b) Every candidate file outside luals has the same findings digest before and after the change when read alone, as MAINT-65-02 defines it (MAINT-65 design §3.2, §3.3); luals rows are recorded, not compared (risks Risk 1.5). (c) **After-edit oracle**: in the oracle run at this item's commit, a sweep invocation of its own (design §2.6), every compared row has `editDigest` equal to `rebuildDigest`, and `verdict.txt` holds no check line. There is no margin and no re-run. |
 
@@ -106,6 +106,6 @@ Rows cite the prototype run that executed them; "not yet run" names the phase th
 | 13 | The unpinned branch returns `MODIFICATION_COUNT` | Argued, not run: TC 10 red, because the change sweeps then come from base's distribution, so the higher of them is not more than base's spread, the margin (DR-25), below the lower base sweep |
 | 14 | None known for TC 11 and TC 12 | regression checks |
 | 15 | `resolveModuleCandidates` accepts every `init.lua` for a dotless name (BUG-102's resolver rule reverted) | TC 13: an `oracle: edit digest` line on tntcrud (DR-20 ran this engine code). Not yet run on the implemented oracle: implementation plan Phase 2 |
-| 16 | `LuaStampTotal.advance` raises `offset` by 1 instead of to `highWater + 1`; or drops the `changed` condition | TC 16: t4 = 26, equal to t3; or t2 = 26. Not yet run: Phase 1 |
+| 16 | `LuaStampTotal.advance` raises `offset` by 1 instead of to `highWater + 1`; or drops the `changed` condition | TC 16: t4 = 26, equal to t3; or t2 = 26. |
 | 17 | `toRow` takes `editDigest` from the cold read | design §2.6 O4. Run in Phase 0: `testO4RowTakesEachDigestFromItsRead` red |
 | 18 | `rebuildPass` reads without `forceFullRebuild` | an `oracle: rebuild read built nothing` line on tntcrud: the read returns the snapshot the edit read cached, so digests alone cannot catch it. Run in Phase 0 on tntcrud: 52 such lines, and none unmutated |

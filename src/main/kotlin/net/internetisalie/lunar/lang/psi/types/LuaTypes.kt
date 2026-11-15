@@ -286,7 +286,10 @@ class LuaTypesSnapshot(
          *
          * TYPE-11 §2.3/§3.3/§3.7: the build runs inside a [LuaTypeSourceRecorder] frame, the frame
          * is registered against the snapshot it produced, and [churnDependencyFor] decides whether
-         * this file rebuilds on every PSI tick (today's behaviour) or only on a generation tick.
+         * this file rebuilds only on a generation tick (pinned) or when one of its recorded sources
+         * or a resolution answer changes (unpinned: MAINT-63's [LuaSourceChangeTracker.trackerFor]).
+         * The frame is opened with [LuaTypeSourceRecorder.recordingFor], so a build that reads this
+         * one while it is in progress depends on it as a pending frame (MAINT-63 design §3.2).
          * The [inProgressSnapshot] guard still runs first — it is the cycle-breaker — but it now
          * **reports before it returns** (§3.1 step 5c, §1.10 V1): the hit is served for whichever
          * file is under construction, which is not necessarily the frame currently open, so the
@@ -316,7 +319,7 @@ class LuaTypesSnapshot(
             val cachedTypes =
                 CachedValuesManager.getCachedValue(psiFile, LuaTypesVisitor.KEY) {
                     val (builtTypes, sourceFrame) =
-                        LuaTypeSourceRecorder.recording { LuaTypesVisitor.buildSnapshot(psiFile) }
+                        LuaTypeSourceRecorder.recordingFor(psiFile) { LuaTypesVisitor.buildSnapshot(psiFile) }
                     LuaTypeSourceRecorder.snapshotFrames[builtTypes] = sourceFrame
                     CachedValueProvider.Result.create(builtTypes, *dependenciesFor(psiFile, sourceFrame))
                 }
@@ -396,7 +399,12 @@ class LuaTypesSnapshot(
         /**
          * TYPE-11 §3.3 step 9 — the churn dependency [forFile] hands to `Result.create`.
          *
-         * The return type is [Any] because the two branches share no narrower supertype:
+         * Unpinned, it is MAINT-63's per-source tracker ([LuaSourceChangeTracker.trackerFor]):
+         * the counters of the frame's recorded sources plus the resolution count, so an edit to a
+         * file this snapshot never consumed keeps it. A frame whose sources cannot be identified
+         * gets no tracker and keeps [PsiModificationTracker.MODIFICATION_COUNT].
+         *
+         * The return type is [Any] because the branches share no narrower supertype:
          * [PsiModificationTracker.MODIFICATION_COUNT] is a `Key` sentinel the platform
          * special-cases, not a `ModificationTracker`.
          *
@@ -411,7 +419,8 @@ class LuaTypesSnapshot(
             if (isPinnable(psiFile, sourceFrame)) {
                 LuaLibraryProvenance.getInstance(psiFile.project).generationTracker()
             } else {
-                PsiModificationTracker.MODIFICATION_COUNT
+                LuaSourceChangeTracker.getInstance(psiFile.project).trackerFor(psiFile, sourceFrame)
+                    ?: PsiModificationTracker.MODIFICATION_COUNT
             }
     }
 }

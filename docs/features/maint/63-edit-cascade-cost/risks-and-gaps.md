@@ -69,6 +69,17 @@ read during indexing (DR-18 `dumbchanging`).
 Answered (MAINT-65 DR-06, BUG-102 §4.1): a property of base inside the tnt* require cycles, so
 MAINT-63-04 compares an edit read with a forced full rebuild of the same state, not a cold read.
 
+### Gap 2.4: An index stamp read throws `ServiceNotReadyException` in smart mode
+Answered (design §3.3 step 4). A target switch calls `PlatformLibraryIndex.reload()`, which calls
+`StubIndex.forceRebuild` (`PlatformLibraryProvider.kt:118`). Until the rebuild starts, the `Stubs`
+index has a non-OK `RebuildStatus` while `DumbService.isDumb` is still false, and
+`FileBasedIndexImpl.ensureUpToDate` throws `ServiceNotReadyException` on every index access,
+`getIndexModificationStamp` included. `resolutionCount` treats it as `IndexNotReadyException` and
+returns the dumb value, so a snapshot checked in that window is rebuilt once the index is ready.
+Propagating it would throw a cancellation from every unpinned snapshot's validity check after a
+target switch. `LuaTypesSnapshotCacheTest.testTargetSwitchInvalidatesSnapshot` and
+`StubGlobalSeedTypeTest.testTargetSwitchInvalidatesSeededSnapshot_DR_03b` fail without the catch.
+
 ## Technical Debt & Future Work
 - **Library snapshots lost to GC.** Holding the files cut V1's misses further (V2, DR-11). Filed as BUG-105.
 - **BUG-519** (definition-library snapshots never pinned): they take the unpinned branch and get a

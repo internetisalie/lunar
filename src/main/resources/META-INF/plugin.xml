@@ -587,6 +587,10 @@
             serviceInterface="net.internetisalie.lunar.lang.psi.types.LuaTypeManager"
             serviceImplementation="net.internetisalie.lunar.lang.psi.types.LuaTypeManagerImpl" />
 
+    <!-- MAINT-63: per-source change counters for unpinned type snapshots -->
+    <projectService serviceImplementation="net.internetisalie.lunar.lang.psi.types.LuaSourceChangeTracker"/>
+    <psi.treeChangePreprocessor implementation="net.internetisalie.lunar.lang.psi.types.LuaSourceChangePreprocessor"/>
+
     <applicationConfigurable
             parentId="language"
             instance="net.internetisalie.lunar.settings.LuaApplicationSettingsConfigurable"
