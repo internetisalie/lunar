@@ -2,7 +2,7 @@
 id: "MAINT-61"
 title: "61: Own-Build Cost of Slow Files"
 type: "feature"
-status: "in_progress"
+status: "done"
 priority: "high"
 parent_id: "MAINT"
 folders:
@@ -17,7 +17,7 @@ Some files have their own snapshot build at 250 ms or more, and the time is most
 whole (value, use) product again, and recomputes the visit's facts over its up-set, even when the
 pass admits no new pair. This item scans only the pairs an earlier visit has not seen, and decides
 convergence from an edge counter. Neither changes which pairs the checker admits or in what
-order (DR-06). The visit facts stay as they are (risks Gap 2.4). DR-08 measured a probe close to this design (Risk 1.2). Filed by MAINT-60 Phase 3. MAINT-61 keeps the checker-cost passes of the MAINT-63 change
+order (DR-06). The visit facts stay as they are (risks Gap 2.4). DR-08 measured a probe close to this design (Risk 1.2). Filed by MAINT-60 Phase 3. MAINT-61 keeps the checker-cost passes of its own change
 sweeps, the largest own-build shape. Fan-out passes moved to [[MAINT-67]] and visitor-cost passes to
 [[MAINT-68]], by the rule in [files-over-target.md](files-over-target.md). [files-over-target.md](files-over-target.md) lists every pass (MAINT-60-02).
 v0.21.21 is held on this item. Parent: [[features/maint/requirements|MAINT]].
@@ -35,10 +35,10 @@ Measurement feature: [[MAINT-60]].
 | ID | Requirement | Priority | Status | Description |
 |----|-------------|----------|--------|-------------|
 | MAINT-61-01 | **Same pairs, same order** | M | Full | After a variable's visit, every (value, use) pair of its up-set and down-set, up to the sizes at the visit's start, is in `checkedPairs`. Admitted pairs are checked in the order the unmodified loop checks them, and convergence is decided as before (design §3). |
-| MAINT-61-02 | **Findings unchanged** | M | Not Implemented | MAINT-63-04 (a), (b) and (c), applied to this item's base and change commits. |
+| MAINT-61-02 | **Findings unchanged** | M | Full | MAINT-63-04 (a), (b) and (c), applied to this item's base and change commits. |
 | MAINT-61-03 | **Less checker work** | M | Full | A revisit scans only the pairs with a value or a use added since the variable's last visit (design §3.1) |
-| MAINT-61-04 | **No more misses; table regenerated** | M | Not Implemented | For each bound, over this item's two base and two change sweeps, the higher change count is no more than the margin above the lower base count. The margin per bound is the larger of MAINT-63 risks DR-25's margin and the spread of this item's two base sweeps (risks, *Premises*). [files-over-target.md](files-over-target.md) is regenerated from the change sweeps. |
-| MAINT-61-05 | **Faster table passes** | S | Not Implemented | Over the passes in [files-over-target.md](files-over-target.md) whose item is MAINT-61, the higher change sweep's summed read time is below the lower base sweep's. A pass that was not `ok` counts as 1 000 ms for `edit-250` and 60 000 ms for `cold-250`. |
+| MAINT-61-04 | **No more misses; table regenerated** | M | Full | For each bound, over this item's two base and two change sweeps, the higher change count is no more than the margin above the lower base count. The margin per bound is the larger of MAINT-63 risks DR-25's margin and the spread of this item's two base sweeps (risks, *Premises*). [files-over-target.md](files-over-target.md) is regenerated from the change sweeps. |
+| MAINT-61-05 | **Faster table passes** | S | Full | Over the passes in [files-over-target.md](files-over-target.md) whose item is MAINT-61, the higher change sweep's summed read time is below the lower base sweep's. A pass that was not `ok` counts as 1 000 ms for `edit-250` and 60 000 ms for `cold-250`. |
 
 ## Test Cases
 The base and change commits are defined in the implementation plan. TC 1 to TC 4 and TC 6 are unit tests

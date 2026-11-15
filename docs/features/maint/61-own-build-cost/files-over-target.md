@@ -8,8 +8,8 @@ folders:
 ---
 
 # MAINT-61: Files over Target
-Every pass that MAINT-63's two change sweeps (`change-sweep1`, `change-sweep2`, engine code of
-`8dad422c`) filed under MAINT-61, and the item that now holds it (MAINT-60-02). *Sweep 1* and
+Every pass that this item's two change sweeps (`change-sweep1`, `change-sweep2`, engine code of
+`d3841670`) filed under MAINT-61, and the item that now holds it (MAINT-60-02). *Sweep 1* and
 *Sweep 2* are the pass's value in each sweep, `pass` when it met its bound, and the other item in
 parentheses when that sweep filed it elsewhere. *Hub* is `own` when the file's own build reached
 250 ms, else the dominant dependency the sweep named. *Item* is decided from the member and the hub alone:
@@ -30,76 +30,73 @@ prints MAINT-61 for all of them (Gap 2.2).
 
 | Member | File | Bound | Sweep 1 | Sweep 2 | Hub | Item |
 |---|---|---|---|---|---|---|
-| awesome | `lib/naughty/core.lua` | cold-250 | 1110 ms | 1011 ms | `lib/awful/placement.lua` | MAINT-61 |
-| awesome | `lib/naughty/core.lua` | edit-250 | timeout | timeout | `lib/awful/placement.lua` | MAINT-61 |
-| awesome | `lib/naughty/layout/box.lua` | edit-250 | timeout | pass | `lib/awful/placement.lua` | MAINT-61 |
-| awesome | `lib/naughty/layout/init.lua` | edit-250 | 583 ms | pass | `lib/awful/placement.lua` | MAINT-61 |
-| awesome | `lib/naughty/notification.lua` | edit-250 | timeout | pass | `lib/awful/placement.lua` | MAINT-61 |
-| blinkcmp | `lua/blink/cmp/lib/window/init.lua` | cold-250 | 318 ms (MAINT-62) | 379 ms | own | MAINT-68 |
-| blinkcmp | `lua/blink/cmp/lib/window/init.lua` | edit-250 | 440 ms | 314 ms (MAINT-63) | own | MAINT-68 |
-| differ | `lua/differ/command.lua` | cold-250 | 1910 ms | 1915 ms | `lua/differ/git/init.lua` | MAINT-68 |
-| differ | `lua/differ/view.lua` | cold-250 | 544 ms | 462 ms | own | MAINT-61 |
-| differ | `lua/differ/view.lua` | edit-250 | 746 ms | 592 ms | own | MAINT-61 |
-| druid | `druid/base/back_handler.lua` | cold-250 | 781 ms | 693 ms | `druid/component.lua` | MAINT-68 |
-| druid | `druid/base/back_handler.lua` | edit-250 | 586 ms | 610 ms | `druid/component.lua` | MAINT-68 |
-| druid | `druid/base/blocker.lua` | edit-250 | 522 ms | 554 ms | `druid/component.lua` | MAINT-68 |
-| druid | `druid/base/button.lua` | edit-250 | 858 ms | 883 ms | own | MAINT-61 |
-| druid | `druid/base/drag.lua` | cold-250 | 354 ms | pass | own | MAINT-68 |
-| druid | `druid/base/drag.lua` | edit-250 | 764 ms | timeout | own | MAINT-68 |
-| druid | `druid/base/hover.lua` | cold-250 | pass | 410 ms | own | MAINT-61 |
-| druid | `druid/base/hover.lua` | edit-250 | 614 ms | 485 ms | `druid/component.lua` | MAINT-68 |
-| druid | `druid/base/scroll.lua` | cold-250 | 412 ms | 491 ms | own | MAINT-61 |
-| druid | `druid/base/scroll.lua` | edit-250 | timeout | 783 ms | own | MAINT-61 |
-| druid | `druid/base/static_grid.lua` | cold-250 | pass | 250 ms | own | MAINT-61 |
-| druid | `druid/base/static_grid.lua` | edit-250 | 614 ms | 827 ms | own | MAINT-61 |
-| druid | `druid/base/text.lua` | cold-250 | 424 ms | 406 ms | own | MAINT-61 |
-| druid | `druid/base/text.lua` | edit-250 | 724 ms | 752 ms | own | MAINT-61 |
-| druid | `druid/component.lua` | edit-250 | 304 ms | 343 ms | own | MAINT-68 |
-| druid | `druid/custom/rich_input/rich_input.lua` | cold-250 | 429 ms | 433 ms | own | MAINT-61 |
-| druid | `druid/custom/rich_input/rich_input.lua` | edit-250 | timeout | 946 ms | own | MAINT-61 |
-| druid | `druid/custom/rich_text/rich_text.lua` | edit-250 | 731 ms | 826 ms | own | MAINT-61 |
-| druid | `druid/druid.lua` | cold-250 | 9171 ms | 8053 ms | own | MAINT-68 |
-| druid | `druid/druid.lua` | edit-250 | timeout | timeout | `druid/base/blocker.lua` | MAINT-61 |
-| druid | `druid/extended/container.lua` | cold-250 | 591 ms | 737 ms | own | MAINT-61 |
-| druid | `druid/extended/container.lua` | edit-250 | 823 ms | 938 ms | own | MAINT-61 |
-| druid | `druid/extended/data_list.lua` | cold-250 | 338 ms | pass | own | MAINT-61 |
-| druid | `druid/extended/data_list.lua` | edit-250 | 706 ms | 680 ms | own | MAINT-61 |
-| druid | `druid/extended/hotkey.lua` | edit-250 | 709 ms | 806 ms | `druid/component.lua` | MAINT-68 |
-| druid | `druid/extended/input.lua` | cold-250 | 543 ms | 559 ms | own | MAINT-61 |
-| druid | `druid/extended/input.lua` | edit-250 | 799 ms | 866 ms | own | MAINT-61 |
-| druid | `druid/extended/lang_text.lua` | edit-250 | 735 ms | 437 ms | `druid/component.lua` | MAINT-68 |
-| druid | `druid/extended/layout.lua` | cold-250 | 465 ms | 390 ms | own | MAINT-61 |
-| druid | `druid/extended/layout.lua` | edit-250 | 715 ms | 646 ms | own | MAINT-61 |
-| druid | `druid/extended/progress.lua` | cold-250 | pass | 260 ms | own | MAINT-61 |
-| druid | `druid/extended/progress.lua` | edit-250 | 792 ms | 735 ms | own | MAINT-61 |
-| druid | `druid/extended/slider.lua` | cold-250 | 351 ms | pass | own | MAINT-61 |
-| druid | `druid/extended/slider.lua` | edit-250 | 610 ms | 764 ms | own | MAINT-61 |
-| druid | `druid/extended/swipe.lua` | edit-250 | 576 ms | 636 ms | `druid/component.lua` | MAINT-68 |
-| druid | `druid/extended/timer.lua` | cold-250 | 277 ms | pass | own | MAINT-61 |
-| druid | `druid/extended/timer.lua` | edit-250 | 630 ms | 588 ms | `druid/component.lua` | MAINT-68 |
-| druid | `druid/system/druid_instance.lua` | cold-250 | 6824 ms | 6619 ms | own | MAINT-61 |
-| druid | `druid/system/druid_instance.lua` | edit-250 | timeout | timeout | `druid/component.lua` | MAINT-68 |
-| factoryplanner | `modfiles/backend/calculation/LUDecomposition.lua` | cold-250 | 3102 ms | 3450 ms | `modfiles/backend/data/Machine.lua` | MAINT-67 |
+| awesome | `lib/naughty/core.lua` | cold-250 | 990 ms | 951 ms | `lib/awful/placement.lua` | MAINT-61 |
+| awesome | `lib/naughty/core.lua` | edit-250 | 853 ms | 887 ms | `lib/awful/placement.lua` | MAINT-61 |
+| awesome | `lib/naughty/layout/box.lua` | edit-250 | timeout | 921 ms | `lib/awful/placement.lua` | MAINT-61 |
+| awesome | `lib/naughty/layout/init.lua` | edit-250 | 449 ms | pass | `lib/awful/placement.lua` | MAINT-61 |
+| blinkcmp | `lua/blink/cmp/lib/window/init.lua` | cold-250 | 446 ms | 322 ms (MAINT-62) | own | MAINT-68 |
+| blinkcmp | `lua/blink/cmp/lib/window/init.lua` | edit-250 | 441 ms | 364 ms (MAINT-63) | own | MAINT-68 |
+| differ | `lua/differ/command.lua` | cold-250 | 1869 ms | 1856 ms | `lua/differ/git/init.lua` | MAINT-68 |
+| differ | `lua/differ/git/init.lua` | edit-250 | 658 ms | 471 ms (MAINT-63) | own | MAINT-68 |
+| differ | `lua/differ/view.lua` | cold-250 | 468 ms | 415 ms | own | MAINT-61 |
+| differ | `lua/differ/view.lua` | edit-250 | 665 ms | 547 ms | own | MAINT-61 |
+| druid | `druid/base/back_handler.lua` | cold-250 | 776 ms | 864 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/base/back_handler.lua` | edit-250 | 643 ms | 510 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/base/blocker.lua` | edit-250 | 589 ms | 556 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/base/button.lua` | cold-250 | pass | 504 ms | own | MAINT-61 |
+| druid | `druid/base/button.lua` | edit-250 | timeout | timeout | own | MAINT-61 |
+| druid | `druid/base/drag.lua` | cold-250 | 469 ms | 279 ms | own | MAINT-68 |
+| druid | `druid/base/drag.lua` | edit-250 | 576 ms | 660 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/base/hover.lua` | edit-250 | 544 ms | 542 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/base/scroll.lua` | cold-250 | 377 ms | 396 ms | own | MAINT-61 |
+| druid | `druid/base/scroll.lua` | edit-250 | 962 ms | 897 ms | own | MAINT-61 |
+| druid | `druid/base/static_grid.lua` | edit-250 | 650 ms | 627 ms | own | MAINT-61 |
+| druid | `druid/base/text.lua` | cold-250 | 368 ms | 366 ms (MAINT-62) | own | MAINT-61 |
+| druid | `druid/base/text.lua` | edit-250 | 633 ms | 637 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/component.lua` | edit-250 | 554 ms | 421 ms | own | MAINT-68 |
+| druid | `druid/custom/rich_input/rich_input.lua` | cold-250 | 471 ms | 766 ms | own | MAINT-61 |
+| druid | `druid/custom/rich_input/rich_input.lua` | edit-250 | 986 ms | 977 ms | own | MAINT-61 |
+| druid | `druid/custom/rich_text/rich_text.lua` | edit-250 | 570 ms | 554 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/druid.lua` | cold-250 | 7338 ms | 7727 ms | own | MAINT-68 |
+| druid | `druid/druid.lua` | edit-250 | timeout | timeout | `druid/system/druid_instance.lua` | MAINT-61 |
+| druid | `druid/extended/container.lua` | cold-250 | 955 ms | 654 ms | own | MAINT-61 |
+| druid | `druid/extended/container.lua` | edit-250 | 724 ms | 928 ms | own | MAINT-61 |
+| druid | `druid/extended/data_list.lua` | edit-250 | 655 ms | 683 ms | own | MAINT-61 |
+| druid | `druid/extended/hotkey.lua` | cold-250 | 260 ms | pass | own | MAINT-61 |
+| druid | `druid/extended/hotkey.lua` | edit-250 | 521 ms | 428 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/extended/input.lua` | cold-250 | 437 ms | 439 ms | own | MAINT-61 |
+| druid | `druid/extended/input.lua` | edit-250 | 776 ms | 919 ms | own | MAINT-61 |
+| druid | `druid/extended/lang_text.lua` | cold-250 | 352 ms | 288 ms | own | MAINT-61 |
+| druid | `druid/extended/lang_text.lua` | edit-250 | 542 ms | 614 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/extended/layout.lua` | cold-250 | pass | 300 ms | own | MAINT-61 |
+| druid | `druid/extended/layout.lua` | edit-250 | 618 ms | 729 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/extended/progress.lua` | cold-250 | 365 ms | pass | own | MAINT-61 |
+| druid | `druid/extended/progress.lua` | edit-250 | 787 ms | 592 ms | own | MAINT-61 |
+| druid | `druid/extended/slider.lua` | cold-250 | 317 ms | 314 ms | own | MAINT-61 |
+| druid | `druid/extended/slider.lua` | edit-250 | 584 ms | 556 ms | own | MAINT-61 |
+| druid | `druid/extended/swipe.lua` | edit-250 | 580 ms | 681 ms | `druid/component.lua` | MAINT-68 |
+| druid | `druid/extended/timer.lua` | edit-250 | 639 ms | 515 ms | own | MAINT-61 |
+| druid | `druid/system/druid_instance.lua` | edit-250 | timeout | timeout | `druid/base/button.lua` | MAINT-61 |
+| factoryplanner | `modfiles/backend/calculation/LUDecomposition.lua` | cold-250 | 3132 ms | 3223 ms | `modfiles/backend/data/Machine.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/calculation/LUDecomposition.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/calculation/SimplexTableau.lua` | edit-250 | timeout (MAINT-63) | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/calculation/gaussian_engine.lua` | edit-250 | timeout | timeout | `modfiles/backend/calculation/LUDecomposition.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/calculation/sequential_engine.lua` | edit-250 | timeout (MAINT-63) | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/calculation/simplex_engine.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/calculation/solver.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
+| factoryplanner | `modfiles/backend/calculation/SimplexTableau.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/backend/calculation/gaussian_engine.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/backend/calculation/sequential_engine.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/backend/calculation/simplex_engine.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/backend/calculation/solver.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/calculation/solver_util.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/calculation/structures.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
+| factoryplanner | `modfiles/backend/calculation/structures.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/Beacon.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/District.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/DistrictItemSet.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/Factory.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/Floor.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/data/Fuel.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/backend/data/Fuel.lua` | edit-250 | timeout | timeout (MAINT-63) | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/Line.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/Machine.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/Module.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/ModuleSet.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/Object.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/data/Realm.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/Recipe.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/data/SimpleItem.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/handlers/defaults.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
@@ -111,32 +108,29 @@ prints MAINT-61 for all of them (Gap 2.2).
 | factoryplanner | `modfiles/backend/migrations/migration_2_0_2.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/migrations/migration_2_0_41.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/migrations/migration_2_0_45.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/migrations/migration_2_1_16.lua` | edit-250 | timeout (MAINT-63) | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
-| factoryplanner | `modfiles/backend/migrations/migration_2_1_17.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/backend/migrations/migration_2_1_17.lua` | edit-250 | timeout | timeout (MAINT-63) | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/backend/migrations/migrator.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/control.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/ui/base/calculator_dialog.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/ui/base/calculator_dialog.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
 | factoryplanner | `modfiles/ui/base/compact_dialog.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/ui/base/main_dialog.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/ui/base/modal_dialog.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/ui/components/item_highlights.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
 | factoryplanner | `modfiles/ui/components/item_views.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/ui/components/module_configurator.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/ui/dialogs/beacon_dialog.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/ui/dialogs/factory_dialog.lua` | edit-250 | timeout | 359 ms (MAINT-63) | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/ui/dialogs/item_dialog.lua` | edit-250 | timeout | pass | `modfiles/backend/data/Machine.lua` | MAINT-67 |
-| factoryplanner | `modfiles/ui/dialogs/machine_dialog.lua` | edit-250 | timeout | pass | `modfiles/backend/data/Machine.lua` | MAINT-67 |
+| factoryplanner | `modfiles/ui/components/module_configurator.lua` | edit-250 | timeout | timeout (MAINT-63) | `modfiles/backend/data/Machine.lua` | MAINT-67 |
+| factoryplanner | `modfiles/ui/dialogs/beacon_dialog.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
 | factoryplanner | `modfiles/ui/event_handler.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/ui/main/district_list.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/ui/main/districts_box.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
-| factoryplanner | `modfiles/ui/main/factory_list.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
-| factoryplanner | `modfiles/ui/main/production_box.lua` | edit-250 | 641 ms | timeout | `modfiles/backend/data/Line.lua` | MAINT-67 |
-| factoryplanner | `modfiles/util/actions.lua` | edit-250 | timeout | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
+| factoryplanner | `modfiles/ui/main/factory_list.lua` | edit-250 | 636 ms | timeout | `modfiles/backend/data/Line.lua` | MAINT-67 |
+| factoryplanner | `modfiles/ui/main/item_boxes.lua` | edit-250 | pass | 792 ms | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/ui/main/production_box.lua` | edit-250 | pass | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
+| factoryplanner | `modfiles/util/availability.lua` | edit-250 | pass | timeout | `modfiles/backend/data/Machine.lua` | MAINT-67 |
 | factoryplanner | `modfiles/util/clipboard.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/util/context.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/util/cursor.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/util/cursor.lua` | edit-250 | timeout (MAINT-63) | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/util/dictionary.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| factoryplanner | `modfiles/util/effects.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
+| factoryplanner | `modfiles/util/effects.lua` | edit-250 | timeout | timeout (MAINT-63) | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/util/format.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/util/globals.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/util/gui.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
@@ -145,55 +139,53 @@ prints MAINT-61 for all of them (Gap 2.2).
 | factoryplanner | `modfiles/util/porter.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/util/preferences.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
 | factoryplanner | `modfiles/util/temperature.lua` | edit-250 | timeout | timeout | `modfiles/backend/handlers/generator.lua` | MAINT-67 |
-| gitsigns | `lua/gitsigns.lua` | cold-250 | 2604 ms (MAINT-62) | 3067 ms | `lua/gitsigns/hunks.lua` | MAINT-61 |
-| gitsigns | `lua/gitsigns/actions.lua` | edit-250 | 804 ms (MAINT-63) | 745 ms | own | MAINT-61 |
-| gitsigns | `lua/gitsigns/diff_int.lua` | cold-250 | 584 ms | 601 ms | `definitions:uv/_meta.lua` | MAINT-61 |
-| gitsigns | `lua/gitsigns/diff_int.lua` | edit-250 | 713 ms | pass | `definitions:uv/_meta.lua` | MAINT-61 |
-| gitsigns | `lua/gitsigns/word_diff.lua` | edit-250 | 715 ms (MAINT-63) | 855 ms | `lua/gitsigns/hunks.lua` | MAINT-61 |
-| kristal | `src/engine/game/battle/arena.lua` | cold-250 | 542 ms | pass | own | MAINT-68 |
-| kristal | `src/engine/game/battle/battlecutscene.lua` | cold-250 | 267 ms | 254 ms | own | MAINT-68 |
-| kristal | `src/engine/game/battle/bullet.lua` | cold-250 | 278 ms | pass | own | MAINT-68 |
-| kristal | `src/engine/game/battle/enemybattler.lua` | cold-250 | 295 ms | 306 ms | own | MAINT-61 |
-| kristal | `src/engine/game/battle/enemybattler.lua` | edit-250 | 348 ms | 381 ms | own | MAINT-61 |
-| kristal | `src/engine/game/battle/ui/tensionbar.lua` | cold-250 | 251 ms | pass | own | MAINT-61 |
-| kristal | `src/engine/game/common/data/item.lua` | cold-250 | pass | 268 ms | own | MAINT-61 |
-| kristal | `src/engine/game/common/data/item.lua` | edit-250 | 323 ms | pass | own | MAINT-61 |
-| ldoc | `ldoc/markdown.lua` | cold-250 | 295 ms | 271 ms | own | MAINT-61 |
-| ldoc | `ldoc/markdown.lua` | edit-250 | 384 ms | 270 ms | own | MAINT-61 |
-| ljtk | `lang/bcsave.lua` | cold-250 | 1774 ms | 1600 ms | `lang/parser.lua` | MAINT-61 |
+| gitsigns | `lua/gitsigns/diff_int.lua` | cold-250 | 567 ms | 481 ms | `definitions:uv/_meta.lua` | MAINT-61 |
+| gitsigns | `lua/gitsigns/diff_int.lua` | edit-250 | pass | 575 ms | `definitions:uv/_meta.lua` | MAINT-61 |
+| kong | `kong/clustering/compat/checkers.lua` | cold-250 | 312 ms | pass | `definitions:openresty-17f581b2e6f2d3a30ab0e6564eb2eb40426db6b5/ngx.lua` | MAINT-61 |
+| kristal | `src/engine/game/battle/battlecutscene.lua` | cold-250 | 272 ms | 285 ms | own | MAINT-68 |
+| kristal | `src/engine/game/battle/enemybattler.lua` | edit-250 | 365 ms | 343 ms | own | MAINT-61 |
+| kristal | `src/engine/game/common/data/item.lua` | cold-250 | 291 ms | 334 ms | own | MAINT-61 |
+| kristal | `src/engine/game/common/data/item.lua` | edit-250 | pass | 290 ms | own | MAINT-61 |
+| kristal | `src/engine/game/common/inventory.lua` | edit-250 | pass | 346 ms | own | MAINT-61 |
+| ldoc | `ldoc/markdown.lua` | edit-250 | 308 ms | 339 ms | own | MAINT-61 |
+| ljtk | `lang/bcsave.lua` | cold-250 | 1913 ms | 1667 ms | `lang/parser.lua` | MAINT-61 |
 | ljtk | `lang/parser.lua` | edit-250 | timeout | timeout | own | MAINT-61 |
-| luals | `script/vm/compiler.lua` | cold-250 | 48965 ms | 47089 ms | own | MAINT-61 |
-| opensmce | `src/BootScreen/BootScreen.lua` | cold-250 | 757 ms | 1062 ms | `src/RootScene.lua` | MAINT-68 |
-| opensmce | `src/Configs/utils.lua` | cold-250 | 415 ms | 362 ms | own | MAINT-61 |
-| opensmce | `src/Configs/utils.lua` | edit-250 | 634 ms | 741 ms | own | MAINT-61 |
-| opensmce | `src/Game/DummyLevel.lua` | cold-250 | 3625 ms | 3283 ms | `src/Game/SphereGroup.lua` | MAINT-61 |
+| luals | `script/vm/compiler.lua` | cold-250 | 50193 ms | 50958 ms | own | MAINT-61 |
+| opensmce | `src/BootScreen/BootScreen.lua` | cold-250 | 974 ms | 673 ms | `src/RootScene.lua` | MAINT-68 |
+| opensmce | `src/Configs/utils.lua` | cold-250 | 407 ms | 358 ms | own | MAINT-61 |
+| opensmce | `src/Configs/utils.lua` | edit-250 | 501 ms | 565 ms | own | MAINT-61 |
+| opensmce | `src/Game/DummyLevel.lua` | cold-250 | 2854 ms | 2709 ms | `src/Game/SphereGroup.lua` | MAINT-61 |
 | opensmce | `src/Game/DummyLevel.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
-| opensmce | `src/Game/Game.lua` | cold-250 | 1160 ms | 1259 ms | `src/Game/Shooter.lua` | MAINT-61 |
+| opensmce | `src/Game/Game.lua` | cold-250 | 1284 ms | 1114 ms | `src/Game/Shooter.lua` | MAINT-61 |
 | opensmce | `src/Game/Game.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
 | opensmce | `src/Game/Level.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
 | opensmce | `src/Game/Map.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
 | opensmce | `src/Game/Path.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
-| opensmce | `src/Game/Shooter.lua` | edit-250 | 715 ms | 537 ms | own | MAINT-61 |
-| opensmce | `src/Game/Sphere.lua` | edit-250 | pass | 271 ms | own | MAINT-68 |
+| opensmce | `src/Game/Shooter.lua` | edit-250 | 511 ms | 615 ms | own | MAINT-61 |
 | opensmce | `src/Game/SphereChain.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
 | opensmce | `src/Game/SphereGroup.lua` | edit-250 | timeout | timeout | own | MAINT-61 |
 | opensmce | `src/GameBase.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
 | opensmce | `src/UI/Manager.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
 | opensmce | `src/UI/Widget.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
 | opensmce | `src/UI/WidgetLevel.lua` | edit-250 | timeout | timeout | `src/Game/SphereGroup.lua` | MAINT-61 |
-| prism | `engine/algorithms/astar/astar.lua` | cold-250 | 629 ms | 565 ms (MAINT-62) | `engine/init.lua` | MAINT-68 |
-| prism | `engine/core/level.lua` | cold-250 | 422 ms | 322 ms | own | MAINT-61 |
-| prism | `engine/core/level.lua` | edit-250 | 395 ms | 324 ms | own | MAINT-61 |
-| prism | `engine/math/color.lua` | cold-250 | 1405 ms | 1030 ms | own | MAINT-61 |
+| prism | `engine/core/level.lua` | cold-250 | 426 ms | pass | own | MAINT-61 |
+| prism | `engine/core/level.lua` | edit-250 | 304 ms | 413 ms | own | MAINT-61 |
+| prism | `engine/math/color.lua` | cold-250 | 1441 ms | 1185 ms | own | MAINT-61 |
 | prism | `engine/math/color.lua` | edit-250 | timeout | timeout | own | MAINT-61 |
-| prism | `engine/math/vector.lua` | cold-250 | 473 ms | 347 ms | own | MAINT-61 |
-| prism | `engine/math/vector.lua` | edit-250 | 622 ms | 601 ms | own | MAINT-61 |
-| prism | `spectrum/display.lua` | cold-250 | 948 ms | 974 ms | own | MAINT-61 |
-| prism | `spectrum/display.lua` | edit-250 | 986 ms | 983 ms | own | MAINT-61 |
-| rampant | `libs/BaseUtils.lua` | cold-250 | 482 ms | 484 ms | own | MAINT-68 |
-| snabb | `src/lib/yang/alarms.lua` | cold-250 | 1870 ms | 1923 ms | `src/lib/yang/schema.lua` | MAINT-61 |
-| snabb | `src/lib/yang/path_data.lua` | edit-250 | timeout | timeout | `src/lib/yang/schema.lua` | MAINT-61 |
-| snabb | `src/lib/yang/schema.lua` | edit-250 | 371 ms | 277 ms | own | MAINT-61 |
-| snabb | `src/lib/yang/yang.lua` | edit-250 | timeout (MAINT-63) | timeout | `src/lib/yang/schema.lua` | MAINT-61 |
-| telescope | `lua/telescope/actions/history.lua` | cold-250 | 798 ms | 589 ms | `definitions:uv/_meta.lua` | MAINT-61 |
-| telescope | `lua/telescope/builtin/__lsp.lua` | cold-250 | 456 ms | 466 ms | `definitions:vim/lsp.lua` | MAINT-61 |
+| prism | `engine/math/vector.lua` | cold-250 | 385 ms | 557 ms | own | MAINT-61 |
+| prism | `engine/math/vector.lua` | edit-250 | 487 ms | 569 ms | own | MAINT-61 |
+| prism | `spectrum/display.lua` | cold-250 | 1037 ms | 1052 ms | own | MAINT-61 |
+| prism | `spectrum/display.lua` | edit-250 | timeout | timeout | own | MAINT-61 |
+| rampant | `libs/BaseUtils.lua` | cold-250 | 432 ms | 439 ms | own | MAINT-68 |
+| restyhttp | `lib/resty/http.lua` | cold-250 | 450 ms | 339 ms (MAINT-62) | `definitions:openresty-17f581b2e6f2d3a30ab0e6564eb2eb40426db6b5/ngx.lua` | MAINT-61 |
+| snabb | `src/lib/yang/alarms.lua` | cold-250 | 1854 ms | 1865 ms | `src/lib/yang/schema.lua` | MAINT-61 |
+| snabb | `src/lib/yang/alarms.lua` | edit-250 | timeout | pass | `src/lib/yang/schema.lua` | MAINT-61 |
+| snabb | `src/lib/yang/path_data.lua` | edit-250 | 751 ms (MAINT-63) | timeout | `src/lib/yang/schema.lua` | MAINT-61 |
+| snabb | `src/lib/yang/yang.lua` | edit-250 | timeout | timeout | `src/lib/yang/schema.lua` | MAINT-61 |
+| telescope | `lua/telescope/actions/history.lua` | cold-250 | 639 ms | 610 ms | `definitions:uv/_meta.lua` | MAINT-61 |
+| telescope | `lua/telescope/builtin/__diagnostics.lua` | edit-250 | timeout | pass | `lua/telescope/pickers.lua` | MAINT-61 |
+| telescope | `lua/telescope/builtin/__lsp.lua` | cold-250 | 550 ms | 428 ms | `definitions:vim/lsp.lua` | MAINT-61 |
+| telescope | `lua/telescope/builtin/init.lua` | edit-250 | pass | 290 ms | own | MAINT-61 |
+| telescope | `lua/telescope/command.lua` | edit-250 | pass | 356 ms | `lua/telescope/builtin/init.lua` | MAINT-61 |
+| tntqueue | `queue/abstract.lua` | cold-250 | 290 ms | pass | own | MAINT-61 |
+| weakauras | `WeakAuras/BaseRegions/CircularProgressTexture.lua` | cold-250 | pass | 276 ms | own | MAINT-61 |

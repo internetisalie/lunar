@@ -53,13 +53,13 @@ on `main`. The **change commit** is Phase 1's. *Reading a sweep*, *Oracle over b
 
 ### Phase 2: Acceptance runs [Must]
 - **Tasks**, one run at a time:
-  - [ ] At the base commit: TC 8's command, then two TC 11 sweeps.
-  - [ ] At the change commit: the same runs, then TC 10's oracle run.
-  - [ ] TC 9 at the base commit, then at the change commit, with `-PaloneDigestBase` and
+  - [x] At the base commit: TC 8's command, then two TC 11 sweeps.
+  - [x] At the change commit: the same runs, then TC 10's oracle run.
+  - [x] TC 9 at the base commit, then at the change commit, with `-PaloneDigestBase` and
     `-PaloneDigestChange` set to the copied `sweep.jsonl` of each commit's first sweep.
-  - [ ] Record in the PR: every sweep's miss count per bound, the margin per bound (MAINT-61-04), MAINT-61-05's four sums, the candidate
+  - [x] Record in the PR: every sweep's miss count per bound, the margin per bound (MAINT-61-04), MAINT-61-05's four sums, the candidate
     count, the digest comparison, the oracle's `oracle compared=` line, and every sweep's samples.
-  - [ ] Regenerate [files-over-target.md](files-over-target.md) from the two change sweeps, by the
+  - [x] Regenerate [files-over-target.md](files-over-target.md) from the two change sweeps, by the
     rule above its table.
 - **On a failure of TC 8, TC 9, TC 10 or MAINT-61-04's rule**: do not merge, and report the failing
   outputs to the supervisor. A MAINT-61-05 failure is recorded in the PR and does not block.
@@ -77,4 +77,4 @@ on `main`. The **change commit** is Phase 1's. *Reading a sweep*, *Oracle over b
 
 ## Verification Tasks
 - [x] TC 1 to TC 4 (`LuaPairScanTest`); TC 6's tests, unmodified; TC 7 (Phase 1 runs).
-- [ ] TC 8 to TC 11 (Phase 2 runs).
+- [x] TC 8 to TC 11 (Phase 2 runs).
