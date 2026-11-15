@@ -14,4 +14,4 @@ profile:
         deleteBranch: true
 dialect:
   identity:
-    pattern: '^(BUG)-[0-9]{3}$'
+    pattern: '^(AI|ANALYSIS|BUG|COMP|DEBUG|DOC|EDITOR|FORMAT|INSP|INTENT|MAINT|NAV|REDIS|REFACT|ROCKS|RUN|SCHEMA|SYNTAX|TARGET|TOOL|TOOLING|TYPE)-[0-9]+$'
