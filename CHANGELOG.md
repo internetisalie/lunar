@@ -19,7 +19,7 @@
   compared every value of a variable with every use again, even pairs it had already checked. It
   now checks only the pairs that are new since its last look at that variable. The findings it
   reports are unchanged.
-- **An edit rebuilds only the types it can change** (MAINT-63). Lunar used to discard every cached
+- **An edit rebuilds only the types it can change** (MAINT-63, BUG-108). Lunar used to discard every cached
   file's types after any edit. A file's cached types now stay valid until a file they were built
   from changes, or until an edit can change the index lookups they resolved through. Across the type
   corpus, the files whose types take 250 ms or more to read after an edit fall by about a third

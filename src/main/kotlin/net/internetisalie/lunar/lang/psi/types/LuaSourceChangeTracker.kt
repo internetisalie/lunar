@@ -132,7 +132,7 @@ internal class LuaSourceSetTracker(
             if (frame.unreplayedWarm.isNotEmpty()) degraded = true
             live.addAll(frame.urls)
             live.addAll(frame.inProgressHits)
-            work.addAll(frame.pendingFrames)
+            work.addAll(frame.pendingFrames.toList())
         }
         return degraded || live.any { LuaTypeSourceRecorder.isUnidentified(it) }
     }
