@@ -82,7 +82,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 >    Met when MAINT-60's sweep, run on the libvirt builder at the release candidate's commit, prints
 >    `release READY` (MAINT-60-07).
 > 2. **No wrong warnings:** every MAINT-55 conformance case scored `false-report` reaches `agree`
->    (BUG-75, BUG-81, BUG-85, BUG-91, BUG-94).
+>    (BUG-75, BUG-81, BUG-94).
 > 3. **No regressions:** the MAINT-55 ratchet stays green, and the MAINT-54 audit is unchanged except for
 >    recorded corrections.
 
@@ -147,13 +147,11 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-82 | Calling a colon-defined method with a dot (`t.init()` for `function t:init()`) is not reported as missing `self`, and has no quick fix | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-83 | A function annotated to return a value, whose end is reachable without a `return`, is not reported | todo | S | — | found by MAINT-55 conformance suite (8 cases) | ✓ |
 | BUG-84 | A `return` with too few or too many values for the declared returns (`return` for `fun():number`; `return 1, true`) is not reported | todo | S | — | found by MAINT-55 conformance suite (6 cases) | ✓ |
-| BUG-85 | `return 1` in a function declared `@return number, number?` is reported as `nil` not assignable to `number` | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-86 | A wrong primitive argument (`f(true)` for `number`) is reported on the callee's parameter declaration instead of the call | todo | S | — | found by MAINT-55 conformance suite (2 cases) | ✓ |
 | BUG-87 | An argument that is not an `@enum` member (`f(t)`, `f(3)`, `f({ h = 1 })`), or does not fit an `@overload` constructor (`MyClass(1)`), is not reported | todo | S | — | found by MAINT-55 conformance suite (4 cases) | ✓ |
 | BUG-88 | An argument outside a generic's constraint (`f(1)` for `T: string \| boolean \| table`) is not reported | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-89 | An inline record argument whose fields differ (`{c, d}` passed where `{a, b}` is declared) is not reported | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-90 | Extra arguments to a standard-library function (`next({}, 1, 2)`, `table.insert({}, 1, 2, 3)`) are not reported | todo | S | — | found by MAINT-55 conformance suite (2 cases) | ✓ |
-| BUG-91 | `return nil` for `@return number?`, and `return false` where an `@overload` returns `boolean`, are reported as not assignable | todo | S | — | found by MAINT-55 conformance suite (3 cases) | ✓ |
 | BUG-92 | `return true` inside a `@type fun():number` local function is not reported | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-93 | Reading an undeclared field or calling an undeclared method on a class-typed value (`v.field3`, `Foo:method2()`) is not reported | todo | S | — | found by MAINT-55 conformance suite (10 cases) | ✓ |
 | BUG-94 | A class method annotated `@generic T: SomeClass` / `@param self T` reports missing fields and too many arguments, and not the undefined field | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |

@@ -106,6 +106,10 @@ object LuaCatsDeclarations {
         return if (hasOptionalMark(tag.description)) "($declared) | nil" else declared
     }
 
+    /** `@return T?` — the top-level type stops before `?`, so it opens the return description. */
+    fun isOptionalReturn(descriptor: LuaCatsReturnTypeDescriptor): Boolean =
+        descriptor.returnDescription?.text?.startsWith("?") == true
+
     /** `@param p? T` and `@param p T?` both let a call omit `p`. */
     fun isOptionalParam(tag: LuaCatsParamTag): Boolean = tag.argSymbol?.text == "?" || hasOptionalMark(tag.description)
 

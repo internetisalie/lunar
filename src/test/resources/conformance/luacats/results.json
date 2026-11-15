@@ -1531,13 +1531,11 @@
     },
     "missing-return-value-004": {
       "rule": "return.count",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "2-4:nil value is not assignable to number"
-      ]
+      "findings": []
     },
     "missing-return-value-005": {
       "rule": "return.count",
@@ -2189,13 +2187,11 @@
     },
     "return-type-mismatch-003": {
       "rule": "return.mismatch",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "2-4:nil value is not assignable to number"
-      ]
+      "findings": []
     },
     "return-type-mismatch-004": {
       "rule": "return.mismatch",
@@ -2280,13 +2276,11 @@
     },
     "return-type-mismatch-012": {
       "rule": "return.mismatch",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "4-10:boolean is not assignable to number"
-      ]
+      "findings": []
     },
     "return-type-mismatch-013": {
       "rule": "return.mismatch",
@@ -2306,13 +2300,11 @@
     },
     "return-type-mismatch-015": {
       "rule": "return.mismatch",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "4-10:boolean is not assignable to number"
-      ]
+      "findings": []
     },
     "return-type-mismatch-016": {
       "rule": "return.mismatch",
@@ -2550,13 +2542,11 @@
       "deviation": 6
     },
     "return.count": {
-      "agree": 2,
-      "false-report": 1,
+      "agree": 3,
       "missed": 6
     },
     "return.mismatch": {
-      "agree": 12,
-      "false-report": 3,
+      "agree": 15,
       "missed": 1
     },
     "return.missing": {

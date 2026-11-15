@@ -184,6 +184,8 @@ object LuaTypeGraphBridge {
         val typeParameters = typeParametersOf(cats, context)
 
         val descriptors = cats.getReturnTagList().flatMap { it.returnTypeDescriptorList }
+        val overloadReturns =
+            overloadFirstReturns(cats, context, typeParameters).map { LuaGraphType.fromLuaType(it, graph) }
         descriptors.forEachIndexed { i, desc ->
             val retNode = returnNodes.getOrNull(i) ?: return@forEachIndexed
             val typeName = desc.argType.text.trim()
@@ -194,10 +196,30 @@ object LuaTypeGraphBridge {
             // triggers instantiation at call sites.
             graph.addEdge(graph.value(context, graphType, declaredOrigin = true), retNode)
 
-            // Create a UseNode constraint that represents the return type requirement
-            val useNode = graph.use(context, graphType, declaredDemand = true)
+            // The requirement a return places on its value: `T?` and an `@overload`'s return widen it.
+            val demand =
+                LuaTypeAlgebra.returnDemand(
+                    graphType,
+                    LuaCatsDeclarations.isOptionalReturn(desc),
+                    if (i == 0) overloadReturns else emptyList(),
+                )
+            val useNode = graph.use(context, demand, declaredDemand = true)
             // Use the graph API to add the edge instead of direct downSet manipulation.
             graph.addEdge(retNode, useNode)
         }
     }
+
+    /**
+     * The first return type of each `@overload` on [cats]. The first position only: a signature's
+     * later returns have no counterpart among the declared `@return` nodes to widen (BUG-91).
+     */
+    private fun overloadFirstReturns(
+        cats: LuaCatsComment,
+        context: PsiElement,
+        typeParameters: Map<String, LuaType?>,
+    ): List<LuaType> =
+        cats.overloadTagList.mapNotNull { tag ->
+            val returnType = tag.overloadFunctionSignature.functionSignatureReturnType ?: return@mapNotNull null
+            resolveTypeWithGenerics(returnType.argType.text.trim(), context, typeParameters)
+        }
 }

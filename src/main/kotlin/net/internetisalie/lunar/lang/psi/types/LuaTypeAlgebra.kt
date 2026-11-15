@@ -109,6 +109,21 @@ object LuaTypeAlgebra {
         }
 
     /**
+     * The demand a declared return position places on a returned value (BUG-85, BUG-91). `T?` also
+     * accepts `nil`, and each `@overload` signature's first return is another type the function may
+     * return. A generic `T` is left alone, as in [parameterDemand].
+     */
+    fun returnDemand(
+        declared: LuaGraphType,
+        isOptional: Boolean,
+        overloadReturns: List<LuaGraphType>,
+    ): LuaGraphType {
+        if (declared is LuaGraphType.Generic) return declared
+        val arms = listOf(declared) + overloadReturns + listOfNotNull(LuaGraphType.Nil.takeIf { isOptional })
+        return if (arms.size == 1) declared else LuaGraphType.Union.create(arms)
+    }
+
+    /**
      * The arms of a union value that are evidence about it: all but `nil`. A `nil` arm is optionality
      * (BUG-416), so it never decides whether the value fits a demand.
      */

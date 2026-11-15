@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **An optional or overloaded return is no longer reported as a mismatch** (BUG-85, BUG-91). A
+  function declared `---@return number?` that returns `nil`, one declared `---@return number, number?`
+  that returns a single value, and one whose `---@overload` returns a different type, were all
+  reported as "not assignable". They are now accepted, and a return of any other type is still reported.
 - **Type checking a large file repeats less work** (MAINT-61). Each pass of the type checker
   compared every value of a variable with every use again, even pairs it had already checked. It
   now checks only the pairs that are new since its last look at that variable. The findings it

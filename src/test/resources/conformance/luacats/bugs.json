@@ -78,9 +78,6 @@
       "redundant-return-value-003",
       "redundant-return-value-004"
     ],
-    "BUG-85": [
-      "missing-return-value-004"
-    ],
     "BUG-86": [
       "param-type-mismatch-001",
       "param-type-mismatch-018"
@@ -100,11 +97,6 @@
     "BUG-90": [
       "redundant-parameter-013",
       "redundant-parameter-018"
-    ],
-    "BUG-91": [
-      "return-type-mismatch-003",
-      "return-type-mismatch-012",
-      "return-type-mismatch-015"
     ],
     "BUG-92": [
       "return-type-mismatch-016"
