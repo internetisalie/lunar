@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A call that passes `...` or another call's results is no longer reported as too few arguments**
+  (BUG-81). `f(...)` and `f(g())` supply as many values as are available at run time, so Lunar no
+  longer counts them as one argument. A `---@param b integer|nil` parameter may also be omitted,
+  like `b?`. A call that really leaves a required parameter unset is still reported.
 - **An optional or overloaded return is no longer reported as a mismatch** (BUG-85, BUG-91). A
   function declared `---@return number?` that returns `nil`, one declared `---@return number, number?`
   that returns a single value, and one whose `---@overload` returns a different type, were all

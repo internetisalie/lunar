@@ -4,10 +4,7 @@
 HYPOTHESIS|Too few arguments: expected at least 1, got 0|(24742,24751)|LuaFuncCallImpl
 HYPOTHESIS|Too few arguments: expected at least 1, got 0|(31200,31218)|LuaFuncCallImpl
 HYPOTHESIS|Too few arguments: expected at least 2, got 1|(24079,24100)|LuaFuncCallImpl
-HYPOTHESIS|Too few arguments: expected at least 4, got 3|(1102,1110)|LuaNameRefImpl
 HYPOTHESIS|Too few arguments: expected at least 4, got 3|(24950,24994)|LuaFuncCallImpl
-HYPOTHESIS|Too few arguments: expected at least 4, got 3|(7902,7933)|LuaFuncCallImpl
-HYPOTHESIS|Too few arguments: expected at least 4, got 3|(8252,8283)|LuaFuncCallImpl
 HYPOTHESIS|Too few arguments: expected at least 4, got 3|(9944,9969)|LuaFuncCallImpl
 [elements]
 (10002,10029)|LuaTerminalExprImpl|string|e87ba97e700edac9

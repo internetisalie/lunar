@@ -1275,23 +1275,19 @@
     },
     "missing-parameter-005": {
       "rule": "arity.tooFew",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "6-6:Too few arguments: expected at least 2, got 1"
-      ]
+      "findings": []
     },
     "missing-parameter-006": {
       "rule": "arity.tooFew",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "10-10:Too few arguments: expected at least 2, got 1"
-      ]
+      "findings": []
     },
     "missing-parameter-007": {
       "rule": "arity.tooFew",
@@ -1311,13 +1307,11 @@
     },
     "missing-parameter-009": {
       "rule": "arity.tooFew",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "5-5:Too few arguments: expected at least 2, got 1"
-      ]
+      "findings": []
     },
     "missing-parameter-010": {
       "rule": "arity.tooFew",
@@ -2495,8 +2489,7 @@
       "agree": 2
     },
     "arity.tooFew": {
-      "agree": 6,
-      "false-report": 3,
+      "agree": 9,
       "missed": 1
     },
     "arity.tooMany": {

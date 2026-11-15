@@ -1005,6 +1005,7 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 params = argNodes,
                 returns = callResultNodes,
                 implicitSelf = methodExpr != null,
+                openEnded = suppliesManyValues(argExprs.lastOrNull()),
             )
 
         // TYPE-14: a generic template is instantiated per call site, and the copy meets the demand.
@@ -1084,9 +1085,15 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 params = argExprs.map { LuaGraphType.Function.Parameter(graph.variable(it)) },
                 returns = emptyList(),
                 implicitSelf = call.nameAndArgsList.firstOrNull()?.methodExpr != null,
+                openEnded = suppliesManyValues(argExprs.lastOrNull()),
             )
         graph.reportArity(declared.copy(declaredSignature = true), callDemand, call)
     }
+
+    /** Whether [lastArg] expands to any number of values: `...` or a call (BUG-81). */
+    private fun suppliesManyValues(lastArg: PsiElement?): Boolean =
+        lastArg is LuaFuncCall ||
+            (lastArg is LuaTerminalExpr && lastArg.firstChild?.elementType == LuaElementTypes.ELLIPSIS)
 
     /**
      * Whether calls from other files count arguments against this function (BUG-38): it has

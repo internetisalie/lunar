@@ -82,7 +82,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 >    Met when MAINT-60's sweep, run on the libvirt builder at the release candidate's commit, prints
 >    `release READY` (MAINT-60-07).
 > 2. **No wrong warnings:** every MAINT-55 conformance case scored `false-report` reaches `agree`
->    (BUG-75, BUG-81, BUG-94).
+>    (BUG-75, BUG-94).
 > 3. **No regressions:** the MAINT-55 ratchet stays green, and the MAINT-54 audit is unchanged except for
 >    recorded corrections.
 
@@ -143,7 +143,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-78 | Assigning a wrong value to a typed local (`x = f()`, a literal outside `1\|2`, a mismatched `table<K, V>`) is not reported | todo | S | — | found by MAINT-55 conformance suite (10 cases) | ✓ |
 | BUG-79 | Assigning a field the class or record type does not declare (`m.yy = 1` on a `@type Class` value) is not reported | todo | S | — | found by MAINT-55 conformance suite (5 cases) | ✓ |
 | BUG-80 | A table constructor missing a required `@field` (`@type A` `return {}`; `{x = 1}` without `[1]`) is not reported | todo | S | — | found by MAINT-55 conformance suite (3 cases) | ✓ |
-| BUG-81 | A call that passes `...` (or fewer arguments to optional trailing parameters) is reported as too few arguments | todo | S | — | found by MAINT-55 conformance suite (3 cases) | ✓ |
 | BUG-82 | Calling a colon-defined method with a dot (`t.init()` for `function t:init()`) is not reported as missing `self`, and has no quick fix | todo | S | — | found by MAINT-55 conformance suite (1 case) | ✓ |
 | BUG-83 | A function annotated to return a value, whose end is reachable without a `return`, is not reported | todo | S | — | found by MAINT-55 conformance suite (8 cases) | ✓ |
 | BUG-84 | A `return` with too few or too many values for the declared returns (`return` for `fun():number`; `return 1, true`) is not reported | todo | S | — | found by MAINT-55 conformance suite (6 cases) | ✓ |

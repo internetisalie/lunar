@@ -63,6 +63,11 @@ sealed class LuaGraphType {
         val anySignature: kotlin.Boolean = false,
         /** See [LuaFunctionType.countsArguments]; carried across files, read by no type check (BUG-38). */
         val countsArguments: kotlin.Boolean = false,
+        /**
+         * True for a call demand whose last argument is `...` or a call, which supplies any number of
+         * values: [params] then holds a lower bound, so the call is never *Too few arguments* (BUG-81).
+         */
+        val openEnded: kotlin.Boolean = false,
     ) : LuaGraphType() {
         data class Parameter(
             val node: VariableNode,

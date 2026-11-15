@@ -110,8 +110,18 @@ object LuaCatsDeclarations {
     fun isOptionalReturn(descriptor: LuaCatsReturnTypeDescriptor): Boolean =
         descriptor.returnDescription?.text?.startsWith("?") == true
 
-    /** `@param p? T` and `@param p T?` both let a call omit `p`. */
-    fun isOptionalParam(tag: LuaCatsParamTag): Boolean = tag.argSymbol?.text == "?" || hasOptionalMark(tag.description)
+    /** `@param p? T`, `@param p T?` and `@param p T|nil` all let a call omit `p`. */
+    fun isOptionalParam(tag: LuaCatsParamTag): Boolean =
+        tag.argSymbol?.text == "?" || hasOptionalMark(tag.description) || hasNilArm(tag.argType)
+
+    /** Whether a top-level arm of the union [argType] writes is `nil` (BUG-81). */
+    private fun hasNilArm(argType: LuaCatsArgType): Boolean =
+        PsiTreeUtil
+            .findChildOfType(argType, LuaCatsType::class.java)
+            ?.unionType
+            ?.arrayTypeList
+            .orEmpty()
+            .any { it.text.trim() == "nil" }
 
     /**
      * Every `@param` on [comment], in declaration order. A repeated name keeps its first position

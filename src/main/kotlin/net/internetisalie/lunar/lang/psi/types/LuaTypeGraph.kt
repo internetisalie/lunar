@@ -938,7 +938,7 @@ class LuaTypeGraph {
         // declared is still a contract, and breaking it is still a diagnostic.
         val tier = if (value.declaredSignature) ErrorSeverity.WARNING else ErrorSeverity.HYPOTHESIS
 
-        if (provided < minParams) {
+        if (provided < minParams && !use.openEnded) {
             addError(
                 ElementError(
                     useElement,

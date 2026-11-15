@@ -52,11 +52,6 @@
       "missing-fields-027",
       "missing-fields-038"
     ],
-    "BUG-81": [
-      "missing-parameter-005",
-      "missing-parameter-006",
-      "missing-parameter-009"
-    ],
     "BUG-82": [
       "missing-parameter-010"
     ],
