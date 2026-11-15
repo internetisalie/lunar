@@ -16,7 +16,8 @@ import java.io.File
  *
  * Yields **all** candidate [LuaFile]s for [moduleName] in resolution order — source-path patterns
  * ([PathConfiguration.getProjectSourcePathPatterns]) first, then the [FilenameIndex] fallback
- * (`<name>.lua` + `init.lua`, filtered by the expected path tail). Lazy so each caller applies its
+ * (`<name>.lua` + `init.lua`, filtered by the expected path tail; a bare name accepts `init.lua`
+ * only as `<name>/init.lua`, never a foreign directory's). Lazy so each caller applies its
  * own terminal: `LuaRequireReference` takes `firstOrNull()`; `LuaTypeManagerImpl` keeps its
  * skip-untyped-and-try-next selection via `firstNotNullOfOrNull { getModuleType(it, …) }`.
  *
@@ -50,7 +51,7 @@ fun resolveModuleCandidates(
                     ?: (
                         path.endsWith(expectedPathPart) ||
                             path.endsWith(expectedInitPathPart) ||
-                            !moduleName.contains('.')
+                            (!moduleName.contains('.') && virtualFile.name != "init.lua")
                     )
             if (accepted) {
                 (psiManager.findFile(virtualFile) as? LuaFile)?.let { yield(it) }

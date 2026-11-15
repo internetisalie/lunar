@@ -2,6 +2,7 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **`require` of a module with no project file resolves to nothing** (BUG-102). A bare `require("checks")`, `require("log")` or similar, naming a module that has no file in the project, jumped to and took its types from an unrelated directory's `init.lua`. That also tied unrelated files into a `require` cycle, so findings in them changed with the order files were opened and after a restart. A bare name now matches `<name>.lua` or `<name>/init.lua` only.
 - **Type inference after an edit is faster** (MAINT-65). A call with no function argument no longer
   resolves the callee's type to look for a callback to seed, so it no longer builds the callee
   file's types inside the caller's. Across the type corpus, the files whose types take 250 ms or
