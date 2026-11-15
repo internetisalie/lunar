@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **An edit rebuilds only the types it can change** (MAINT-63). Lunar used to discard every cached
+  file's types after any edit. A file's cached types now stay valid until a file they were built
+  from changes, or until an edit can change the index lookups they resolved through. Across the type
+  corpus, the files whose types take 250 ms or more to read after an edit fall by about a third
+  again.
 - **Analysing a very large file no longer fails intermittently** (BUG-103). A file whose types
   link a great many values together, such as the Lua language server's parser, could abort its
   analysis with a stack overflow when it was the first thing read in a fresh IDE session. The same

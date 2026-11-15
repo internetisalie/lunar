@@ -94,25 +94,26 @@ budget is split as above, and TC 12 is re-run after a slot overflow (Phase 2).
 ### Phase 2: Acceptance runs [Must]
 - **Goal**: evidence for MAINT-63-03 and MAINT-63-04, including TC 13's oracle.
 - **Tasks**, one run at a time:
-  - [ ] **Mutation 15**: at the Phase 1 commit, revert BUG-102's resolver rule
+  - [x] **Mutation 15**: at the Phase 1 commit, revert BUG-102's resolver rule
     (`LuaModuleFileResolver.kt`, the `virtualFile.name != "init.lua"` term), run the tntcrud run,
     and restore. Its `verdict.txt` must hold at least one `oracle: edit digest` line for a
     `tntcrud/` file. If it holds none, the oracle is not wired to the engine: stop and report.
-  - [ ] At the base commit: TC 11's command, then two TC 10 sweeps.
-  - [ ] At the Phase 1 commit: the same runs, then TC 13's oracle run.
-  - [ ] TC 12 at the base commit, then at the Phase 1 commit, with `-PaloneDigestBase` and
+  - [x] At the base commit: TC 11's command, then two TC 10 sweeps.
+  - [x] At the Phase 1 commit: the same runs, then TC 13's oracle run.
+  - [x] TC 12 at the base commit, then at the Phase 1 commit, with `-PaloneDigestBase` and
     `-PaloneDigestChange` set to the copied `sweep.jsonl` of each commit's first sweep.
-  - [ ] Compare as TC 10 to TC 13 specify. Record in the PR: every sweep's miss count per bound, the
+  - [x] Compare as TC 10 to TC 13 specify. Record in the PR: every sweep's miss count per bound, the
     candidate count (including "0 candidates"), the digest comparison, the oracle run's
     `oracle compared=` line (or each one-member run's), and the samples of every TC 10 sweep.
-  - [ ] Regenerate [files-over-target.md](files-over-target.md) from the two change sweeps, by the
+  - [x] Regenerate [files-over-target.md](files-over-target.md) from the two change sweeps, by the
     rule stated above its table.
 - **Samples.** The builder is shared with `/home/builder/builds/sim-app`. During every TC 10 sweep,
   sample once a minute: the number of processes whose cwd is under `/home/builder/builds/`; and, over
   every `java` process whose cwd is neither exactly `/home/builder/lunar` nor under
   `/opt/cache/gradle/daemon/` (lunar's test worker and Gradle daemon), their sorted pid list and
   summed CPU seconds. A sample is dirty when that number is not 0, or the pid list differs from the
-  previous sample's, or the sum is higher than the previous sample's. A sweep with a dirty sample is
+  previous sample's, or the sum is more than 5 CPU-seconds higher than the previous sample's. An idle Kotlin daemon
+  adds about 0.13 CPU-seconds a minute; a build adds tens. A sweep with a dirty sample is
   discarded and re-run at the same commit. The rule detects another project's build through its client and
   test-worker cwds, and counts every Kotlin daemon, lunar's included, so it errs towards dirty. A
   daemon running under `/opt/cache/gradle/daemon/` is exempt whatever its project, and a non-JVM
@@ -146,4 +147,4 @@ budget is split as above, and TC 12 is re-run after a slot overflow (Phase 2).
 
 ## Verification Tasks
 - [x] TC 1 to TC 8 and TC 14 to TC 16 (`LuaSourceChangeTrackerTest`); TC 9's tests, unmodified.
-- [ ] O1 to O8 (`SnapshotCostVerdictTest`); TC 10 to TC 13 (the Phase 2 runs).
+- [x] O1 to O8 (`SnapshotCostVerdictTest`); TC 10 to TC 13 (the Phase 2 runs).
