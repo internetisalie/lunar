@@ -12,60 +12,45 @@ folders:
 ## 1. Architecture Overview
 
 ### Current State
-`LuaTypesSnapshot.forFile` (`LuaTypes.kt:310`) caches a file's snapshot with
-`CachedValuesManager.getCachedValue(psiFile, LuaTypesVisitor.KEY)`. The build runs inside
-`LuaTypeSourceRecorder.recording`, which opens a `SourceFrame` (`LuaTypeSourceRecorder.kt:42`). The
-type manager and `forFile` report into every open frame:
-- `reportFile`: the URL of a file whose content was consumed;
-- `reportAbsence`, `reportRescuedGlobal`: a resolution that found nothing, or was rescued;
-- `reportInProgressHit`: a file whose build was still running (`LuaTypesVisitor.inProgressSnapshot`);
-- `reportWarmSnapshot`: replays a cached snapshot's frame, or records `unreplayedWarm` when none is stored.
-
-`dependenciesFor` (`LuaTypes.kt:354`) returns `[psiFile, churnDependencyFor(…), targetModificationTracker]`.
-`churnDependencyFor` (`LuaTypes.kt:407`) returns the generation tracker when `isPinnable`, and
-otherwise `PsiModificationTracker.MODIFICATION_COUNT`. Every PSI tree change ticks that count
-(`PsiModificationTrackerImpl.treeChanged`), and so do dumb-mode enter and exit
-(`PsiModificationTrackerImpl` constructor, `DumbModeListenerBackgroundable`). As a result, every
-unpinned snapshot is discarded on every edit.
+`LuaTypesSnapshot.forFile` (`LuaTypes.kt:310`) caches a snapshot with
+`CachedValuesManager.getCachedValue(psiFile, LuaTypesVisitor.KEY)`, built inside
+`LuaTypeSourceRecorder.recording`, which opens a `SourceFrame` (`LuaTypeSourceRecorder.kt:42`) that
+`reportFile`, `reportAbsence`, `reportRescuedGlobal`, `reportInProgressHit` and `reportWarmSnapshot`
+(or its `unreplayedWarm`) fill. `dependenciesFor` (`:354`) returns `[psiFile, churnDependencyFor(…),
+targetModificationTracker]`; `churnDependencyFor` (`:407`) returns the generation tracker when
+`isPinnable`, otherwise `PsiModificationTracker.MODIFICATION_COUNT`, which every PSI change and every
+dumb-mode enter and exit ticks. So every unpinned snapshot is discarded on every edit.
 
 ### Prior Art in This Repo
-- `LuaTypeSourceRecorder` and `SourceFrame`, TYPE-11. **Extended**: a frame also records the
-  frames of the in-progress builds it read (§3.2), and its sets become concurrent.
-- `LuaTypesSnapshot.isPinnable` / `churnDependencyFor` / `dependenciesFor`, TYPE-11. **Extended**:
-  only `churnDependencyFor`'s unpinned branch changes. The pinned branch and the three-element
-  shape stay (risks DR-04: the array length must not vary by branch).
-- `LuaTypeManagerImpl`, a project service registered in `plugin.xml`. §2.1 is registered the same
-  way (design §7), as `docs/engineering-contract.md` §4 requires.
-- `LuaSnapshotCostSweepTest` and `SnapshotCostVerdict` (MAINT-60), test code. **Extended** by
-  §2.6's oracle pass and check.
+- `LuaTypeSourceRecorder` / `SourceFrame` (TYPE-11). **Extended**: a frame also records the frames
+  of the in-progress builds it read (§3.2), and its sets become concurrent.
+- `LuaTypesSnapshot.churnDependencyFor` / `dependenciesFor` (TYPE-11). **Extended**: only the
+  unpinned branch changes; the pinned branch and the three-element shape stay (risks DR-04).
+- `LuaTypeManagerImpl`, a `plugin.xml` project service; §2.1 is registered the same way (§6).
+- `LuaSnapshotCostSweepTest` and `SnapshotCostVerdict` (MAINT-60, test code). **Extended** by §2.6.
 - No class in `src/main` implements `PsiTreeChangePreprocessor` or `PsiTreeChangeListener`.
-  `TypeElevenDr06StampProbeTest` adds a listener in a test only.
 
 ### Target State
-An unpinned snapshot depends on a `LuaSourceSetTracker`. It sums per-URL change counters over
-the snapshot's recorded sources, plus a resolution count that moves whenever an index answer or a
-file-less PSI event can change what resolution returns. A tree-change preprocessor maintains the
-counters. When a frame's sources cannot be identified, the snapshot falls back to
-`MODIFICATION_COUNT`. The sweep gains an after-edit oracle (§2.6).
-
-**The design is held** (risks Decision 2.1): it fails §2.6's oracle on `require` cycles (risks
-Risk 1.1, DR-20), and implementation waits for risks DR-22.
+An unpinned snapshot depends on a `LuaSourceSetTracker`: per-URL change counters summed over its
+recorded sources, plus a resolution count that moves whenever an index answer or a file-less PSI
+event can change resolution. A tree-change preprocessor maintains the counters. A frame whose
+sources cannot be identified keeps `MODIFICATION_COUNT`. The sweep gains an after-edit oracle (§2.6).
 
 ## 2. Core Components
 
 ### 2.1 `net.internetisalie.lunar.lang.psi.types.LuaSourceChangeTracker` (new)
-- **Responsibility**: holds the per-URL counters and the resolution count; builds trackers.
-- **Shape**: `class LuaSourceChangeTracker(private val targetProject: Project)`, registered as a
-  `projectService` (§7), with `companion object { fun getInstance(project: Project): LuaSourceChangeTracker = project.service() }`.
+- **Shape**: `class LuaSourceChangeTracker(private val targetProject: Project)`, a `projectService`
+  (§6), with `companion object { fun getInstance(project: Project): LuaSourceChangeTracker = project.service() }`.
 - **State**: `fileCounters: ConcurrentHashMap<String, AtomicLong>`, `structureEpoch: SimpleModificationTracker`,
-  `lastIndexSum: AtomicLong`, and `lastStamps: LongArray(INDEX_COUNT)` guarded by `synchronized(lastStamps)`.
-  Only URL strings and longs are held: no `PsiFile`, `VirtualFile` or `Editor`.
-- **Threading**: lock-free. `fileChanged` and `structureChanged` run under the write lock (from
-  §2.3); `countOf`, `resolutionCount` and `trackerFor` run in read actions.
+  `stampTotal: LuaStampTotal` (§2.2a). Only URL strings and longs: no `PsiFile`, `VirtualFile` or `Editor`.
+- **Threading**: `fileCounters` and `structureEpoch` are lock-free atomics, so `fileChanged` and
+  `structureChanged` are safe from any thread (§2.3 calls them from `fireEvent`, which holds the
+  write lock for physical files but not for every event). `stampTotal`'s methods are
+  `@Synchronized`. `countOf`, `resolutionCount` and `trackerFor` run in read actions.
 - **Key API**:
   ```kotlin
-  fun fileChanged(url: String)                                         // §3.4
-  fun structureChanged()                                               // §3.4
+  fun fileChanged(url: String)                                         // fileCounters.computeIfAbsent(url) { AtomicLong() }.incrementAndGet()
+  fun structureChanged()                                               // structureEpoch.incModificationCount()
   fun countOf(url: String): Long                                       // fileCounters[url]?.get() ?: 0L
   fun resolutionCount(): Long                                          // §3.3
   fun psiModificationCount(): Long                                     // PsiModificationTracker.getInstance(targetProject).modificationCount
@@ -73,39 +58,39 @@ Risk 1.1, DR-20), and implementation waits for risks DR-22.
   ```
 
 ### 2.2 `net.internetisalie.lunar.lang.psi.types.LuaSourceSetTracker` (new, `internal class`, same file as §2.1)
-- **Responsibility**: the churn dependency of one unpinned snapshot.
-- **Shape**: `internal class LuaSourceSetTracker(private val owner: LuaSourceChangeTracker, private val sources: Set<String>, private val pending: List<LuaTypeSourceRecorder.SourceFrame>) : ModificationTracker`.
-  It holds the service and frames, never a `Project` or `PsiFile` directly. It lives in the
-  `CachedValue` stored on the `PsiFile`, so it dies with that file.
-- **Threading**: `getModificationCount()` runs wherever the platform checks the cached value, in a
-  read action, possibly while a build on another thread still adds to a pending frame. §3.2's
-  concurrent sets make that safe.
-- **Key API**: `override fun getModificationCount(): Long` (§3.3).
+- **Shape**: `internal class LuaSourceSetTracker(private val owner: LuaSourceChangeTracker, private val sources: Set<String>, private val pending: List<LuaTypeSourceRecorder.SourceFrame>) : ModificationTracker`,
+  holding no `Project` or `PsiFile`. `getModificationCount()` (§3.3) runs in a read action, possibly
+  while another thread's build adds to a pending frame; §2.4's concurrent sets make that safe.
+
+### 2.2a `net.internetisalie.lunar.lang.psi.types.LuaStampTotal` (new, `internal class`, same file as §2.1)
+- **Shape**: turns the index stamps into a total that never repeats an earlier value once any stamp
+  has changed (risks Risk 1.3). No constructor arguments. Fields: `private val lastStamps = LongArray(INDEX_COUNT)`,
+  `private var offset = 0L`, `private var highWater = Long.MIN_VALUE`, `private var lastIndexTerm = 0L`.
+  `INDEX_COUNT = 5` and `DUMB_OFFSET = 1L shl 62` are `internal const val`s in that file.
+- **Key API** (both `@Synchronized`, no PSI or index access):
+  ```kotlin
+  @Synchronized fun advance(stamps: LongArray, shared: Long): Long   // §3.3
+  @Synchronized fun dumbValue(shared: Long): Long                    // shared + lastIndexTerm + DUMB_OFFSET
+  ```
 
 ### 2.3 `net.internetisalie.lunar.lang.psi.types.LuaSourceChangePreprocessor` (new)
-- **Responsibility**: feeds every PSI change that ticks `MODIFICATION_COUNT` into §2.1.
 - **Shape**: `class LuaSourceChangePreprocessor : PsiTreeChangePreprocessor` (`com.intellij.psi.impl`),
-  with no constructor arguments, as `PsiJavaModuleTreeChangePreprocessor` in `intellij-community`.
-- **Threading**: called by `PsiManagerImpl.fireEvent` under the write lock, before listeners. It
-  performs no index or PSI reads, and skips events in non-Lua files (§3.4 step 4).
-- **Key API**: `override fun treeChanged(event: PsiTreeChangeEventImpl)` (§3.4).
-- **Lookup**: `manager.project.serviceIfCreated<LuaSourceChangeTracker>()`
+  no constructor arguments, as `PsiJavaModuleTreeChangePreprocessor` in `intellij-community`.
+- **Key API**: `override fun treeChanged(event: PsiTreeChangeEventImpl)` (§3.4). No index or PSI
+  reads. Looks the tracker up with `manager.project.serviceIfCreated<LuaSourceChangeTracker>()`
   (`com.intellij.openapi.components.serviceIfCreated`), so an event never creates the service.
-- **Why a preprocessor rather than `psi.treeChangeListener`**: `PsiManagerImpl.fireEvent` calls
-  every `PsiTreeChangePreprocessor.EP` extension unconditionally, but calls `PsiTreeChangeListener.EP`
-  extensions only when `myTreeChangeListeners` is also non-empty (`PsiManagerImpl.java` in
-  `intellij-community`, `fireEvent`). `PsiModificationTrackerImpl` is itself a preprocessor.
+- **Why a preprocessor**: `PsiManagerImpl.fireEvent` calls `PsiTreeChangePreprocessor.EP` extensions
+  unconditionally, `PsiTreeChangeListener.EP` ones only when `myTreeChangeListeners` is non-empty.
 
 ### 2.4 Edits to existing classes
 - `LuaTypeSourceRecorder` (`LuaTypeSourceRecorder.kt`):
-  - `SourceFrame`'s five sets become `ConcurrentHashMap.newKeySet<String>()`.
-  - A sixth set is added: `val pendingFrames: MutableSet<SourceFrame> = ConcurrentHashMap.newKeySet()`.
-    `SourceFrame` does not override `equals`, so the set is by identity. Add it to `absorb`
-    (`pendingFrames.addAll(other.pendingFrames)`) and to `isEmpty`.
+  - Every `SourceFrame` set becomes `ConcurrentHashMap.newKeySet<String>()`.
+  - New set `val pendingFrames: MutableSet<SourceFrame> = ConcurrentHashMap.newKeySet()`, by identity
+    (`SourceFrame` does not override `equals`); added to `absorb` (`pendingFrames.addAll(other.pendingFrames)`)
+    and to `isEmpty`.
   - New `private val inProgressFrames = ThreadLocal.withInitial { HashMap<PsiFile, SourceFrame>() }`.
-  - `recording(body)` keeps its signature and delegates to a new
-    `private fun <T> recordingInto(frame: SourceFrame, body: () -> T): Pair<T, SourceFrame>`. That
-    function holds today's body: push the frame, run, pop in `finally`.
+  - `recording(body)` keeps its signature and delegates to a new `private fun <T> recordingInto(frame:
+    SourceFrame, body: () -> T): Pair<T, SourceFrame>` holding today's body (push, run, pop in `finally`).
   - New `fun <T> recordingFor(psiFile: PsiFile, body: () -> T): Pair<T, SourceFrame>` (§3.2).
   - `reportInProgressHit(psiFile)` gains §3.2's pending step after its existing loop.
   - New `internal fun isUnidentified(url: String): Boolean = url.startsWith(UNIDENTIFIED_SOURCE)`.
@@ -117,56 +102,90 @@ Risk 1.1, DR-20), and implementation waits for risks DR-22.
   - The KDoc of `forFile` and `churnDependencyFor` names the unpinned dependency as §3.1's tracker.
 
 ### 2.5 `net.internetisalie.lunar.type.LuaSourceChangeTrackerTest` (new, test source)
-- `BasePlatformTestCase`, with methods `test…_MAINT63_TC1` to `…_TC8` for requirements TC 1 to TC 8.
-- Helpers, private to the class, each at most three arguments:
-  - `append(file: PsiFile, text: String)`: a `WriteCommandAction` that inserts `text` at the
-    document end, then `commitDocument`. This is the sweep's `appendNewline` with the text as a
-    parameter.
-  - `replaceText(file: PsiFile, old: String, new: String)`: a `WriteCommandAction` that sets the
+- `BasePlatformTestCase`; methods `test…_MAINT63_TC1` to `…_TC8`, `…_TC14_<fixture>` (one per
+  requirements *TC 14 fixtures* row), `…_TC15` and `…_TC16` (constructs `LuaStampTotal()` directly).
+- Private helpers, each at most three arguments:
+  - `append(file: PsiFile, text: String)`: a `WriteCommandAction` inserting `text` at the document
+    end, then `commitDocument` (the sweep's `appendNewline` with the text as a parameter).
+  - `replaceText(file: PsiFile, old: String, new: String)`: a `WriteCommandAction` setting the
     document text to `document.text.replace(old, new)`, then `commitDocument`.
   - `typeOf(file: PsiFile, name: String): String`: the last `LuaNameRef` with that text
     (`PsiTreeUtil.findChildrenOfType`), then `LuaTypesSnapshot.forFile(file).getValueType(ref).displayName()`.
   - `frameOf(file: PsiFile)`: `checkNotNull(LuaTypeSourceRecorder.snapshotFrames[LuaTypesSnapshot.forFile(file)])`.
   - `forceFullRebuild()`: `(LuaProjectSettings.getInstance(project).state.targetModificationTracker as SimpleModificationTracker).incModificationCount()`,
-    then `dropPsiCaches()` in a `WriteCommandAction`. The first invalidates every snapshot through
-    its third dependency, whatever its churn dependency; the second drops the type manager's caches.
-    Neither alone is a full rebuild (risks DR-20).
-- TC 8 and TC 15 build the frames with `LuaTypeSourceRecorder.SourceFrame()` and read inside
-  `runReadAction`, as `TypeElevenGenerationSignalTest` does. TC 14 is one method per fixture,
-  `test…_MAINT63_TC14_<fixture>`, with the fixture texts of requirements TC 14 and a distinct file
-  and global name per method.
+    then `dropPsiCaches()` in a `WriteCommandAction`. Both ticks are needed (risks DR-20).
+  TC 8 and TC 15 build frames with `SourceFrame()` and read in `runReadAction`, as
+  `TypeElevenGenerationSignalTest` does.
 
 ### 2.6 After-edit oracle in the sweep (test code)
-- **`SweepRow`** (`SnapshotCostVerdict.kt`) gains three fields after `digest`, with defaults so
-  existing constructors compile: `editDigest: Int = 0`, `rebuildStatus: String = "not-run"`,
-  `rebuildDigest: Int = 0`. `toRow` fills `editDigest` from the edit `Read.errorDigest`, and the
-  other two from the rebuild `Read`. `SweepRow.toJson` writes all three, in that order.
-- **`LuaSnapshotCostSweepTest.measureMember`**: after `editPass`, call
+- **Rows**: `Read`, `ColdRead`, `FileResult` and `FileResult.toRow` (`LuaSnapshotCostSweepTest.kt`)
+  become `internal` (O4 builds a `FileResult`). `SweepRow` gains, after `digest`, with defaults: `editDigest: Int = 0`, `rebuildStatus: String = "not-run"`,
+  `rebuildDigest: Int = 0`, `rebuildMs: Long = 0`, `rebuildBuilds: Int = 0`. `toRow` fills
+  `editDigest` from `edit.errorDigest` and the rest from the rebuild `Read` (`status`,
+  `errorDigest`, `ms`, `builds.size`); `SweepRow.toJson` writes them in that order.
+- **`SnapshotCostVerdict` constants**: `const val ORACLE_BUDGET_MS = 15 * 60_000L` and
+  `val ORACLE_SKIPPED = setOf("luals")` (risks Risk 1.5).
+- **Oracle switch.** In `build.gradle.kts`, the `withSnapshotSweep` else-branch adds
+  `systemProperty("lunar.snapshotCost.oracle", project.hasProperty("withSnapshotOracle").toString())`.
+  The sweep test's companion gains `val ORACLE_ON: Boolean = System.getProperty("lunar.snapshotCost.oracle") == "true"`.
+  With it off, `measureMember` does not call `rebuildPass` (every row's rebuild is
+  `notRead(NOT_RUN)`) and `testZzVerdict` adds neither `oracleChecks` nor `oracleCounts`. Timing
+  sweeps run with it off, so base and change timing sweeps do identical work and the rebuild pass
+  times nothing; the oracle runs in its own invocation, `-PwithSnapshotOracle`, whose miss counts
+  are recorded and never compared.
+- **Rebuild time is outside the measured budget.** A companion `val REBUILD_MS = AtomicLong()` in
+  the sweep test accumulates every rebuild read's `ms`; `budgetLeft()` becomes
+  `System.currentTimeMillis() - RUN_START_MS - REBUILD_MS.get() < SnapshotCostVerdict.RUN_BUDGET_MS`,
+  and `testZzVerdict` passes `System.currentTimeMillis() - RUN_START_MS - REBUILD_MS.get()` to
+  `runTimeFailures`.
+- **`measureMember`**: when `ORACLE_ON`, after `editPass`, call
   `rebuildPass(member: String, files: List<SweptFile>, edits: List<Read>): List<Read>` with
-  `entry.name`. For each file, in order: if its edit status is not `OK`, or `!budgetLeft()`, or
-  `member in ORACLE_SKIPPED` (a companion `val ORACLE_SKIPPED = setOf("luals")`; BUG-97: one
-  rebuild there takes up to 48 s), return `notRead(NOT_RUN)`; otherwise call a private
-  `forceFullRebuild()` with §2.5's body and return `readTimed(file, SnapshotCostVerdict.COLD_DEADLINE_MS)`.
+  `entry.name`. Per file, in order:
+  1. Edit status not `OK`, or `member in ORACLE_SKIPPED`: `notRead(NOT_RUN)`.
+  2. `REBUILD_MS.get() >= ORACLE_BUDGET_MS`: `notRead(SKIPPED)`.
+  3. Otherwise a private `forceFullRebuild()` with §2.5's body, then
+     `readTimed(file, SnapshotCostVerdict.COLD_DEADLINE_MS)`; add its `ms` to `REBUILD_MS`; return it.
+
   `FileResult` gains a fifth field `rebuild: Read`; `sweepMember`'s over-budget branch passes
-  `notRead(SKIPPED)`. The pass runs after the member's edit pass, so no timed read is affected.
-- **`SnapshotCostVerdict.oracleMismatches(rows: List<SweepRow>): List<String>`**: for every row
-  with `editStatus == OK` and `rebuildStatus == OK` and `editDigest != rebuildDigest`, the line
-  `"<member>/<file> oracle: edit digest <editDigest> != rebuild digest <rebuildDigest>"`.
-  `testZzVerdict` adds it to `checks`, so any mismatch fails the sweep. Rows read from an older
-  `sweep.jsonl` by Gson have a null `rebuildStatus`; `==` on it is false, so they compare nothing.
-- **`SnapshotCostVerdict.oracleCompared(rows: List<SweepRow>): Int`**: the number of rows with both
-  statuses `OK`. **`oracleCounts(rows)`**: `"oracle compared=<n> rebuildTimeouts=<m>"`, where `m`
-  counts rows with `rebuildStatus == "timeout"`; `testZzVerdict` prints it and writes it to
-  `verdict.txt`. When `oracleCompared(rows) == 0`, `testZzVerdict` adds the check line
-  `"oracle compared no rows"`, so a sweep whose rebuild pass never ran cannot pass.
-- **Cost**: the rebuild pass took 43 s on DR-20's five members (263 files), about 160 ms per file;
-  over a full sweep's rows that is of the order of five minutes. It counts against `RUN_BUDGET_MS`
-  through `budgetLeft()`, so an overrun shows as `not-run` rebuilds and skipped members, which
-  `coverage` and `oracleCounts` report.
-- **Tests**: `SnapshotCostVerdictTest` gains `testO1OracleMismatchIsReported` (one row, digests 1
-  and 2, both `ok`: one line) and `testO2OracleSkipsUnreadRows` (`rebuildStatus = "timeout"` or
-  `editStatus = "timeout"`: no line) and `testO3OracleComparedCountsOkPairs` (one `ok`/`ok` row and
-  one `ok`/`not-run` row: 1). Mutant: `oracleMismatches` returns an empty list; O1 turns red.
+  `notRead(SKIPPED)` for it.
+- **`oracleChecks(rows: List<SweepRow>): List<String>`** in `SnapshotCostVerdict`, the concatenation
+  of these, in this order. "Edit ok" is `editStatus == OK`; "compared" is edit ok and
+  `rebuildStatus == OK`.
+  - `oracleMismatches(rows)`: per compared row with `editDigest != rebuildDigest`,
+    `"<member>/<file> oracle: edit digest <editDigest> != rebuild digest <rebuildDigest>"`.
+  - `oracleUnforced(rows)`: per compared row with `rebuildBuilds == 0`,
+    `"<member>/<file> oracle: rebuild read built nothing"` (a forced rebuild always builds the read
+    file's own snapshot, so the read was served from the edit read's cache).
+  - `oracleUnread(rows)`: per edit-ok row whose member is not in `ORACLE_SKIPPED` and whose
+    `rebuildStatus` is not `OK`, `TIMEOUT` or `SKIPPED` (so `not-run` or an `exception:` status),
+    `"<member>/<file> oracle: rebuild read <rebuildStatus>"`.
+  - `oracleSkipped(rows)`: when any edit-ok row has `rebuildStatus == SKIPPED`, the single line
+    `"oracle rebuild pass over budget: <n> row(s) not compared"`.
+  - `"oracle compared no rows"` when `oracleCompared(rows) == 0`.
+- **Fresh file.** Rows from an older `sweep.jsonl` have a null `rebuildStatus`, so each edit-ok one
+  would emit `oracle: rebuild read null`. This cannot happen: the opt-in deletes
+  `build/snapshot-cost/` before every run, so `testZzVerdict` reads only its own run's rows.
+- **Counts**: `oracleCompared(rows)` counts compared rows. `oracleCounts(rows)` is
+  `"oracle compared=<n> rebuildTimeouts=<m> rebuildMs=<t>"` (`m`: rows with `rebuildStatus ==
+  TIMEOUT`; `t`: the sum of `rebuildMs`).
+- **`testZzVerdict`**, when `ORACLE_ON`, adds `SnapshotCostVerdict.oracleChecks(rows)` to
+  `checks`, after `runTimeFailures`. It writes `verdict.txt` as
+  `(checks.map { "check: $it" } + counts + release).joinToString("\n")`, where `counts` is
+  `listOf(oracleCounts(rows))` when `ORACLE_ON` and empty otherwise, so every check line is kept on
+  disk, one per line, prefixed `check: `. Printing to stdout and the assertion are
+  unchanged.
+- **Tests** (`SnapshotCostVerdictTest`), each with the mutant that turns it red:
+
+  | Test | Rows | Expected | Mutant |
+  |---|---|---|---|
+  | `testO1OracleMismatchIsReported` | one compared row, digests 1 and 2 | one `oracle: edit digest` line | `oracleMismatches` returns an empty list |
+  | `testO2OracleSkipsUnreadRows` | edit ok / rebuild `timeout`, digests 1 and 0; edit `timeout` / rebuild ok, digests 0 and 1 | no `oracleMismatches` line | `oracleMismatches` drops either status condition |
+  | `testO3OracleComparedCountsOkPairs` | one compared row; one edit ok / rebuild `timeout` | `oracleCompared` is 1 | `oracleCompared` counts edit-ok rows |
+  | `testO4RowTakesEachDigestFromItsRead` | a `FileResult` whose cold, edit and rebuild reads have digests 1, 2, 3, the rebuild with one `BuildRecord` | `toRow("m")`: `digest` 1, `editDigest` 2, `rebuildDigest` 3, `rebuildBuilds` 1 | `editDigest` taken from the cold read (requirements mutation 17) |
+  | `testO5UnforcedRebuildIsReported` | one compared row, equal digests, `rebuildBuilds` 0; the same with 3 | one `oracleUnforced` line; none | `oracleUnforced` returns an empty list |
+  | `testO6OverBudgetRebuildIsReported` | edit ok / rebuild `skipped`; edit `skipped` / rebuild `skipped` | one `oracleSkipped` line; none | `oracleSkipped` returns an empty list; or drops the edit-ok condition |
+  | `testO7UnreadRebuildIsReported` | member `m` unless named: edit ok / rebuild `not-run`; the same, member `luals`; edit ok / rebuild `exception:X`; edit ok / rebuild `timeout`; edit `timeout` / rebuild `not-run` | one line; none; one line; none; none | `oracleUnread` returns an empty list; or drops the `ORACLE_SKIPPED` condition; or drops the `TIMEOUT` exclusion; or drops the edit-ok condition |
+  | `testO8NoComparedRowIsReported` | one edit ok / rebuild `timeout` row | `oracleChecks` contains `oracle compared no rows` | the no-rows line removed |
 
 ## 3. Algorithms
 
@@ -177,127 +196,97 @@ Risk 1.1, DR-20), and implementation waits for risks DR-22.
 4. If any element of `sources` satisfies `LuaTypeSourceRecorder.isUnidentified`, return null.
 5. Return `LuaSourceSetTracker(this, sources, frame.pendingFrames.toList())`.
 
-A null result makes `churnDependencyFor` return `MODIFICATION_COUNT`, today's behaviour.
+A null result makes `churnDependencyFor` return `MODIFICATION_COUNT`.
 
 ### 3.2 Pending in-progress frames
 A build that reads another file's in-progress snapshot depends on whatever that build consumes,
-including sources it consumed before the reader's frame was opened (requirements TC 5).
-- `recordingFor(psiFile, body)`:
-  1. `val frame = SourceFrame()`; `val building = inProgressFrames.get()`; `building[psiFile] = frame`.
-  2. `try { return recordingInto(frame, body) } finally { building.remove(psiFile) }`.
+including sources consumed before the reader's frame was opened (requirements TC 5).
+- `recordingFor(psiFile, body)`: `val frame = SourceFrame()`; `val building = inProgressFrames.get()`;
+  `building[psiFile] = frame`; `try { return recordingInto(frame, body) } finally { building.remove(psiFile) }`.
 - `reportInProgressHit(psiFile)`, after adding the URL to every open frame's `inProgressHits`:
-  1. `val building = inProgressFrames.get()[psiFile] ?: return`.
-  2. For each open frame `f` with `f !== building`: `f.pendingFrames.add(building)`.
+  `val building = inProgressFrames.get()[psiFile] ?: return`; for each open frame `f` with
+  `f !== building`, `f.pendingFrames.add(building)`.
 
-`inProgressFrames` and `LuaTypesVisitor.inProgressBuilds` are keyed by the same `psiFile`
-(`forFile`'s `file.containingFile`), and both are populated only for the duration of a build on the
-current thread. A warm replay carries pending frames outward through `absorb`.
+`inProgressFrames` and `LuaTypesVisitor.inProgressBuilds` share the key (`forFile`'s
+`file.containingFile`) and lifetime (one build on this thread). `absorb` carries pending frames out.
 
 ### 3.3 Counts
 `LuaSourceChangeTracker.resolutionCount()`:
 1. `val shared = structureEpoch.modificationCount`.
-2. If `DumbService.isDumb(targetProject)`, return `shared + lastIndexSum.get() + DUMB_OFFSET`, where
-   `private const val DUMB_OFFSET = 1L shl 62`.
-3. Otherwise compute `indexSum` as the sum of
-   `FileBasedIndex.getInstance().getIndexModificationStamp(id, targetProject)` over these five ids
-   (`INDEX_COUNT = 5`), through a helper `private fun <K, V> stampOf(id: ID<K, V>): Long`, written
-   as explicit calls in this order:
+2. If `DumbService.isDumb(targetProject)`, return `stampTotal.dumbValue(shared)`.
+3. `stamps = longArrayOf(…)` of `FileBasedIndex.getInstance().getIndexModificationStamp(id, targetProject)`,
+   through `private fun <K, V> stampOf(id: ID<K, V>): Long`, as explicit calls in this order:
    `StubUpdatingIndex.INDEX_ID`, `LuaGlobalAssignmentIndex.KEY`, `LuaCatsTypeNameIndex.KEY`,
    `LuaReceiverMemberIndex.KEY`, `LuaMemberFieldIndex.KEY`.
 4. On `IndexNotReadyException` from step 3, return as step 2. Any `ProcessCanceledException`,
    including `ServiceNotReadyException`, propagates.
-5. In `synchronized(lastStamps)`: if any stamp is below its entry in `lastStamps`, call
-   `structureEpoch.incModificationCount()` (Risk 1.3); then copy the stamps into `lastStamps`.
-6. `lastIndexSum.set(indexSum)`; return `structureEpoch.modificationCount + indexSum`.
+5. Return `stampTotal.advance(stamps, shared)`.
+
+`LuaStampTotal.advance(stamps, shared)`:
+1. `val changed = !stamps.contentEquals(lastStamps)`.
+2. `var total = shared + offset + stamps.sum()`.
+3. If `changed && total <= highWater`: `offset += highWater + 1 - total`, then `total = highWater + 1`.
+4. `stamps.copyInto(lastStamps)`; `lastIndexTerm = offset + stamps.sum()`;
+   `highWater = maxOf(highWater, total)`; return `total`.
+
+**Why `advance` never repeats a value.** `shared` never decreases and `offset` only grows. With the
+stamps and `shared` unchanged, `total` equals the previous total. With `shared` grown and the stamps
+unchanged, `total` is above every earlier total. With any stamp changed, step 3 puts `total` above
+`highWater`, even when a stamp went down. So the smart-mode count never decreases, and strictly
+increases whenever a stamp or `shared` changes (requirements TC 16).
 
 `LuaSourceSetTracker.getModificationCount()`:
 1. `val live = HashSet(sources)`; `val visited = Collections.newSetFromMap(IdentityHashMap<SourceFrame, Boolean>())`;
    `val work = ArrayDeque(pending)`; `var degraded = false`.
 2. While `work` is not empty: `val f = work.removeLast()`; if `!visited.add(f)`, continue; if
-   `f.unreplayedWarm.isNotEmpty()`, set `degraded = true`; add `f.urls` and `f.inProgressHits` to
-   `live`; add every `f.pendingFrames` element to `work`.
-3. If any element of `live` is unidentified, set `degraded = true`.
+   `f.unreplayedWarm.isNotEmpty()`, `degraded = true`; add `f.urls` and `f.inProgressHits` to `live`;
+   add every `f.pendingFrames` element to `work`.
+3. If any element of `live` is unidentified, `degraded = true`.
 4. `val fallback = if (degraded) owner.psiModificationCount() else 0L`.
 5. Return `live.sumOf { owner.countOf(it) } + owner.resolutionCount() + fallback`.
 
-**Why the value is sound.** Every term is non-decreasing, and `live` only grows, so any tick in
-a term the snapshot depends on changes the sum. The exceptions are entering and leaving the dumb
-branch: `DUMB_OFFSET` is far larger than any reachable count, so that change always moves the value.
-A snapshot built in smart mode is rebuilt on its first read in dumb mode. One built in dumb mode is
-kept while dumb and rebuilt on exit. That is base's pattern, which ticks `MODIFICATION_COUNT` on
-enter and on exit.
+**Why the value is sound.** Every term never decreases in smart mode and `live` only grows, so any
+tick in a term the snapshot depends on increases the sum. Entering or leaving the dumb branch moves
+the value by `DUMB_OFFSET`, far above any reachable count: a snapshot built in smart mode is rebuilt
+on its first read in dumb mode, and one built in dumb mode is kept while dumb and rebuilt on exit,
+as base's `MODIFICATION_COUNT` ticks on enter and exit.
 
-**Index choice.** The ids cover every index a snapshot build reads for another file's
-declarations without recording that file's URL. Risks DR-18 constructed a late declaration for
-each, and its mutants show which ids tick alone and which tick in pairs (requirements mutations 3
-to 6):
-- `Stubs`: the stub indexes `LuaGlobalDeclarationIndex`, `LuaClassNameIndex` and `LuaAliasIndex`
-  are derived from it, and it ticked on every hosted-declaration edit probed (risks DR-14, DR-16).
-- `LuaGlobalAssignmentIndex` and `LuaCatsTypeNameIndex`: read by `LuaTypeManagerImpl` (`:242`, `:515`).
-- `LuaReceiverMemberIndex`: read by `LuaTypeManagerImpl` (`:637`) and `LuaImplicitFields` (`:129`).
-- `LuaMemberFieldIndex`: read by `LuaNameReference` (`:164`, through `LuaMemberFieldNavigation.find`),
-  which a build reaches through `LuaExpectedCallbackResolver`'s `nameRef.reference?.resolve()`. A
-  new member-field target makes that `resolve()` ambiguous, so it returns null (DR-18 `mfield2`).
-
-Two indexes are excluded:
-- `LuaDescriptionIndex`: no snapshot build reads it (its reader is `LuaDocSearchEverywhereContributor`).
-- `LuaFileBindingsIndex`: read through `LuaNameReference.queryFiles` (`:132`). The declarations
-  `LuaExpectedCallbackResolver.resolveCalleeDeclaration` accepts are a `LuaLocalFuncDecl` (the
-  resolved element's parent), a `LuaFuncDecl`, or the `LuaFuncDecl` two levels up
-  (`LuaExpectedCallbackResolver.kt:65`). Both are stubbed: a `@param` edit on either ticks `Stubs`
-  and records the declaring file's URL (DR-16 L1, DR-18 `localfn`). See risks Risk 1.2.
+**Index choice.** The ids cover every index a build reads for another file's declarations without
+recording its URL (risks DR-18 built a late declaration for each): `Stubs`, from which
+`LuaGlobalDeclarationIndex`, `LuaClassNameIndex` and `LuaAliasIndex` derive; `LuaGlobalAssignmentIndex`
+and `LuaCatsTypeNameIndex` (`LuaTypeManagerImpl` `:242`, `:515`); `LuaReceiverMemberIndex`
+(`LuaTypeManagerImpl:637`, `LuaImplicitFields:129`); `LuaMemberFieldIndex` (`LuaNameReference:164`,
+reached through `LuaExpectedCallbackResolver`'s `nameRef.reference?.resolve()`). Excluded:
+`LuaDescriptionIndex` (only `LuaDocSearchEverywhereContributor` reads it) and `LuaFileBindingsIndex`
+(`LuaNameReference.queryFiles`, `:132`), because the declarations
+`LuaExpectedCallbackResolver.resolveCalleeDeclaration` accepts (`LuaExpectedCallbackResolver.kt:65`)
+are stubbed, so a `@param` edit ticks `Stubs` and records the declaring file (DR-16 L1, DR-18
+`localfn`; risks Risk 1.2).
 
 ### 3.4 `LuaSourceChangePreprocessor.treeChanged(event)`
-1. If `!PsiModificationTrackerImpl.canAffectPsi(event)`, return. This is the exact filter that
-   decides whether `MODIFICATION_COUNT` ticks.
+1. If `!PsiModificationTrackerImpl.canAffectPsi(event)`, return: the filter that decides whether
+   `MODIFICATION_COUNT` ticks.
 2. `val manager = event.source as? PsiManager ?: return`.
-3. `val tracker = manager.project.serviceIfCreated<LuaSourceChangeTracker>() ?: return`. No tracker
-   exists before the service does, so no snapshot depends on an earlier event.
+3. `val tracker = manager.project.serviceIfCreated<LuaSourceChangeTracker>() ?: return`.
 4. `val file = event.file`. If `file != null && file !is LuaFile`
-   (`net.internetisalie.lunar.lang.psi.LuaFile`), return: no snapshot records a non-Lua file.
+   (`net.internetisalie.lunar.lang.psi.LuaFile`), return.
 5. `val url = file?.originalFile?.virtualFile?.url`. If null, `tracker.structureChanged()`;
    otherwise `tracker.fileChanged(url)`.
 
-`originalFile` matches the recorder's key (`reportFile` uses `psiFile.originalFile.virtualFile.url`),
-so an edit to a completion copy bumps its original's counter.
+`originalFile` matches the recorder's key, so an edit to a completion copy bumps its original.
 
 ## 4. External Data & Parsing
-None. The acceptance inputs are this repo's own `sweep.jsonl`, `luacheck.json`, `results.json` and
-`digests.tsv`, compared as MAINT-65 compares them.
+None beyond the sweep's own files (§2.6) and those TC 11 and TC 12 name.
 
-## 5. Data Flow
+## 5. Edge Cases
+A cancelled pending build's frame stays as far as it got, and readers keep it pending. File
+create, delete, move and rename, roots and file-type changes arrive as null-file events (DR-15).
+`dropResolveCaches()` ticks nothing, in base or here. Library files take the unpinned branch like
+project files. An index stamp reset is `advance` step 3 (risks Risk 1.3).
 
-### Example 1: an edit to an unrelated file (TC 1)
-`b.lua` is built: `require("a")` reports `a.lua`'s URL; `b`'s tracker has sources
-`{b.lua, package.lua, a.lua}` and no pending frames. Appending to `c.lua` fires tree events with
-file `c.lua`, so the preprocessor bumps only `c.lua`'s counter. No index entry changes, so
-`resolutionCount` is unchanged. `b`'s sum is unchanged, and the cached snapshot is served.
-
-### Example 2: a global declared later (TC 3)
-`b2.lua` reads `GLOBAL_M63`, which nothing declares. Its frame records an absence and no URL.
-Appending `GLOBAL_M63 = 'str'` to `c2.lua` bumps `c2.lua`'s counter, which `b2` does not depend on.
-It also changes `LuaGlobalAssignmentIndex` and `LuaReceiverMemberIndex` entries, which moves
-`resolutionCount`, so `b2` is rebuilt and `y` is typed `string`.
-
-## 6. Edge Cases
-- **Cancelled build of a pending file**: its frame stays as far as it got, and readers keep it as
-  pending. What a reader saw is a function of sources already reported into that frame.
-- **File created, deleted, moved or renamed**: each arrives as at least one null-file event (risks
-  DR-15 P2–P4), which ticks `structureEpoch`, so every tracker moves.
-- **Roots or file-type change**: `PROP_ROOTS` and `PROP_FILE_TYPES` arrive as null-file events
-  (DR-15 P7). No VFS-structure or project-roots term is added: in DR-18 (`extraterms`) they changed
-  no fixture's outcome.
-- **Event in a non-Lua file**: §2.3 skips it, so a `.txt` or `.json` edit moves no tracker.
-- **`dropResolveCaches()`**: ticks nothing, in base or here (DR-15 P6).
-- **Library and checkout files** (the 66% of DR-10's rebuild time): they take the unpinned branch
-  and get a tracker like a project file.
-- **Index stamp reset by an index rebuild**: a stamp below its last seen value ticks
-  `structureEpoch` (§3.3 step 5), so the sum cannot return to a stored value by coincidence (risks
-  Risk 1.3).
-
-## 7. Integration Points
-`plugin.xml`, inside `<extensions defaultExtensionNs="com.intellij">` next to the `LuaTypeManager`
-`projectService`:
+## 6. Integration Points
+`plugin.xml`, inside `<extensions defaultExtensionNs="com.intellij">`, next to the `LuaTypeManager`
+`projectService` (declared there, not with `@Service`, per `docs/engineering-contract.md` §4):
 
 ```xml
 <!-- MAINT-63: per-source change counters for unpinned type snapshots -->
@@ -305,34 +294,23 @@ It also changes `LuaGlobalAssignmentIndex` and `LuaReceiverMemberIndex` entries,
 <psi.treeChangePreprocessor implementation="net.internetisalie.lunar.lang.psi.types.LuaSourceChangePreprocessor"/>
 ```
 
-The service is declared in `plugin.xml`, not with `@Service`, as `docs/engineering-contract.md` §4
-requires. There are no settings, index or `build.gradle.kts` changes.
+No settings or index changes. `build.gradle.kts` gains only §2.6's oracle switch.
 
-## 8. Requirement Coverage
+## 7. Requirement Coverage
 
 | Requirement | Priority | Implemented by (section) |
 |-------------|----------|--------------------------|
 | MAINT-63-01 | M | §2.1, §2.2, §2.4, §3.1, §3.3, §3.4 |
-| MAINT-63-02 | M | §3.1 (fallbacks), §3.2 (pending), §3.3 (resolution count, dumb mode), §3.4 (null-file events) |
-| MAINT-63-03 | M | §3; risks DR-11, DR-12 |
-| MAINT-63-04 | M | §3 soundness; checked by TC 11 and TC 12 (audits and alone digests) and TC 13 (§2.6 oracle) |
+| MAINT-63-02 | M | §2.2a, §3.3 (resolution count, stamp decrease, dumb mode), §3.1 (fallbacks), §3.2 (pending), §3.4 (null-file events) |
+| MAINT-63-03 | M | §3 as a whole; risks DR-11, DR-12 |
+| MAINT-63-04 | M | §3 soundness; checked by TC 11, TC 12 and TC 13 (§2.6) |
 
-## 9. Alternatives Considered
-Measurements are in [risks-and-gaps.md](risks-and-gaps.md).
-- **A whitespace-only edit heuristic as the resolution epoch (V1).** Not taken: it guesses which
-  edits change resolution. V3's index stamps answer that from the indexes themselves, and they
-  ticked on no `"\n"` edit (DR-12).
-- **Holding library `PsiFile`s strongly (V2).** Not taken: the contract forbids hard references to
-  `PsiFile`. It is recorded as Future Work.
-- **A `psi.treeChangeListener` or programmatic listener.** Not taken (§2.3).
-- **Ticking the epoch on `LuaSettingsChangedListener.TOPIC` or `DumbService.DUMB_MODE`.** Not
-  needed. Every `MODIFICATION_COUNT` tick in DR-15 arrived as a preprocessor event or a dumb-mode
-  transition, and §3.3 step 2 covers dumb mode without a listener.
-- **svca / r10.** Not taken: their provisional fallback for in-progress hits lost to base (risks
-  DR-08). §3.2's pending frames replace that fallback.
-- **v3p and v3r** (risks Premises and Variants): fall back to `MODIFICATION_COUNT` for frames that
-  saw another file's in-progress build. Not taken: each still fails §2.6's oracle (9 files) and
-  loses V3's gain on gitsigns and telescope (risks DR-21).
+## 8. Alternatives Considered
+Variants are defined in risks *Variants*; frame fallbacks are risks Decision 2.1. Not taken: V1's
+whitespace-only edit epoch (V3's index stamps answer from the indexes, DR-12); V2's strongly held
+library `PsiFile`s (the contract forbids it); a `psi.treeChangeListener` (§2.3); an epoch on
+`LuaSettingsChangedListener.TOPIC` or `DumbService.DUMB_MODE` (every DR-15 tick arrived as a
+preprocessor event or a dumb-mode transition).
 
-## 10. Open Questions
+## 9. Open Questions
 _None. Deferred items are tracked in [risks-and-gaps.md](risks-and-gaps.md)._

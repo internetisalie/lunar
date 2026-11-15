@@ -31,7 +31,7 @@ cycle (§4.2). That is a design change, not a surgical one, and is proposed as a
 The second row is a new probe that reproduces DR-06 file for file. It needs no edit, so it isolates
 the build root as the only variable.
 
-`crud/stats/registry_utils.lua`, the clean-frame file from MAINT-63 DR-21, differs as follows:
+`crud/stats/registry_utils.lua` differs as follows:
 
 | Read | Type of `require('crud.common.dev_checks')` | Finding at `dev_checks('string')` (offset 99) |
 |---|---|---|

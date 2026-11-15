@@ -20,8 +20,10 @@ of the cycle was analysed first. BUG-102 §1.3 has a fixture that reproduces it,
 lists the design decisions: a cut marker scoped to the open build, the same rule at the four stores
 and the `ResolveCache` guard sites, a per-root memo, and which view of a cycle member is the answer.
 
-No measured corpus file shows this once BUG-102's resolver fix lands. MAINT-63's after-edit oracle
-is the gate that would catch it there.
+No measured corpus file shows this once BUG-102's resolver fix lands (MAINT-63 risks DR-23).
+MAINT-63's after-edit oracle is the gate that would catch it there, with two blind spots: it skips
+luals, and it compares no row whose edit read did not finish within 1 s, or whose rebuild read timed
+out (MAINT-63 design §2.6). An oracle failure stops MAINT-63 and blocks it on this item.
 
 ## Requirements
 To be written with the `plan-feature` skill. BUG-102 §1.3 is the first acceptance fixture.

@@ -34,5 +34,6 @@ clock ran out. That varies with CPU speed, machine load, JIT warm-up and other w
 ## 4. Impact
 - Users on slower machines, or under load, see different findings from users on fast ones, and the
   same user sees them change between runs.
-- Any digest comparison on luals (MAINT-63's after-edit oracle, the MAINT-60 sweep) can report a
-  change that comes from timing alone.
+- Any digest comparison on luals (the MAINT-60 sweep's digests, MAINT-65's alone digests) can report
+  a change that comes from timing alone. MAINT-63's after-edit oracle skips luals for this reason
+  (MAINT-63 risks Risk 1.5).
