@@ -47,7 +47,7 @@ budget is split as above, and TC 12 is re-run after a slot overflow (Phase 2).
 - **Goal**: the oracle run fails when a settled after-edit read differs from a full rebuild, or when the
   rebuild pass did not run as designed (MAINT-63-04 (c)).
 - **Tasks**:
-  - [ ] Design §2.6 in `src/test/kotlin/net/internetisalie/lunar/corpus/`: `SnapshotCostVerdict.kt`
+  - [x] Design §2.6 in `src/test/kotlin/net/internetisalie/lunar/corpus/`: `SnapshotCostVerdict.kt`
     (`SweepRow` fields, constants, `oracleChecks` and its parts, `oracleCompared`, `oracleCounts`),
     `LuaSnapshotCostSweepTest.kt` (visibility, `REBUILD_MS`, `budgetLeft()`, `rebuildPass`,
     `forceFullRebuild`, `FileResult.rebuild`, `toRow`, `toJson`, `ORACLE_ON`, `testZzVerdict`), O1

@@ -265,8 +265,10 @@ baseline. Fetch the type corpus first, then run:
 
 It writes three files under `build/snapshot-cost/`. `sweep.jsonl` has one row per selected file.
 `ranked.tsv` lists every pass that misses its 250 ms bound, with its cause and roadmap item, plus
-every pass at 200–249 ms. `verdict.txt` holds the release lines, ending with one `miss:` line per
-missing pass and its item. The run fails only when the tool itself fails (a selected file with no
+every pass at 200–249 ms. `verdict.txt` holds the run's check lines (each prefixed `check: `), its
+counts, and the release lines, ending with one `miss:` line per missing pass and its item. Adding
+`-PwithSnapshotOracle` also rebuilds each edited file from scratch and compares its findings with
+the after-edit read (MAINT-63's oracle); that run is for correctness, not timing. The run fails only when the tool itself fails (a selected file with no
 row, a sweep error, 45 minutes or more); a slow pass is reported, not asserted. v0.21.21's release-ready signal (MAINT-60-07) is `release READY` in `verdict.txt`,
 from this sweep run on the libvirt builder at the release candidate's commit. The verdict rules are in
 [the design](../../docs/features/maint/60-type-inference-performance/design.md).

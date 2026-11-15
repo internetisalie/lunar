@@ -154,6 +154,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-95 | A member call whose name has two untagged declarations (`foo.bar` on a global and on a local table in another file) resolves to one target or to none, depending on which tests the run selects | todo | S | — | found by MAINT-56 TC-8 (DR-14) | ✓ |
 | BUG-101 | The package browser runs a downloaded rockspec in a Lua interpreter whenever its fields are built from locals or concatenation; the literal reader should follow them | todo | S | — | — | ✓ |
 | BUG-104 | Type checking stops after 5 s of wall-clock time, so a large file's findings depend on machine speed | todo | S | — | MAINT-63 digest gates on luals | ✓ |
+| BUG-105 | Type snapshots of library files are lost when their `PsiFile` is garbage-collected, so an edit elsewhere rebuilds them | todo | M | MAINT-63 | v0.21.21 goal 1 (edit misses) | ✓ |
 | BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
 | BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
 | BUG-44 | Assigning a wrong value to a class `@field` (`self.b = 'x'` for a `boolean`) is reported only as a hypothesis | todo | S | — | found by MAINT-54's false-negative audit | ✓ |

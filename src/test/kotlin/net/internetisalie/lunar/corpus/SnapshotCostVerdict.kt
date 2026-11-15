@@ -21,6 +21,11 @@ data class SweepRow(
     val editTopDepSelfMs: Long,
     val editBuilds: Int,
     val digest: Int,
+    val editDigest: Int = 0,
+    val rebuildStatus: String = "not-run",
+    val rebuildDigest: Int = 0,
+    val rebuildMs: Long = 0,
+    val rebuildBuilds: Int = 0,
 )
 
 /** Why a pass missed its bound, and the roadmap item it is filed under (design §3.3). */
@@ -55,6 +60,7 @@ object SnapshotCostVerdict {
     const val COLD_DEADLINE_MS = 60_000L
     const val EDIT_DEADLINE_MS = 1_000L
     const val RUN_BUDGET_MS = 35 * 60_000L
+    const val ORACLE_BUDGET_MS = 15 * 60_000L
 
     const val COLD_BOUND = "cold-250"
     const val EDIT_BOUND = "edit-250"
@@ -68,12 +74,14 @@ object SnapshotCostVerdict {
     const val OWN_BUILD_ITEM = "MAINT-61"
     const val REACH_ITEM = "MAINT-62"
     const val EDIT_CASCADE_ITEM = "MAINT-63"
+    val ORACLE_SKIPPED = setOf("luals")
     val OWN_BUILD_ITEMS = mapOf("/lua/fallo/init.lua" to "BUG-96", "/script/parser/compile.lua" to "BUG-97")
 
     const val RANKED_HEADER = "member\tfile\tbound\tvalue\tcause\titem\tdependency\tdependencyMs"
 
     private val BOUNDS = listOf(COLD_BOUND, EDIT_BOUND)
     private val NOT_READ = setOf(SKIPPED, NOT_RUN, UNMEASURED)
+    private val READ_OR_BUDGETED = setOf(OK, TIMEOUT, SKIPPED)
 
     /** Design §3.1 step 1: every `.lua` file under the member's roots, as `<root>/<relative path>`, sorted. */
     fun selectedFiles(
@@ -113,6 +121,50 @@ object SnapshotCostVerdict {
 
     fun runTimeFailures(elapsedMs: Long): List<String> =
         if (elapsedMs >= RUN_LIMIT_MS) listOf("sweep took ${elapsedMs / 60_000} min") else emptyList()
+
+    /** MAINT-63 design §2.6: the after-edit read against a full rebuild's, and whether the rebuild ran as designed. */
+    fun oracleChecks(rows: List<SweepRow>): List<String> =
+        oracleMismatches(rows) +
+            oracleUnforced(rows) +
+            oracleUnread(rows) +
+            oracleSkipped(rows) +
+            (if (oracleCompared(rows) == 0) listOf("oracle compared no rows") else emptyList())
+
+    fun oracleMismatches(rows: List<SweepRow>): List<String> =
+        rows
+            .filter { it.isCompared() && it.editDigest != it.rebuildDigest }
+            .map {
+                "${it.member}/${it.file} oracle: edit digest ${it.editDigest} != rebuild digest ${it.rebuildDigest}"
+            }
+
+    /** A forced rebuild always builds the read file's own snapshot; none built means a cached read. */
+    fun oracleUnforced(rows: List<SweepRow>): List<String> =
+        rows
+            .filter {
+                it.isCompared() && it.rebuildBuilds == 0
+            }.map { "${it.member}/${it.file} oracle: rebuild read built nothing" }
+
+    fun oracleUnread(rows: List<SweepRow>): List<String> =
+        rows
+            .filter { it.editStatus == OK && it.member !in ORACLE_SKIPPED && it.rebuildStatus !in READ_OR_BUDGETED }
+            .map { "${it.member}/${it.file} oracle: rebuild read ${it.rebuildStatus}" }
+
+    fun oracleSkipped(rows: List<SweepRow>): List<String> {
+        val skipped = rows.count { it.editStatus == OK && it.rebuildStatus == SKIPPED }
+        return if (skipped ==
+            0
+        ) {
+            emptyList()
+        } else {
+            listOf("oracle rebuild pass over budget: $skipped row(s) not compared")
+        }
+    }
+
+    fun oracleCompared(rows: List<SweepRow>): Int = rows.count { it.isCompared() }
+
+    fun oracleCounts(rows: List<SweepRow>): String =
+        "oracle compared=${oracleCompared(rows)} rebuildTimeouts=${rows.count { it.rebuildStatus == TIMEOUT }} " +
+            "rebuildMs=${rows.sumOf { it.rebuildMs }}"
 
     fun rankedLines(rows: List<SweepRow>): List<String> {
         val ranked =
@@ -225,6 +277,8 @@ object SnapshotCostVerdict {
         } else {
             SweepPass(this, bound, editMs, editStatus, editRootSelfMs, editTopDep, editTopDepSelfMs)
         }
+
+    private fun SweepRow.isCompared(): Boolean = editStatus == OK && rebuildStatus == OK
 
     private fun SweepRow.passes(): List<SweepPass> = BOUNDS.map { pass(it) }
 

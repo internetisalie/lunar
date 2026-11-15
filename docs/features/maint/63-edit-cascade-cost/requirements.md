@@ -107,5 +107,5 @@ Rows cite the prototype run that executed them; "not yet run" names the phase th
 | 14 | None known for TC 11 and TC 12 | regression checks |
 | 15 | `resolveModuleCandidates` accepts every `init.lua` for a dotless name (BUG-102's resolver rule reverted) | TC 13: an `oracle: edit digest` line on tntcrud (DR-20 ran this engine code). Not yet run on the implemented oracle: implementation plan Phase 2 |
 | 16 | `LuaStampTotal.advance` raises `offset` by 1 instead of to `highWater + 1`; or drops the `changed` condition | TC 16: t4 = 26, equal to t3; or t2 = 26. Not yet run: Phase 1 |
-| 17 | `toRow` takes `editDigest` from the cold read | design §2.6 O4. Not yet run: Phase 0 |
-| 18 | `rebuildPass` reads without `forceFullRebuild` | an `oracle: rebuild read built nothing` line on tntcrud: the read returns the snapshot the edit read cached, so digests alone cannot catch it. Not yet run: Phase 0 |
+| 17 | `toRow` takes `editDigest` from the cold read | design §2.6 O4. Run in Phase 0: `testO4RowTakesEachDigestFromItsRead` red |
+| 18 | `rebuildPass` reads without `forceFullRebuild` | an `oracle: rebuild read built nothing` line on tntcrud: the read returns the snapshot the edit read cached, so digests alone cannot catch it. Run in Phase 0 on tntcrud: 52 such lines, and none unmutated |

@@ -9,6 +9,7 @@ import net.internetisalie.lunar.corpus.SnapshotCostVerdict.rankedLines
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.releaseLines
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.runTimeFailures
 import net.internetisalie.lunar.corpus.SnapshotCostVerdict.sweepErrors
+import net.internetisalie.lunar.lang.psi.types.LuaSnapshotBuildMeter
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -234,6 +235,89 @@ class SnapshotCostVerdictTest {
             listOf(SnapshotCostVerdict.RANKED_HEADER, "m\tf.lua\tcold-250\t220 ms\tin band\t\t\t-1"),
             rankedLines(listOf(row(220, 10), row(150, 10).copy(file = "g.lua"))),
         )
+    }
+
+    /** A member `m` row with the given edit and rebuild statuses and one rebuild build. */
+    private fun oracleRow(
+        editStatus: String,
+        rebuildStatus: String,
+    ): SweepRow = row(10, 10).copy(editStatus = editStatus, rebuildStatus = rebuildStatus, rebuildBuilds = 1)
+
+    private fun comparedRow(
+        editDigest: Int,
+        rebuildDigest: Int,
+    ): SweepRow = oracleRow("ok", "ok").copy(editDigest = editDigest, rebuildDigest = rebuildDigest)
+
+    @Test
+    fun testO1OracleMismatchIsReported() {
+        assertEquals(
+            listOf("m/f.lua oracle: edit digest 1 != rebuild digest 2"),
+            SnapshotCostVerdict.oracleMismatches(listOf(comparedRow(1, 2))),
+        )
+    }
+
+    @Test
+    fun testO2OracleSkipsUnreadRows() {
+        val rebuildTimedOut = oracleRow("ok", "timeout").copy(editDigest = 1, rebuildDigest = 0)
+        val editTimedOut = oracleRow("timeout", "ok").copy(editDigest = 0, rebuildDigest = 1)
+        assertEquals(emptyList(), SnapshotCostVerdict.oracleMismatches(listOf(rebuildTimedOut, editTimedOut)))
+    }
+
+    @Test
+    fun testO3OracleComparedCountsOkPairs() {
+        assertEquals(1, SnapshotCostVerdict.oracleCompared(listOf(comparedRow(1, 1), oracleRow("ok", "timeout"))))
+    }
+
+    @Test
+    fun testO4RowTakesEachDigestFromItsRead() {
+        val build = LuaSnapshotBuildMeter.BuildRecord("/m/f.lua", 0, 5, 5)
+        val result =
+            FileResult(
+                "f.lua",
+                1,
+                ColdRead(false, Read(1, "ok", 1, emptyList())),
+                Read(1, "ok", 2, emptyList()),
+                Read(1, "ok", 3, listOf(build)),
+            )
+        val row = result.toRow("m")
+        assertEquals(listOf(1, 2, 3, 1), listOf(row.digest, row.editDigest, row.rebuildDigest, row.rebuildBuilds))
+    }
+
+    @Test
+    fun testO5UnforcedRebuildIsReported() {
+        val unforced = comparedRow(1, 1).copy(rebuildBuilds = 0)
+        assertEquals(
+            listOf("m/f.lua oracle: rebuild read built nothing"),
+            SnapshotCostVerdict.oracleUnforced(listOf(unforced)),
+        )
+        assertEquals(emptyList(), SnapshotCostVerdict.oracleUnforced(listOf(unforced.copy(rebuildBuilds = 3))))
+    }
+
+    @Test
+    fun testO6OverBudgetRebuildIsReported() {
+        assertEquals(
+            listOf("oracle rebuild pass over budget: 1 row(s) not compared"),
+            SnapshotCostVerdict.oracleSkipped(listOf(oracleRow("ok", "skipped"))),
+        )
+        assertEquals(emptyList(), SnapshotCostVerdict.oracleSkipped(listOf(oracleRow("skipped", "skipped"))))
+    }
+
+    @Test
+    fun testO7UnreadRebuildIsReported() {
+        fun unread(row: SweepRow): List<String> = SnapshotCostVerdict.oracleUnread(listOf(row))
+        assertEquals(listOf("m/f.lua oracle: rebuild read not-run"), unread(oracleRow("ok", "not-run")))
+        assertEquals(emptyList(), unread(oracleRow("ok", "not-run").copy(member = "luals")))
+        assertEquals(
+            listOf("m/f.lua oracle: rebuild read exception:X"),
+            unread(oracleRow("ok", "exception:X")),
+        )
+        assertEquals(emptyList(), unread(oracleRow("ok", "timeout")))
+        assertEquals(emptyList(), unread(oracleRow("timeout", "not-run")))
+    }
+
+    @Test
+    fun testO8NoComparedRowIsReported() {
+        assertTrue("oracle compared no rows" in SnapshotCostVerdict.oracleChecks(listOf(oracleRow("ok", "timeout"))))
     }
 
     private fun Attribution.causeAndItem(): Pair<String, String> = cause to item

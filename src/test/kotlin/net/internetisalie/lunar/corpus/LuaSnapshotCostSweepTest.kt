@@ -3,6 +3,7 @@ package net.internetisalie.lunar.corpus
 import com.google.gson.Gson
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
@@ -25,9 +26,10 @@ import org.junit.runners.JUnit4
 import org.junit.runners.MethodSorters
 import java.io.File
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicLong
 
 /** One read of a file's snapshot errors (MAINT-60 design §2.1): its time, status, findings digest and builds. */
-private data class Read(
+internal data class Read(
     val ms: Long,
     val status: String,
     val errorDigest: Int,
@@ -41,17 +43,18 @@ private data class SweptFile(
 )
 
 /** A cold read, and whether the file's snapshot was already built before it (design §3.1 step 4). */
-private data class ColdRead(
+internal data class ColdRead(
     val prebuilt: Boolean,
     val read: Read,
 )
 
 /** Both passes of one selected file, before they become a [SweepRow]. */
-private data class FileResult(
+internal data class FileResult(
     val path: String,
     val lines: Int,
     val cold: ColdRead,
     val edit: Read,
+    val rebuild: Read,
 )
 
 /** The `rootSelfMs`/`topDep`/`topDepSelfMs`/`builds` fields of one pass (design §3.1 step 6). */
@@ -213,10 +216,12 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
         val checks =
             SnapshotCostVerdict.coverage(selectedByMember(), rows) +
                 SnapshotCostVerdict.sweepErrors(rows) +
-                SnapshotCostVerdict.runTimeFailures(System.currentTimeMillis() - RUN_START_MS)
+                SnapshotCostVerdict.runTimeFailures(measuredMs()) +
+                (if (ORACLE_ON) SnapshotCostVerdict.oracleChecks(rows) else emptyList())
         File(outputDir, "ranked.tsv").writeText(SnapshotCostVerdict.rankedLines(rows).joinToString("\n"))
         val release = SnapshotCostVerdict.releaseLines(rows, checks.size)
-        File(outputDir, "verdict.txt").writeText(release.joinToString("\n"))
+        val counts = if (ORACLE_ON) listOf(SnapshotCostVerdict.oracleCounts(rows)) else emptyList()
+        File(outputDir, "verdict.txt").writeText((checks.map { "check: $it" } + counts + release).joinToString("\n"))
         (checks + release).forEach { println("[snapshot-cost] $it") }
         assertTrue(
             "${checks.size} snapshot cost check(s) failed; first ${FAILURES_SHOWN}:\n" +
@@ -233,7 +238,13 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
                 measureMember(entry, selected)
             } else {
                 selected.map { path ->
-                    FileResult(path, lineCount(entry, path), ColdRead(false, notRead(SKIPPED)), notRead(SKIPPED))
+                    FileResult(
+                        path,
+                        lineCount(entry, path),
+                        ColdRead(false, notRead(SKIPPED)),
+                        notRead(SKIPPED),
+                        notRead(SKIPPED),
+                    )
                 }
             }
         val rows = results.map { it.toRow(name) }
@@ -253,7 +264,34 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
         val files = copyRoots(entry, selected)
         val colds = coldPass(files)
         val edits = editPass(files, colds)
-        return files.indices.map { FileResult(files[it].path, lineCount(entry, files[it].path), colds[it], edits[it]) }
+        val rebuilds = if (ORACLE_ON) rebuildPass(entry.name, files, edits) else edits.map { notRead(NOT_RUN) }
+        return files.indices.map {
+            FileResult(files[it].path, lineCount(entry, files[it].path), colds[it], edits[it], rebuilds[it])
+        }
+    }
+
+    /** MAINT-63 design §2.6: per file, a forced full rebuild and a read of it, for the after-edit oracle. */
+    private fun rebuildPass(
+        member: String,
+        files: List<SweptFile>,
+        edits: List<Read>,
+    ): List<Read> =
+        files.zip(edits).map { (swept, edit) ->
+            when {
+                edit.status != OK || member in SnapshotCostVerdict.ORACLE_SKIPPED -> notRead(NOT_RUN)
+                REBUILD_MS.get() >= SnapshotCostVerdict.ORACLE_BUDGET_MS -> notRead(SKIPPED)
+                else -> {
+                    forceFullRebuild()
+                    readTimed(swept.file, SnapshotCostVerdict.COLD_DEADLINE_MS).also { REBUILD_MS.addAndGet(it.ms) }
+                }
+            }
+        }
+
+    /** Both ticks are needed (MAINT-63 risks DR-20): the target tracker, and the PSI caches. */
+    private fun forceFullRebuild() {
+        (LuaProjectSettings.getInstance(project).state.targetModificationTracker as SimpleModificationTracker)
+            .incModificationCount()
+        WriteCommandAction.runWriteCommandAction(project) { PsiManager.getInstance(project).dropPsiCaches() }
     }
 
     private fun coldPass(files: List<SweptFile>): List<ColdRead> {
@@ -321,7 +359,9 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
         documentManager.commitDocument(document)
     }
 
-    private fun budgetLeft(): Boolean = System.currentTimeMillis() - RUN_START_MS < SnapshotCostVerdict.RUN_BUDGET_MS
+    private fun measuredMs(): Long = System.currentTimeMillis() - RUN_START_MS - REBUILD_MS.get()
+
+    private fun budgetLeft(): Boolean = measuredMs() < SnapshotCostVerdict.RUN_BUDGET_MS
 
     private fun notRead(status: String): Read = Read(0, status, 0, emptyList())
 
@@ -376,6 +416,8 @@ class LuaSnapshotCostSweepTest : BasePlatformTestCase() {
 
     private companion object {
         val RUN_START_MS: Long = System.currentTimeMillis()
+        val REBUILD_MS = AtomicLong()
+        val ORACLE_ON: Boolean = System.getProperty("lunar.snapshotCost.oracle") == "true"
 
         const val OUTPUT_DIR = "build/snapshot-cost"
         const val FAILURES_SHOWN = 40
@@ -388,7 +430,7 @@ private fun Read.summary(): PassSummary {
     return PassSummary(root?.selfMs ?: -1, top?.path ?: "", top?.selfMs ?: -1, builds.size)
 }
 
-private fun FileResult.toRow(member: String): SweepRow {
+internal fun FileResult.toRow(member: String): SweepRow {
     val coldSummary = cold.read.summary()
     val editSummary = edit.summary()
     return SweepRow(
@@ -409,6 +451,11 @@ private fun FileResult.toRow(member: String): SweepRow {
         editTopDepSelfMs = editSummary.topDepSelfMs,
         editBuilds = editSummary.builds,
         digest = cold.read.errorDigest,
+        editDigest = edit.errorDigest,
+        rebuildStatus = rebuild.status,
+        rebuildDigest = rebuild.errorDigest,
+        rebuildMs = rebuild.ms,
+        rebuildBuilds = rebuild.builds.size,
     )
 }
 
@@ -433,4 +480,9 @@ private fun SweepRow.toJson(): String =
         "editTopDepSelfMs" to "$editTopDepSelfMs",
         "editBuilds" to "$editBuilds",
         "digest" to "$digest",
+        "editDigest" to "$editDigest",
+        "rebuildStatus" to jsonString(rebuildStatus),
+        "rebuildDigest" to "$rebuildDigest",
+        "rebuildMs" to "$rebuildMs",
+        "rebuildBuilds" to "$rebuildBuilds",
     ).joinToString(",", "{", "}") { (key, value) -> "\"$key\":$value" }

@@ -462,6 +462,8 @@ tasks {
         } else {
             val snapshotCostDir = layout.buildDirectory.dir("snapshot-cost").get().asFile
             doFirst { snapshotCostDir.deleteRecursively() }
+            // MAINT-63: the after-edit oracle runs apart from timing sweeps: `-PwithSnapshotOracle`.
+            systemProperty("lunar.snapshotCost.oracle", project.hasProperty("withSnapshotOracle").toString())
         }
         // MAINT-65: alone-read findings digests (MAINT-65-02). Opt-in:
         // `./gradlew test -PwithAloneDigest -PaloneDigestBase=<sweep.jsonl> -PaloneDigestChange=<sweep.jsonl> --tests '*LuaAloneDigestTest*'`.

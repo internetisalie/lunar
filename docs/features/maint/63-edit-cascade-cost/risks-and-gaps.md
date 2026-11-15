@@ -70,9 +70,7 @@ Answered (MAINT-65 DR-06, BUG-102 §4.1): a property of base inside the tnt* req
 MAINT-63-04 compares an edit read with a forced full rebuild of the same state, not a cold read.
 
 ## Technical Debt & Future Work
-- **Library snapshots lost to GC.** Holding the files cut V1's misses further (V2, DR-11). The
-  contract forbids hard references to `PsiFile`, so this needs its own item, for example a
-  soft-reference policy.
+- **Library snapshots lost to GC.** Holding the files cut V1's misses further (V2, DR-11). Filed as BUG-105.
 - **BUG-519** (definition-library snapshots never pinned): they take the unpinned branch and get a
   per-source tracker.
 
@@ -88,7 +86,7 @@ MAINT-63-04 compares an edit read with a forced full rebuild of the same state, 
 | Each consumption route records a URL, or moves an index stamp | runtime | DR-13, DR-14, DR-16, DR-18 |
 | A preprocessor sees every PSI change that ticks `MODIFICATION_COUNT` | runtime | DR-15 |
 | `getIndexModificationStamp` throws in dumb mode | runtime | DR-13 U8, DR-15 P8 |
-| A forced rebuild read builds the read file's own snapshot, so `oracleUnforced` never fires on correct wiring | runtime | not yet run: implementation plan Phase 0 |
+| A forced rebuild read builds the read file's own snapshot, so `oracleUnforced` never fires on correct wiring | runtime | Phase 0: tntcrud, unmutated, no `oracle` line (78 compared); without `forceFullRebuild`, 52 `rebuild read built nothing` lines |
 | Base's sweep-to-sweep spread is the margin of MAINT-63-03 | runtime | DR-25 |
 | `checkTypes`' cutoff fires only in luals | runtime | DR-25 |
 | The named APIs exist and are not `@ApiStatus.Internal` | read | design §2, §3 |
