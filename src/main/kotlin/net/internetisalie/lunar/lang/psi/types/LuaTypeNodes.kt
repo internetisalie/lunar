@@ -1,6 +1,8 @@
 package net.internetisalie.lunar.lang.psi.types
 
 import com.intellij.psi.PsiElement
+import java.util.Collections
+import java.util.IdentityHashMap
 
 /**
  * Base for all nodes in the type graph. Every node is associated with the PSI element
@@ -195,32 +197,10 @@ internal class VariableElement(
     }
 
     private fun resolveWrite(visited: MutableSet<VariableNode>): LuaGraphType {
-        if (!visited.add(this)) return LuaGraphType.Undefined
-
-        val types = mutableSetOf<LuaGraphType>()
-
-        fun flatten(type: LuaGraphType) {
-            if (type is LuaGraphType.Union) {
-                type.types.forEach { flatten(it) }
-            } else if (type != LuaGraphType.Undefined) {
-                types.add(type)
-            }
-        }
-
-        upSet.forEach {
-            // One branch, deliberately: VariableElement overrides writeWith to continue the walk
-            // with this guard, and every other ValueNode either forwards it (LazyValueElement) or
-            // holds a type outright. Re-splitting this into a `is VariableElement` special case is
-            // what let BUG-390's lazy hop escape the guard.
-            val type = if (it is ValueNode) it.writeWith(visited) else LuaGraphType.Undefined
-            flatten(type)
-        }
-
-        return when {
-            types.isEmpty() -> LuaGraphType.Undefined
-            types.size == 1 -> types.first()
-            else -> LuaGraphType.Union(types)
-        }
+        val walk = WriteWalk(visited)
+        walk.collect(this)
+        graph.recordWriteInsertions(walk.insertions)
+        return walk.result()
     }
 
     private fun resolveRead(visited: MutableSet<VariableNode>): LuaGraphType {
@@ -276,6 +256,62 @@ internal class VariableElement(
             isExact = tables.all { it.isExact },
         )
     }
+}
+
+/**
+ * One `write` walk (BUG-96): every value reaching the root, flattened in first-encounter order.
+ *
+ * The walk keeps one result set, not one per visited variable. Up-sets are transitively closed, so
+ * in a cluster of variables wired both ways each up-set holds every value: a set per variable hashed
+ * each value once per variable and again at every level it was returned through, and hashing a
+ * [LuaGraphType.Table] walks its member map. A variable's set held its subtree's first encounters
+ * in order, so its caller's set held the same types in the same order as this single set does. A
+ * [ValueElement] already met holds the same type and is skipped. Variables are visited in the same
+ * order as before, so a lazy node sees the same guard.
+ *
+ * Every branch carries [visited] on. A [LazyValueElement] gets it through `writeWith`, which keeps
+ * BUG-390's lazy hop from starting a fresh guard; its own read is a separate walk, because it
+ * returns a projection of the type it reads rather than that type.
+ */
+private class WriteWalk(
+    private val visited: MutableSet<VariableNode>,
+) {
+    private val types = LinkedHashSet<LuaGraphType>()
+    private val seenValues: MutableSet<ValueElement> = Collections.newSetFromMap(IdentityHashMap())
+
+    /** How many types were offered to [types]; the meter for the regression test. */
+    var insertions = 0
+        private set
+
+    fun collect(variable: VariableElement) {
+        if (!visited.add(variable)) return
+        for (node in variable.upSet) {
+            when (node) {
+                is VariableElement -> collect(node)
+                is ValueElement -> if (seenValues.add(node)) flatten(node.write)
+                is ValueNode -> flatten(node.writeWith(visited))
+                else -> Unit
+            }
+        }
+    }
+
+    private fun flatten(type: LuaGraphType) {
+        when (type) {
+            is LuaGraphType.Union -> type.types.forEach { flatten(it) }
+            LuaGraphType.Undefined -> Unit
+            else -> {
+                insertions++
+                types.add(type)
+            }
+        }
+    }
+
+    fun result(): LuaGraphType =
+        when {
+            types.isEmpty() -> LuaGraphType.Undefined
+            types.size == 1 -> types.first()
+            else -> LuaGraphType.Union(types)
+        }
 }
 
 /**

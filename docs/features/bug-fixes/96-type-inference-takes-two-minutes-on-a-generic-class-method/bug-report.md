@@ -3,7 +3,7 @@ id: "BUG-96"
 title: "fallo's `init.lua` has an own snapshot build that does not finish within 60 seconds"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "in_progress"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -229,3 +229,82 @@ view allocation-by-class` ranks `LinkedHashMap$LinkedKeyIterator` (14.8 %),
 
 Not established: call counts, because sampling does not give them. Also not established: why the
 error counts differ from §2's.
+
+## 5. Root cause
+Measured on `51dc06bb`, builder `libvirt`, GoLand 2026.2.3 test platform, with temporary counters in
+the engine and the light-fixture probe of §4 (Standard Lua 5.4, one `getErrors()` on the whole file).
+On this commit the build takes 862–874 s and reports 1 537 errors, not §4's 120 s and 881.
+
+**The graph is 74 290 nodes for a 514-line file, and every node is built before checking starts.**
+25 500 of them are variables. 71 000 come from `LuaGraphType.fromLuaType` on the file's 32
+`Result<…>` annotations (`---@param self Result<T, E>`, `---@return Result<U, E>` and the rest).
+Each conversion builds every member of every `Result` instantiation the class's own signatures
+name (`Result`, `Result<>`, `Result<T>`, `Result<T, E>`, `Result<T, F>`, `Result<U, E>`,
+`Result<T[], E>`), which is about 2 300 nodes per annotation. The `visited` map that shares an
+instantiation is per conversion, so the 32 annotations make 32 independent copies.
+
+**Checking wires the copies into clusters, and the pairs grow with the cluster.**
+`checkTableCompatibility` joins a value's member to the matching demand member in both directions,
+so the copies of one member merge into one cluster. By the end of pass 1 the largest up-set holds
+973 nodes and the largest down-set 1 923. Pass 1 admits 3 641 293 pairs and adds 4 216 181 edges.
+It takes the whole build, and the 5 s limit in `checkTypes` then stops the fixed point after that
+one pass, so the findings are the product of a single pass.
+
+**Every resolution walks the cluster's closure, and every edge invalidates the memo.** Up-sets are
+transitively closed, so a `write` walk iterates the up-set of each variable it reaches: O(k²) for a
+cluster of k. Pass 1 opens 237 509 `write` and 188 126 `read` walks that miss the root memo, because
+one of the 4.2 million edge additions has moved the revision since the last one. Those walks make
+2 856 793 225 `resolveWrite` calls, iterate 5 405 672 896 up-set entries and make 1 124 185 189
+`resolveRead` calls.
+
+**What the profile's leads were.** `LuaGraphType$Table.hashCode` is the `write` walk building a set
+per visited variable: each frame hashed every value of its up-set into its own set, and each caller
+flattened the returned union into its set again. That is 2 592 036 866 insertions in pass 1, and a
+`Table`'s hash walks its member map each time. `mergeTableDemands` is the `read` walk's equivalent:
+each frame merges every table demand of its down-set, 367 617 106 tables in 4 339 916 merges. Both
+are costs of the walk, not causes; caching `Table.hashCode` is unsafe in any case, because a
+`Table`'s member map is filled after construction (`classTable`, `visitTableConstructor`).
+
+## 6. Fix
+The `write` walk keeps one result set for the whole walk instead of one per visited variable, and
+skips a `ValueElement` it has already met (`WriteWalk` in `LuaTypeNodes.kt`). A frame's set held
+its subtree's values in first-encounter order, so the single set holds the same types in the same
+order. Variables are visited in the same order, so every lazy node sees the same guard. A
+differential that ran the old walk beside the new one at every entry found no difference over 29 115
+comparisons on the first 200 000 pairs of this file. Pass 1's insertions fall from 2 592 036 866 to
+26 139 798.
+
+| | run 1 | run 2 | run 3 | errors |
+|---|---|---|---|---|
+| before (`51dc06bb`) | 873 841 ms | 869 954 ms | 862 483 ms | 1 537 |
+| after | 495 573 ms | 485 773 ms | 484 034 ms | 1 537 |
+
+The sorted finding lists (offsets, severity and message) are identical in all six runs.
+`LuaTypeGraphWriteWalkTest` asserts that a walk over a 40-variable cluster offers each of its three
+values once, and that the walk matches the old nested walk, union order included, at every root.
+
+## 7. Residual
+The build is still about 490 s against a 250 ms target, so this bug stays open. What remains, in the
+same instrumented run after the fix (553 s of check):
+
+- **`read` walks, 313 s.** The `read` walk has the same O(k²) shape, but its fold (first demand wins,
+  table demands merge, a trait outranks tables) is not a set union, so a single accumulator would
+  not give the same result.
+- **`write` walks, 128 s**, now iterating entries rather than hashing them.
+- **Edge propagation, 29 s, and the rest of checking, about 83 s.**
+- **A dependency memo would remove about 40 % of the walks.** A walk's result depends only on the
+  up- or down-sets of the variables it visited. Recording those and their sizes would let a root
+  reuse a result whose sets have not grown since. 89 338 of 237 509 `write` misses and 79 243 of
+  188 126 `read` misses would have hit, with no mismatch. It is not shipped: it holds about 74
+  variables per memo while checking runs, and it leaves the time in minutes.
+
+**The dominant cause cannot be removed under the findings freeze.** Sharing one conversion per
+instantiation within a graph (a per-graph cache in `fromLuaType`) takes the graph to 5 284 nodes, and
+checking converges in 3 passes: 1 009 ms of checking and 2 085 ms in all, measured with this
+fix and the counters in place. But it changes the
+findings from 1 537 to 503 (1 590 lines of the sorted diff). Most of the removed ones are artefacts of
+the copies: hypotheses such as `fun(error) | fun(error) | …` (up to 90 arms) is not assignable to
+`fun(p)`, and errors such as `Result<T, E> | Result<T, E> | { ... } | …` is not assignable to
+`Result`. Any fix that makes pass 1 finish within the 5 s limit also changes this file's findings,
+because a second pass then runs. So the 250 ms target and identical findings cannot both hold for
+this file.

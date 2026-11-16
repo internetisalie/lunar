@@ -88,6 +88,13 @@ class LuaTypeGraph {
         bumpRevision()
     }
 
+    private var writeInsertions = 0L
+
+    /** Counts the types one `write` walk offered to its result set (BUG-96). */
+    internal fun recordWriteInsertions(count: Int) {
+        writeInsertions += count
+    }
+
     /** Counts a walk root that missed its memo and was actually re-derived (BUG-473). */
     internal fun recordRootResolution(accessor: RootAccessor) {
         rootResolutions[accessor.ordinal]++
@@ -1181,6 +1188,13 @@ class LuaTypeGraph {
      */
     @org.jetbrains.annotations.TestOnly
     internal fun rootResolutionCount(accessor: RootAccessor): Long = rootResolutions[accessor.ordinal]
+
+    /**
+     * @return how many types every `write` walk over this graph's lifetime offered to its result
+     * set (BUG-96). One per distinct reaching value and walk, however many variables hold it.
+     */
+    @org.jetbrains.annotations.TestOnly
+    internal fun writeInsertionCount(): Long = writeInsertions
 
     /** MAINT-61: successful `upSet`/`downSet` additions over this graph's lifetime. Equals [closureSize]. */
     @org.jetbrains.annotations.TestOnly

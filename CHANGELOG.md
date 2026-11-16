@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Type checking takes less time on a file that annotates one generic class many times** (BUG-96).
+  Resolving a variable's type gathered each value reaching it once for every variable it passed
+  through, and hashed a table value again each time. Each value is now gathered once per
+  resolution, with the same result. On a 514-line file with 32 annotations of one generic class,
+  checking takes about 490 s instead of 870 s, which is still far too slow to use.
 - **A nested array type keeps every level** (BUG-109). `---@type string[][]` was read as
   `string[]`, so `local t = {{'a'}}` was reported as not assignable, including against a union with a
   `string[][]` arm such as `string|string[]|string[][]`. Each `[]` suffix is now one array level, at
