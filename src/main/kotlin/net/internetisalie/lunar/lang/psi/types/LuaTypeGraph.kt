@@ -744,6 +744,13 @@ class LuaTypeGraph {
             return
         }
 
+        if (valueType is LuaGraphType.Table &&
+            useType is LuaGraphType.Array &&
+            isArrayCompatible(valueType, useType, CompatContext())
+        ) {
+            return
+        }
+
         reportIncompatible(
             useElement,
             valueElement,
@@ -788,7 +795,9 @@ class LuaTypeGraph {
         // Memo (TYPE-09-P2-05): only genuine structural results below are stored, so reusing a hit
         // is sound — depth/breadth limits never trip on the cached path on real code.
         val key = CompatKey(value, use)
-        compatMemo[key]?.let { return it }
+        // BUG-481: equal tables may hold different constructor entries, so this pair is not memoised.
+        val memoisable = !(value is LuaGraphType.Table && use is LuaGraphType.Array)
+        if (memoisable) compatMemo[key]?.let { return it }
 
         if (!ctx.visited.add(value to use)) return true // Cycle = assume compatible (NOT memoized)
 
@@ -813,6 +822,7 @@ class LuaTypeGraph {
                         use.elementType,
                         ctx,
                     )
+                value is LuaGraphType.Table && use is LuaGraphType.Array -> isArrayCompatible(value, use, ctx)
                 value is LuaGraphType.Table && use is LuaGraphType.Table ->
                     isNominallyCompatible(value, use, mutableSetOf()) ||
                         isStructurallyCompatible(value, use, ctx)
@@ -822,7 +832,7 @@ class LuaTypeGraph {
                 value == LuaGraphType.Nil -> use == LuaGraphType.Nil
                 else -> false
             }
-        compatMemo[key] = result
+        if (memoisable) compatMemo[key] = result
         return result
     }
 
@@ -863,6 +873,21 @@ class LuaTypeGraph {
             is LuaGraphType.Union -> type.types.map { it::class.java }.toSet()
             else -> setOf(type::class.java)
         }
+
+    /**
+     * BUG-481: an anonymous table constructor is an array when every positional entry fits the
+     * element type. A `nil` entry is a hole, not a type. Only a constructor literal qualifies.
+     */
+    private fun isArrayCompatible(
+        value: LuaGraphType.Table,
+        use: LuaGraphType.Array,
+        ctx: CompatContext,
+    ): Boolean =
+        value.arrayShaped &&
+            value.positional.all { entry ->
+                val entryType = entry.write
+                entryType == LuaGraphType.Nil || isCompatible(entryType, use.elementType, ctx)
+            }
 
     private fun isStructurallyCompatible(
         value: LuaGraphType.Table,

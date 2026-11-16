@@ -2,6 +2,12 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A table constructor can be assigned to an array type** (BUG-481). `---@type string[]` on
+  `local xs = {}` was reported as *`{ ... }` is not assignable to `string[]`*, and so was passing
+  `{ 1, 2 }` to a `number[]` parameter. A constructor whose positional entries all fit the element
+  type, or that has none, is now accepted, including against a union with an array arm such as
+  `Foo|Foo[]`. A constructor holding an entry of the wrong type, or a value that is not a table, is
+  still reported.
 - **A method whose `self` is a constrained generic reports only the field it lacks** (BUG-94). In
   `---@generic T: SomeClass` with `---@param self T` on a `:` method, `self` now reads as `SomeClass`:
   a field the class declares is accepted and one it does not declare is reported as undefined.

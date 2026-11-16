@@ -102,14 +102,8 @@
       "undefined-field-014",
       "undefined-field-015"
     ],
-    "BUG-481": [
-      "assign-type-mismatch-001",
-      "assign-type-mismatch-009",
-      "assign-type-mismatch-018",
-      "assign-type-mismatch-043",
-      "assign-type-mismatch-044",
-      "assign-type-mismatch-046",
-      "missing-fields-017"
+    "BUG-109": [
+      "assign-type-mismatch-046"
     ]
   }
 }

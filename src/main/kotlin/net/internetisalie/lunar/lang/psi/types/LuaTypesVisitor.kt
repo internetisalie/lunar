@@ -798,9 +798,15 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         super.visitTableConstructor(o)
 
         val localMembers = mutableMapOf<String, VariableNode>()
+        val positional = mutableListOf<VariableNode>()
         o.fieldList?.fieldList?.forEach { field ->
             val key = field.identifier?.text
             val valExpr = field.exprList.lastOrNull()
+            if (key == null && valExpr != null && field.exprList.size == 1) {
+                val entryNode = graph.variable(field)
+                graph.addEdge(entryValueNode(valExpr), entryNode)
+                positional.add(entryNode)
+            }
             if (key != null && valExpr != null) {
                 // Undefined, not nil: an unmodeled field initializer must not declare the
                 // member to be nil — that is the placeholder misreading of BUG-416.
@@ -810,9 +816,20 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
                 localMembers[key] = memberNode
             }
         }
-        val tableType = LuaGraphType.Table(null, localMembers)
+        val tableType =
+            LuaGraphType
+                .Table(
+                    null,
+                    localMembers,
+                ).asConstructor(positional, arrayShaped = !hasBracketKey(o))
         elementNodes[o] = listOf(graph.value(o, tableType))
     }
+
+    private fun hasBracketKey(constructor: LuaTableConstructor): Boolean =
+        constructor.fieldList?.fieldList?.any { it.exprList.size > 1 } == true
+
+    private fun entryValueNode(valExpr: LuaExpr): TypeNode =
+        firstNode(unwrapExpression(valExpr)) ?: graph.value(valExpr, LuaGraphType.Undefined)
 
     override fun visitLocalVarDecl(o: LuaLocalVarDecl) {
         super.visitLocalVarDecl(o)

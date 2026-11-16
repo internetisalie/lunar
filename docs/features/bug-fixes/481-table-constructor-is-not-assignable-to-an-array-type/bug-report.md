@@ -3,7 +3,7 @@ id: "BUG-481"
 title: "A table constructor is reported as not assignable to an array type"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -71,3 +71,39 @@ union, a `Table`, or both) is the analysis `plan-bug` owns.
 
 Medium. The idiom is universal in annotated Lua, and the diagnostic is an ERROR-tier message on a
 declaration line, which BUG-417 showed can bury every other inspection's result on the file.
+
+## Root Cause
+
+`visitTableConstructor` ([LuaTypesVisitor.kt:797](../../../../src/main/kotlin/net/internetisalie/lunar/lang/psi/types/LuaTypesVisitor.kt))
+built a `LuaGraphType.Table` holding only the *named* entries; positional entries were dropped, so
+a constructor carried no information about its elements. Both assignability paths then had no
+`Table` value against `Array` demand arm: `LuaTypeGraph.checkCompatibility` fell to its final
+`reportIncompatible` (the `{ ... } is not assignable to X[]` message), and `isCompatible` fell to
+`else -> false`, which also made every union demand with an array arm (`Foo|Foo[]`) fail.
+Grep: `grep -n "Array" LuaTypeGraph.kt` shows only an `Array`/`Array` arm in each.
+
+## Fix Strategy
+
+- `LuaGraphType.Table` gains `positional` (one `VariableNode` per positional entry, fed from the
+  entry's expression) and `arrayShaped` (a constructor literal with no `[expr] = v` key). Both sit
+  outside the primary constructor, so equality is unchanged: as constructor parameters they split
+  `{ ... }` into `{ ... } | { ... }` in `zerobrane-commands.golden` (`ide.session.projects[dir] or {}`).
+  Because equal tables can now differ, the `Table`/`Array` pair is not memoised in `isCompatible`.
+- `isCompatible` gets a `Table` against `Array` arm (`isArrayCompatible`): the table must be
+  `arrayShaped` and every positional entry, other than a bare `nil` hole, must fit the element type.
+  `checkCompatibility` returns before reporting when that holds.
+- A bracket-keyed constructor is not judged, so it is reported exactly as before
+  (`assign-type-mismatch-011`, `{ [1] = nil }` against `[boolean]`, which the parser reads as `any[]`).
+
+## Test Strategy
+
+`LuaTableConstructorArrayAssignabilityTest`: empty, matching, `nil` hole, held in a local then passed
+to an array parameter, parameter argument, `Foo|Foo[]`; controls that stay reported: `{ 1 }` and
+`{ 1, 2, 3 }` against `string[]`/`boolean[]`, `{{'a'}}` against `string[]`, a number against
+`string[]`, and a bracket-keyed constructor.
+
+## Not covered
+
+`assign-type-mismatch-046` (`string|string[]|string[][]` with `{{'a'}}`) has a different cause:
+`luacats.bnf` declares `arrayType ::= distinctType '[]'?`, so `string[][]` parses as `string[]`.
+It still reports and is left out of this fix.

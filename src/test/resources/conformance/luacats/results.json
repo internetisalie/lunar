@@ -5,13 +5,11 @@
   "cases": {
     "assign-type-mismatch-001": {
       "rule": "field.assign",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "4-4:{ ... } is not assignable to number[]"
-      ]
+      "findings": []
     },
     "assign-type-mismatch-002": {
       "rule": "field.assign",
@@ -87,13 +85,11 @@
     },
     "assign-type-mismatch-009": {
       "rule": "field.assign",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "2-2:{ ... } is not assignable to boolean[]"
-      ]
+      "findings": []
     },
     "assign-type-mismatch-010": {
       "rule": "field.assign",
@@ -171,13 +167,11 @@
     },
     "assign-type-mismatch-018": {
       "rule": "field.assign",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "2-2:{ ... } is not assignable to boolean[]"
-      ]
+      "findings": []
     },
     "assign-type-mismatch-023": {
       "rule": "assign.local",
@@ -307,23 +301,19 @@
     },
     "assign-type-mismatch-043": {
       "rule": "assign.local",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "2-2:{ ... } is not assignable to boolean[]"
-      ]
+      "findings": []
     },
     "assign-type-mismatch-044": {
       "rule": "assign.local",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "5-5:{ ... } is not assignable to boolean[]"
-      ]
+      "findings": []
     },
     "assign-type-mismatch-045": {
       "rule": "assign.local",
@@ -993,13 +983,11 @@
     },
     "missing-fields-017": {
       "rule": "field.missing",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "9-15:{ ... } is not assignable to union Foo | Foo[]"
-      ]
+      "findings": []
     },
     "missing-fields-018": {
       "rule": "field.missing",
@@ -2482,8 +2470,8 @@
       "missed": 2
     },
     "assign.local": {
-      "agree": 16,
-      "false-report": 3,
+      "agree": 18,
+      "false-report": 1,
       "missed": 6
     },
     "cast.local": {
@@ -2496,8 +2484,7 @@
       "agree": 1
     },
     "field.assign": {
-      "agree": 10,
-      "false-report": 3,
+      "agree": 13,
       "missed": 4
     },
     "field.inject": {
@@ -2505,8 +2492,7 @@
       "missed": 5
     },
     "field.missing": {
-      "agree": 35,
-      "false-report": 1,
+      "agree": 36,
       "missed": 3
     },
     "field.undefined": {

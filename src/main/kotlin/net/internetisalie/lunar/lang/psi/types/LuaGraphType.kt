@@ -105,7 +105,36 @@ sealed class LuaGraphType {
          * recorded rather than quietly inherited — design §4.7.
          */
         val metamethods: Set<kotlin.String> = emptySet(),
-    ) : LuaGraphType()
+    ) : LuaGraphType() {
+        /**
+         * The positional entries of a table constructor (`{ "a", "b" }`), in order (BUG-481).
+         *
+         * Deliberately outside the primary constructor, so they take no part in equality: the many
+         * sites that rebuild a table, and the union that dedupes `{}` against `{}`, must not start
+         * telling constructors apart. The one consumer, [LuaTypeGraph]'s array arm, therefore must
+         * not memoise on equality.
+         */
+        var positional: List<VariableNode> = emptyList()
+            private set
+
+        /**
+         * True for a constructor literal with no `[expr] = v` key, whose slot this engine cannot
+         * place. Only such a table can be judged against an [Array] demand; any other table keeps
+         * being reported as it always was.
+         */
+        var arrayShaped: kotlin.Boolean = false
+            private set
+
+        /** Records a constructor literal's entries on this freshly built table. */
+        fun asConstructor(
+            positional: List<VariableNode>,
+            arrayShaped: kotlin.Boolean,
+        ): Table {
+            this.positional = positional
+            this.arrayShaped = arrayShaped
+            return this
+        }
+    }
 
     data class Union(
         val types: Set<LuaGraphType>,

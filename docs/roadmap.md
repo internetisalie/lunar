@@ -107,7 +107,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-32 | A method that uses only its class's type parameter (`---@return T` on `Box<T>`) is `undefined` on a `Box<string>` | todo | S | — | found in TYPE-14 Phase 5 review: TYPE-14-09's remainder (Gap 2.11) | ✓ |
 | BUG-33 | A lambda passed to a generic callback slot (`fun(a: T)`) does not take `a`'s type from a sibling `T[]` argument (LuaLS #1883) | todo | C | — | TYPE-14-16, not delivered by TYPE-14 Phase 6 (Gap 2.12) | ✓ |
 | BUG-37 | A generic class's type parameter (`Box<T>`) is not recognised inside an in-file method's own `@param`/`@return` | todo | S | — | TYPE-14-01's remainder (design §4.8 Phase 5 note) | ✓ |
-| BUG-481 | A table constructor is reported as not assignable to an array type — `---@type string[]` `local xs = {}` is a false ERROR | todo | S | — | — | ✓ |
 | BUG-564 | A local declared without a value and assigned inside a `while` loop is reported as an unused local, though it is read | todo | S | — | found triaging BUG-554's corpus movement: 2 lazy.nvim hits (`to`, `url`) that a false *Too few arguments* ERROR had hidden | ✓ |
 | BUG-565 | No test detects TYPE-12's A6TH mutation: the false positives that exposed it are gone | todo | S | — | found fixing BUG-554: `pipeUnion`, `fileUnionStdlib` and `luacheck-cache` no longer report the receiver hypotheses A6TH added to | ✓ |
 | BUG-21 | A later reassignment reaches an earlier argument's demand | todo | S | — | found fixing BUG-19: three zerobrane hits | ✓ |
@@ -157,6 +156,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-105 | Type snapshots of library files are lost when their `PsiFile` is garbage-collected, so an edit elsewhere rebuilds them | todo | M | MAINT-63 *(done)* | v0.21.21 goal 1 (edit misses) | ✓ |
 | BUG-106 | One call in the luacheck type audit resolves its callee in some runs and not in others | todo | S | — | MAINT-63 TC 11 compares around it | ✓ |
 | BUG-107 | The corpus sweep's highlight failure names its file and exception only in test stdout, which CI does not keep; a CI-only zerobrane failure could not be identified | todo | S | — | one CI flake on PR 252, green on re-run and on the builder | ✓ |
+| BUG-109 | A nested array type `T[][]` parses as `T[]`, so `---@type string[][]` with `local t = {{'a'}}` is reported as not assignable | todo | S | — | v0.21.21 goal 2 (`assign-type-mismatch-046`) | ✓ |
 | BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
 | BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
 | BUG-44 | Assigning a wrong value to a class `@field` (`self.b = 'x'` for a `boolean`) is reported only as a hypothesis | todo | S | — | found by MAINT-54's false-negative audit | ✓ |
