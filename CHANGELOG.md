@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A chained call has its last call's type** (BUG-100). In `a():b()`, the result was given `a()`'s
+  type, so passing `getGeneric(h):resolve()` where its declared return was expected, or calling a
+  method on it, was reported against the wrong class. Each call in a chain now resolves its method
+  on the previous call's result, the same as `local r = a(); r:b()`, and a call whose method cannot
+  be found gives an unknown result.
 - **A table constructor can be assigned to an array type** (BUG-481). `---@type string[]` on
   `local xs = {}` was reported as *`{ ... }` is not assignable to `string[]`*, and so was passing
   `{ 1, 2 }` to a `number[]` parameter. A constructor whose positional entries all fit the element

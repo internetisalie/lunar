@@ -932,110 +932,155 @@ class LuaTypesVisitor : LuaRecursiveVisitor() {
         visitFunctionBody(element = o, parList = o.parList, funcNode = funcNode)
     }
 
+    /**
+     * One segment of a call chain (BUG-100): `a():b()` is one [LuaFuncCall] whose segments are `()`
+     * and `:b()`. [site] keys the segment's generic instantiation, which is memoized per site: the
+     * call for the first segment and the segment itself after it, so two generic segments of one
+     * chain never share a copy.
+     */
+    private data class CallSegment(
+        val call: LuaFuncCall,
+        val nameAndArgs: LuaNameAndArgs,
+        val site: PsiElement,
+    )
+
     override fun visitFuncCall(o: LuaFuncCall) {
         super.visitFuncCall(o)
+        val firstResults = callResultNodes(o)
+        elementNodes[o] = firstResults
+        modelFirstSegment(o, firstResults)
+        elementNodes[o] = modelLaterSegments(o, firstResults)
+    }
 
-        val calleeExpr = o.varOrExp
-        val calleeUnwrapped = unwrapExpression(calleeExpr)
+    private fun callResultNodes(o: LuaFuncCall): List<VariableNode> = List(8) { graph.variable(o) }
 
-        val callResultNodes = List(8) { graph.variable(o) }
-        elementNodes[o] = callResultNodes
-
-        // Special handling for require() — must come before the calleeNode guard because
-        // `require` is a Lua built-in and has no scope binding, so firstNode() returns null.
-        if (isRequireCall(calleeUnwrapped)) {
-            val moduleName = extractModuleName(o)
-            if (moduleName != null) {
-                val project = o.project
-                val moduleType = LuaTypeManager.getInstance(project).resolveModule(moduleName, o)
-                if (moduleType != null) {
-                    val moduleGraphType = LuaGraphType.fromLuaType(moduleType, graph)
-                    graph.addEdge(graph.value(o, moduleGraphType), callResultNodes.first())
-                    return
-                }
-            }
+    /**
+     * BUG-100: each segment after the first calls what the previous segment returned, exactly as
+     * `local r = a(); r:b()` would, and the chain's value is the LAST segment's results. A segment
+     * whose member does not resolve leaves its results unknown, never the earlier segment's type.
+     */
+    private fun modelLaterSegments(
+        o: LuaFuncCall,
+        firstResults: List<VariableNode>,
+    ): List<VariableNode> =
+        o.nameAndArgsList.drop(1).fold(firstResults) { previous, nameAndArgs ->
+            val results = callResultNodes(o)
+            modelSegmentCall(CallSegment(o, nameAndArgs, nameAndArgs), previous.first(), results)
+            results
         }
 
+    private fun modelFirstSegment(
+        o: LuaFuncCall,
+        results: List<VariableNode>,
+    ) {
+        val calleeUnwrapped = unwrapExpression(o.varOrExp)
+        // `require` is a Lua built-in with no scope binding, so it is handled before the callee guard.
+        if (modelRequireCall(o, calleeUnwrapped, results.first())) return
         // COMP-04-08: setmetatable(t, mt) exposes mt.__index's members on t.
-        if (calleeUnwrapped?.text == "setmetatable") {
-            if (handleSetMetatable(o, callResultNodes.first())) return
-        }
+        if (calleeUnwrapped?.text == "setmetatable" && handleSetMetatable(o, results.first())) return
 
         val nameAndArgs = o.nameAndArgsList.firstOrNull() ?: return
-        val argExprs = argExpressionsOf(nameAndArgs)
-
         // TYPE-10: seed passed lambdas' params from the callee's expected callback types. Runs
         // before the calleeNode guard so bundled-stub callees (redis.register_function, table.sort),
         // which have no in-file graph node, are still handled.
-        propagateExpectedLambdaParams(o, argExprs, calleeUnwrapped)
+        propagateExpectedLambdaParams(o, argExpressionsOf(nameAndArgs), calleeUnwrapped)
 
         val calleeNodeRef = firstNode(calleeUnwrapped) ?: return
-
-        // BUG-397: a declaration-typed callee (a free global like `print`, or a free-global
-        // member like `redis.pcall`) contributes its declared return to the call results and
-        // raises no CALL demand on the callee itself — wiring one is what regressed
-        // `redis.register_function`'s `@overload` table form in the reverted attempts, and it
-        // would also push call-site argument nodes into the shared seed's parameter nodes (one
-        // seed serves every call in the file).
-        //
-        // BUG-425: its declared PARAMETER types are still checked, per argument and per call site.
-        // Without that, a `---@param` one file away — every stdlib signature, every definition
-        // library — was not merely demoted, it was never looked at.
+        val segment = CallSegment(o, nameAndArgs, o)
         if (calleeNodeRef in declarationTypedNodes) {
-            val declared = declaredFunctionOf(calleeNodeRef, nameAndArgs.methodExpr?.nameRef?.text)
-            val argNodes = argExprs.map { firstNode(unwrapExpression(it)) }
-            declared?.let {
-                reportDeclaredArity(it, o, argExprs)
-                applyDeclaredSignature(it, LuaGenericInstantiation.DeclaredCall(o, argNodes, argExprs, callResultNodes))
-            }
-            return
+            modelDeclaredCall(segment, calleeNodeRef, results)
+        } else {
+            modelSegmentCall(segment, calleeNodeRef, results)
         }
+    }
 
-        var calleeNode = calleeNodeRef
-        val methodExpr = nameAndArgs.methodExpr
-        if (methodExpr != null) {
-            val methodName = methodExpr.nameRef?.text
-            if (methodName != null) {
-                calleeNode = methodSiteMember(calleeNode, methodExpr, methodName)
-            }
-        }
+    /** `require("name")` whose module resolves: the module's type is the call's result. */
+    private fun modelRequireCall(
+        o: LuaFuncCall,
+        calleeUnwrapped: PsiElement?,
+        resultNode: VariableNode,
+    ): Boolean {
+        if (!isRequireCall(calleeUnwrapped)) return false
+        val moduleName = extractModuleName(o) ?: return false
+        val moduleType = LuaTypeManager.getInstance(o.project).resolveModule(moduleName, o) ?: return false
+        graph.addEdge(graph.value(o, LuaGraphType.fromLuaType(moduleType, graph)), resultNode)
+        return true
+    }
 
-        val argNodes =
-            argExprs.map { argExpr ->
-                val unwrapped = unwrapExpression(argExpr)
-                val nodes = getNodes(unwrapped)
-                // Undefined, not nil: a node-less argument is an expression the engine has no opinion
-                // about (a free global's placeholder member, an unmodeled construct), and encoding "no
-                // information" as "exactly nil" is BUG-359's mechanism at the call-arg site — it turns
-                // every such argument into a manufactured "nil value is not assignable to …" (BUG-416).
-                // A literal `nil` argument is unaffected; it gets a real Nil node from its own visit.
-                val node = nodes.firstOrNull() ?: graph.value(argExpr, LuaGraphType.Undefined)
-                LuaGraphType.Function.Parameter(
-                    graph.variable(argExpr).apply {
-                        graph.addEdge(node, this)
-                    },
-                )
-            }
+    /**
+     * BUG-397: a declaration-typed callee (a free global like `print`, or a free-global member like
+     * `redis.pcall`) contributes its declared return to the call results and raises no CALL demand
+     * on the callee itself — wiring one is what regressed `redis.register_function`'s `@overload`
+     * table form in the reverted attempts, and it would also push call-site argument nodes into the
+     * shared seed's parameter nodes (one seed serves every call in the file).
+     *
+     * BUG-425: its declared PARAMETER types are still checked, per argument and per call site.
+     * Without that, a `---@param` one file away — every stdlib signature, every definition
+     * library — was not merely demoted, it was never looked at.
+     */
+    private fun modelDeclaredCall(
+        segment: CallSegment,
+        calleeNodeRef: TypeNode,
+        results: List<VariableNode>,
+    ) {
+        val argExprs = argExpressionsOf(segment.nameAndArgs)
+        val methodExpr = segment.nameAndArgs.methodExpr
+        val declared = declaredFunctionOf(calleeNodeRef, methodExpr?.nameRef?.text) ?: return
+        val argNodes = argExprs.map { firstNode(unwrapExpression(it)) }
+        reportDeclaredArity(declared, segment.call, argExprs)
+        val declaredCall = LuaGenericInstantiation.DeclaredCall(segment.call, argNodes, argExprs, results)
+        applyDeclaredSignature(declared, declaredCall)
+    }
 
+    /** One segment's CALL demand on [receiver], or on its `:name` member for a method segment. */
+    private fun modelSegmentCall(
+        segment: CallSegment,
+        receiver: TypeNode,
+        results: List<VariableNode>,
+    ) {
+        val methodExpr = segment.nameAndArgs.methodExpr
+        val methodName = methodExpr?.nameRef?.text
+        val calleeNode = segmentCallee(receiver, methodExpr)
+        val argExprs = argExpressionsOf(segment.nameAndArgs)
         val callDemand =
             LuaGraphType.Function(
-                params = argNodes,
-                returns = callResultNodes,
+                params = callArgumentParams(argExprs),
+                returns = results,
                 implicitSelf = methodExpr != null,
                 openEnded = suppliesManyValues(argExprs.lastOrNull()),
             )
 
         // TYPE-14: a generic template is instantiated per call site, and the copy meets the demand.
-        val template = calleeTemplate(calleeNode, calleeNodeRef, methodExpr?.nameRef?.text)
+        val template = calleeTemplate(calleeNode, receiver, methodName)
         if (template != null && instantiation.containsGeneric(template)) {
-            val instantiated = instantiation.instantiate(template, o)
+            val instantiated = instantiation.instantiate(template, segment.site)
             instantiation.bindCaptures(instantiated, argExprs.map { unwrapExpression(it) ?: it })
-            graph.addEdge(graph.value(o, instantiated.function), graph.use(o, callDemand))
+            graph.addEdge(graph.value(segment.call, instantiated.function), graph.use(segment.call, callDemand))
             return
         }
-
-        graph.addEdge(calleeNode, graph.use(o, callDemand))
+        graph.addEdge(calleeNode, graph.use(segment.call, callDemand))
     }
+
+    /** A method segment calls [receiver]'s `:name` member; a plain `(args)` segment calls [receiver] itself. */
+    private fun segmentCallee(
+        receiver: TypeNode,
+        methodExpr: LuaMethodExpr?,
+    ): TypeNode {
+        if (methodExpr == null) return receiver
+        val methodName = methodExpr.nameRef?.text ?: return receiver
+        return methodSiteMember(receiver, methodExpr, methodName)
+    }
+
+    private fun callArgumentParams(argExprs: List<PsiElement>): List<LuaGraphType.Function.Parameter> =
+        argExprs.map { argExpr ->
+            // Undefined, not nil: a node-less argument is an expression the engine has no opinion
+            // about (a free global's placeholder member, an unmodeled construct), and encoding "no
+            // information" as "exactly nil" is BUG-359's mechanism at the call-arg site — it turns
+            // every such argument into a manufactured "nil value is not assignable to …" (BUG-416).
+            // A literal `nil` argument is unaffected; it gets a real Nil node from its own visit.
+            val node = firstNode(unwrapExpression(argExpr)) ?: graph.value(argExpr, LuaGraphType.Undefined)
+            LuaGraphType.Function.Parameter(graph.variable(argExpr).apply { graph.addEdge(node, this) })
+        }
 
     /**
      * The callee's function type: its write, or the first function arm of a union — the member node a

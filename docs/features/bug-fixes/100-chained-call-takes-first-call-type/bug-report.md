@@ -3,7 +3,7 @@ id: "BUG-100"
 title: "In a chained call `a():b()`, the result takes `a()`'s type, so `x = a():b()` and its uses are reported against the wrong class"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

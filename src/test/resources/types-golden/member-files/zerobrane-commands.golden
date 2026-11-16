@@ -2843,7 +2843,7 @@ HYPOTHESIS|Too few arguments: expected at least 4, got 3|(9944,9969)|LuaFuncCall
 (32317,32318)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
 (32324,32329)|LuaNameRefImpl|{ ... }|dada13d2eefbd9c5
 (32324,32336)|LuaVarImpl|fun(list, pos?)|b8a038396801ec80
-(32324,32353)|LuaFuncCallImpl|any|2bc227d2d21e7785
+(32324,32353)|LuaFuncCallImpl|undefined|31a5442b7fa53ce1
 (32329,32336)|LuaIndexExprImpl|fun(list, pos?)|b8a038396801ec80
 (32329,32336)|LuaVarSuffixImpl|fun(list, pos?)|b8a038396801ec80
 (32337,32340)|LuaNameRefImpl|any|2bc227d2d21e7785
