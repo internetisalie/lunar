@@ -298,13 +298,28 @@ same instrumented run after the fix (553 s of check):
   188 126 `read` misses would have hit, with no mismatch. It is not shipped: it holds about 74
   variables per memo while checking runs, and it leaves the time in minutes.
 
-**The dominant cause cannot be removed under the findings freeze.** Sharing one conversion per
-instantiation within a graph (a per-graph cache in `fromLuaType`) takes the graph to 5 284 nodes, and
-checking converges in 3 passes: 1 009 ms of checking and 2 085 ms in all, measured with this
-fix and the counters in place. But it changes the
-findings from 1 537 to 503 (1 590 lines of the sorted diff). Most of the removed ones are artefacts of
-the copies: hypotheses such as `fun(error) | fun(error) | …` (up to 90 arms) is not assignable to
-`fun(p)`, and errors such as `Result<T, E> | Result<T, E> | { ... } | …` is not assignable to
-`Result`. Any fix that makes pass 1 finish within the 5 s limit also changes this file's findings,
-because a second pass then runs. So the 250 ms target and identical findings cannot both hold for
-this file.
+**Sharing one conversion per class per graph is fast but not sound as it stands.** A per-graph
+cache in `fromLuaType`, keyed on the `LuaClassType` instance (the type manager interns a declaration,
+and `LuaGenericSubstitution.instantiate` interns an instantiation per argument list), takes this file's
+graph to 5 284 nodes. Checking then reaches a fixed point in 3 passes, well inside `checkTypes`'s 5 s
+limit, and the whole read takes 0.86–1.9 s (three runs, `libvirt`). Its findings fall from 1 537 to
+503, and on this file every removed finding is an artefact of the copies or a wrong ERROR. But the
+full suite has 11 failures with it, and three of them are regressions on correct code:
+
+- `ChainedCallResultTypeTest`: four tests gain *`fun() | fun()` is not assignable to `fun()`* on
+  correct code, and `getGeneric(h):resolve():owner()` loses its type `Holder`.
+- `TargetTenDrSpikeTest.testDr02ConstructorInfersItsClass`: `f:` after
+  `local f = wx.wxFileName("x")` no longer offers `GetFullPath`.
+
+The cause is that a per-annotation copy carried meaning. Checking joins a value table's members to a
+demand table's members in both directions (`checkTableCompatibility`). In the declaring file (inferred
+from per-instance member dumps; the join site was not traced), the
+`@class` local's own table, holding the method body's function, is joined to the class conversion.
+With copies, that join reached only the conversion at that site, and a `---@return wxFileName`
+elsewhere kept a member holding only the declared `fun(): string`. With one shared table, every
+annotation of the class sees the joined body function too, so the member becomes
+`fun(): string | fun(): string`. `graphTypeToLuaType` then carries that union into the class types
+other files read. Colon completion skips a member whose type is not a `Function`, and a call-shape
+demand fails against the body's arm. Sharing needs a design that keeps an annotation's declared
+members separate from values joined into the class elsewhere; that is not a change to `fromLuaType`
+alone.
