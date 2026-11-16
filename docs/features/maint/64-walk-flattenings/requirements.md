@@ -20,9 +20,6 @@ sweep's table today: the files over target are filed by cause under MAINT-61, MA
 MAINT-63, and this item is a means of reducing them. Parent:
 [[features/maint/requirements|MAINT]]. Measurement feature: [[MAINT-60]].
 
-**On hold (product decision, 2026-11-15):** changes that alter findings are not accepted yet. Do not
-plan or ship this item until that decision is revisited.
-
 ## Measured Cause
 DR-06: per-file digests of the error strings differ from `base` for 2 files (`delta flatDemand`),
 10 (`delta idmemo flatDemand`), 17 (`+ flatWrite`) and 81 (`+ flatRead`, all). Even `all` leaves 67 files
