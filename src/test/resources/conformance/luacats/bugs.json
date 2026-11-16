@@ -101,9 +101,6 @@
       "undefined-field-012",
       "undefined-field-014",
       "undefined-field-015"
-    ],
-    "BUG-109": [
-      "assign-type-mismatch-046"
     ]
   }
 }

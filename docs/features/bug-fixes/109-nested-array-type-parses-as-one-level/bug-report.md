@@ -3,7 +3,7 @@ id: "BUG-109"
 title: "A nested array type `T[][]` parses as `T[]`, so a nested table constructor is reported as not assignable"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"

@@ -325,13 +325,11 @@
     },
     "assign-type-mismatch-046": {
       "rule": "assign.local",
-      "observed": "false-report",
-      "outcome": "false-report",
+      "observed": "agree",
+      "outcome": "agree",
       "must": [],
       "may": [],
-      "findings": [
-        "2-2:{ ... } is not assignable to union string | string[]"
-      ]
+      "findings": []
     },
     "assign-type-mismatch-047": {
       "rule": "assign.local",
@@ -2470,8 +2468,7 @@
       "missed": 2
     },
     "assign.local": {
-      "agree": 18,
-      "false-report": 1,
+      "agree": 19,
       "missed": 6
     },
     "cast.local": {

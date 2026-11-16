@@ -74,15 +74,17 @@ object TypeParser {
         context: PsiElement,
         typeParameters: Map<String, LuaType?>,
     ): LuaType {
-        var baseType = parseDistinctType(arrayType.distinctType, context, typeParameters)
-        // If it's an array type, text ends with "[]" but the grammar might just have the bracket tokens.
-        // The AST structure: arrayType ::= distinctType '[]'?
-        // We can check if it has bracket children.
-        if (arrayType.text.endsWith("[]")) {
-            baseType = LuaArrayType(baseType)
-        }
-        return baseType
+        val elementType = parseDistinctType(arrayType.distinctType, context, typeParameters)
+        return (1..arraySuffixCount(arrayType)).fold(elementType) { inner, _ -> LuaArrayType(inner) }
     }
+
+    /** The `[]` tokens after the element type; each is one array level (BUG-109). */
+    private fun arraySuffixCount(arrayType: LuaCatsArrayType): Int =
+        arrayType.node.getChildren(null).count {
+            it.elementType == LuaCatsElementTypes.SYMBOL && it.text == ARRAY_SUFFIX
+        }
+
+    private const val ARRAY_SUFFIX = "[]"
 
     private fun parseDistinctType(
         distinctType: LuaCatsDistinctType,

@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A nested array type keeps every level** (BUG-109). `---@type string[][]` was read as
+  `string[]`, so `local t = {{'a'}}` was reported as not assignable, including against a union with a
+  `string[][]` arm such as `string|string[]|string[][]`. Each `[]` suffix is now one array level, at
+  any depth: the type displays as `string[][]`, indexing it gives a `string[]`, and a constructor
+  nested to the wrong depth or holding the wrong element type is still reported.
 - **A chained call has its last call's type** (BUG-100). In `a():b()`, the result was given `a()`'s
   type, so passing `getGeneric(h):resolve()` where its declared return was expected, or calling a
   method on it, was reported against the wrong class. Each call in a chain now resolves its method

@@ -198,7 +198,7 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // distinctType '[]'?
+  // distinctType '[]'*
   public static boolean arrayType(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "arrayType")) return false;
     boolean result_;
@@ -209,10 +209,14 @@ public class LuaCatsParser implements PsiParser, LightPsiParser {
     return result_;
   }
 
-  // '[]'?
+  // '[]'*
   private static boolean arrayType_1(PsiBuilder builder_, int level_) {
     if (!recursion_guard_(builder_, level_, "arrayType_1")) return false;
-    consumeToken(builder_, "[]");
+    while (true) {
+      int pos_ = current_position_(builder_);
+      if (!consumeToken(builder_, "[]")) break;
+      if (!empty_element_parsed_guard_(builder_, "arrayType_1", pos_)) break;
+    }
     return true;
   }
 

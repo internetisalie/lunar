@@ -176,7 +176,8 @@ versionComparison ::= '<' | '>'
 
 type ::= unionType
 unionType ::= arrayType { '|' arrayType }*
-arrayType ::= distinctType '[]'?
+// BUG-109: each `[]` is one array level, so `string[][]` is an array of `string[]`.
+arrayType ::= distinctType '[]'*
 distinctType ::=
     parenthesizedType
     | tupleType

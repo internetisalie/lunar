@@ -155,7 +155,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-105 | Type snapshots of library files are lost when their `PsiFile` is garbage-collected, so an edit elsewhere rebuilds them | todo | M | MAINT-63 *(done)* | v0.21.21 goal 1 (edit misses) | ✓ |
 | BUG-106 | One call in the luacheck type audit resolves its callee in some runs and not in others | todo | S | — | MAINT-63 TC 11 compares around it | ✓ |
 | BUG-107 | The corpus sweep's highlight failure names its file and exception only in test stdout, which CI does not keep; a CI-only zerobrane failure could not be identified | todo | S | — | one CI flake on PR 252, green on re-run and on the builder | ✓ |
-| BUG-109 | A nested array type `T[][]` parses as `T[]`, so `---@type string[][]` with `local t = {{'a'}}` is reported as not assignable | todo | S | — | v0.21.21 goal 2 (`assign-type-mismatch-046`) | ✓ |
 | BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
 | BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
 | BUG-44 | Assigning a wrong value to a class `@field` (`self.b = 'x'` for a `boolean`) is reported only as a hypothesis | todo | S | — | found by MAINT-54's false-negative audit | ✓ |
