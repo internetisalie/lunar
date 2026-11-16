@@ -22,12 +22,10 @@ import org.junit.runners.JUnit4
  * split, the three annotation injection sites, the operator sites, and variable-mediated resolution
  * was flipped in turn and confirmed to take a named fixture below red.
  *
- * **One piece is measured as unguarded and deliberately left so:** the *recursion* inside
- * `VariableElement.resolveDeclaredDemand`. Replacing it with a one-hop lookup leaves every fixture
- * here green, including the two-variable ones — a value propagates all the way into the parameter
- * variable, so the declared use node is always exactly one hop from wherever the check lands. The
- * recursion is insurance against a shape that does not exist today (BUG-425's fix is the likeliest
- * to create one), not covered behaviour, and should not be described as tested.
+ * The flag is read one hop deep, off the variable's own down-set (BUG-97). That is exact because
+ * down-sets are transitively closed: a declared use reachable through a chain of variables is in
+ * the first variable's down-set too. `LuaTypeGraphClosureWalkTest` pins it against the recursive
+ * walk it replaced.
  */
 @RunWith(JUnit4::class)
 class LuaDeclaredContractErrorTest : BasePlatformTestCase() {
@@ -62,10 +60,8 @@ class LuaDeclaredContractErrorTest : BasePlatformTestCase() {
     /**
      * A value that reaches the contract through two named variables.
      *
-     * Note this does **not** exercise `VariableElement.resolveDeclaredDemand`'s recursion — measured:
-     * it stays green under a one-hop-only mutant. A precisely-typed value flows to the `@param` use
-     * node directly, so the variable chain is not what carries the demand here. The recursion is
-     * reached only when the check lands on a variable, which is the nil case below.
+     * A precisely-typed value flows to the `@param` use node directly, so the variable chain is not
+     * what carries the demand here. The check lands on a variable only in the nil case below.
      */
     @Test
     fun testDeclaredParamRejectsAValueReachedThroughTwoVariables() {
@@ -89,9 +85,8 @@ class LuaDeclaredContractErrorTest : BasePlatformTestCase() {
      * inherits `UseNode`'s `false` default unless the flag is resolved through the chain. That is
      * the defect BUG-419 shipped, and this is what catches it.
      *
-     * It does **not** reach `resolveDeclaredDemand`'s recursion, despite the two variables — see the
-     * class KDoc. The value propagates all the way into the parameter variable, where the `@param`
-     * use node is one hop away.
+     * The value propagates all the way into the parameter variable, where the `@param` use node is
+     * one hop away.
      */
     @Test
     fun testDeclaredParamRejectsNilReachedThroughTwoVariables() {

@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Type checking takes less time on a file whose tables share fields across hundreds of sites**
+  (BUG-97). Deciding whether a value meets a declared contract, and gathering the values a variable
+  holds, walked every variable joined to it through a shared table field, once for each variable it
+  reached. The first now reads the variable's own constraints, and the second stops once every value
+  it can reach is gathered, with the same results. On a 5 164-line parser that sets `start` and
+  `finish` on hundreds of tables, checking takes about 23 s instead of 30 s, which is still far too
+  slow to use.
 - **Type checking takes less time on a file that annotates one generic class many times** (BUG-96).
   Resolving a variable's type gathered each value reaching it once for every variable it passed
   through, and hashed a table value again each time. Each value is now gathered once per

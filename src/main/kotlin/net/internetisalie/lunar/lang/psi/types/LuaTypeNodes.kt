@@ -139,7 +139,7 @@ internal class VariableElement(
     private val declaredDemandMemo = RootMemo<Boolean>()
 
     override val write: LuaGraphType
-        get() = atRoot(writeMemo, RootAccessor.WRITE) { resolveWrite(mutableSetOf()) }
+        get() = atRoot(writeMemo, RootAccessor.WRITE) { resolveWrite(mutableSetOf(), upSet) }
 
     override val read: LuaGraphType
         get() = atRoot(readMemo, RootAccessor.READ) { resolveRead(mutableSetOf()) }
@@ -147,7 +147,7 @@ internal class VariableElement(
     // BUG-390 in reverse: this entry carries the CALLER's guard, so its result is walk-relative and
     // the memo must not be consulted here. Doing so would return a full type where the guard
     // requires the neutral element, and a cycle would resolve to a type instead of Undefined.
-    override fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = resolveWrite(visited)
+    override fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = resolveWrite(visited, null)
 
     /**
      * A variable's demand is the intersection of everything read from it, so it is DECLARED if any
@@ -160,15 +160,15 @@ internal class VariableElement(
      * declared-contract violation reached through a call to a hypothesis.
      */
     override val declaredDemand: Boolean
-        get() = atRoot(declaredDemandMemo, RootAccessor.DECLARED_DEMAND) { resolveDeclaredDemand(mutableSetOf()) }
+        get() = atRoot(declaredDemandMemo, RootAccessor.DECLARED_DEMAND) { reachesDeclaredDemand() }
 
     /**
      * BUG-473: the only place a [RootMemo] is read or written.
      *
      * [resolve] opens a walk with a freshly allocated, empty guard, so at this entry — and only at
      * this entry — the result is a pure function of the graph's node and edge state and stays valid
-     * until [LuaTypeGraph.revision] moves. Every interior entry ([writeWith], and the recursions in
-     * [resolveRead] / [resolveDeclaredDemand]) inherits a caller's guard and deliberately bypasses
+     * until [LuaTypeGraph.revision] moves. Every interior entry ([writeWith], and the recursion in
+     * [resolveRead]) inherits a caller's guard and deliberately bypasses
      * this helper. The revision is read BEFORE resolving so a graph mutated mid-walk invalidates the
      * entry it produced rather than certifying it.
      */
@@ -185,21 +185,34 @@ internal class VariableElement(
         return resolved
     }
 
-    private fun resolveDeclaredDemand(visited: MutableSet<VariableNode>): Boolean {
-        if (!visited.add(this)) return false
-        return downSet.any {
-            when (it) {
-                is VariableElement -> it.resolveDeclaredDemand(visited)
-                is UseNode -> it.declaredDemand
-                else -> false
+    /**
+     * BUG-97: whether any use this variable reaches is declared, read off [downSet] alone.
+     *
+     * Down-sets are transitively closed ([LuaTypeGraph.addEdge]), so every use reachable through a
+     * chain of variables is already in this one, and the answer does not depend on visiting order.
+     * Recursing into each variable of the set instead iterated every down-set of a cluster: O(k²)
+     * per root, 278 million calls in pass 1 of luals `script/parser/compile.lua`.
+     */
+    private fun reachesDeclaredDemand(): Boolean {
+        var steps = 0
+        val reached =
+            downSet.any {
+                steps++
+                it !is VariableElement && it is UseNode && it.declaredDemand
             }
-        }
+        graph.recordWalkSteps(steps)
+        return reached
     }
 
-    private fun resolveWrite(visited: MutableSet<VariableNode>): LuaGraphType {
-        val walk = WriteWalk(visited)
+    /** [closure] is this variable's own [upSet] at a walk root, and null on a walk carrying a caller's guard. */
+    private fun resolveWrite(
+        visited: MutableSet<VariableNode>,
+        closure: OrderedSet<TypeNode>?,
+    ): LuaGraphType {
+        val walk = WriteWalk(visited, closure)
         walk.collect(this)
         graph.recordWriteInsertions(walk.insertions)
+        graph.recordWalkSteps(walk.steps)
         return walk.result()
     }
 
@@ -275,24 +288,51 @@ internal class VariableElement(
  */
 private class WriteWalk(
     private val visited: MutableSet<VariableNode>,
+    private val closure: OrderedSet<TypeNode>?,
 ) {
     private val types = LinkedHashSet<LuaGraphType>()
     private val seenValues: MutableSet<ValueElement> = Collections.newSetFromMap(IdentityHashMap())
+
+    /**
+     * BUG-97: nodes of [closure] the walk has not met yet, or -1 when it cannot stop early.
+     *
+     * Up-sets are transitively closed, so the root's up-set holds every node the walk can reach. Once
+     * each has been met, every variable left to iterate is visited and every value is seen, so the
+     * rest of the walk adds nothing and is skipped. A [LazyValueElement] is resolved again at each
+     * encounter, with the guard as it stands, so a closure holding one is walked in full.
+     */
+    private var unmet = closure?.takeIf { nodes -> nodes.none { it is LazyValueElement } }?.size ?: -1
 
     /** How many types were offered to [types]; the meter for the regression test. */
     var insertions = 0
         private set
 
+    /** How many up-set entries the walk iterated (BUG-97). */
+    var steps = 0
+        private set
+
     fun collect(variable: VariableElement) {
         if (!visited.add(variable)) return
+        meet(variable)
         for (node in variable.upSet) {
+            if (unmet == 0) return
+            steps++
             when (node) {
                 is VariableElement -> collect(node)
-                is ValueElement -> if (seenValues.add(node)) flatten(node.write)
+                is ValueElement -> if (seenValues.add(node)) offer(node)
                 is ValueNode -> flatten(node.writeWith(visited))
                 else -> Unit
             }
         }
+    }
+
+    private fun offer(value: ValueElement) {
+        meet(value)
+        flatten(value.write)
+    }
+
+    private fun meet(node: TypeNode) {
+        if (unmet > 0 && closure?.contains(node) == true) unmet--
     }
 
     private fun flatten(type: LuaGraphType) {

@@ -95,6 +95,13 @@ class LuaTypeGraph {
         writeInsertions += count
     }
 
+    private var walkSteps = 0L
+
+    /** Counts the set entries one `write` or `declaredDemand` walk iterated (BUG-97). */
+    internal fun recordWalkSteps(count: Int) {
+        walkSteps += count
+    }
+
     /** Counts a walk root that missed its memo and was actually re-derived (BUG-473). */
     internal fun recordRootResolution(accessor: RootAccessor) {
         rootResolutions[accessor.ordinal]++
@@ -1195,6 +1202,13 @@ class LuaTypeGraph {
      */
     @org.jetbrains.annotations.TestOnly
     internal fun writeInsertionCount(): Long = writeInsertions
+
+    /**
+     * @return how many up- and down-set entries every `write` and `declaredDemand` walk over this
+     * graph's lifetime iterated (BUG-97). Deterministic given a fixture, so a test asserts it.
+     */
+    @org.jetbrains.annotations.TestOnly
+    internal fun walkStepCount(): Long = walkSteps
 
     /** MAINT-61: successful `upSet`/`downSet` additions over this graph's lifetime. Equals [closureSize]. */
     @org.jetbrains.annotations.TestOnly

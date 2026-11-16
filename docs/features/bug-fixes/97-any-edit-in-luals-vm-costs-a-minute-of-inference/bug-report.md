@@ -3,7 +3,7 @@ id: "BUG-97"
 title: "Passes that depend on luals script/parser/compile.lua are over 250 ms because its own build takes up to 43 seconds"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "in_progress"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -184,3 +184,103 @@ first.
 
 Not established: call counts, because sampling does not give them. Also not established: which of
 `script/vm`'s files each nested build analyses.
+
+## 5. Root cause
+Measured on `3899ca5b`, builder `libvirt`, GoLand 2026.2.3 test platform, with temporary counters in
+the engine and a light-fixture probe: Standard Lua 5.4, the source path of §1, and one cold
+`LuaTypesSnapshot.forFile(file).getErrors()` on the checkout's `script/parser/compile.lua` (5 164
+lines), with `LuaSnapshotBuildMeter` attributing time to each build. On this commit the read costs
+30.2–31.2 s. `compile.lua`'s own build is 30.0–30.8 s of it, and its eight dependencies (`tokens.lua`,
+`guide.lua` and six standard-library stubs) take under 250 ms together. It reports 716 errors, the
+same list in all three runs.
+
+**This is not BUG-96's cause.** The file has no class conversions: `classTable` is never called, and
+`fromLuaType` runs 333 times. The graph is 19 382 nodes for 5 164 lines: 11 103 variables, 4 367
+values, 582 lazy values and 3 330 uses, traversed in 2.3 s. What it shares with BUG-96 is the mechanism
+that turns a cluster into time.
+
+**The program's own position fields form one cluster.** `checkTableCompatibility` joins a value's
+member to the matching demand member in both directions. `compile.lua` builds hundreds of syntax-tree
+tables with `start` and `finish` fields, reads and writes `obj.start` and `obj.finish`, and passes
+the tables to shared functions, so 23 068 joins in pass 1 connect those fields into one cluster. Its
+largest up-set holds 857 nodes: 819 variables and 28 values. The variables are 290 index expressions
+(201 `.finish`, 89 `.start`), 269 table fields such as `finish = lastRightPosition()`, 170 call results
+of `getPosition` and `lastRightPosition`, and 63 locals. 961 variables have an up-set over 100 nodes
+and 888 a down-set over 100; the largest down-set is 1 103. Since sets are transitively closed, the
+joins add 457 938 edges and function wiring 132 405: 590 343 in pass 1, on top of 11 909 from
+traversal.
+
+**Every walk iterates the cluster's closure, and every edge invalidates its memo.** Each walk visits
+every variable it reaches and iterates that variable's whole set, so a root in a cluster of k costs
+O(k²). Pass 1 opens 21 006 `write`, 23 856 `read` and 22 459 `declaredDemand` walks that miss the root
+memo, because an edge has moved the revision since the last. They make 229 539 571 `write` visits
+over 246 713 031 up-set entries, 440 786 327 `resolveRead` calls over 441 327 580 down-set entries,
+and 278 414 764 `resolveDeclaredDemand` calls.
+
+| pass 1 of 30 899 ms | ms |
+|---|---|
+| `read` walks | 13 736 |
+| `declaredDemand` walks | 5 612 |
+| `write` walks | 5 135 |
+| edge propagation | 4 203 |
+| the rest of checking | about 2 200 |
+
+Pass 1 admits 354 250 pairs of 20 906 140 tried.
+
+**The 5 s limit stops checking after pass 1.** Pass 1 takes the whole build, so `checkTypes` never
+starts pass 2, and the 716 errors are a single pass's. With the limit lifted, pass 2 takes 2 971 ms,
+admits 2 357 new pairs, adds no edges and raises the errors to 820; pass 3 finds nothing new. Any
+fix that brings pass 1 under 5 s therefore changes this file's findings from 716 to 820, as BUG-96
+found for fallo.
+
+## 6. Fix
+Two of the three walks no longer re-walk the cluster. Both rely on the sets being transitively
+closed, which `addEdge`'s propagation keeps, and give the same answer as before.
+
+- **`declaredDemand` reads the variable's own down-set** (`reachesDeclaredDemand` in
+  `LuaTypeNodes.kt`). Every use reachable through a chain of variables is already in the root's
+  down-set, and the answer is whether any of them is declared, so visiting order does not matter.
+  Pass 1's `declaredDemand` walks fall from 5 612 ms to 14 ms.
+- **The `write` walk stops once it has met every node of the root's up-set.** The up-set holds every
+  node the walk can reach, so after the last one is met each variable left is visited and each value
+  is seen, and the rest of the walk adds nothing. A lazy value is resolved again at each encounter,
+  with the guard as it stands, so a root whose up-set holds one is walked in full. Pass 1's up-set
+  iterations fall from 246 713 031 to 108 061 997, and its `write` walks from 5 135 ms to about
+  2 800 ms. The walk is still depth first in the old order, so the variables it meets before the
+  closure is complete are still iterated in full.
+
+A differential ran each new walk beside the old one at every walk root, across the full suite with
+the corpus (3 886 tests): 2 595 629 `write` and 677 757 `declaredDemand` comparisons, no mismatch.
+`LuaTypeGraphClosureWalkTest` asserts that a `declaredDemand` walk iterates no more than the root's
+own down-set, that the `write` walks over a 40-variable cluster iterate under half of what walking
+every up-set at every root would, and that both walks match the recursive walks at every root of a
+chain and of a star-shaped cluster.
+
+| `compile.lua` own build | run 1 | run 2 | run 3 | errors |
+|---|---|---|---|---|
+| before (`3899ca5b`) | 30 792 ms | 30 014 ms | 30 815 ms | 716 |
+| after | 22 430 ms | 23 255 ms | 24 951 ms | 716 |
+
+The sorted finding lists (offsets, severity and message) are identical in all six runs. The type
+goldens, corpus baselines and LuaCATS conformance results are unchanged, and the `luacheck` type
+audit's output is byte-identical to the base's.
+
+## 7. Residual
+The build is still about 23 s against a 250 ms target, so this bug stays open. What remains in pass
+1 (24 878 ms), measured with both changes and the counters in place:
+
+- **`read` walks, about 15 s.** The `read` walk has the same O(k²) shape, but neither shortcut
+  applies. Its result is a nested fold: each variable folds its own list (first demand wins, table
+  demands merge, a trait outranks tables), and its caller folds that result alongside the caller's
+  own uses, in the caller's order. Which demand wins therefore depends on the walk's order, not only
+  on the set it reaches.
+- **Edge propagation, about 4.5 s,** for 590 343 edges. This is the clique itself: k variables
+  joined both ways hold k² entries between them.
+- **`write` walks, about 2.8 s, and the rest of checking, about 2.3 s.**
+
+**Removing the cause is a design change.** Variables joined both ways have the same closure, so one
+node could stand for each such cycle (a union-find at `addEdge`), which would make the cluster's
+edges and walks linear. It changes which node each walk meets first, so union order and first-wins
+demands can change, and it would bring pass 1 under the 5 s limit, which runs passes 2 and 3 and
+changes the findings from 716 to 820. Those 104 findings would each need classifying. Sharing class
+conversions, BUG-96's option, does not apply: this file has none.
