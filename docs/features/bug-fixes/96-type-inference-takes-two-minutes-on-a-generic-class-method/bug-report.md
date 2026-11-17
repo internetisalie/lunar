@@ -283,9 +283,35 @@ The sorted finding lists (offsets, severity and message) are identical in all si
 `LuaTypeGraphWriteWalkTest` asserts that a walk over a 40-variable cluster offers each of its three
 values once, and that the walk matches the old nested walk, union order included, at every root.
 
+**A table check builds the value's member map once.** `checkTableCompatibility` and
+`isStructurallyCompatible` called `value.getMembers()` once per member of the use, and each call
+copies every supertype's members into a new map. In a JFR profile of this file taken with an
+experimental cluster collapse, 41 % of check samples were in `LuaGraphType.getMembers`. Both now
+build the map once per check. These are the only two places in `src/main` that rebuild it per member.
+The map is a function of the table's `localMembers` and `superTypes`, which are filled only while
+`fromLuaType` or `visitTableConstructor` builds the table. Nothing in a check builds into an existing
+table: it adds edges and resolves nodes, and a lazy value that converts a type builds a new table.
+So the map cannot change between the hoist and its uses.
+
+Measured on `ee04d88c`, builder `libvirt`, the light-fixture probe of §4, one cold read per run
+(luals `script/parser/compile.lua` is [[BUG-97]]'s file, read with its source path):
+
+| | run 1 | run 2 | run 3 | errors |
+|---|---|---|---|---|
+| fallo `init.lua`, before | 518 575 ms | 508 776 ms | 512 227 ms | 1 537 |
+| fallo `init.lua`, after | 483 683 ms | 471 090 ms | 473 549 ms | 1 537 |
+| luals `compile.lua`, before | 28 006 ms | 27 769 ms | 29 750 ms | 716 |
+| luals `compile.lua`, after | 23 760 ms | 22 733 ms | 22 966 ms | 716 |
+
+The sorted finding lists are byte-identical in all twelve runs. Without the collapse the gain on this
+file is about 7 %, not the prototype's 43 %, because the walks of §7 dominate.
+`LuaTableCheckMemberMapTest` counts how often the value's member map is copied during one check, and
+asserts the count is the same for a use of 1 member and of 8. With either hoist removed, the count rises
+by 7.
+
 ## 7. Residual
-The build is still about 490 s against a 250 ms target, so this bug stays open. What remains, in the
-same instrumented run after the fix (553 s of check):
+The build is still about 475 s against a 250 ms target, so this bug stays open. What remained after the
+walk fix, in the same instrumented run (553 s of check):
 
 - **`read` walks, 313 s.** The `read` walk has the same O(k²) shape, but its fold (first demand wins,
   table demands merge, a trait outranks tables) is not a set union, so a single accumulator would
