@@ -63,8 +63,6 @@ HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(385,393)|LuaMethodExprImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(402,410)|LuaMethodExprImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(53,61)|LuaFuncNameMethodImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(89,97)|LuaMethodExprImpl
-HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(53,61)|LuaFuncNameMethodImpl
-HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(89,97)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(105,113)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(121,129)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(137,145)|LuaMethodExprImpl

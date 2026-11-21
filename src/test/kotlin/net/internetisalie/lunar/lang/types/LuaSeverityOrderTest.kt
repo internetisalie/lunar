@@ -78,4 +78,25 @@ class LuaSeverityOrderTest : BasePlatformTestCase() {
             )
         }
     }
+
+    /**
+     * BUG-97 with BUG-112: `a` and `b` reach each other, so they are one cluster, and a claim anchored at a
+     * member of it must still be demoted by the cluster's unknown write. The cluster's sets hold only its
+     * representative, so a claim keyed by the member would never be found.
+     */
+    @Test
+    fun testAClaimOnAMemberOfAClusterIsDemotedByTheClustersUnknownWrite() {
+        for (body in listOf(
+            "local a, b\na = \"s\"\nb = a\na = b\nb = wx.thing\ncount(a)\ncount(b)",
+            "local a, b\nb = wx.thing\na = \"s\"\nb = a\na = b\ncount(b)\ncount(a)",
+        )) {
+            val found = severitiesOf(body)
+            assertTrue("the mismatch must be reported, body=$body", found.isNotEmpty())
+            assertEquals(
+                "an unknown write in the cluster makes every mismatch a hypothesis. body=$body found=$found",
+                emptyList<ErrorSeverity>(),
+                found.map { it.second }.filter { it == ErrorSeverity.ERROR },
+            )
+        }
+    }
 }

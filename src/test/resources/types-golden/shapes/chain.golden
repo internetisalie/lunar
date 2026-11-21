@@ -5,7 +5,6 @@ ERROR|number is not assignable to string|(135,136)|LuaTerminalExprImpl
 ERROR|number is not assignable to string|(153,154)|LuaTerminalExprImpl
 ERROR|number is not assignable to string|(60,94)|LuaFuncDeclImpl
 ERROR|number is not assignable to string|(76,77)|LuaNameRefImpl
-ERROR|string | number is not assignable to string|(60,94)|LuaFuncDeclImpl
 ERROR|string | number is not assignable to string|(76,77)|LuaNameRefImpl
 ERROR|{ ... } | Bd is not assignable to Bd|(60,94)|LuaFuncDeclImpl
 HYPOTHESIS|Bd | Bd | { ... } is not assignable to { ... }|(114,115)|LuaNameRefImpl
@@ -48,27 +47,27 @@ HYPOTHESIS|{ ... } | Bd is not assignable to { ... }|(167,171)|LuaMethodExprImpl
 (101,102)|LuaNameRefImpl|{ ... } | Bd|477f70a34d8c9308
 (105,107)|LuaNameRefImpl|{ ... } | Bd|477f70a34d8c9308
 (105,107)|LuaVarImpl|{ ... } | Bd|477f70a34d8c9308
-(108,128)|LuaLocalVarDeclImpl|Bd | Bd | { ... }|de4ec23ea78eda50
-(114,115)|LuaNameRefImpl|Bd | Bd | { ... }|de4ec23ea78eda50
+(108,128)|LuaLocalVarDeclImpl|Bd | Bd | { ... }|9fbf57935b0b8882
+(114,115)|LuaNameRefImpl|Bd | Bd | { ... }|9fbf57935b0b8882
 (118,119)|LuaNameRefImpl|{ ... } | Bd|477f70a34d8c9308
 (118,119)|LuaVarImpl|{ ... } | Bd|477f70a34d8c9308
-(118,128)|LuaFuncCallImpl|Bd | Bd | { ... }|de4ec23ea78eda50
+(118,128)|LuaFuncCallImpl|Bd | Bd | { ... }|9fbf57935b0b8882
 (124,127)|LuaTerminalExprImpl|string|e87ba97e700edac9
-(129,130)|LuaNameRefImpl|Bd | Bd | { ... }|de4ec23ea78eda50
-(129,130)|LuaVarImpl|Bd | Bd | { ... }|de4ec23ea78eda50
-(129,137)|LuaFuncCallImpl|Bd | { ... } | Bd|113971799ed7de51
+(129,130)|LuaNameRefImpl|Bd | Bd | { ... }|9fbf57935b0b8882
+(129,130)|LuaVarImpl|Bd | Bd | { ... }|9fbf57935b0b8882
+(129,137)|LuaFuncCallImpl|Bd | { ... } | Bd|8724f77b64b9d764
 (13,26)|LuaLocalVarDeclImpl|{ ... } | Bd|477f70a34d8c9308
 (135,136)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
 (138,139)|LuaNameRefImpl|{ ... } | Bd|477f70a34d8c9308
 (138,139)|LuaVarImpl|{ ... } | Bd|477f70a34d8c9308
-(138,155)|LuaFuncCallImpl|Bd | { ... } | Bd|113971799ed7de51
+(138,155)|LuaFuncCallImpl|Bd | { ... } | Bd|8724f77b64b9d764
 (144,147)|LuaTerminalExprImpl|string|e87ba97e700edac9
 (153,154)|LuaTerminalExprImpl|number|d23f1804b4c91c9f
-(156,176)|LuaLocalVarDeclImpl|Bd | Bd | { ... }|de4ec23ea78eda50
-(162,163)|LuaNameRefImpl|Bd | Bd | { ... }|de4ec23ea78eda50
+(156,176)|LuaLocalVarDeclImpl|Bd | Bd | { ... }|9fbf57935b0b8882
+(162,163)|LuaNameRefImpl|Bd | Bd | { ... }|9fbf57935b0b8882
 (166,167)|LuaNameRefImpl|{ ... } | Bd|477f70a34d8c9308
 (166,167)|LuaVarImpl|{ ... } | Bd|477f70a34d8c9308
-(166,176)|LuaFuncCallImpl|Bd | Bd | { ... }|de4ec23ea78eda50
+(166,176)|LuaFuncCallImpl|Bd | Bd | { ... }|9fbf57935b0b8882
 (172,175)|LuaTerminalExprImpl|string|e87ba97e700edac9
 (19,21)|LuaNameRefImpl|{ ... } | Bd|477f70a34d8c9308
 (24,26)|LuaTableConstructorImpl|{ ... }|99b21e071ce74635

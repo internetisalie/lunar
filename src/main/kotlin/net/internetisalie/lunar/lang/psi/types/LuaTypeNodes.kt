@@ -93,6 +93,9 @@ interface VariableNode :
 // Concrete implementations — internal to the inference engine
 // ---------------------------------------------------------------------------
 
+/** BUG-97: a variable's cluster representative; any other node stands for itself. */
+internal fun canonical(node: TypeNode): TypeNode = (node as? VariableElement)?.rep() ?: node
+
 /** Immutable typed value. Created by [LuaTypeGraph.value] and [LuaTypeGraph.nil]. */
 internal class ValueElement(
     override val element: PsiElement,
@@ -142,23 +145,83 @@ internal class VariableElement(
     override val declaresMember: Boolean,
     internal val order: Int,
 ) : VariableNode {
-    override val upSet: OrderedSet<TypeNode> = OrderedSet(graph::onEdgeAdded)
-    override val downSet: OrderedSet<TypeNode> = OrderedSet(graph::onEdgeAdded)
+    /**
+     * BUG-97: a variable merged into a cluster of mutually reachable variables ([absorb]) hands its
+     * sets, its memos and its walks to the cluster's representative. Variables wired both ways reach
+     * the same nodes, so their sets are copies of one another and every walk over them repeated the
+     * same work once per member. What stays per node is what a report anchors on: [element] and
+     * [declaresMember].
+     */
+    private var parent: VariableElement? = null
+    private var ownUp = OrderedSet<TypeNode>(graph::onEdgeAdded)
+    private var ownDown = OrderedSet<TypeNode>(graph::onEdgeAdded)
+    private var members: MutableList<VariableElement>? = null
+
+    override val upSet: OrderedSet<TypeNode> get() = rep().ownUp
+    override val downSet: OrderedSet<TypeNode> get() = rep().ownDown
+
+    /** The cluster representative, with path halving: this node itself until it is merged into another. */
+    internal fun rep(): VariableElement {
+        var node = this
+        while (true) {
+            val up = node.parent ?: return node
+            val grand = up.parent
+            if (grand != null) node.parent = grand
+            node = grand ?: up
+        }
+    }
+
+    internal val isRep: Boolean get() = parent == null
+
+    internal val clusterSize: Int get() = rep().members?.size ?: 1
+
+    /** Every variable of this node's cluster, in merge order; just this node when it stands alone. */
+    internal fun clusterMembers(): List<VariableElement> = rep().let { it.members ?: listOf(it) }
+
+    /**
+     * Merges the representatives [others] into this one. Each set is rebuilt over representatives,
+     * this node's entries first, so the order stays deterministic.
+     */
+    internal fun absorb(others: List<VariableElement>) {
+        val sources = listOf(this) + others
+        val merged = members ?: mutableListOf(this)
+        for (other in others) {
+            other.parent = this
+            merged.addAll(other.members ?: listOf(other))
+            other.members = null
+        }
+        members = merged
+        val up = OrderedSet<TypeNode>(graph::onEdgeAdded)
+        val down = OrderedSet<TypeNode>(graph::onEdgeAdded)
+        sources.forEach { source -> source.ownUp.forEach { up.addWithoutCounting(canonical(it)) } }
+        sources.forEach { source -> source.ownDown.forEach { down.addWithoutCounting(canonical(it)) } }
+        graph.recordMergedEdges(sources.sumOf { it.ownUp.size + it.ownDown.size } - up.size - down.size)
+        for (other in others) {
+            other.ownUp = OrderedSet(graph::onEdgeAdded)
+            other.ownDown = OrderedSet(graph::onEdgeAdded)
+        }
+        ownUp = up
+        ownDown = down
+        graph.bumpRevision()
+    }
 
     private val writeMemo = RootMemo<LuaGraphType>()
     private val readMemo = RootMemo<LuaGraphType>()
     private val declaredDemandMemo = RootMemo<Boolean>()
 
-    override val write: LuaGraphType
-        get() = atRoot(writeMemo, RootAccessor.WRITE) { resolveWrite(mutableSetOf(), upSet) }
+    override val write: LuaGraphType get() = rep().rootWrite()
 
-    override val read: LuaGraphType
-        get() = atRoot(readMemo, RootAccessor.READ) { resolveRead() }
+    override val read: LuaGraphType get() = rep().rootRead()
+
+    private fun rootWrite(): LuaGraphType =
+        atRoot(writeMemo, RootAccessor.WRITE) { resolveWrite(mutableSetOf(), upSet) }
+
+    private fun rootRead(): LuaGraphType = atRoot(readMemo, RootAccessor.READ) { resolveRead() }
 
     // BUG-390 in reverse: this entry carries the CALLER's guard, so its result is walk-relative and
     // the memo must not be consulted here. Doing so would return a full type where the guard
     // requires the neutral element, and a cycle would resolve to a type instead of Undefined.
-    override fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = resolveWrite(visited, null)
+    override fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = rep().resolveWrite(visited, null)
 
     /**
      * A variable's demand is the intersection of everything read from it, so it is DECLARED if any
@@ -170,8 +233,12 @@ internal class VariableElement(
      * and [VariableNode] is itself a [UseNode]. Inheriting the `false` default demoted every
      * declared-contract violation reached through a call to a hypothesis.
      */
-    override val declaredDemand: Boolean
-        get() = atRoot(declaredDemandMemo, RootAccessor.DECLARED_DEMAND) { reachesDeclaredDemand() }
+    override val declaredDemand: Boolean get() = rep().rootDeclaredDemand()
+
+    private fun rootDeclaredDemand(): Boolean =
+        atRoot(declaredDemandMemo, RootAccessor.DECLARED_DEMAND) {
+            reachesDeclaredDemand()
+        }
 
     /**
      * BUG-473: the only place a [RootMemo] is read or written.
@@ -335,7 +402,10 @@ private class WriteWalk(
             if (unmet == 0) return
             steps++
             when (node) {
-                is VariableElement -> collect(node)
+                is VariableElement -> {
+                    meet(node)
+                    collect(node.rep())
+                }
                 is ValueElement -> if (seenValues.add(node)) offer(node)
                 is ValueNode -> flatten(node.writeWith(visited))
                 else -> Unit
@@ -348,8 +418,12 @@ private class WriteWalk(
         flatten(value.write)
     }
 
+    // A merged cluster's members all stand for one representative, so each node counts once however
+    // many of its stale names the sets still hold.
+    private val met: MutableSet<TypeNode> = Collections.newSetFromMap(IdentityHashMap())
+
     private fun meet(node: TypeNode) {
-        if (unmet > 0 && closure?.contains(node) == true) unmet--
+        if (unmet > 0 && closure?.contains(node) == true && met.add(node)) unmet--
     }
 
     private fun flatten(type: LuaGraphType) {
@@ -393,6 +467,11 @@ class OrderedSet<T>(
         if (!set.add(item)) return false
         onAdd()
         return true
+    }
+
+    /** Adds [item] without firing [onAdd]: a merge rebuilding a set re-homes edges, it adds none. */
+    internal fun addWithoutCounting(item: T) {
+        set.add(item)
     }
 
     operator fun contains(item: T): Boolean = item in set

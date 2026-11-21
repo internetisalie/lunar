@@ -6,8 +6,6 @@ HYPOTHESIS|Too few arguments: expected at least 1, got 0|(89,97)|LuaMethodExprIm
 HYPOTHESIS|Too many arguments: expected at most 0, got 1|(88,103)|LuaFuncCallImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(53,61)|LuaFuncNameMethodImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(89,97)|LuaMethodExprImpl
-HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(53,61)|LuaFuncNameMethodImpl
-HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(89,97)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(89,97)|LuaMethodExprImpl
 [elements]
 (18,36)|LuaLocalVarDeclImpl|{ ... } | Builder|5b9678029c6e69ee

@@ -63,9 +63,11 @@ internal class LuaSeverityClaims {
         }
     }
 
+    // BUG-97: a variable's sets hold cluster representatives, while a claim names the member the checker
+    // expanded to, so both sides are looked up by representative.
     private fun add(claim: Claim) {
         claims += claim
-        byValue.getOrPut(claim.valueNode) { mutableListOf() } += claim
+        byValue.getOrPut(canonical(claim.valueNode) as ValueNode) { mutableListOf() } += claim
     }
 
     /** What a claimed diagnostic settles to: [ErrorSeverity.ERROR], or a hypothesis carrying its inferred type. */
@@ -100,6 +102,6 @@ internal class LuaSeverityClaims {
         val candidates = variable.upSet.flatMap { node -> (node as? ValueNode)?.let { byValue[it] }.orEmpty() }
         if (candidates.isEmpty()) return
         if (variable.upSet.none { it is ValueNode && isUnknownWrite(it) }) return
-        for (claim in candidates) if (claim.useNode in variable.downSet) claim.demoted = true
+        for (claim in candidates) if (canonical(claim.useNode) in variable.downSet) claim.demoted = true
     }
 }

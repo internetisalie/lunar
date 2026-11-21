@@ -1,6 +1,7 @@
 # lunar type golden v1
 # source-sha256 2721a9c542548dc623b9e4a109101d0caaac9d2a4dd13a7029c65cf207457693
 [errors]
+HYPOTHESIS|File | nil is not assignable to { ... }|(12127,12132)|LuaMethodExprImpl
 HYPOTHESIS|string is not assignable to number|(2132,2149)|LuaFuncCallImpl
 [elements]
 (0,16)|LuaLocalVarDeclImpl|{ ... }|482e22964a8534e8

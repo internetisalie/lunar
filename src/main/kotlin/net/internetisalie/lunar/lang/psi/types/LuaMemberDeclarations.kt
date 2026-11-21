@@ -33,7 +33,9 @@ object LuaMemberDeclarations {
                 if (!visited.add(candidate)) continue
                 if (candidate is VariableNode) {
                     if (candidate.declaresMember) return candidate
-                    candidate.upSet.forEach { next += it }
+                    // BUG-97: an up-set holds a merged cluster as its representative; expand it back
+                    // to the variables it stands for, any of which may be the declaration.
+                    candidate.upSet.forEach { next += if (it is VariableElement) it.clusterMembers() else listOf(it) }
                 }
             }
             frontier = next

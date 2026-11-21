@@ -26,7 +26,7 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
     fun case01ClosureGrowsLinearly() {
         val closures = listOf(40, 80, 160).map { n -> closureOf(TypeGoldenFixtures.annotated(n)) }
 
-        assertEquals(listOf(1123, 2203, 4363), closures)
+        assertEquals(listOf(900, 1780, 3540), closures)
         assertTrue(closures[1] <= closures[0] * 2.2 && closures[2] <= closures[1] * 2.2, "ratio > 2.2: $closures")
         assertTrue(closures[2] <= 5000, "closure at n = 160 above 5 000: ${closures[2]}")
     }
@@ -72,7 +72,7 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
 
     @Test
     fun case07SingleSiteClosureIsUnchanged() {
-        assertEquals(70, closureOf(TypeGoldenFixtures.annotated(1)))
+        assertEquals(42, closureOf(TypeGoldenFixtures.annotated(1)))
     }
 
     private class TextSpan<T : PsiElement>(
@@ -120,7 +120,8 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
     private companion object {
         /**
          * Requirements Appendix A. The hub (89,97) is one cycle with the declared member (53,61), so
-         * since BUG-110 it reads, and reports, what that member does.
+         * since BUG-110 it reads, and reports, what that member does. Since BUG-97 part 2 the cycle is
+         * one node, and the union at each of the two names is rendered in one order, not two.
          */
         val ANNOTATED3_ERRORS =
             listOf(
@@ -135,8 +136,6 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
                 "HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(121,129)",
                 "HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(53,61)",
                 "HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(89,97)",
-                "HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(53,61)",
-                "HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(89,97)",
                 "HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(105,113)",
                 "HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(121,129)",
                 "HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(89,97)",
@@ -146,7 +145,9 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
          * Requirements Appendix B. The call argument at (135,136) is ERROR since BUG-566. The chained
          * `b:set('y'):set(2)` reports the rows its split form `r:set(1)` does, since BUG-100. Since
          * BUG-110 a hub reads what its declared member does, which drops the hub-only copies at the
-         * method names; each enclosing call keeps its own row.
+         * method names; each enclosing call keeps its own row. Since BUG-97 part 2 the declaration at
+         * (60,94) is one node with its parameter, so it reports the number once, as `number`, and no
+         * longer also as the `string | number` the parameter held when it was checked.
          */
         val CHAIN_ERRORS =
             listOf(
@@ -154,7 +155,6 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
                 "ERROR|number is not assignable to string|(153,154)",
                 "ERROR|number is not assignable to string|(60,94)",
                 "ERROR|number is not assignable to string|(76,77)",
-                "ERROR|string | number is not assignable to string|(60,94)",
                 "ERROR|string | number is not assignable to string|(76,77)",
                 "ERROR|{ ... } | Bd is not assignable to Bd|(60,94)",
                 "HYPOTHESIS|Bd | Bd | { ... } is not assignable to { ... }|(114,115)",

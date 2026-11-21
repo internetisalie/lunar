@@ -2,6 +2,14 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Type checking takes a fraction of the time on a file whose tables share fields across hundreds of
+  sites** (BUG-97). Variables that flow into one another both ways are now one node in the analysis,
+  where each used to hold a copy of everything the others hold, so the work grew with the square of
+  the group. Checking the 5 164-line parser that sets `start` and `finish` on hundreds of tables takes
+  about 1.5 s instead of about 10 s, and it now finishes within the analysis time limit, so it reports
+  the 104 findings a longer limit always found. Each variable still reports at its own place. A union
+  in a message can list its members in a different order, a mismatch is no longer listed once per
+  way of writing its union, and three false errors on a generic `Result` return become hypotheses.
 - **Whether a type mismatch is reported no longer depends on the order variables were declared in**
   (BUG-112). A value that reaches a call through two variables, one of which may also hold something
   the analysis cannot model, was reported as a certain error or quietly dropped depending on which

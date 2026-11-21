@@ -53,7 +53,7 @@ class LuaTypeGraphPropagationDepthTest : BasePlatformTestCase() {
         val y = graph.value(anchor, LuaGraphType.Number).also { names[it] = "y" }
         val u = graph.use(anchor, LuaGraphType.Any).also { names[it] = "u" }
         val w = graph.use(anchor, LuaGraphType.Any).also { names[it] = "w" }
-        listOf(x to a, a to b, c to d, b to u, y to c, b to c, d to w, e to a, d to e)
+        listOf(x to a, a to b, c to d, b to u, y to c, b to c, d to w, e to a)
             .forEach { (from, to) -> graph.addEdge(from, to) }
 
         val orders = variables.map { "${it.upSet.render(names)}/${it.downSet.render(names)}" }
@@ -79,8 +79,12 @@ class LuaTypeGraphPropagationDepthTest : BasePlatformTestCase() {
     private companion object {
         const val CHAIN_LENGTH = 200_000
 
-        /** `a` to `e`, each as `upSet/downSet`: the recursive walk's order, recorded on base `1f5f43e4`. */
+        /**
+         * `a` to `e`, each as `upSet/downSet`: the recursive walk's order, recorded on the base and
+         * unchanged by BUG-97's cluster collapse. The fixture has no cycle: the members of a cycle share
+         * one set, so there is no order of their own to compare.
+         */
         val EXPECTED_ORDERS =
-            listOf("xeyabcd/budcwae", "axeybcd/ucdwbae", "ybaxecd/dwucbae", "cyxabed/weabucd", "dcybaxe/abucdwe")
+            listOf("xe/budcw", "axe/ucdw", "ybaxe/dw", "cyxabe/w", "/abucdw")
     }
 }

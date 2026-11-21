@@ -81,6 +81,9 @@ class LuaTypeGraph {
     /** MAINT-61: each variable's set sizes at its last visit, only while [checkTypes] runs. */
     private var scanMarks: java.util.IdentityHashMap<VariableElement, PairScanMark>? = null
 
+    /** BUG-97: each representative's up- and down-sets with clusters expanded, only while [checkTypes] runs. */
+    private var scanLogs: java.util.IdentityHashMap<VariableElement, MemberLogs>? = null
+
     /**
      * The [OrderedSet] hook of every `upSet`/`downSet`: counts the edge, so [runFixedPointPass]
      * reads its progress from [edgeAdds] instead of summing every set (MAINT-61 design §3.3), then
@@ -89,6 +92,13 @@ class LuaTypeGraph {
     internal fun onEdgeAdded() {
         edgeAdds++
         bumpRevision()
+    }
+
+    private var edgesMerged = 0L
+
+    /** BUG-97: set entries a cluster merge folded away, so [edgeAdds] less this is the live closure. */
+    internal fun recordMergedEdges(count: Int) {
+        edgesMerged += count
     }
 
     private var writeInsertions = 0L
@@ -235,9 +245,21 @@ class LuaTypeGraph {
     ) {
         if (from === to) return
         if (demandRanks.noteEdge(from, to, _nodes.size)) bumpRevision()
+        val source = canonical(from)
+        val target = canonical(to)
+        if (source !== target) addCanonicalEdge(source, target)
+    }
 
+    /** [addEdge] over cluster representatives, which is what the sets hold. */
+    private fun addCanonicalEdge(
+        from: TypeNode,
+        to: TypeNode,
+    ) {
         when {
-            from is VariableElement && to is VariableElement -> propagateBiEdge(from, to)
+            from is VariableElement && to is VariableElement -> {
+                propagateBiEdge(from, to)
+                collapseCycle(from, to)
+            }
             to is VariableElement -> propagateDownward(from, to)
             from is VariableElement -> propagateUpward(from, to)
             from is ValueNode && to is UseNode -> {
@@ -255,6 +277,34 @@ class LuaTypeGraph {
                 examining = null
             }
         }
+    }
+
+    /**
+     * BUG-97: after the edge [from] → [to] (both representatives), merges the strongly connected set
+     * it closed, if any. [to] reaches [from] exactly when a member of [to]'s cluster is in [from]'s
+     * up-set. The members of one cycle reach the same nodes, so their up- and down-sets are copies of
+     * one another: kept apart, every walk and every edge propagation over a cluster of k variables
+     * repeats its work k times.
+     *
+     * Merging changes no variable's reachable values or uses, only which node holds them. A variable's
+     * `read` is a function of the SET of demands it reaches ([LuaDemandRanks]), so it does not depend
+     * on which member's set the fold runs over.
+     */
+    private fun collapseCycle(
+        from: VariableElement,
+        to: VariableElement,
+    ) {
+        val fromUp = from.upSet
+        if (to !in fromUp && to.clusterMembers().none { it in fromUp }) return
+        val upstream = LinkedHashSet<VariableElement>()
+        fromUp.forEach { if (it is VariableElement) upstream.add(it.rep()) }
+        val cycle = LinkedHashSet<VariableElement>()
+        cycle.add(from)
+        cycle.add(to)
+        from.downSet.forEach { if (it is VariableElement && it.rep() in upstream) cycle.add(it.rep()) }
+        if (cycle.size < 2) return
+        val root = cycle.maxWith(compareBy<VariableElement> { it.clusterSize }.thenByDescending { it.order })
+        root.absorb(cycle.filter { it !== root })
     }
 
     /**
@@ -385,6 +435,7 @@ class LuaTypeGraph {
         // Dropped, not cleared, in the finally: a cached snapshot keeps this graph, and a cleared
         // IdentityHashMap keeps its table at its peak size (MAINT-61 design §5).
         scanMarks = java.util.IdentityHashMap()
+        scanLogs = java.util.IdentityHashMap()
         try {
             do {
                 iterations++
@@ -409,6 +460,7 @@ class LuaTypeGraph {
             settleSeverities()
         } finally {
             scanMarks = null
+            scanLogs = null
         }
     }
 
@@ -419,7 +471,7 @@ class LuaTypeGraph {
      * facts says.
      */
     private fun settleSeverities() {
-        val variables = _nodes.asSequence().filterIsInstance<VariableElement>()
+        val variables = _nodes.asSequence().filterIsInstance<VariableElement>().filter { it.isRep }
         val verdicts = severityClaims.resolve(variables) { isUnknown(it.write) }
         if (verdicts.isEmpty()) return
         _errors.replaceAll { error ->
@@ -442,18 +494,18 @@ class LuaTypeGraph {
         val initialCheckedCount = checkedPairs.size
         val initialEdgeCount = edgeAdds
         for (node in _nodes.toList()) {
-            if (node is VariableElement) checkNodePairs(node, checkedPairs)
+            if (node is VariableElement && node.isRep) checkNodePairs(node, checkedPairs)
         }
         return edgeAdds > initialEdgeCount || checkedPairs.size > initialCheckedCount
     }
 
     /**
-     * Total up/down-set membership across every variable node. Equal to [edgeAdds] at every point
+     * Total up/down-set membership across every cluster representative. Equal to [edgeAdds] at every point
      * (MAINT-61 design §3.3), which is what [runFixedPointPass] reads instead.
      */
     private fun edgeCount(): Int =
         _nodes.sumOf {
-            (it as? VariableElement)?.let { v -> v.upSet.size + v.downSet.size }
+            (it as? VariableElement)?.takeIf { v -> v.isRep }?.let { v -> v.upSet.size + v.downSet.size }
                 ?: 0
         }
 
@@ -491,8 +543,9 @@ class LuaTypeGraph {
         node: VariableElement,
         checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>,
     ) {
-        val upSnapshot = node.upSet.toList()
-        val downSnapshot = node.downSet.toList()
+        val logs = checkNotNull(scanLogs).getOrPut(node) { MemberLogs() }
+        val upSnapshot = logs.up.extendedBy(node.upSet)
+        val downSnapshot = logs.down.extendedBy(node.downSet)
         val marks = checkNotNull(scanMarks)
         val mark = marks[node]
         marks[node] = PairScanMark(upSnapshot.size, downSnapshot.size)
@@ -1217,7 +1270,9 @@ class LuaTypeGraph {
             val pair = steps.last().next()
             when {
                 pair == null -> steps.removeLast()
-                pair.second.upSet.add(pair.first) -> steps.addLast(DownwardStep(pair.first, pair.second))
+                pair.second.upSet.add(
+                    canonical(pair.first),
+                ) -> steps.addLast(DownwardStep(canonical(pair.first), pair.second))
             }
         }
     }
@@ -1234,7 +1289,9 @@ class LuaTypeGraph {
             val pair = steps.last().next()
             when {
                 pair == null -> steps.removeLast()
-                pair.first.downSet.add(pair.second) -> steps.addLast(UpwardStep(pair.first, pair.second))
+                pair.first.downSet.add(
+                    canonical(pair.second),
+                ) -> steps.addLast(UpwardStep(pair.first, canonical(pair.second)))
             }
         }
     }
@@ -1281,9 +1338,9 @@ class LuaTypeGraph {
     @org.jetbrains.annotations.TestOnly
     internal fun walkStepCount(): Long = walkSteps
 
-    /** MAINT-61: successful `upSet`/`downSet` additions over this graph's lifetime. Equals [closureSize]. */
+    /** MAINT-61: successful `upSet`/`downSet` additions over this graph's lifetime, less the entries a cluster merge (BUG-97) folded away. Equals [closureSize]. */
     @org.jetbrains.annotations.TestOnly
-    internal fun edgeAddCount(): Long = edgeAdds
+    internal fun edgeAddCount(): Long = edgeAdds - edgesMerged
 
     /** MAINT-61: `(value, use)` pairs the checker tried to admit, the revisit skip excluded. */
     @org.jetbrains.annotations.TestOnly
@@ -1407,6 +1464,38 @@ internal class PairScanMark(
     val up: Int,
     val down: Int,
 )
+
+/**
+ * BUG-97: one representative's set with every merged cluster in it expanded to its member variables,
+ * so each member is still a value and a use of its own with its own element as the report anchor.
+ *
+ * Members are listed in the order the visits first met them, and a member is only ever appended: a
+ * cluster that gains a variable, or a set that gains a cluster, adds at the end. That is what keeps
+ * MAINT-61's revisit skip sound, because the pairs below a visit's recorded sizes stay exactly the
+ * product that visit examined. Expanding afresh each visit would grow the middle of the list.
+ */
+internal class MemberLog {
+    private val seen: MutableSet<TypeNode> = java.util.Collections.newSetFromMap(java.util.IdentityHashMap())
+    private val members = ArrayList<TypeNode>()
+
+    /** The log after appending whatever [set] holds that it has not listed, as a stable copy. */
+    fun extendedBy(set: OrderedSet<TypeNode>): List<TypeNode> {
+        for (node in set) {
+            if (node is VariableElement) node.clusterMembers().forEach(::append) else append(node)
+        }
+        return members.toList()
+    }
+
+    private fun append(node: TypeNode) {
+        if (seen.add(node)) members += node
+    }
+}
+
+/** The two [MemberLog]s of one representative. */
+internal class MemberLogs {
+    val up = MemberLog()
+    val down = MemberLog()
+}
 
 /** MAINT-61 design §2.3: where a revisit's scan of one use starts in the up-set snapshot. */
 internal object LuaPairScan {

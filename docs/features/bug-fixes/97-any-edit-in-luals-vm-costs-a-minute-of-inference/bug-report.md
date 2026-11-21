@@ -284,3 +284,94 @@ edges and walks linear. It changes which node each walk meets first, so union or
 demands can change, and it would bring pass 1 under the 5 s limit, which runs passes 2 and 3 and
 changes the findings from 716 to 820. Those 104 findings would each need classifying. Sharing class
 conversions, BUG-96's option, does not apply: this file has none.
+
+## 8. Part 2: one node for each cycle of variables
+Measured on `009b0ac3` (base: BUG-111 and BUG-112 on `d07ba0af`) and the working tree on it (after), builder
+`libvirt`, GoLand 2026.2.3 test platform. The probe is a throwaway light-fixture test: Standard Lua 5.4 pinned,
+one cold `LuaTypesSnapshot.forFile(file).getErrors()` per run, `LuaSnapshotBuildMeter` for the file's own build.
+
+**What changed.**
+- `addEdge` merges variables that reach each other into one cluster, with a union-find over
+  `VariableElement` (`LuaTypeNodes.kt`, `LuaTypeGraph.collapseCycle`). Members of a cycle hold the same
+  closure, so the cluster keeps one up-set, one down-set, one set of walk memos and one walk root. A
+  merge changes which node holds an entry and nothing a variable can reach. Since BUG-110 a variable's
+  `read` is a function of the set of demands it reaches, so it does not depend on which member's set is
+  folded.
+- The checker still sees each member. A cluster is expanded back to its member variables when the pairs
+  of a visit are listed, so each member is a value and a use of its own and a report anchors on its own
+  element. Checking a cluster as one node lost real ERRORs in the prototype.
+- MAINT-61's revisit skip is kept. Each representative has a `MemberLog` per set, listing members in the
+  order they were first met and only ever appending, so the pairs below a visit's recorded sizes stay the
+  product that visit examined. `LuaTypePairScanDifferential` reports 0 unexamined pairs on its six fixtures.
+- BUG-112's settle step reads the sets, which hold representatives, while a claim names the member the
+  checker expanded to. `LuaSeverityClaims` therefore keys claims by `canonical(value)` and looks the use up by
+  `canonical(use)`, and `settleSeverities` walks representatives only. Without it a claim on a non-representative
+  member was never demoted by its cluster's unknown write: `LuaSeverityOrderTest`'s cluster case fails
+  (an ERROR stays at the member's declaration) and passes with it.
+- Pinned counts that moved with the merge: `LuaMemberDemandHubTest` (closures 1 123 / 2 203 / 4 363 to
+  900 / 1 780 / 3 540, a single site 70 to 42), `LuaPairScanTest` (pair attempts 407 to 206, full scans 796
+  to 394 and 1 474 to 670). `LuaTypeGraphPropagationDepthTest`'s order fixture had a five-variable cycle, whose
+  members now share one set; the cycle edge is gone and the recorded orders are the base's, checked on both.
+- `closureSize` counts representatives only, and `edgeAddCount` is additions less the entries a merge
+  folded away, so the two stay equal.
+- `LuaTypeGraphClusterCollapseTest` asserts that a 40-variable cluster holds fewer than 40 set entries
+  (a quadratic cluster holds 3 120), that writes over it iterate under 320 entries, and that each member
+  still anchors its own error, including one joined after a check.
+
+| `compile.lua` own build | run 1 | run 2 | run 3 | errors |
+|---|---|---|---|---|
+| before (`009b0ac3`) | 10 925 ms | 9 575 ms | 9 635 ms | 727 |
+| after | 2 104 ms | 1 417 ms | 1 429 ms | 831 |
+
+The base takes 12 821-12 846 ms and reports 831 errors with the 5 s limit lifted; the collapsed build is under
+the limit, runs passes 2 and 3, and reports the same 831. The fallo member's `init.lua`: 231 s and 1 405
+errors before, 68 s and 441 after (541 s and 1 788 with the limit lifted on the base).
+
+**Classification.** A *limit artifact* equals the base run with the 5 s limit lifted. Anything else is a
+*semantic change*, traced below. The sorted corpus findings, the goldens, the LuaCATS conformance results and
+the `luacheck` type audit were recorded for four states: base, base with the limit lifted, collapse, collapse
+with the limit lifted. The collapse's findings do not depend on the limit on any corpus member.
+
+| item | change | class |
+|---|---|---|
+| `compile.lua` findings | 727 to 831: +67 ERROR, +37 HYPOTHESIS; anchors and messages identical to the base with the limit lifted | limit artifact |
+| zerobrane findings | 2 `LuaSuspiciousConcatenation` at `src/editor/menu_project.lua` (4619, 5899) gone; also gone from the base with the limit lifted | limit artifact |
+| lazynvim findings | 13 `LuaTypeAssignability` rows gone, 0 anchors lost, 0 added | rendering, see below |
+| fallo ERROR anchors | 43 to 40 against the base with the limit lifted; the 3 stay as HYPOTHESIS | semantic, base wrong, see below |
+| `chain.golden`, `annotated1/3/20.golden`, `unionReceiver.golden` | rows with a different union rendering gone; no (severity, anchor) pair lost or added | rendering |
+| `penlight-Date.golden` | 19 type renderings reordered (`nil \| number` to `number \| nil`) | rendering |
+| `luarocks-zip.golden` | +1 HYPOTHESIS `File \| nil is not assignable to { ... }` at `:seek` (12127) | semantic, see below |
+| conformance results, `luacheck` type audit | byte-identical | unchanged |
+| luacheck, penlight, luarocks findings | identical | unchanged |
+
+**Rendering changes.** Each of the 13 lazynvim rows (`core/loader.lua` 303, 8472, 8520, 8531, 8645, 9248;
+`core/util.lua` 153, 434, 447, 509, 617; `core/config.lua` 9064, 9550) is a union rendering of a mismatch the
+same anchor still reports under its single-type message (`LazyPlugin[] is not assignable to { ... }`,
+`undefined[] is not assignable to { ... }`, `LazySpecLoader is not assignable to nil`). The base reported the
+mismatch twice, once per rendering, because two visits met the pair's value as different unions. The
+`chain.golden` ERROR `string | number is not assignable to string` at (60,94) is the same case: the anchor keeps
+ERROR `number is not assignable to string`.
+
+**fallo, 3 ERRORs now HYPOTHESIS** (`init.lua` 7006:7417, 7184:7266, 15014:15029). The base reports ERROR and
+HYPOTHESIS rows for the same pair at each anchor. The sources are `return Result.err(err)` (line 487, declared
+`---@return Result<T>`) and `return Result.err(Result.structure_error(...))` (lines 224-229, declared
+`Result<T[], E>`). `Result.err` is `---@generic T, E` with `T` bound by nothing, so the value is
+`Result<T, E>` against `Result<T>`, an arity mismatch of an unbound generic, not a type error. The
+base's ERROR is a false report; the collapse's HYPOTHESIS is consistent with its other rows.
+
+**luarocks `zip.lua`, +1 HYPOTHESIS.** The use is `zh:seek("set", cd_offset)` after `if not zh then return end`
+(`:seek` at 12127, a demand `{ seek = fun(p, p) }`). The pair `File | nil` against that demand is examined once.
+In the base it was examined while `isCompatible(File, demand)` was true; in the final graph the same call is
+false on both (`ZP-FINAL`: `File:false` on the base and on the collapse). The collapse examines the pair later, at
+the final state, and so reports a mismatch the base's examination order hid. The mismatch itself is not a true
+error (`File:seek(whence, offset)` is valid), so it is a latent false report of `isCompatible` for a method
+against a synthesized demand. It is a HYPOTHESIS, `luarocks` inspection findings are unchanged (242), and it is
+not fixed here.
+
+**What remains.**
+- `isCompatible(File, { seek = fun(p, p) })` is false in the final graph (above). Any pair examined at the final
+  state reports it; the collapse changes when a pair is examined, not the check.
+- `compile.lua`'s own build is 1.4-2.1 s, against the 250 ms target of MAINT-60. Where that time goes was not
+  profiled after the collapse. The bug stays open.
+- fallo's `init.lua` takes 68 s and still stops after pass 1 at the 5 s limit; its cost is a separate cluster
+  shape and is not addressed here.

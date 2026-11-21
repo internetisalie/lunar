@@ -40,12 +40,12 @@ class LuaAnnotatedClassDiagnosticsTest : BaseDocumentTest() {
     }
 
     @Test
-    fun twentyCallSitesEmitTheSameEightyFourDiagnostics() {
+    fun twentyCallSitesEmitTheSameEightyTwoDiagnostics() {
         assertDiagnostics(annotatedFixture(20), expectedForCallSites(20))
     }
 
     @Test
-    fun fortyCallSitesEmitTheSameOneHundredAndSixtyFourDiagnostics() {
+    fun fortyCallSitesEmitTheSameOneHundredAndSixtyTwoDiagnostics() {
         assertDiagnostics(annotatedFixture(40), expectedForCallSites(40))
     }
 
@@ -66,17 +66,17 @@ class LuaAnnotatedClassDiagnosticsTest : BaseDocumentTest() {
     }
 
     /**
-     * Diagnostics are exactly 4n + 4 on this shape, and every one of them is a HYPOTHESIS: the
+     * Diagnostics are exactly 4n + 2 on this shape, and every one of them is a HYPOTHESIS: the
      * fixture's `setName` declares no parameter type, so no user-written contract is violated. The
      * first call site's member is the TYPE-12 hub, one cycle with the declared member, so since BUG-110
-     * it reads — and reports — what the declared member does.
+     * it reads — and reports — what the declared member does. Since BUG-97 part 2 that cycle is one node,
+     * so the union at its two names is rendered in one order, not two.
      */
     private fun expectedForCallSites(callSites: Int): Map<String, Int> =
         mapOf(
             "HYPOTHESIS|Too few arguments: expected at least 1, got 0" to 2,
             "HYPOTHESIS|Too many arguments: expected at most 0, got 1" to 2 * callSites - 1,
             "HYPOTHESIS|fun() | fun(n) is not assignable to fun()" to callSites + 1,
-            "HYPOTHESIS|fun(n) | fun() is not assignable to fun()" to 2,
             "HYPOTHESIS|{ ... } | Builder is not assignable to { ... }" to callSites,
         )
 

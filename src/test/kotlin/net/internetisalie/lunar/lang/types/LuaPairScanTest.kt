@@ -91,7 +91,7 @@ class LuaPairScanTest : BaseDocumentTest() {
 
     private companion object {
         const val METHOD_POSITION = 2
-        const val METHOD_PAIR_ATTEMPTS = 407L
+        const val METHOD_PAIR_ATTEMPTS = 206L
 
         val FIXTURES =
             listOf(
@@ -121,10 +121,10 @@ class LuaPairScanTest : BaseDocumentTest() {
             mapOf(
                 "callback" to 46L,
                 "callback2" to 232L,
-                "method" to 796L,
+                "method" to 394L,
                 "fwd" to 520L,
                 "chain" to 506L,
-                "hof" to 1474L,
+                "hof" to 670L,
             )
     }
 }
