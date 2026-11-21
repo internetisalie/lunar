@@ -9,7 +9,6 @@ ERROR|string is not assignable to number|(58,59)|LuaNameRefImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(107,116)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(108,111)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(97,106)|LuaFuncCallImpl
-HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(98,101)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | P is not assignable to { ... }|(108,111)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | P is not assignable to { ... }|(118,121)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | P is not assignable to { ... }|(90,93)|LuaMethodExprImpl

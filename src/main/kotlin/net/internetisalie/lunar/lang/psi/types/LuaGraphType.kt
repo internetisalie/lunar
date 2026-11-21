@@ -328,11 +328,11 @@ sealed class LuaGraphType {
                                 if (type.declaredSignature) {
                                     declaredParamNodeFor(p, graph, visited)
                                 } else {
-                                    memberNodeFor(p.type, graph, visited)
+                                    slotNodeFor(p.type, graph, visited)
                                 }
                             Function.Parameter(node, p.name, p.isOptional, p.isVararg)
                         }
-                    val returnNode = memberNodeFor(type.returnType, graph, visited)
+                    val returnNode = slotNodeFor(type.returnType, graph, visited)
 
                     val finalFunc =
                         Function(
@@ -475,26 +475,45 @@ sealed class LuaGraphType {
             graph: LuaTypeGraph,
             visited: MutableMap<LuaType, LuaGraphType>,
         ): VariableNode {
-            val anchor = graph.firstNodeElement() ?: error("Graph must have at least one node")
-            val paramNode = graph.variable(anchor)
-            val graphType = fromLuaType(param.type, graph, visited)
-            paramNode.upSet.add(graph.value(paramNode.element, graphType))
+            val (paramNode, graphType) = convertedNodeFor(param.type, graph, visited)
             val demand = LuaTypeAlgebra.parameterDemand(graphType, param.isOptional)
-            paramNode.downSet.add(graph.use(paramNode.element, demand, declaredDemand = true))
+            paramNode.downSet.add(graph.convertedSlotUse(paramNode, demand, declaredDemand = true))
             return paramNode
         }
 
+        /** An undeclared signature's parameter node, or any signature's return node. */
+        private fun slotNodeFor(
+            slotType: LuaType,
+            graph: LuaTypeGraph,
+            visited: MutableMap<LuaType, LuaGraphType>,
+        ): VariableNode {
+            val (slotNode, graphType) = convertedNodeFor(slotType, graph, visited)
+            slotNode.downSet.add(graph.convertedSlotUse(slotNode, graphType, declaredDemand = false))
+            return slotNode
+        }
+
+        /** A table's or class's member node. */
         private fun memberNodeFor(
             memberType: LuaType,
             graph: LuaTypeGraph,
             visited: MutableMap<LuaType, LuaGraphType>,
         ): VariableNode {
-            val anchor = graph.firstNodeElement() ?: error("Graph must have at least one node")
-            val memberNode = graph.variable(anchor)
-            val graphType = fromLuaType(memberType, graph, visited)
-            memberNode.upSet.add(graph.value(memberNode.element, graphType))
-            memberNode.downSet.add(graph.use(memberNode.element, graphType))
+            val (memberNode, graphType) = convertedNodeFor(memberType, graph, visited)
+            memberNode.downSet.add(graph.convertedMemberUse(memberNode, graphType))
             return memberNode
+        }
+
+        /** A node holding [type], converted, as its value; the caller adds the node's demand. */
+        private fun convertedNodeFor(
+            type: LuaType,
+            graph: LuaTypeGraph,
+            visited: MutableMap<LuaType, LuaGraphType>,
+        ): Pair<VariableNode, LuaGraphType> {
+            val anchor = graph.firstNodeElement() ?: error("Graph must have at least one node")
+            val node = graph.variable(anchor)
+            val graphType = fromLuaType(type, graph, visited)
+            node.upSet.add(graph.value(node.element, graphType))
+            return node to graphType
         }
     }
 }

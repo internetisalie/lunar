@@ -40,6 +40,9 @@ class LuaTypeGraph {
     /** TYPE-12: which colon-call site members are later sites of a hub, and where each hub's sites sit. */
     internal val memberDemandHubs = LuaMemberDemandHubs()
 
+    /** BUG-110: where in the code each demand sits, for a variable's `read`. */
+    internal val demandRanks = LuaDemandRanks()
+
     private var currentRevision: Long = 0L
 
     private val rootResolutions = LongArray(RootAccessor.entries.size)
@@ -164,8 +167,38 @@ class LuaTypeGraph {
         element: PsiElement,
         type: LuaGraphType,
         declaredDemand: Boolean = false,
+    ): UseNode = addUse(UseElement(element, type, declaredDemand, _nodes.size))
+
+    /**
+     * BUG-110: the demand of [owner], a converted signature's parameter or return
+     * ([LuaGraphType.fromLuaType]). It ranks where code is first wired to [owner] — a call, or a
+     * declaration meeting its converted signature ([LuaDemandRanks]) — not where it was converted.
+     */
+    fun convertedSlotUse(
+        owner: VariableNode,
+        demand: LuaGraphType,
+        declaredDemand: Boolean,
     ): UseNode {
-        val node = UseElement(element, type, declaredDemand)
+        val node = UseElement(owner.element, demand, declaredDemand, _nodes.size)
+        demandRanks.registerSlot(owner, node)
+        return addUse(node)
+    }
+
+    /**
+     * BUG-110: the demand of [owner], a converted class member's declared type
+     * ([LuaGraphType.fromLuaType]). It ranks at the variable [owner] is first wired to — the member's
+     * declaration or first access ([LuaDemandRanks]) — not where the class was converted.
+     */
+    fun convertedMemberUse(
+        owner: VariableNode,
+        type: LuaGraphType,
+    ): UseNode {
+        val node = UseElement(owner.element, type, false, _nodes.size)
+        demandRanks.registerMember(owner, node)
+        return addUse(node)
+    }
+
+    private fun addUse(node: UseElement): UseNode {
         _nodes += node
         bumpRevision()
         return node
@@ -179,7 +212,7 @@ class LuaTypeGraph {
         element: PsiElement,
         declaresMember: Boolean = false,
     ): VariableNode {
-        val node = VariableElement(element, this, declaresMember)
+        val node = VariableElement(element, this, declaresMember, _nodes.size)
         _nodes += node
         bumpRevision()
         return node
@@ -201,6 +234,7 @@ class LuaTypeGraph {
         to: TypeNode,
     ) {
         if (from === to) return
+        if (demandRanks.noteEdge(from, to, _nodes.size)) bumpRevision()
 
         when {
             from is VariableElement && to is VariableElement -> propagateBiEdge(from, to)

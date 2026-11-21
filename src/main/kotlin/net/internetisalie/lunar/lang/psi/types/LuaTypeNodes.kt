@@ -118,18 +118,29 @@ internal class LazyValueElement(
     override fun writeWith(visited: MutableSet<VariableNode>): LuaGraphType = compute(visited)
 }
 
-/** Immutable typed constraint. Created by [LuaTypeGraph.use]. */
+/**
+ * Immutable typed constraint. Created by [LuaTypeGraph.use].
+ *
+ * BUG-110: [order] is the node's place in its graph's creation order: the order the visitor walked
+ * the code and recorded the demands in. A variable's `read` ranks the demands it reaches by it, except
+ * that a converted declaration's demand ranks where the code is wired to it ([LuaDemandRanks]).
+ */
 internal class UseElement(
     override val element: PsiElement,
     override val read: LuaGraphType,
-    override val declaredDemand: Boolean = false,
+    override val declaredDemand: Boolean,
+    internal val order: Int,
 ) : UseNode
 
-/** Mutable variable binding. Created by [LuaTypeGraph.variable]. */
+/**
+ * Mutable variable binding. Created by [LuaTypeGraph.variable]. [order] is its place in its graph's
+ * creation order, which ranks a converted member demand wired to it (BUG-110, [LuaDemandRanks]).
+ */
 internal class VariableElement(
     override val element: PsiElement,
     private val graph: LuaTypeGraph,
-    override val declaresMember: Boolean = false,
+    override val declaresMember: Boolean,
+    internal val order: Int,
 ) : VariableNode {
     override val upSet: OrderedSet<TypeNode> = OrderedSet(graph::onEdgeAdded)
     override val downSet: OrderedSet<TypeNode> = OrderedSet(graph::onEdgeAdded)
@@ -142,7 +153,7 @@ internal class VariableElement(
         get() = atRoot(writeMemo, RootAccessor.WRITE) { resolveWrite(mutableSetOf(), upSet) }
 
     override val read: LuaGraphType
-        get() = atRoot(readMemo, RootAccessor.READ) { resolveRead(mutableSetOf()) }
+        get() = atRoot(readMemo, RootAccessor.READ) { resolveRead() }
 
     // BUG-390 in reverse: this entry carries the CALLER's guard, so its result is walk-relative and
     // the memo must not be consulted here. Doing so would return a full type where the guard
@@ -167,10 +178,10 @@ internal class VariableElement(
      *
      * [resolve] opens a walk with a freshly allocated, empty guard, so at this entry — and only at
      * this entry — the result is a pure function of the graph's node and edge state and stays valid
-     * until [LuaTypeGraph.revision] moves. Every interior entry ([writeWith], and the recursion in
-     * [resolveRead]) inherits a caller's guard and deliberately bypasses
-     * this helper. The revision is read BEFORE resolving so a graph mutated mid-walk invalidates the
-     * entry it produced rather than certifying it.
+     * until [LuaTypeGraph.revision] moves. Every interior entry ([writeWith]) inherits a caller's guard
+     * and deliberately bypasses this helper; [resolveRead] has no interior entry (BUG-110). The
+     * revision is read BEFORE resolving so a graph mutated mid-walk invalidates the entry it produced
+     * rather than certifying it.
      */
     private inline fun <T : Any> atRoot(
         memo: RootMemo<T>,
@@ -216,26 +227,18 @@ internal class VariableElement(
         return walk.result()
     }
 
-    private fun resolveRead(visited: MutableSet<VariableNode>): LuaGraphType {
-        if (!visited.add(this)) return LuaGraphType.Any
-
-        val demands =
-            downSet
-                .asSequence()
-                .map {
-                    when (it) {
-                        is VariableElement -> it.resolveRead(visited)
-                        // The trait is deliberately PRESERVED here. It is a demand, and `read` is
-                        // what the checker examines for a value reaching an operator through a
-                        // variable — projecting it to its primitive at this hop lost the metamethod
-                        // arm for every such value (BUG-424), which is the same shape as BUG-419's
-                        // declaredDemand defect. Projection happens at the presentation boundary
-                        // instead: LuaTypes.typeOf and the inlay-hint providers.
-                        is UseNode -> it.read
-                        else -> LuaGraphType.Any
-                    }
-                }.filter { it != LuaGraphType.Any }
-                .toList()
+    /**
+     * BUG-110: the fold is a function of the demands reached, never of the order the walk meets them
+     * in. Down-sets are transitively closed ([LuaTypeGraph.addEdge]), so this variable's own down-set
+     * already holds every use any downstream variable reaches. Recursing into those variables folded
+     * each one over its own insertion order, so the members of one cycle, which reach the same uses,
+     * read differently, and merging them changed the answer.
+     *
+     * The precedence is the one the rules below always intended, with "first" meaning the first demand
+     * the code makes ([LuaDemandRanks]) rather than the first one propagation inserted.
+     */
+    private fun resolveRead(): LuaGraphType {
+        val demands = demandsInCodeOrder()
 
         // BUG-395: member demands accumulate. Each `x.f` records a separate one-member Table
         // constraint, so taking only the first would describe `x` by whichever member happened to be
@@ -249,6 +252,20 @@ internal class VariableElement(
         if (tables.size > 1) return mergeTableDemands(tables)
         return demands.firstOrNull() ?: LuaGraphType.Any
     }
+
+    /**
+     * Every use this variable reaches, the first the code makes first. The trait is deliberately PRESERVED
+     * here. It is a demand, and `read` is what the checker examines for a value reaching an operator
+     * through a variable — projecting it to its primitive here lost the metamethod arm for every such
+     * value (BUG-424), which is the same shape as BUG-419's declaredDemand defect. Projection happens
+     * at the presentation boundary instead: LuaTypes.typeOf and the inlay-hint providers.
+     */
+    private fun demandsInCodeOrder(): List<LuaGraphType> =
+        downSet
+            .filterIsInstance<UseElement>()
+            .sortedWith(compareBy({ graph.demandRanks.rankOf(it) }, { it.order }))
+            .map { it.read }
+            .filter { it != LuaGraphType.Any }
 
     private fun tableExcludingTrait(demands: List<LuaGraphType>): LuaGraphType.Trait? =
         demands

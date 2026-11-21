@@ -2,7 +2,6 @@
 # source-sha256 2773a703f709db74f0ae9702341110363b1986698e07e8e1b9319c601c6a2c23
 [errors]
 HYPOTHESIS|{ ... } | K is not assignable to { ... }|(113,117)|LuaMethodExprImpl
-HYPOTHESIS|{ ... } | K is not assignable to { ... }|(94,98)|LuaMethodExprImpl
 [elements]
 (102,122)|LuaLocalVarDeclImpl|string|e87ba97e700edac9
 (108,109)|LuaNameRefImpl|string|e87ba97e700edac9

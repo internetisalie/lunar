@@ -24,22 +24,16 @@ HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(139,143)|LuaMethodExprIm
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(167,171)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(71,75)|LuaFuncNameMethodImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(118,128)|LuaFuncCallImpl
-HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(119,123)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(138,155)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(139,143)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(119,123)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(130,134)|LuaMethodExprImpl
-HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(139,143)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(148,152)|LuaMethodExprImpl
-HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(167,171)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(71,75)|LuaFuncNameMethodImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(118,128)|LuaFuncCallImpl
-HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(119,123)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(129,137)|LuaFuncCallImpl
-HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(130,134)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(138,155)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(139,143)|LuaMethodExprImpl
-HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(148,152)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Bd is not assignable to Bd|(19,21)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Bd is not assignable to Bd|(72,75)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Bd is not assignable to { ... }|(114,115)|LuaNameRefImpl

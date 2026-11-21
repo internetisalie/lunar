@@ -6,7 +6,6 @@ ERROR|string is not assignable to number|(149,152)|LuaTerminalExprImpl
 ERROR|string is not assignable to number|(65,90)|LuaFuncDeclImpl
 ERROR|string is not assignable to number|(84,85)|LuaNameRefImpl
 HYPOTHESIS|fun(a, b) | fun(a, b) is not assignable to fun(p)|(104,112)|LuaFuncCallImpl
-HYPOTHESIS|fun(a, b) | fun(a, b) is not assignable to fun(p)|(105,109)|LuaMethodExprImpl
 HYPOTHESIS|fun(a, b) | fun(a, b) is not assignable to fun(p, p)|(140,153)|LuaFuncCallImpl
 HYPOTHESIS|fun(a, b) | fun(a, b) is not assignable to fun(p, p)|(141,145)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Ar is not assignable to { ... }|(105,109)|LuaMethodExprImpl
@@ -14,7 +13,6 @@ HYPOTHESIS|{ ... } | Ar is not assignable to { ... }|(114,118)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Ar is not assignable to { ... }|(126,130)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Ar is not assignable to { ... }|(141,145)|LuaMethodExprImpl
 WARNING|Too few arguments: expected at least 2, got 1|(104,112)|LuaFuncCallImpl
-WARNING|Too few arguments: expected at least 2, got 1|(105,109)|LuaMethodExprImpl
 WARNING|Too many arguments: expected at most 2, got 3|(125,139)|LuaFuncCallImpl
 WARNING|Too many arguments: expected at most 2, got 3|(126,130)|LuaMethodExprImpl
 [elements]

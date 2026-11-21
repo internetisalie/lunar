@@ -2,6 +2,13 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A value's inferred type no longer depends on the order the code uses it in** (BUG-110). When a
+  value was used in several ways — joined with `..` in one function, measured with `#` in another —
+  its type came from whichever use the analysis happened to reach first. Moving an unrelated call
+  could therefore change a hover from `string` to `any[] | string | { ... }`, and the variables
+  sharing a value through a call could each show a different type. The first use in the code now
+  decides, wherever it is reached from. A wrong argument count at the first call of a class method
+  is now reported once, on the call, rather than also on the method name.
 - **Type checking takes less time on a file whose tables share fields across hundreds of sites**
   (BUG-97). Deciding whether a value meets a declared contract, and gathering the values a variable
   holds, walked every variable joined to it through a shared table field, once for each variable it

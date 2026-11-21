@@ -8,7 +8,6 @@ ERROR|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(862,87
 ERROR|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(877,906)|LuaFuncCallImpl
 HYPOTHESIS|LunarFixtureShape | { ... } is not assignable to LunarFixtureShape|(554,640)|LuaFuncDeclImpl
 HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(p, p)|(877,906)|LuaFuncCallImpl
-HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(p, p)|(894,897)|LuaIndexExprImpl
 HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(width, unit)|(580,583)|LuaFuncNamePropertyImpl
 HYPOTHESIS|fun(width, unit) | fun(width, unit) is not assignable to fun(width, unit)|(894,897)|LuaIndexExprImpl
 HYPOTHESIS|{ ... } | LunarFixtureBox is not assignable to { ... }|(803,809)|LuaIndexExprImpl

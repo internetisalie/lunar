@@ -77,16 +77,17 @@ class LuaTypeGraphCycleGuardTest : BasePlatformTestCase() {
     }
 
     /**
-     * BUG-473, the same constraint on the read walk. `resolveRead` is private, so the guarded entry
-     * is reached the only way production reaches it: through a second variable's root read.
+     * BUG-473's constraint on the read walk, as BUG-110 left it: the read walk has no interior entry
+     * at all, so no variable's memo can stand in for another's. A root folds the uses of its OWN
+     * down-set and does not recurse into the variables there; down-sets built through `addEdge` are
+     * transitively closed, so nothing reachable is lost.
      *
-     * `first` and `second` demand each other plus one primitive apiece. Rooted at `first` the answer
-     * is String (`second`'s demand wins first place, `first`'s own re-entry folding to `Any`);
-     * rooted at `second` it is Number, for the mirror reason. If the interior hop served `first`'s
-     * memo the second assertion would read String.
+     * `first` and `second` are wired to each other by hand, outside `addEdge`, so their sets are not
+     * closed and each holds one primitive. Each reads its own. Before BUG-110 `first` read `second`'s
+     * String, the demand the recursion happened to meet first.
      */
     @Test
-    fun guardedReadEntryIgnoresTheMemo() {
+    fun aReadRootFoldsOnlyTheUsesOfItsOwnDownSet() {
         val graph = LuaTypeGraph()
         val anchor = myFixture.addFileToProject("guardedread.lua", "local a, b\n")
         val first = graph.variable(anchor)
@@ -96,13 +97,8 @@ class LuaTypeGraphCycleGuardTest : BasePlatformTestCase() {
         second.downSet.add(first)
         second.downSet.add(graph.use(anchor, LuaGraphType.String))
 
-        assertEquals("rooted at first, second's demand leads", LuaGraphType.String, first.read)
-
-        assertEquals(
-            "rooted at second, the guarded hop into first must fold to Any, not serve its memo",
-            LuaGraphType.Number,
-            second.read,
-        )
+        assertEquals("rooted at first, its own demand", LuaGraphType.Number, first.read)
+        assertEquals("rooted at second, its own demand, not first's memo", LuaGraphType.String, second.read)
     }
 
     /**

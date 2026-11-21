@@ -10,7 +10,6 @@ HYPOTHESIS|Builder | { ... } | Builder is not assignable to Builder|(75,118)|Lua
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(138,146)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(91,99)|LuaFuncNameMethodImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(137,150)|LuaFuncCallImpl
-HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(138,146)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to Builder|(24,31)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to Builder|(92,99)|LuaNameRefImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(138,146)|LuaMethodExprImpl

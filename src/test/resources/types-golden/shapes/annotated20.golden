@@ -2,6 +2,7 @@
 # source-sha256 1df2bf149e99a6fd080a6cf508ea9655b65afeb0a458d25b694755b6462296a8
 [errors]
 HYPOTHESIS|Too few arguments: expected at least 1, got 0|(53,61)|LuaFuncNameMethodImpl
+HYPOTHESIS|Too few arguments: expected at least 1, got 0|(89,97)|LuaMethodExprImpl
 HYPOTHESIS|Too many arguments: expected at most 0, got 1|(104,119)|LuaFuncCallImpl
 HYPOTHESIS|Too many arguments: expected at most 0, got 1|(105,113)|LuaMethodExprImpl
 HYPOTHESIS|Too many arguments: expected at most 0, got 1|(120,135)|LuaFuncCallImpl
@@ -41,7 +42,6 @@ HYPOTHESIS|Too many arguments: expected at most 0, got 1|(385,393)|LuaMethodExpr
 HYPOTHESIS|Too many arguments: expected at most 0, got 1|(401,417)|LuaFuncCallImpl
 HYPOTHESIS|Too many arguments: expected at most 0, got 1|(402,410)|LuaMethodExprImpl
 HYPOTHESIS|Too many arguments: expected at most 0, got 1|(88,103)|LuaFuncCallImpl
-HYPOTHESIS|Too many arguments: expected at most 0, got 1|(89,97)|LuaMethodExprImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(105,113)|LuaMethodExprImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(121,129)|LuaMethodExprImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(137,145)|LuaMethodExprImpl
@@ -64,6 +64,7 @@ HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(402,410)|LuaMethodExprImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(53,61)|LuaFuncNameMethodImpl
 HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(89,97)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(53,61)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(89,97)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(105,113)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(121,129)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(137,145)|LuaMethodExprImpl

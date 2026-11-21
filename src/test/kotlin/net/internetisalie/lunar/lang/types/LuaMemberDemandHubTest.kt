@@ -118,21 +118,25 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
         checkNotNull(TypeGoldenFixtures.NAMED_SHAPES.toMap()[name]) { "no shape $name in NAMED_SHAPES" }
 
     private companion object {
-        /** Requirements Appendix A. */
+        /**
+         * Requirements Appendix A. The hub (89,97) is one cycle with the declared member (53,61), so
+         * since BUG-110 it reads, and reports, what that member does.
+         */
         val ANNOTATED3_ERRORS =
             listOf(
                 "HYPOTHESIS|Too few arguments: expected at least 1, got 0|(53,61)",
+                "HYPOTHESIS|Too few arguments: expected at least 1, got 0|(89,97)",
                 "HYPOTHESIS|Too many arguments: expected at most 0, got 1|(104,119)",
                 "HYPOTHESIS|Too many arguments: expected at most 0, got 1|(105,113)",
                 "HYPOTHESIS|Too many arguments: expected at most 0, got 1|(120,135)",
                 "HYPOTHESIS|Too many arguments: expected at most 0, got 1|(121,129)",
                 "HYPOTHESIS|Too many arguments: expected at most 0, got 1|(88,103)",
-                "HYPOTHESIS|Too many arguments: expected at most 0, got 1|(89,97)",
                 "HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(105,113)",
                 "HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(121,129)",
                 "HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(53,61)",
                 "HYPOTHESIS|fun() | fun(n) is not assignable to fun()|(89,97)",
                 "HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(53,61)",
+                "HYPOTHESIS|fun(n) | fun() is not assignable to fun()|(89,97)",
                 "HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(105,113)",
                 "HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(121,129)",
                 "HYPOTHESIS|{ ... } | Builder is not assignable to { ... }|(89,97)",
@@ -140,7 +144,9 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
 
         /**
          * Requirements Appendix B. The call argument at (135,136) is ERROR since BUG-566. The chained
-         * `b:set('y'):set(2)` reports the rows its split form `r:set(1)` does, since BUG-100.
+         * `b:set('y'):set(2)` reports the rows its split form `r:set(1)` does, since BUG-100. Since
+         * BUG-110 a hub reads what its declared member does, which drops the hub-only copies at the
+         * method names; each enclosing call keeps its own row.
          */
         val CHAIN_ERRORS =
             listOf(
@@ -167,22 +173,16 @@ class LuaMemberDemandHubTest : BaseDocumentTest() {
                 "HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(167,171)",
                 "HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(71,75)",
                 "HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(118,128)",
-                "HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(119,123)",
                 "HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(138,155)",
                 "HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(139,143)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(119,123)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(130,134)",
-                "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(139,143)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(148,152)",
-                "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(167,171)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(n)|(71,75)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(118,128)",
-                "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(119,123)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(129,137)",
-                "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(130,134)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(138,155)",
                 "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(139,143)",
-                "HYPOTHESIS|fun(n) | fun(n) | fun(n) is not assignable to fun(p)|(148,152)",
                 "HYPOTHESIS|{ ... } | Bd is not assignable to Bd|(19,21)",
                 "HYPOTHESIS|{ ... } | Bd is not assignable to Bd|(72,75)",
                 "HYPOTHESIS|{ ... } | Bd is not assignable to { ... }|(114,115)",

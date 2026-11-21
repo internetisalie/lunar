@@ -17,7 +17,6 @@ HYPOTHESIS|{ ... } | C is not assignable to { ... }|(97,101)|LuaMethodExprImpl
 WARNING|Too few arguments: expected at least 1, got 0|(138,148)|LuaFuncCallImpl
 WARNING|Too few arguments: expected at least 1, got 0|(142,146)|LuaMethodExprImpl
 WARNING|Too many arguments: expected at most 1, got 2|(168,182)|LuaFuncCallImpl
-WARNING|Too many arguments: expected at most 1, got 2|(172,176)|LuaMethodExprImpl
 [elements]
 (102,105)|LuaTerminalExprImpl|string|e87ba97e700edac9
 (111,152)|LuaFuncDeclImpl|fun()|35e7ff01ca00d7d6
