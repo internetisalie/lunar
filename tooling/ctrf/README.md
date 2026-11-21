@@ -2,7 +2,7 @@
 
 `junit_ctrf.py` turns a `test` run's JUnit XML (`build/test-results/test/`) and the test-set
 sidecar the task writes beside it (`build/test-results/test-filter.json`) into one CTRF 0.2.0
-document, stores it in loom's conformance store as check `a3` (no suite), fetches a commit's
+document, stores it in loom's conformance store as check `unit` (no suite), fetches a commit's
 record, and compares two documents test by test. `loom_store.py` holds the `loom-cli` calls it
 shares with `tooling/corpus/corpus_ctrf.py`. Stdlib only.
 
@@ -15,7 +15,7 @@ Tests: `cd tooling/ctrf && python3 -m unittest test_junit_ctrf`.
 
 # Performance records per commit (MAINT-45)
 
-`perf_ctrf.py` turns the counted-workload records a `-PwithPerfRecords` run writes (`build/perf-records/*.json`) and `/proc/cpuinfo` into one CTRF 0.2.0 document, and stores it from `main` as check `a3` suite `perf`. Stdlib only; it reuses `loom_store.py`.
+`perf_ctrf.py` turns the counted-workload records a `-PwithPerfRecords` run writes (`build/perf-records/*.json`) and `/proc/cpuinfo` into one CTRF 0.2.0 document, and stores it from `main` as check `unit` suite `perf`. Stdlib only; it reuses `loom_store.py`.
 
 - **`assemble`**: `python3 tooling/ctrf/perf_ctrf.py assemble --records build/perf-records --out perf.ctrf.json [--cpuinfo /proc/cpuinfo]`. Exit `2` on no records or a record of another schema.
 - **`ci`**: `python3 tooling/ctrf/perf_ctrf.py ci --records build/perf-records --out build/perf-ctrf/perf.ctrf.json --accepted tooling/perf/accepted-increases.json --gate-mode tooling/perf/gate-mode --event "$GITHUB_EVENT_NAME" [--base-ref R] [--repo .]`. Prints `perf: gate-mode <mode>` and a `WOBBLE` line for each value that differs between a workload's two passes. A `push` puts the document against `HEAD` unless it has a record. A `pull_request` deepens the checkout, finds the merge-base with `--base-ref`, fetches the record of its nearest code-identical first-parent ancestor and prints `baseline <sha> distance=<n>` and the diff; with no record it warns and passes. Any other event stores and compares nothing. The git calls that reach the forge (the deepening fetch and the lazy read of the merge-base's accepted file) take `GITEA_TOKEN` from the environment as an `http.extraHeader` through `GIT_CONFIG_*`, never on an argv. `tooling/perf/gate-mode` holds `report-only` (a wobble or an unaccepted rise prints and cannot fail) or `gating` (either fails, and a push with a wobble does not store). Exit `2` on a missing or unknown gate-mode or accepted file.

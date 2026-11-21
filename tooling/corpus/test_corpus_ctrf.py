@@ -267,7 +267,7 @@ def commit(repo: Path, message: str, when: int) -> str:
 
 
 def measured(key: str) -> dict:
-    return {"exit": 0, "json": {"commit": "x", "checks": [{"check": "a3", "status": "measured",
+    return {"exit": 0, "json": {"commit": "x", "checks": [{"check": "unit", "status": "measured",
                                                           "record": {"key": key, "loom-sha256": "0" * 64}}]}}
 
 
@@ -405,7 +405,7 @@ class StoreTest(StubbedLoomTest):
         return code, stdout.getvalue() + stderr.getvalue()
 
     def stored(self, sha256: str) -> dict:
-        return {"exit": 0, "json": {"commit": "x", "checks": [{"check": "a3", "status": "measured", "record": {
+        return {"exit": 0, "json": {"commit": "x", "checks": [{"check": "unit", "status": "measured", "record": {
             "key": "k", "loom-sha256": sha256}}]}}
 
     def puts(self) -> list[list[str]]:
@@ -416,7 +416,7 @@ class StoreTest(StubbedLoomTest):
         code, printed = self.store(self.full)
         self.assertEqual(0, code, printed)
         self.assertEqual(self.expected, self.out.read_bytes())
-        self.assertEqual([["artifact", "put", "conformance", str(self.out), "--commit", "HEAD", "--check", "a3",
+        self.assertEqual([["artifact", "put", "conformance", str(self.out), "--commit", "HEAD", "--check", "unit",
                            "--no-item", "--repo", ".", "--suite", "corpus"]], self.puts())
         resolve = self.calls()[0]
         self.assertEqual(["artifact", "resolve", "--commit", "HEAD"], resolve[:4])
@@ -435,7 +435,7 @@ class StoreTest(StubbedLoomTest):
         code, printed = self.store(self.full)
         self.assertEqual(0, code, printed)
         self.assertEqual([], self.puts())
-        self.assertIn("WARNING store: HEAD already has a different a3 corpus record; kept the first", printed)
+        self.assertIn("WARNING store: HEAD already has a different unit corpus record; kept the first", printed)
 
     def test_TC_7_failing_resolve_fails_the_store(self):
         self.stage({"resolve": {"HEAD": {"exit": 1}}})

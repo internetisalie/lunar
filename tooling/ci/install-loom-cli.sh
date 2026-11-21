@@ -11,7 +11,7 @@
 # back as HTTP 200, so `tar tzf` proves the download is an archive before it is trusted. The binary
 # goes to /usr/local/bin (pods run as root), so later steps find it on PATH. Nothing here touches the
 # store. The last command, `loom-cli --version`, records which version ran and is the exit status.
-loom_api=https://gitea.internetisalie.net/api/v1/repos/loom/loom-cli
+loom_api=https://gitea.internetisalie.net/api/v1/repos/loom/loom-delivery
 if [ -n "${LOOM_CLI_VERSION:-}" ]; then
   echo "loom-cli ${LOOM_CLI_VERSION} (override)"
 else
@@ -24,7 +24,7 @@ else
 fi
 loom_dir=$(mktemp -d)
 if ! curl -fsSL -o "${loom_dir}/loom-cli.tgz" -H "Authorization: token ${LOOM_MODULES_TOKEN:-}" \
-    "https://gitea.internetisalie.net/loom/loom-cli/releases/download/${LOOM_CLI_VERSION}/loom-cli-linux-amd64.tar.gz"; then
+    "https://gitea.internetisalie.net/loom/loom-delivery/releases/download/${LOOM_CLI_VERSION}/loom-cli-linux-amd64.tar.gz"; then
   echo "::error::could not download loom-cli ${LOOM_CLI_VERSION}" >&2
   exit 1
 fi

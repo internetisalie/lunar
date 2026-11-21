@@ -229,7 +229,7 @@ class StubbedLoomTest(Workspace):
 
 
 def measured(key: str, sha256: str = "0" * 64) -> dict:
-    return {"exit": 0, "json": {"commit": "x", "checks": [{"check": "a3", "status": "measured",
+    return {"exit": 0, "json": {"commit": "x", "checks": [{"check": "unit", "status": "measured",
                                                           "record": {"key": key, "loom-sha256": sha256}}]}}
 
 
@@ -255,7 +255,7 @@ class StoreTest(StubbedLoomTest):
         self.stage({})
         code, printed = self.store()
         self.assertEqual(0, code, printed)
-        self.assertEqual([["artifact", "put", "conformance", str(self.out), "--commit", "HEAD", "--check", "a3",
+        self.assertEqual([["artifact", "put", "conformance", str(self.out), "--commit", "HEAD", "--check", "unit",
                            "--no-item", "--repo", "."]], self.puts())
         self.assertNotIn("--suite", self.calls()[0])
 
@@ -269,7 +269,7 @@ class StoreTest(StubbedLoomTest):
         self.stage({"resolve": {"HEAD": measured("k", "f" * 64)}})
         code, printed = self.store()
         self.assertEqual((0, []), (code, self.puts()))
-        self.assertIn("WARNING store: HEAD already has a different a3 unit-test record; kept the first", printed)
+        self.assertIn("WARNING store: HEAD already has a different unit unit-test record; kept the first", printed)
 
     def test_TC_5_failing_resolve_or_put_fails_the_store(self):
         self.stage({"resolve": {"HEAD": {"exit": 1}}})

@@ -7,7 +7,7 @@ is the finding's stable fingerprint (§3.3) and whose ``results.environment.test
 run's derived identity (§3.2). The same findings always give the same bytes.
 
 ``store`` assembles, then puts the document against ``HEAD`` in loom's conformance store (check
-``a3``, suite ``corpus``) unless ``HEAD`` already has a record. ``fetch`` reads the stored document of
+``unit``, suite ``corpus``) unless ``HEAD`` already has a record. ``fetch`` reads the stored document of
 the nearest first-parent ancestor through ``loom-cli``; ``diff`` compares two documents finding by
 finding.
 
@@ -25,14 +25,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "ctrf"))
 import loom_store  # noqa: E402
 from loom_store import EXIT_UNMEASURED, LoomError  # noqa: E402
 
-CHECK = "a3"
+CHECK = "unit"
 TOOL_NAME = "lunar-corpus-sweep"
 SPEC_VERSION = "0.2.0"
 COMPARABILITY_KEYS = ("commit", "roots", "luaLevel", "moduleRoot", "target", "definitionLibraries")
 SCHEMA = 1
 DEFAULT_MAX_DEPTH = 50
 # The arguments that select suite `corpus` on resolve and put (loom-cli v0.90.0, DR-10): the record
-# is stored as `a3.corpus.ctrf.json`. `get` takes the key resolve returns, so it carries none.
+# is stored as `unit.corpus.ctrf.json`. `get` takes the key resolve returns, so it carries none.
 SUITE_ARGV: tuple[str, ...] = ("--suite", "corpus")
 
 
@@ -182,7 +182,7 @@ def _slot(repo: str) -> loom_store.Slot:
 
 
 def store(args) -> int:
-    """Put this run's document against HEAD as check ``a3`` suite ``corpus``, once (§3.5)."""
+    """Put this run's document against HEAD as check ``unit`` suite ``corpus``, once (§3.5)."""
     data = _assemble_to(args.findings, args.manifest, args.out)
     shape = _identity(json.loads(data)).split("-", 1)[0]
     if shape != "full":

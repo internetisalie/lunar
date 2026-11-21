@@ -164,13 +164,13 @@ path, offsets, line, column, message, symbol) per hit behind the baseline's coun
   set, exit `2`.
 - **`store`**: `corpus_ctrf.py store --findings build/corpus-findings --manifest
   tooling/corpus/corpus.json --out build/corpus-ctrf/corpus.ctrf.json` assembles, then puts the
-  document against `HEAD` as check `a3` suite `corpus` (`a3.corpus.ctrf.json`), unless `HEAD`
+  document against `HEAD` as check `unit` suite `corpus` (`unit.corpus.ctrf.json`), unless `HEAD`
   already has a record: an identical one prints `store: already stored, identical`, a different
   one a `WARNING` line, and both exit `0`. Any run that is not full-shape is refused with exit `2`
   before `loom-cli` is called; a `loom-cli` failure exits `1`. The Gitea `corpus` CI job runs it on
   every run, with the store credentials in its environment.
 - **`fetch`**: `corpus_ctrf.py fetch --commit origin/main --out before.ctrf.json [--like DOC]
-  [--max-depth N]` reads loom's conformance store (check `a3`, suite `corpus`) through `loom-cli`,
+  [--max-depth N]` reads loom's conformance store (check `unit`, suite `corpus`) through `loom-cli`,
   walking first-parent ancestors. It prints `fetched <sha> identity=… distance=…` and exits `0`;
   `3` when nothing is stored within the depth (default 50); `1` on a `loom-cli` failure. `--like`
   accepts only a document with that document's identity. It needs loom-cli v0.90.0 or later

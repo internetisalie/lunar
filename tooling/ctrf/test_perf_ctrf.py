@@ -137,7 +137,7 @@ class StubbedLoomTest(Workspace):
 
 
 def measured(sha256: str, key: str = "k") -> dict:
-    return {"exit": 0, "json": {"commit": "x", "checks": [{"check": "a3", "status": "measured",
+    return {"exit": 0, "json": {"commit": "x", "checks": [{"check": "unit", "status": "measured",
                                                           "record": {"key": key, "loom-sha256": sha256}}]}}
 
 
@@ -155,7 +155,7 @@ class StoreTest(StubbedLoomTest):
         self.assertEqual(1, len(puts))
         argv = puts[0]
         check = argv.index("--check")
-        self.assertEqual(["--check", "a3", "--no-item"], argv[check:check + 3])
+        self.assertEqual(["--check", "unit", "--no-item"], argv[check:check + 3])
         self.assertEqual("perf", argv[argv.index("--suite") + 1])
 
     def test_TC_61_a_failed_put_fails_the_job_in_report_only(self):
@@ -173,7 +173,7 @@ class StoreTest(StubbedLoomTest):
         self.stage({"resolve": {"HEAD": measured("f" * 64)}})
         code, printed = self.ci()
         self.assertEqual((0, []), (code, self.puts()))
-        self.assertIn("WARNING store: HEAD already has a different a3 perf record; kept the first", printed)
+        self.assertIn("WARNING store: HEAD already has a different unit perf record; kept the first", printed)
 
 
 class GateModeTest(StubbedLoomTest):

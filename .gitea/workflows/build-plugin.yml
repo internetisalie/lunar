@@ -258,8 +258,8 @@ jobs:
           ./gradlew test --rerun --no-daemon --stacktrace \
             || touch /tmp/lunar-tests-failed
 
-      - name: Store unit-test results (loom conformance, check a3)
-        # MAINT-48: one CTRF document per run, stored against HEAD as a3's primary record (no
+      - name: Store unit-test results (loom conformance, check unit)
+        # MAINT-48: one CTRF document per run, stored against HEAD as unit's primary record (no
         # suite; the corpus job stores under suite corpus). It runs on a red suite too, because
         # the test step records its failure in a sentinel: a red commit's results are a baseline
         # as well. `store` refuses a partial (--tests) run and a run with no XML, resolves first
@@ -480,8 +480,8 @@ jobs:
             touch /tmp/lunar-corpus-failed
           fi
 
-      - name: Store findings (loom conformance, check a3 suite corpus)
-        # MAINT-40: one CTRF document per run, stored against HEAD as a3.corpus.ctrf.json.
+      - name: Store findings (loom conformance, check unit suite corpus)
+        # MAINT-40: one CTRF document per run, stored against HEAD as unit.corpus.ctrf.json.
         # Every run of this job stores, PR runs included: a step-level ref test is unavailable
         # on this executor, and a squash-merged PR head is never a first-parent ancestor on main,
         # so its record pollutes no `fetch`. `store` resolves first and never re-puts, so a rerun

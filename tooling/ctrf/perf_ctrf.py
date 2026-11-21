@@ -5,7 +5,7 @@
 (``build/perf-records/*.json``) and the host's ``/proc/cpuinfo`` into one CTRF document with one
 test per workload. ``ci`` is what the ``build`` job runs: it assembles, prints a ``WOBBLE`` line for
 every value that differs between a workload's two passes, and then routes on the event. A ``push``
-puts the document against ``HEAD`` as check ``a3`` suite ``perf``, once. A ``pull_request`` fetches the
+puts the document against ``HEAD`` as check ``unit`` suite ``perf``, once. A ``pull_request`` fetches the
 record of the nearest code-identical ancestor of its merge-base and diffs the counts against it. Any
 other event stores and compares nothing. ``tooling/perf/gate-mode`` decides whether a wobble or a rise
 can fail the run. ``stability`` walks ``main``'s records and says when gating may be turned on.
@@ -30,7 +30,7 @@ import loom_store
 from junit_ctrf import NotComparable, code_identical_first_parents
 from loom_store import LoomError, Slot, Wanted
 
-CHECK = "a3"
+CHECK = "unit"
 SUITE_ARGV = ("--suite", "perf")
 LABEL = "perf"
 TOOL_NAME = "lunar-perf-records"

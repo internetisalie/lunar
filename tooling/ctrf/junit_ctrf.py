@@ -8,7 +8,7 @@ repeats) and ``results.environment.testEnvironment`` is derived from the sidecar
 The same inputs always give the same bytes.
 
 ``store`` assembles, then puts the document against ``HEAD`` in loom's conformance store (check
-``a3``, no suite) unless ``HEAD`` already has a record. ``fetch`` reads the record of the nearest
+``unit``, no suite) unless ``HEAD`` already has a record. ``fetch`` reads the record of the nearest
 first-parent ancestor whose code is identical to the given commit's; ``diff`` compares two
 documents test by test.
 
@@ -30,7 +30,7 @@ from pathlib import Path
 import loom_store
 from loom_store import EXIT_UNMEASURED, LoomError
 
-CHECK = "a3"
+CHECK = "unit"
 SUITE_ARGV: tuple[str, ...] = ()
 LABEL = "unit-test"
 TOOL_NAME = "lunar-unit-tests"
@@ -171,7 +171,7 @@ def _slot(repo: str) -> loom_store.Slot:
 
 
 def store(args) -> int:
-    """Put this run's document against HEAD as check ``a3``, no suite, once (design §3.5)."""
+    """Put this run's document against HEAD as check ``unit``, no suite, once (design §3.5)."""
     data, filter_doc = _assemble_to(args.results, args.filter, args.out)
     partial = filter_doc["commandLineIncludePatterns"]
     if partial:
