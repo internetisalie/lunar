@@ -371,7 +371,110 @@ not fixed here.
 **What remains.**
 - `isCompatible(File, { seek = fun(p, p) })` is false in the final graph (above). Any pair examined at the final
   state reports it; the collapse changes when a pair is examined, not the check.
-- `compile.lua`'s own build is 1.4-2.1 s, against the 250 ms target of MAINT-60. Where that time goes was not
-  profiled after the collapse. The bug stays open.
+- `compile.lua`'s own build is 1.4-2.1 s, against the 250 ms target of MAINT-60. §9 profiles it. The bug stays
+  open.
 - fallo's `init.lua` takes 68 s and still stops after pass 1 at the 5 s limit; its cost is a separate cluster
   shape and is not addressed here.
+
+## 9. Profile after the collapse
+Measured on `db80f6c0` (the collapse, §8, merged), builder `libvirt` (idle: no `~/sim-app` Gradle or other Java
+process was running during any run), GoLand 2026.2.3 test platform. A throwaway light-fixture test, not committed,
+followed §8's setup: Standard Lua 5.4 pinned, source path `<checkout>/script/?.lua;<checkout>/script/?/init.lua`,
+one cold `LuaTypesSnapshot.forFile(file).getErrors()` on `script/parser/compile.lua` (5 164 lines),
+`LuaSnapshotBuildMeter` for the file's own build. Three JVMs ran `test --rerun --no-build-cache --tests
+'*ProbeBug97*'`; the first two with `-PjfrProfile`, the third without it and with temporary timers around the
+build's phases and the fixed-point passes. Each JVM ran three cold reads (`run-1..3`) and then appended `"\n"` to
+the file's document and read again (`loop-n`), so that the recording holds many builds.
+
+| `compile.lua` own build | run 1 | run 2 | run 3 | errors |
+|---|---|---|---|---|
+| JFR job A | 2 737 ms | 1 488 ms | 1 550 ms | 831 |
+| JFR job B | 2 673 ms | 2 467 ms | 1 785 ms | 831 |
+| timers, no JFR | 2 169 ms | 1 292 ms | 1 379 ms | 831 |
+
+The first read of a JVM includes JIT warm-up. After an edit, the 20 `loop` reads of job B take a median 1 155 ms
+(943-1 559 ms). The collapse's 1.4-2.1 s is confirmed, and 250 ms is about one fifth of the steady state.
+
+**Phase split** (timers; wall ms, own build only: a dependency build runs inside the visitor and is subtracted).
+
+| phase | run 2 | run 3 | `loop-4` | `loop-6` |
+|---|---|---|---|---|
+| own build (`ownSelfMs`) | 1 292 | 1 379 | 1 019 | 996 |
+| visitor traversal (graph construction) | 314 | 329 | 113 | 86 |
+| `checkTypes`, pass 1 | 611 | 691 | 569 | 626 |
+| `checkTypes`, pass 2 | 259 | 248 | 246 | 216 |
+| `checkTypes`, pass 3 | 59 | 59 | 61 | 55 |
+| `settleSeverities` | 15 | 16 | 14 | 12 |
+| `seedAmbientGlobals`, snapshot materialization | 1 | 1 | 1 | 1 |
+
+Checking is 73-91 % of the build, pass 1 alone 47-63 %. The graph has 19 382 nodes and a closure of 158 840 entries
+(no edge is added after pass 1). Three passes make 2 064 383 pair attempts (958 333 in pass 1, 1 106 050 in pass 2, 0
+in pass 3) and admit 356 607 (209 837 and 146 770): 83 % of attempts find the pair already examined from another
+variable. Root resolutions are 13 439 `write`, 6 026 `read` and 4 733 `declaredDemand`. Pass 3 attempts nothing and
+still takes 55-61 ms.
+
+**JFR, the 17 `loop` reads of job B from `loop-4`** (1 850 execution samples, about 11 ms apart, mean stack depth 135,
+none capped). By phase, from the outermost `LuaTypesVisitor.Companion.buildSnapshot` frame: `runFixedPointPass`
+1 483 (80.2 %), dependency builds under `resolveModule` 205 (11.1 %), visitor traversal 134 (7.2 %),
+`settleSeverities` 22 (1.2 %), materialization and the rest 6. Dependencies are not part of the own build, so the
+shares below divide by the 1 645 other samples where a time in ms is given (1 sample is about 0.7 ms).
+
+| samples | % | frame, topmost `net.internetisalie` frame (self) |
+|---|---|---|
+| 408 | 22.1 | `LuaTypeGraph$VisitScan.scanUse:601` (`checkedPairs.add(Pair(valueNode, useNode))`) |
+| 131 | 7.1 | `MemberLog.append:1490` |
+| 105 | 5.7 | `OrderedSet.add:467` |
+| 59 | 3.2 | `LuaMemberAssignmentSites.isWrittenToMember:38` |
+| 56 + 23 | 3.0 + 1.2 | `MemberLog.extendedBy` (`members.toList()`, the loop) |
+| 49 | 2.6 | `LuaGraphType$Table.hashCode` |
+| 36 | 1.9 | `LuaGraphType.getMembers:267` |
+| 31 + 27 + 15 | 1.7 + 1.5 + 0.8 | `WriteWalk.collect:401,399,409` |
+| 23 + 15 | 1.2 + 0.8 | `LuaTypeGraph.addError` (`_errors.any`) |
+
+| samples | % | inclusive frame |
+|---|---|---|
+| 1 516 | 81.9 | `LuaTypeGraph.checkTypes` |
+| 1 105 | 59.7 | `VisitScan.scanUse` |
+| 634 | 34.3 | `checkAdmittedPair` (`checkCompatibility` 594, 32.1) |
+| 261 | 14.1 | `addEdge` (`propagateBiEdge` 239, 12.9) |
+| 253 | 13.7 | `checkTableCompatibility` |
+| 224 | 12.1 | `MemberLog.extendedBy` |
+| 205 | 11.1 | `LuaTypeManagerImpl.resolveModule` (dependency builds) |
+| 161 | 8.7 | `VariableElement.getWrite` (`WriteWalk.collect` 147, 7.9) |
+| 139 | 7.5 | `VisitScan.<init>` (`visitFactsOf`) |
+| 129 | 7.0 | `checkFunctionCompatibility` |
+| 66 | 3.6 | `isCompatible` |
+| 70 | 3.8 | `LuaParser.parse` (the reparse after the edit, not the engine) |
+
+Top JDK self frames: `HashMap.putVal` 20.3 %, `IdentityHashMap.put` 5.7 %, `Intrinsics.areEqual` 3.5 %,
+`LinkedHashIterator.nextNode` 2.8 %, `HashMap.resize` 2.3 %. They are the set inserts above, not a separate cost.
+
+**Allocation** (`jdk.ObjectAllocationSample`, 5 478 samples, an estimated 6 254 MB, about 370 MB a build). By class:
+`kotlin.Pair` 24.4 %, `Object[]` 14.3 %, `LinkedHashMap$Entry` 11.2 %, `LinkedHashMap` 8.8 %, `HashMap$Node[]` 7.8 %,
+`LinkedHashMap$LinkedKeyIterator` 5.9 %. By topmost Lunar frame: `scanUse:601` 17.1 %, `checkCompatibility:690` (the
+`visited` default argument) 5.5 %, `checkCompatibility:716` 4.7 %, `OrderedSet.iterator:479` 4.3 %, `WriteWalk.collect:399`
+4.2 %, `MemberLog.append:1490` 3.7 %, `DownwardStep.next:1554` 3.5 %, `UpwardStep.next:1578` 3.3 %,
+`CompatContext.<init>:22` 3.0 %. `LuaRockspecDiscoveryService.enumerateIncluded:99` is 6.3 % and is outside the checker.
+
+**Candidates**, ranked by estimated saving on the 1 155 ms steady-state build (line numbers on `db80f6c0`,
+`LuaTypeGraph.kt` unless named). The estimates are shares of the samples above; they overlap and are not additive.
+
+| # | candidate | where | est. saving |
+|---|---|---|---|
+| 1 | Reject an already examined pair without allocating or hashing a `Pair`: a per-use bit set over value ordinals, or an identity set per use. 1.7 M of the 2.06 M attempts only fail the insert. | `scanUse:598-601`, `checkedPairs` in `runFixedPointPass:493` | 150-250 ms |
+| 2 | Make the `MemberLog` cursor-based: it re-walks the whole up- and down-set of every visited representative, re-expands every cluster and copies `members.toList()` on every visit. Keep an insertion-ordered list in `OrderedSet` and append only the entries past the log's cursor; return a size-bounded view. Order is unchanged. | `MemberLog:1477-1492`, called from `checkNodePairs:546-547`; `OrderedSet` in `LuaTypeNodes.kt:460-482` | 100-150 ms |
+| 3 | Do not build a `VisitScan` when the visit has nothing new (`mark.up == upSnapshot.size && mark.down == downSnapshot.size`). Today every visit computes `visitFactsOf` (a `count` and an `any { isUnknown(it.write) }` over the up-set) first, which is all of pass 3 (55-61 ms) and part of pass 2. Computing the facts lazily inside the scan is not an option: MAINT-61 risks Gap 2.4 records that it moved `write` resolutions into cross-file resolution. | `checkNodePairs:542-558`, `VisitScan:586-590`, `visitFactsOf:575` | 60-90 ms |
+| 4 | Allocate `visited` lazily in `checkCompatibility`: the default `mutableSetOf()` runs before the early returns, and `visited.add(valueType to useType)` hashes two structural `Table`s (`Table.hashCode`, `Union.hashCode`, `equals`: about 100 samples). Key it by identity, and allocate `CompatContext` once per pair. | `checkCompatibility:690,716`, `CompatContext:22` | 60-100 ms |
+| 5 | In `checkTableCompatibility`, test `isRequired && !isOptional(readType)` before `isWrittenToMember` (a pure PSI parent walk, evaluated for every missing member today), and stop rebuilding two merged maps per pair in `getMembers`. | `:1202-1225`, `LuaGraphType.kt:259-270`, `LuaMemberAssignmentSites.kt:37-42` | 40-70 ms |
+| 6 | `WriteWalk.collect`: 13 439 root walks, each flattening reachable writes into fresh sets. Cache a representative's `write` across revisions that did not touch its up-set, since pass 2 and 3 add no edge. | `LuaTypeNodes.kt:373-410` | 30-60 ms, low confidence |
+| 7 | `addError` scans `_errors` linearly for each of the file's 831 errors and every re-report; use a hash set of `(element, message)`. | `:352` | about 25 ms |
+| 8 | Return the next step of `DownwardStep` and `UpwardStep` through fields instead of a `Pair` per set entry (158 840 adds). | `:1554`, `:1578` | 20-30 ms |
+| 9 | Structural: a `(value, use)` pair is attempted from every variable that holds both, so 83 % of attempts are repeats. Examine each pair once, at one representative per path. It removes the work behind candidates 1, 2 and 3 together. It changes which variable examines a pair first, which is what BUG-112's `settleSeverities` exists to make irrelevant, so it needs its own differential over the corpus findings. | `checkNodePairs:542`, `runFixedPointPass:493` | not estimated; bounded by the first three |
+
+Candidates 1-8 together estimate 500-750 ms of 1 155 ms, which leaves 400-650 ms against the 250 ms target. The profile
+does not support reaching 250 ms with 1-8 alone; it needs 9. The visitor phase (86-113 ms warm, 314-329 ms on the
+second and third cold reads) and the dependency builds (about 11 % of a read, 100-220 ms) are the other parts of
+the read and are untouched by all nine.
+
+Not established: how the per-pass attempts split by representative (the counters are per graph), and whether
+the candidates' savings add, because each removes part of the same allocation and cache pressure.
