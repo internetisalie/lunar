@@ -2,6 +2,11 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **The `else` of a `type(x) == "table"` check no longer still holds arrays** (BUG-111). With
+  `---@param cmd string|string[]`, the `else` branch of `if type(cmd) == "table"` still treated `cmd`
+  as `string | string[]`, so `self.cmd = cmd` against a `string` field was reported as not assignable.
+  A table check now rules out every table-shaped member of the type: arrays, classes and table
+  literals as well as plain tables.
 - **A value's inferred type no longer depends on the order the code uses it in** (BUG-110). When a
   value was used in several ways — joined with `..` in one function, measured with `#` in another —
   its type came from whichever use the analysis happened to reach first. Moving an unrelated call

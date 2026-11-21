@@ -80,7 +80,22 @@ object LuaTypeAlgebra {
     fun subtractMember(
         union: LuaGraphType.Union,
         toRemove: LuaGraphType,
-    ): LuaGraphType = canonicalize(union.types.filterNot { it == toRemove })
+    ): LuaGraphType = canonicalize(union.types.filterNot { isCoveredBy(it, toRemove) })
+
+    /**
+     * Whether a value of type [member] is certainly one a guard on [guard] matches (BUG-111).
+     *
+     * `type(v) == "table"` holds for every table, however it is typed: a bare table, a class, an
+     * array. The guard carries only the bare table, so equality alone left `string[]` in the
+     * complement of `type(v) == "table"` and the `else` branch of a `string | string[]` parameter
+     * still read as an array.
+     */
+    fun isCoveredBy(
+        member: LuaGraphType,
+        guard: LuaGraphType,
+    ): Boolean =
+        member == guard ||
+            (guard is LuaGraphType.Table && (member is LuaGraphType.Table || member is LuaGraphType.Array))
 
     /**
      * Whether a field demanded as [type] may be absent: a missing field reads as `nil`, so a union with
