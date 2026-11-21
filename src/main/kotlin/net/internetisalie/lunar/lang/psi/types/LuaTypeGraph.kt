@@ -243,6 +243,7 @@ class LuaTypeGraph {
             from is ValueNode && to is UseNode -> {
                 // A direct value→use edge is the expression's own value meeting its own demand —
                 // `nil .. "x"` — so a Nil here is CERTAIN, not one reaching definition among many.
+                examining = from to to
                 checkCompatibility(
                     from.write,
                     to.read,
@@ -251,6 +252,7 @@ class LuaTypeGraph {
                     certain = true,
                     declaredDemand = to.declaredDemand,
                 )
+                examining = null
             }
         }
     }
@@ -282,6 +284,12 @@ class LuaTypeGraph {
     // ---------------------------------------------------------------------------
 
     private val _errors: MutableList<ElementError> = mutableListOf()
+
+    /** BUG-112: the declared-demand mismatches whose severity is settled once the graph is final. */
+    private val severityClaims = LuaSeverityClaims()
+
+    /** The `(value, use)` pair [checkCompatibility] is examining, so a mismatch can be claimed for it. */
+    private var examining: Pair<ValueNode, UseNode>? = null
     val errors: List<ElementError> get() = _errors.toList()
 
     internal fun addError(error: ElementError) {
@@ -348,6 +356,11 @@ class LuaTypeGraph {
         // the surrounding checks still perform.
         val tier =
             if (declaredDemand && !unknownProvenance) ErrorSeverity.ERROR else ErrorSeverity.HYPOTHESIS
+        // BUG-112: the visit's facts are one visit's, and a pair is examined once. The claim lets
+        // settleSeverities() decide against every variable that holds the pair.
+        examining?.let {
+            severityClaims.record(it, LuaSeverityClaims.Mismatch(anchor, message, inferredValueType), declaredDemand)
+        }
         addError(ElementError(anchor, message, tier, inferredValueType.takeIf { tier == ErrorSeverity.HYPOTHESIS }))
     }
 
@@ -393,8 +406,25 @@ class LuaTypeGraph {
                 }
                 changed = runFixedPointPass(checkedPairs)
             } while (changed)
+            settleSeverities()
         } finally {
             scanMarks = null
+        }
+    }
+
+    /**
+     * BUG-112: a mismatch is an ERROR only if every pair that yields it is against a declared demand
+     * and no variable holding the pair has an unknown write in its up-set (BUG-441), whichever of
+     * them examined the pair first. Only claimed diagnostics change, toward what the full set of
+     * facts says.
+     */
+    private fun settleSeverities() {
+        val variables = _nodes.asSequence().filterIsInstance<VariableElement>()
+        val verdicts = severityClaims.resolve(variables) { isUnknown(it.write) }
+        if (verdicts.isEmpty()) return
+        _errors.replaceAll { error ->
+            val verdict = verdicts[error.element to error.message] ?: return@replaceAll error
+            error.copy(severity = verdict.severity, inferredValueType = verdict.inferredValueType)
         }
     }
 
@@ -560,6 +590,8 @@ class LuaTypeGraph {
         facts: VisitFacts,
     ) {
         val firstNewError = _errors.size
+        val firstNewClaim = severityClaims.size
+        examining = pair.valueNode to pair.useNode
         checkCompatibility(
             pair.valueWrite,
             pair.useNode.read,
@@ -569,7 +601,8 @@ class LuaTypeGraph {
             declaredDemand = pair.useNode.declaredDemand,
             unknownProvenance = facts.unknownProvenance,
         )
-        replicateHubAnchoredErrors(pair, firstNewError)
+        examining = null
+        replicateHubAnchoredErrors(pair, firstNewError, firstNewClaim)
     }
 
     /**
@@ -583,6 +616,7 @@ class LuaTypeGraph {
     private fun replicateHubAnchoredErrors(
         pair: AdmittedPair,
         firstNewError: Int,
+        firstNewClaim: Int,
     ) {
         val replicas = memberDemandHubs.replicaAnchorsFor(pair.valueNode)
         if (replicas.isEmpty()) return
@@ -592,6 +626,7 @@ class LuaTypeGraph {
         for (error in anchoredAtHub) {
             for (site in replicas) addError(error.copy(element = site))
         }
+        for (site in replicas) severityClaims.replicate(firstNewClaim, hubElement, site)
     }
 
     private fun checkCompatibility(

@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **Whether a type mismatch is reported no longer depends on the order variables were declared in**
+  (BUG-112). A value that reaches a call through two variables, one of which may also hold something
+  the analysis cannot model, was reported as a certain error or quietly dropped depending on which
+  variable came first in the file. It is now treated as uncertain either way.
 - **The `else` of a `type(x) == "table"` check no longer still holds arrays** (BUG-111). With
   `---@param cmd string|string[]`, the `else` branch of `if type(cmd) == "table"` still treated `cmd`
   as `string | string[]`, so `self.cmd = cmd` against a `string` field was reported as not assignable.
