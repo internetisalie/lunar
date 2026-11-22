@@ -23,7 +23,7 @@ class LuaFileElementType : IStubFileElementType<LuaFileStub>("Lua", LuaLanguage)
     // TYPE-14: LuaCATS type arguments parse as full types, so hoisted type text changes. Bumped to force a rebuild.
     // TYPE-14 Phase 5: a class is keyed by its head name, and func/class stubs carry type parameters. Bumped to force a rebuild.
     // BUG-109: a LuaCATS type takes every `[]` suffix, so hoisted type text changes. Bumped to force a rebuild.
-    override fun getStubVersion(): Int = 11
+    override fun getStubVersion(): Int = 12
 
     override fun getBuilder(): StubBuilder {
         return object : com.intellij.psi.stubs.DefaultStubBuilder() {

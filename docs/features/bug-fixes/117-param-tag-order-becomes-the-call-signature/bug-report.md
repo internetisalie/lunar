@@ -3,7 +3,7 @@ id: "BUG-117"
 title: "A method's call signature lists its parameters in @param tag order, so arguments bind to the wrong parameter"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -58,6 +58,15 @@ Control: put the tags in signature order (`name`, `task`, `opts`) and the `TO` r
 ## Fix Strategy
 Order the member's parameters by the declaration's parameter list (its AST names), looking each
 tag up by name, and keep a tag with no matching parameter by position as before. Keep `declaredSignature` as is.
+
+## Fix
+`LuaCatsDeclarations.params(comment, parameterNames)` orders the tags by the declaration's own parameter list
+(`LuaPsiImplUtil.getParameters`, `...` included), matching each tag to its parameter by name. The AST-backed
+`declaredSignatureOf` path and both func stub element types (`LuaFuncStubElementType`, `LuaLocalFuncStubElementType`)
+call it, so a stub-backed member reads the same order without loading the AST; the stub version is bumped. A tag
+naming no parameter takes the position of the parameter at its own index, as the graph side binds it; tags still
+unplaced follow in tag order. `LuaParamTagOrderTest` pins the binding with differently typed parameters, because
+the lazy `TO` row does not surface on this main.
 
 ## Test Strategy
 `LuaParamTagOrderTest`: the fixture above gives no `is not assignable` row; a call with swapped argument types

@@ -25,7 +25,9 @@ class LuaLocalFuncStubElementType(
         // MAINT-34-03: one extractor, not a copy. This block and its twin in the sibling
         // *FuncStubElementType were byte-identical, and funcTypeFromStub held a third.
         val returnType = catsComment?.let { LuaCatsDeclarations.returnTypeName(it) }
-        val params = catsComment?.let { LuaCatsDeclarations.params(it) } ?: emptyList()
+        val params =
+            catsComment?.let { LuaCatsDeclarations.params(it, LuaPsiImplUtil.getParameters(psi.parList)) }
+                ?: emptyList()
         val generics = catsComment?.let { LuaCatsDeclarations.genericParameters(it) }.orEmpty()
 
         return LuaLocalFuncStubImpl(parentStub, name, returnType, params, generics)

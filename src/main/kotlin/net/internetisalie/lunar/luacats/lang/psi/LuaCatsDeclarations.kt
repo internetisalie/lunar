@@ -135,6 +135,27 @@ object LuaCatsDeclarations {
             .toList()
 
     /**
+     * [params] in the order of the function's own [parameterNames] (BUG-117). A call's arguments meet
+     * parameters by position and a tag binds to its parameter by name, so the order the tags were written
+     * in is no signature. A tag naming no parameter takes the position of the parameter at its own index,
+     * as the type graph binds it; tags still unplaced (`...`, stray names) follow in tag order.
+     */
+    fun params(
+        comment: LuaCatsComment,
+        parameterNames: List<String>,
+    ): List<ParamDecl> {
+        val tags = params(comment)
+        if (tags.size < 2) return tags
+        val byName = tags.associateBy { it.name }
+        val stray = tags.filter { it.name !in parameterNames }
+        val placed =
+            parameterNames.mapIndexedNotNull { index, name ->
+                byName[name] ?: tags.getOrNull(index)?.takeIf { it in stray }
+            }
+        return placed + stray.filterNot { it in placed }
+    }
+
+    /**
      * The first declared `@return`'s type string, or null.
      *
      * Only the first: the nominal layer models a single return (`LuaFunctionType.returnType`).

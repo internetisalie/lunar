@@ -27,6 +27,7 @@ import net.internetisalie.lunar.lang.path.resolveModuleCandidates
 import net.internetisalie.lunar.lang.psi.LuaFile
 import net.internetisalie.lunar.lang.psi.LuaFuncDecl
 import net.internetisalie.lunar.lang.psi.LuaLocalVarDecl
+import net.internetisalie.lunar.lang.psi.LuaPsiImplUtil
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsClassTag
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsComment
 import net.internetisalie.lunar.luacats.lang.psi.LuaCatsDeclarations
@@ -710,7 +711,7 @@ class LuaTypeManagerImpl(
                 .getCatsComment(decl)
                 ?: return DeclaredSignature(emptyList(), null, emptyList())
         return DeclaredSignature(
-            LuaCatsDeclarations.params(cats),
+            LuaCatsDeclarations.params(cats, LuaPsiImplUtil.getParameters(decl.parList)),
             LuaCatsDeclarations.returnTypeName(cats),
             LuaCatsDeclarations.genericParameters(cats),
         )
