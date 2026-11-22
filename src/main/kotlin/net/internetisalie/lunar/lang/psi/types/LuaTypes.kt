@@ -128,6 +128,12 @@ class LuaTypesSnapshot(
     internal fun scanMarksRetained(): Boolean = graph.scanMarksRetained()
 
     @org.jetbrains.annotations.TestOnly
+    internal fun reportedPairCount(): Long = graph.reportedPairCount()
+
+    @org.jetbrains.annotations.TestOnly
+    internal fun closureDigest(): String = graph.closureDigest()
+
+    @org.jetbrains.annotations.TestOnly
     internal fun mappedElements(): Set<PsiElement> = elementNodes.keys
 
     @org.jetbrains.annotations.TestOnly

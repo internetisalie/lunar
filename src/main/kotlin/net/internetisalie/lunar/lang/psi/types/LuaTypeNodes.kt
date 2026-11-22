@@ -93,6 +93,20 @@ interface VariableNode :
 // Concrete implementations — internal to the inference engine
 // ---------------------------------------------------------------------------
 
+/**
+ * BUG-114: where [node] sits in its graph's creation order, which is the order the visitor walked the
+ * code in, and so a property of the program. Nothing else about a node's place is: set insertion order
+ * and cluster representatives follow the order the pairs were checked in.
+ */
+internal fun creationOrder(node: TypeNode): Int =
+    when (node) {
+        is ValueElement -> node.order
+        is LazyValueElement -> node.order
+        is UseElement -> node.order
+        is VariableElement -> node.order
+        else -> -1
+    }
+
 /** BUG-97: a variable's cluster representative; any other node stands for itself. */
 internal fun canonical(node: TypeNode): TypeNode = (node as? VariableElement)?.rep() ?: node
 
@@ -101,6 +115,7 @@ internal class ValueElement(
     override val element: PsiElement,
     override val write: LuaGraphType,
     override val declaredOrigin: Boolean = false,
+    internal val order: Int = 0,
 ) : ValueNode
 
 /**
@@ -112,6 +127,7 @@ internal class ValueElement(
 internal class LazyValueElement(
     override val element: PsiElement,
     private val compute: (MutableSet<VariableNode>) -> LuaGraphType,
+    internal val order: Int = 0,
 ) : ValueNode {
     override val write: LuaGraphType get() = compute(mutableSetOf())
 

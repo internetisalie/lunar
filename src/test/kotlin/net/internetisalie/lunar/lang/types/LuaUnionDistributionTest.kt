@@ -74,6 +74,7 @@ class LuaUnionDistributionTest : BasePlatformTestCase() {
         use: LuaGraphType,
     ): List<String> {
         graph.addEdge(graph.value(anchor, value), graph.use(anchor, use))
+        graph.checkTypes()
         return graph.errors.map { it.message }
     }
 

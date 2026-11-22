@@ -17,12 +17,8 @@ HYPOTHESIS|Too many arguments: expected at most 0, got 2|(143,152)|LuaFuncCallIm
 HYPOTHESIS|Too many arguments: expected at most 0, got 2|(144,146)|LuaMethodExprImpl
 HYPOTHESIS|Too many arguments: expected at most 1, got 2|(143,152)|LuaFuncCallImpl
 HYPOTHESIS|Too many arguments: expected at most 1, got 2|(144,146)|LuaMethodExprImpl
-HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(137,139)|LuaMethodExprImpl
-HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(144,146)|LuaMethodExprImpl
-HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(153,158)|LuaFuncCallImpl
-HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(154,156)|LuaMethodExprImpl
-HYPOTHESIS|fun() | fun(a) is not assignable to fun()|(38,40)|LuaFuncNameMethodImpl
 HYPOTHESIS|fun() | fun(a) | fun() | fun(a, b) is not assignable to fun()|(137,139)|LuaMethodExprImpl
+HYPOTHESIS|fun() | fun(a) | fun() | fun(a, b) is not assignable to fun()|(144,146)|LuaMethodExprImpl
 HYPOTHESIS|fun() | fun(a) | fun() | fun(a, b) is not assignable to fun()|(153,158)|LuaFuncCallImpl
 HYPOTHESIS|fun() | fun(a) | fun() | fun(a, b) is not assignable to fun()|(154,156)|LuaMethodExprImpl
 HYPOTHESIS|fun() | fun(a) | fun() | fun(a, b) is not assignable to fun()|(38,40)|LuaFuncNameMethodImpl

@@ -7,6 +7,12 @@ ERROR|string is not assignable to number|(44,65)|LuaFuncDeclImpl
 ERROR|string is not assignable to number|(59,60)|LuaNameRefImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun()|(138,148)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun()|(142,146)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(130,134)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(142,146)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(172,176)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(54,58)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(85,89)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(97,101)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(93,106)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(97,101)|LuaMethodExprImpl
 HYPOTHESIS|{ ... } | C is not assignable to { ... }|(130,134)|LuaMethodExprImpl

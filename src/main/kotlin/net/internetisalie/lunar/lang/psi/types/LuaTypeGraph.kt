@@ -77,6 +77,7 @@ class LuaTypeGraph {
     private var edgeAdds = 0L
     private var pairAttempts = 0L
     private var scanComparisons = 0L
+    private var reportedPairs = 0L
 
     /** MAINT-61: each variable's set sizes at its last visit, only while [checkTypes] runs. */
     private var scanMarks: java.util.IdentityHashMap<VariableElement, PairScanMark>? = null
@@ -142,7 +143,7 @@ class LuaTypeGraph {
         type: LuaGraphType,
         declaredOrigin: Boolean = false,
     ): ValueNode {
-        val node = ValueElement(element, type, declaredOrigin)
+        val node = ValueElement(element, type, declaredOrigin, _nodes.size)
         _nodes += node
         bumpRevision()
         return node
@@ -163,7 +164,7 @@ class LuaTypeGraph {
         element: PsiElement,
         compute: (MutableSet<VariableNode>) -> LuaGraphType,
     ): ValueNode {
-        val node = LazyValueElement(element, compute)
+        val node = LazyValueElement(element, compute, _nodes.size)
         _nodes += node
         bumpRevision()
         return node
@@ -262,21 +263,21 @@ class LuaTypeGraph {
             }
             to is VariableElement -> propagateDownward(from, to)
             from is VariableElement -> propagateUpward(from, to)
-            from is ValueNode && to is UseNode -> {
-                // A direct value→use edge is the expression's own value meeting its own demand —
-                // `nil .. "x"` — so a Nil here is CERTAIN, not one reaching definition among many.
-                examining = from to to
-                checkCompatibility(
-                    from.write,
-                    to.read,
-                    from.element,
-                    to.element,
-                    certain = true,
-                    declaredDemand = to.declaredDemand,
-                )
-                examining = null
-            }
+            from is ValueNode && to is UseNode -> if (phase == CheckPhase.WIRE) wireDirectPair(from, to)
         }
+    }
+
+    /**
+     * A direct value→use edge is the expression's own value meeting its own demand — `nil .. "x"` —
+     * so a Nil here is CERTAIN, not one reaching definition among many. Its wiring happens now; the
+     * pair is kept for [reportFindings], which judges it against the final graph (BUG-114).
+     */
+    private fun wireDirectPair(
+        from: ValueNode,
+        to: UseNode,
+    ) {
+        directPairs += from to to
+        checkCompatibility(from.write, to.read, from.element, to.element)
     }
 
     /**
@@ -339,7 +340,21 @@ class LuaTypeGraph {
     private val severityClaims = LuaSeverityClaims()
 
     /** The `(value, use)` pair [checkCompatibility] is examining, so a mismatch can be claimed for it. */
-    private var examining: Pair<ValueNode, UseNode>? = null
+    private var examiningValue: ValueNode? = null
+    private var examiningUse: UseNode? = null
+
+    /**
+     * BUG-114: what [checkCompatibility] does. [CheckPhase.WIRE] adds the edges a pair implies and
+     * reports nothing; [CheckPhase.REPORT] reports what the final graph says and adds no edge.
+     */
+    private enum class CheckPhase { WIRE, REPORT }
+
+    private var phase = CheckPhase.WIRE
+
+    private var certainty: LuaPairCertainty? = null
+
+    /** The value→use edges [addEdge] met, for [reportFindings]: they sit in no variable's sets. */
+    private val directPairs = mutableListOf<Pair<ValueNode, UseNode>>()
     val errors: List<ElementError> get() = _errors.toList()
 
     internal fun addError(error: ElementError) {
@@ -384,7 +399,6 @@ class LuaTypeGraph {
         message: String,
         declaredDemand: Boolean = false,
         inferredValueType: String? = null,
-        unknownProvenance: Boolean = false,
     ) {
         val anchor =
             when {
@@ -397,19 +411,18 @@ class LuaTypeGraph {
         // wrote. Against a demand the engine synthesized from usage, both sides are its own
         // inferences and the conflict is evidence the model is incomplete — measured at 7 430 of
         // 7 433 emissions across four corpus members.
-        // BUG-441: criterion 1 of the same rule — *unknown-free provenance*. A declared demand
-        // licenses the engine to speak only about a value it can actually account for. When a
-        // sibling reaching definition is unknown (`local d = wx.thing; if c then d = "s" end`), the
-        // string write is real but it is not the whole story, and reporting it as an ERROR asserts
-        // more than the model knows. Downgraded rather than dropped: BUG-416 requires that
-        // suppression never ENABLE anything, and returning here would skip the member-edge wiring
-        // the surrounding checks still perform.
+        // BUG-441: criterion 1 of the same rule — *unknown-free provenance*: a declared demand licenses
+        // the engine to speak only about a value it can account for, so a pair held by a variable with
+        // an unknown sibling write is a hypothesis. That is a fact about every holder of the pair, and
+        // settleSeverities() applies it to the claim recorded below.
         val tier =
-            if (declaredDemand && !unknownProvenance) ErrorSeverity.ERROR else ErrorSeverity.HYPOTHESIS
-        // BUG-112: the visit's facts are one visit's, and a pair is examined once. The claim lets
-        // settleSeverities() decide against every variable that holds the pair.
-        examining?.let {
-            severityClaims.record(it, LuaSeverityClaims.Mismatch(anchor, message, inferredValueType), declaredDemand)
+            if (declaredDemand) ErrorSeverity.ERROR else ErrorSeverity.HYPOTHESIS
+        // BUG-112: the claim lets settleSeverities() decide against every variable that holds the pair.
+        val value = examiningValue
+        val use = examiningUse
+        if (value != null && use != null) {
+            val mismatch = LuaSeverityClaims.Mismatch(anchor, message, inferredValueType)
+            severityClaims.record(value to use, mismatch, declaredDemand)
         }
         addError(ElementError(anchor, message, tier, inferredValueType.takeIf { tier == ErrorSeverity.HYPOTHESIS }))
     }
@@ -428,40 +441,132 @@ class LuaTypeGraph {
         timeLimitMs: Long = 5000,
     ) {
         val checkedPairs = LuaCheckedPairs()
-        var changed = false
-        var iterations = 0
-        val startTime = System.currentTimeMillis()
+        val budget = CheckBudget(maxIterations, timeLimitMs)
 
         // Dropped, not cleared, in the finally: a cached snapshot keeps this graph, and a cleared
         // IdentityHashMap keeps its table at its peak size (MAINT-61 design §5).
         scanMarks = java.util.IdentityHashMap()
         scanLogs = java.util.IdentityHashMap()
         try {
-            do {
-                iterations++
-                // Clear the compatibility memo each fixed-point iteration (not just once per run):
-                // addEdge grows up/down sets between iterations, so a (value, use) result cached in an
-                // earlier iteration can become stale and leak a false negative. Per-iteration clearing
-                // keeps the within-pass cache benefit while guaranteeing soundness (TYPE-09-P2-05;
-                // perf headroom confirmed by the P0 spike).
-                compatMemo.clear()
-                if (iterations > maxIterations) {
-                    log.warn(
-                        "Type checking exceeded max iterations ($maxIterations). Potential infinite loop detected.",
-                    )
-                    break
-                }
-                if (System.currentTimeMillis() - startTime > timeLimitMs) {
-                    log.warn("Type checking exceeded time limit (${timeLimitMs}ms). Potential performance bottleneck.")
-                    break
-                }
-                changed = runFixedPointPass(checkedPairs)
-            } while (changed)
+            runFixedPoint(checkedPairs, budget)
+            reportFindings(checkedPairs)
             settleSeverities()
         } finally {
             scanMarks = null
             scanLogs = null
         }
+    }
+
+    /** The fixed point's safety cutoffs and how much of them one [checkTypes] run has used. */
+    private class CheckBudget(
+        val maxIterations: Int,
+        val timeLimitMs: Long,
+    ) {
+        var iterations = 0
+        val startTime = System.currentTimeMillis()
+    }
+
+    /**
+     * Passes over the variables until one adds neither an edge nor a pair.
+     *
+     * A cutoff stops it early, and [reportFindings] then judges the graph as it stands.
+     */
+    private fun runFixedPoint(
+        checkedPairs: LuaCheckedPairs,
+        budget: CheckBudget,
+    ) {
+        do {
+            budget.iterations++
+            // Clear the compatibility memo each fixed-point iteration (not just once per run):
+            // addEdge grows up/down sets between iterations, so a (value, use) result cached in an
+            // earlier iteration can become stale and leak a false negative. Per-iteration clearing
+            // keeps the within-pass cache benefit while guaranteeing soundness (TYPE-09-P2-05;
+            // perf headroom confirmed by the P0 spike).
+            compatMemo.clear()
+            if (budget.iterations > budget.maxIterations) {
+                log.warn(
+                    "Type checking exceeded max iterations (${budget.maxIterations}). Potential infinite loop detected.",
+                )
+                return
+            }
+            if (System.currentTimeMillis() - budget.startTime > budget.timeLimitMs) {
+                log.warn(
+                    "Type checking exceeded time limit (${budget.timeLimitMs}ms). Potential performance bottleneck.",
+                )
+                return
+            }
+        } while (runFixedPointPass(checkedPairs))
+    }
+
+    /**
+     * BUG-114: the findings of the final graph. The fixed point only wires; every admitted
+     * `(value, use)` pair is judged here, against the closure and the `write`/`read` it ended with,
+     * so a finding does not depend on the order the pairs were checked in. A fixed point that stopped
+     * at its limit is judged as it stands.
+     *
+     * Pairs run in creation order, so which pair a finding is first attributed to is a property of the
+     * graph. [LuaPairCertainty] answers the one fact that depended on the visit.
+     */
+    private fun reportFindings(checkedPairs: LuaCheckedPairs) {
+        phase = CheckPhase.REPORT
+        compatMemo.clear()
+        certainty = LuaPairCertainty(_nodes)
+        val lazyWrites = java.util.IdentityHashMap<ValueNode, LuaGraphType>()
+        var readOf: UseNode? = null
+        var read: LuaGraphType = LuaGraphType.Any
+        try {
+            checkedPairs.forEachInCreationOrder(_nodes) { value, use ->
+                val write = if (value is LazyValueElement) lazyWrites.getOrPut(value) { value.write } else value.write
+                if (use !== readOf) {
+                    readOf = use
+                    read = use.read
+                }
+                reportPair(AdmittedPair(value, use, write, read))
+            }
+            for ((value, use) in directPairs) reportDirectPair(value, use)
+            warmWriteMemos()
+        } finally {
+            phase = CheckPhase.WIRE
+            certainty = null
+            compatMemo.clear()
+        }
+    }
+
+    /**
+     * Resolves the `write` of every value that reaches a variable, as each visit's facts did before
+     * [reportFindings] (BUG-114): a later cross-file call-site resolution finds these walks memoized,
+     * and fan-out stays one root resolution per site (NAV-13-06, MAINT-61 risks Gap 2.4).
+     */
+    private fun warmWriteMemos() {
+        for (node in _nodes) {
+            if (node !is VariableElement || !node.isRep) continue
+            for (entry in node.upSet) if (entry is ValueNode) entry.write
+        }
+    }
+
+    private fun reportDirectPair(
+        value: ValueNode,
+        use: UseNode,
+    ) {
+        examiningValue = value
+        examiningUse = use
+        checkCompatibility(
+            value.write,
+            use.read,
+            value.element,
+            use.element,
+            certain = true,
+            declaredDemand = use.declaredDemand,
+        )
+        examiningValue = null
+        examiningUse = null
+    }
+
+    /** Whether the Nil of the pair being reported is the only definition its holder has (BUG-416). */
+    private fun examiningPairIsCertain(): Boolean {
+        val value = examiningValue ?: return false
+        val use = examiningUse ?: return false
+        return certainty?.isCertain(value, use) ?: false
     }
 
     /**
@@ -499,7 +604,8 @@ class LuaTypeGraph {
     private fun runFixedPointPass(checkedPairs: LuaCheckedPairs): Boolean {
         val initialCheckedCount = checkedPairs.size
         val initialEdgeCount = edgeAdds
-        for (node in _nodes.toList()) {
+        val schedule = if (scheduleReversed) _nodes.asReversed().toList() else _nodes.toList()
+        for (node in schedule) {
             if (node is VariableElement && node.isRep) checkNodePairs(node, checkedPairs)
         }
         return edgeAdds > initialEdgeCount || checkedPairs.size > initialCheckedCount
@@ -563,37 +669,11 @@ class LuaTypeGraph {
         if (LuaTypePairScanDifferential.enabled) verifyScan(upSnapshot, downSnapshot, checkedPairs)
     }
 
-    /**
-     * The facts of one visit, over its up-set snapshot.
-     *
-     * BUG-416: a value reaching a use through a variable is one REACHING DEFINITION. With several of
-     * them, a Nil among the writes is optionality — the branch that did not run — and flagging it
-     * produced 959 false positives on one corpus member. With exactly one, the variable can hold
-     * nothing else, and a Nil is certain (`local nothing = nil; count(nothing)` stays an error).
-     *
-     * BUG-441 (RC-2): each reaching definition is checked against the demand ON ITS OWN — the
-     * variable's merged type is never the thing being checked, which is why every "make the union
-     * gradual" design aimed at the type algebra failed. Unknown-ness is therefore a property of the
-     * upSet as a whole and can only be computed per visit: the string write in
-     * `local d = wx.thing; if c then d = "s" end` is itself perfectly known, and what makes it
-     * unreportable is a SIBLING.
-     */
-    private fun visitFactsOf(upSnapshot: List<TypeNode>): VisitFacts =
-        VisitFacts(
-            certain = upSnapshot.count { it is ValueNode && !it.declaredOrigin } == 1,
-            unknownProvenance = upSnapshot.any { it is ValueNode && isUnknown(it.write) },
-        )
-
-    /**
-     * One visit's scan state (MAINT-61 design §3.1). [facts] is computed at the visit's start, as
-     * before MAINT-61: computing it lazily moved `write` root resolutions from the build onto later
-     * cross-file call-site resolution (NAV-13-06; MAINT-61 risks Gap 2.4).
-     */
+    /** One visit's scan state (MAINT-61 design §3.1). */
     private inner class VisitScan(
         private val upSnapshot: List<TypeNode>,
         private val checkedPairs: LuaCheckedPairs,
     ) {
-        private val facts = visitFactsOf(upSnapshot)
         private val writes = arrayOfNulls<LuaGraphType>(upSnapshot.size)
 
         fun scanUse(
@@ -611,7 +691,7 @@ class LuaTypeGraph {
                 if (LuaTypePairWriteDifferential.enabled) {
                     LuaTypePairWriteDifferential.compare(valueWrite, valueNode.write)
                 }
-                checkAdmittedPair(AdmittedPair(valueNode, useNode, valueWrite), facts)
+                wirePair(AdmittedPair(valueNode, useNode, valueWrite, useNode.read))
             }
         }
     }
@@ -632,36 +712,35 @@ class LuaTypeGraph {
         }
     }
 
-    /** The per-visit flags [checkNodePairs] computes over the visited node's up-set. */
-    private class VisitFacts(
-        val certain: Boolean,
-        val unknownProvenance: Boolean,
-    )
-
     /** One `(reaching definition, use)` pair [checkNodePairs] admitted, with its hoisted `write`. */
     private class AdmittedPair(
         val valueNode: ValueNode,
         val useNode: UseNode,
         val valueWrite: LuaGraphType,
+        val useRead: LuaGraphType,
     )
 
-    private fun checkAdmittedPair(
-        pair: AdmittedPair,
-        facts: VisitFacts,
-    ) {
+    /** BUG-114: a pair's wiring, at the state the graph is in now. It reports nothing. */
+    private fun wirePair(pair: AdmittedPair) {
+        checkCompatibility(pair.valueWrite, pair.useRead, pair.valueNode.element, pair.useNode.element)
+    }
+
+    /** BUG-114: what the graph, now final, says of a pair: the mismatch it holds, if any. */
+    private fun reportPair(pair: AdmittedPair) {
+        reportedPairs++
         val firstNewError = _errors.size
         val firstNewClaim = severityClaims.size
-        examining = pair.valueNode to pair.useNode
+        examiningValue = pair.valueNode
+        examiningUse = pair.useNode
         checkCompatibility(
             pair.valueWrite,
-            pair.useNode.read,
+            pair.useRead,
             pair.valueNode.element,
             pair.useNode.element,
-            certain = facts.certain,
             declaredDemand = pair.useNode.declaredDemand,
-            unknownProvenance = facts.unknownProvenance,
         )
-        examining = null
+        examiningValue = null
+        examiningUse = null
         replicateHubAnchoredErrors(pair, firstNewError, firstNewClaim)
     }
 
@@ -697,13 +776,14 @@ class LuaTypeGraph {
         visited: MutableSet<Pair<LuaGraphType, LuaGraphType>> = mutableSetOf(),
         certain: Boolean = false,
         declaredDemand: Boolean = false,
-        unknownProvenance: Boolean = false,
     ) {
         if (valueType == LuaGraphType.Any || useType == LuaGraphType.Any) return
         if (valueType == LuaGraphType.Undefined || useType == LuaGraphType.Undefined) return
         if (valueType == useType) return
         if (valueType is LuaGraphType.Generic || useType is LuaGraphType.Generic) {
-            if (valueType is LuaGraphType.Generic) reportUndefinedFields(valueType, useType, useElement)
+            if (valueType is LuaGraphType.Generic && phase == CheckPhase.REPORT) {
+                reportUndefinedFields(valueType, useType, useElement)
+            }
             LuaTypeAlgebra.genericStep(valueType, useType)?.let { (boundValue, boundUse) ->
                 checkCompatibility(
                     boundValue,
@@ -713,7 +793,6 @@ class LuaTypeGraph {
                     visited,
                     certain,
                     declaredDemand,
-                    unknownProvenance,
                 )
             }
             return
@@ -744,14 +823,15 @@ class LuaTypeGraph {
                 informative.isNotEmpty() &&
                 !informative.all { isCompatible(it, useType, CompatContext()) }
             ) {
-                reportIncompatible(
-                    useElement,
-                    valueElement,
-                    "${valueType.displayName()} is not assignable to ${useType.displayName()}",
-                    declaredDemand,
-                    valueType.displayName(),
-                    unknownProvenance,
-                )
+                if (phase == CheckPhase.REPORT) {
+                    reportIncompatible(
+                        useElement,
+                        valueElement,
+                        "${valueType.displayName()} is not assignable to ${useType.displayName()}",
+                        declaredDemand,
+                        valueType.displayName(),
+                    )
+                }
                 return
             }
             // Forgiving a nil arm must not ENABLE anything: this pair used to error-and-return, and
@@ -777,7 +857,6 @@ class LuaTypeGraph {
                         visited,
                         certain,
                         declaredDemand,
-                        unknownProvenance,
                     )
                 }
             }
@@ -788,14 +867,13 @@ class LuaTypeGraph {
         // sole reaching definition is nil. Checked before the union-demand branch so that a union demand
         // forgives an uncertain nil exactly as a single type does (MAINT-51).
         if (valueType == LuaGraphType.Nil && !isCompatible(LuaGraphType.Nil, useType, CompatContext())) {
-            if (certain) {
+            if (certain || (phase == CheckPhase.REPORT && examiningPairIsCertain())) {
                 reportIncompatible(
                     useElement,
                     valueElement,
                     "nil value is not assignable to ${useType.displayName()}",
                     declaredDemand,
                     valueType.displayName(),
-                    unknownProvenance,
                 )
             }
             return
@@ -825,7 +903,6 @@ class LuaTypeGraph {
                                 visited,
                                 certain,
                                 declaredDemand,
-                                unknownProvenance,
                             )
                         }
                     }
@@ -833,6 +910,7 @@ class LuaTypeGraph {
                 return
             }
 
+            if (phase != CheckPhase.REPORT) return
             val closest = LuaUnionDiagnostics.closestMatch(valueType, useType.types)
             val message =
                 if (closest != null) {
@@ -846,7 +924,6 @@ class LuaTypeGraph {
                 message,
                 declaredDemand,
                 valueType.displayName(),
-                unknownProvenance,
             )
             return
         }
@@ -894,14 +971,15 @@ class LuaTypeGraph {
             return
         }
 
-        reportIncompatible(
-            useElement,
-            valueElement,
-            "${valueType.displayName()} is not assignable to ${useType.displayName()}",
-            declaredDemand,
-            valueType.displayName(),
-            unknownProvenance,
-        )
+        if (phase == CheckPhase.REPORT) {
+            reportIncompatible(
+                useElement,
+                valueElement,
+                "${valueType.displayName()} is not assignable to ${useType.displayName()}",
+                declaredDemand,
+                valueType.displayName(),
+            )
+        }
     }
 
     private fun isCompatible(
@@ -1077,8 +1155,17 @@ class LuaTypeGraph {
         useElement: PsiElement,
         visited: MutableSet<Pair<LuaGraphType, LuaGraphType>>,
     ) {
-        reportArity(value, use, useElement)
+        if (phase == CheckPhase.REPORT) {
+            reportArity(value, use, useElement)
+        } else {
+            wireFunction(value, use)
+        }
+    }
 
+    private fun wireFunction(
+        value: LuaGraphType.Function,
+        use: LuaGraphType.Function,
+    ) {
         for (i in 0 until minOf(value.returns.size, use.returns.size)) {
             addEdge(value.returns[i], use.returns[i])
         }
@@ -1213,9 +1300,11 @@ class LuaTypeGraph {
                 // Bi-directional flow for mutable table fields (invariance)
                 // This prevents unsound covariant widening of mutable properties.
                 // TYPE-12: a later colon-call site is wired through its hub, never directly.
-                val target = memberDemandHubs.wiringTargetFor(useNode)
-                addEdge(valueNode, target)
-                addEdge(target, valueNode)
+                if (phase == CheckPhase.WIRE) {
+                    val target = memberDemandHubs.wiringTargetFor(useNode)
+                    addEdge(valueNode, target)
+                    addEdge(target, valueNode)
+                }
             } else {
                 val readType = useNode.read
                 val writeType = useNode.write
@@ -1230,7 +1319,7 @@ class LuaTypeGraph {
                 // If the field is missing, it's only an error if it's required (non-optional).
                 // BUG-75: a table literal written to a member is not a construction of the member's class.
                 val constructs = !LuaMemberAssignmentSites.isWrittenToMember(valueElement)
-                if (!LuaTypeAlgebra.isOptional(readType) && isRequired && constructs) {
+                if (phase == CheckPhase.REPORT && !LuaTypeAlgebra.isOptional(readType) && isRequired && constructs) {
                     addError(ElementError(valueElement, "Missing required field '$key'", ErrorSeverity.ERROR))
                 }
             }
@@ -1360,7 +1449,43 @@ class LuaTypeGraph {
     @org.jetbrains.annotations.TestOnly
     internal fun scanMarksRetained(): Boolean = scanMarks != null
 
+    @org.jetbrains.annotations.TestOnly
+    internal fun reportedPairCount(): Long = reportedPairs
+
+    /**
+     * BUG-114: the closure as a relation, independent of which cluster member is a representative, of
+     * how variables were clustered and of the order the sets were filled in: the distinct
+     * `(source, target)` pairs of creation positions the sets hold, cluster-expanded and sorted.
+     */
+    @org.jetbrains.annotations.TestOnly
+    internal fun closureDigest(): String {
+        val packed = ArrayList<Long>()
+        for (node in _nodes) {
+            if (node !is VariableElement || !node.isRep) continue
+            val members = node.clusterMembers().map { creationOrder(it) }
+            for (up in expandedOrders(node.upSet)) members.forEach { packed += (up.toLong() shl 32) or it.toLong() }
+            for (down in expandedOrders(
+                node.downSet,
+            )) {
+                members.forEach { packed += (it.toLong() shl 32) or down.toLong() }
+            }
+        }
+        val edges = packed.sorted().distinct()
+        return "${edges.size}/${edges.fold(0L) { digest, edge -> digest * 1_000_003L + edge }}"
+    }
+
+    private fun expandedOrders(set: OrderedSet<TypeNode>): List<Int> =
+        set
+            .flatMap { if (it is VariableElement) it.clusterMembers() else listOf(it) }
+            .map { creationOrder(it) }
+            .sorted()
+
     internal companion object {
+        /** BUG-114: a test-only schedule, the fixed point visiting variables last-created first. */
+        @org.jetbrains.annotations.TestOnly
+        @Volatile
+        internal var scheduleReversed: Boolean = false
+
         /** Distribution-nesting cutoff (TYPE-09-P2-04); assume-compatible beyond it (TYPE-DR-04). */
         internal const val MAX_DISTRIBUTION_DEPTH = 10
 

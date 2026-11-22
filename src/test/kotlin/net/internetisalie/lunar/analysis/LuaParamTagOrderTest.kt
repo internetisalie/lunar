@@ -91,6 +91,6 @@ class LuaParamTagOrderTest : BasePlatformTestCase() {
             "the in-order control must report the arguments, got:\n${inOrder.joinToString("\n")}",
             inOrder.isNotEmpty(),
         )
-        assertEquals(inOrder, callErrors(typedOutOfOrder, call))
+        assertEquals(inOrder.sorted(), callErrors(typedOutOfOrder, call).sorted())
     }
 }

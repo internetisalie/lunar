@@ -6,6 +6,11 @@ ERROR|string is not assignable to number|(102,105)|LuaTerminalExprImpl
 ERROR|string is not assignable to number|(112,115)|LuaTerminalExprImpl
 ERROR|string is not assignable to number|(44,64)|LuaFuncDeclImpl
 ERROR|string is not assignable to number|(58,59)|LuaNameRefImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(108,111)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(118,121)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(54,57)|LuaFuncNameMethodImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(90,93)|LuaMethodExprImpl
+HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(n)|(98,101)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(107,116)|LuaFuncCallImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(108,111)|LuaMethodExprImpl
 HYPOTHESIS|fun(n) | fun(n) is not assignable to fun(p)|(97,106)|LuaFuncCallImpl

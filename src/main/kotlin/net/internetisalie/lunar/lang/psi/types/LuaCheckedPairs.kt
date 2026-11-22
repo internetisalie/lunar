@@ -19,6 +19,32 @@ internal class LuaCheckedPairs {
     /** The values already paired with [useNode], for an inner loop over one use. */
     fun forUse(useNode: UseNode): ExaminedValues = ExaminedValues(valuesByUse.getOrPut(useNode) { identitySet() })
 
+    /**
+     * Every admitted pair, uses and then their values in creation order ([creationOrder]), which is
+     * also a node's index in [nodes]. The order the pairs were admitted in follows the checker's
+     * schedule, and a caller that reports from them must not.
+     */
+    fun forEachInCreationOrder(
+        nodes: List<TypeNode>,
+        action: (ValueNode, UseNode) -> Unit,
+    ) {
+        val uses =
+            valuesByUse.keys
+                .filterIsInstance<UseNode>()
+                .map { creationOrder(it) }
+                .toIntArray()
+        uses.sort()
+        for (usePosition in uses) {
+            val use = nodes[usePosition] as? UseNode ?: continue
+            val values = valuesByUse[use] ?: continue
+            val positions = IntArray(values.size)
+            var count = 0
+            for (value in values) positions[count++] = creationOrder(value)
+            positions.sort()
+            for (position in positions) (nodes[position] as? ValueNode)?.let { action(it, use) }
+        }
+    }
+
     fun contains(
         valueNode: ValueNode,
         useNode: UseNode,
