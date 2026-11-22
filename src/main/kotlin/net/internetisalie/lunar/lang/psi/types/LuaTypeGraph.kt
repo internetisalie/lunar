@@ -427,7 +427,7 @@ class LuaTypeGraph {
         maxIterations: Int = 1000,
         timeLimitMs: Long = 5000,
     ) {
-        val checkedPairs = mutableSetOf<Pair<TypeNode, TypeNode>>()
+        val checkedPairs = LuaCheckedPairs()
         var changed = false
         var iterations = 0
         val startTime = System.currentTimeMillis()
@@ -490,7 +490,7 @@ class LuaTypeGraph {
      * suppressed check still consumes its pair, so pair growth is the suppression-independent
      * signal.
      */
-    private fun runFixedPointPass(checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>): Boolean {
+    private fun runFixedPointPass(checkedPairs: LuaCheckedPairs): Boolean {
         val initialCheckedCount = checkedPairs.size
         val initialEdgeCount = edgeAdds
         for (node in _nodes.toList()) {
@@ -541,7 +541,7 @@ class LuaTypeGraph {
      */
     private fun checkNodePairs(
         node: VariableElement,
-        checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>,
+        checkedPairs: LuaCheckedPairs,
     ) {
         val logs = checkNotNull(scanLogs).getOrPut(node) { MemberLogs() }
         val upSnapshot = logs.up.extendedBy(node.upSet)
@@ -585,7 +585,7 @@ class LuaTypeGraph {
      */
     private inner class VisitScan(
         private val upSnapshot: List<TypeNode>,
-        private val checkedPairs: MutableSet<Pair<TypeNode, TypeNode>>,
+        private val checkedPairs: LuaCheckedPairs,
     ) {
         private val facts = visitFactsOf(upSnapshot)
         private val writes = arrayOfNulls<LuaGraphType>(upSnapshot.size)
@@ -594,11 +594,12 @@ class LuaTypeGraph {
             useNode: UseNode,
             firstValue: Int,
         ) {
+            val examined = checkedPairs.forUse(useNode)
             for (valueIndex in firstValue until upSnapshot.size) {
                 val valueNode = upSnapshot[valueIndex]
                 if (valueNode !is ValueNode) continue
                 pairAttempts++
-                if (!checkedPairs.add(Pair(valueNode, useNode))) continue
+                if (!examined.admit(valueNode)) continue
 
                 val valueWrite = writes[valueIndex] ?: valueNode.write.also { writes[valueIndex] = it }
                 if (LuaTypePairWriteDifferential.enabled) {
@@ -613,14 +614,14 @@ class LuaTypeGraph {
     private fun verifyScan(
         upSnapshot: List<TypeNode>,
         downSnapshot: List<TypeNode>,
-        checkedPairs: Set<Pair<TypeNode, TypeNode>>,
+        checkedPairs: LuaCheckedPairs,
     ) {
         for (useNode in downSnapshot) {
             if (useNode !is UseNode) continue
             for (valueNode in upSnapshot) {
                 if (valueNode !is ValueNode) continue
                 scanComparisons++
-                LuaTypePairScanDifferential.observe(Pair(valueNode, useNode) in checkedPairs)
+                LuaTypePairScanDifferential.observe(checkedPairs.contains(valueNode, useNode))
             }
         }
     }

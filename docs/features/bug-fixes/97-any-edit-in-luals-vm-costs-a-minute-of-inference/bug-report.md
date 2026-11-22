@@ -478,3 +478,34 @@ the read and are untouched by all nine.
 
 Not established: how the per-pass attempts split by representative (the counters are per graph), and whether
 the candidates' savings add, because each removes part of the same allocation and cache pressure.
+
+## 10. Part 3: pair dedupe without allocating
+Measured on `309bc8f2` (base, the collapse of §8 plus docs) and the working tree on it (after), builder `libvirt`
+(shared with `~/sim-app`, so timings carry that noise), GoLand 2026.2.3 test platform. The probe is §9's: Standard Lua
+5.4 pinned, three cold reads of `script/parser/compile.lua` (`LuaSnapshotBuildMeter`, own build), then six reads after
+appending `"\n"` to its document (`loop-1..6`). Base and after ran back to back on the same VM.
+
+**What changed.** `checkedPairs` was a `MutableSet<Pair<TypeNode, TypeNode>>`; every pair attempt allocated a
+`kotlin.Pair` and hashed two nodes, and 83 % of the 2 064 383 attempts per build find the pair already examined
+(§9, candidate 1). `LuaCheckedPairs` (new, `LuaTypeGraph.checkTypes` creates one per run) keeps an identity set of
+values for each use. `VisitScan.scanUse` looks the use's set up once and tests each value against it, so a repeated
+pair costs one identity probe and no allocation. Nodes have no `equals`, so identity membership is the same
+relation the `Pair` key had. The order pairs are admitted in is unchanged: `scanUse` still walks the up-snapshot in
+index order and `admit` answers exactly when `add` did. `size` still counts distinct admitted pairs and drives the
+fixed-point progress test; `verifyScan` reads the same membership through `contains`. `settleSeverities` and the
+cluster collapse never read the set.
+
+| `compile.lua` own build | run 1 | run 2 | run 3 | errors |
+|---|---|---|---|---|
+| before | 2 608 ms | 1 452 ms | 1 497 ms | 831 |
+| after | 2 052 ms | 1 417 ms | 1 209 ms | 831 |
+
+| `compile.lua` own build after an edit | `loop-1..6` sorted | median |
+|---|---|---|
+| before | 912, 1 049, 1 129, 1 141, 1 170, 1 354 ms | 1 135 ms |
+| after | 736, 751, 764, 781, 892, 907 ms | 773 ms |
+
+Pair attempts are 2 064 383 on both, as intended (the attempt count is the loop's; only the cost of a repeat fell).
+Allocation was not re-measured: the saving is the `kotlin.Pair` share of §9's profile (24.4 % of sampled
+allocation, 17.1 % from this line). The steady state is 773 ms against the 250 ms target; the remaining candidates
+are §9's 2-9.
