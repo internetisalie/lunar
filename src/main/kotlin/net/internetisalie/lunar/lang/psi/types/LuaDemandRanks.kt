@@ -61,6 +61,9 @@ internal class LuaDemandRanks {
         return movedTo || movedFrom
     }
 
+    /** Whether [use] is a class member's declared type, as opposed to a signature slot's or a usage demand. */
+    fun isDeclaredMember(use: UseElement): Boolean = use in convertedUses && use !in slots
+
     /** [use]'s rank: its creation order, or for a converted demand where the code brings it in. */
     fun rankOf(use: UseElement): Int {
         if (use !in convertedUses) return use.order

@@ -308,8 +308,11 @@ internal class VariableElement(
      * the code makes ([LuaDemandRanks]) rather than the first one propagation inserted.
      */
     private fun resolveRead(): LuaGraphType {
-        val demands = demandsInCodeOrder()
+        val uses = downSet.filterIsInstance<UseElement>()
+        return keepDeclaredOptional(pickDemand(demandsInCodeOrder(uses)), uses)
+    }
 
+    private fun pickDemand(demands: List<LuaGraphType>): LuaGraphType {
         // BUG-395: member demands accumulate. Each `x.f` records a separate one-member Table
         // constraint, so taking only the first would describe `x` by whichever member happened to be
         // written first — a stdlib stub declaring ten `function table.<name>` produced a `table` with
@@ -324,15 +327,28 @@ internal class VariableElement(
     }
 
     /**
+     * BUG-118: a class member the user declared optional stays optional whatever else is demanded of it.
+     * The declaration's own demand ranks last (see [LuaDemandRanks]), so a usage demand picked ahead of
+     * it carries no `nil` arm, and an empty table was then missing a field the class declares optional.
+     */
+    private fun keepDeclaredOptional(
+        picked: LuaGraphType,
+        uses: List<UseElement>,
+    ): LuaGraphType {
+        if (LuaTypeAlgebra.isOptional(picked)) return picked
+        val declaredOptional = uses.any { graph.demandRanks.isDeclaredMember(it) && LuaTypeAlgebra.isOptional(it.read) }
+        return if (declaredOptional) LuaGraphType.Union.create(listOf(picked, LuaGraphType.Nil)) else picked
+    }
+
+    /**
      * Every use this variable reaches, the first the code makes first. The trait is deliberately PRESERVED
      * here. It is a demand, and `read` is what the checker examines for a value reaching an operator
      * through a variable — projecting it to its primitive here lost the metamethod arm for every such
      * value (BUG-424), which is the same shape as BUG-419's declaredDemand defect. Projection happens
      * at the presentation boundary instead: LuaTypes.typeOf and the inlay-hint providers.
      */
-    private fun demandsInCodeOrder(): List<LuaGraphType> =
-        downSet
-            .filterIsInstance<UseElement>()
+    private fun demandsInCodeOrder(uses: List<UseElement>): List<LuaGraphType> =
+        uses
             .sortedWith(compareBy({ graph.demandRanks.rankOf(it) }, { it.order }))
             .map { it.read }
             .filter { it != LuaGraphType.Any }

@@ -3,7 +3,7 @@ id: "BUG-118"
 title: "A declared optional field reads as required once the code calls a method on it, so `opts = opts or {}` is rejected"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "medium"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -50,9 +50,13 @@ and the single missing member is `mode`. So the nil is again not the failing arm
   The same shape shows with a declared `---@field node? ObjR` read through `fin(node.node)`: the member prints as
   `node:{ ... }`, not optional, and the table path then reports `Missing required field 'node'` on the literal
   (ERROR, on main too).
-- Not verified at the line: which demand reaches the member's down set first in the `..`-chain case, and why a
-  plain `mode:sub()` (control) does not. The mechanism above is the reading of `resolveRead` that fits every dump,
-  not a traced step.
+- Confirmed by dumping the `down` set of the member node when the report is made. For `---@field node? ObjR` the
+  member has two demands: the usage demand `node.node` (a `Table`, rank 13, the first the code makes) and the
+  declaration's own converted demand (`LuaGraphType.Undefined` there, since `ObjR` is still being materialized
+  when its own field is converted; `T|nil` for a field of another type), which `LuaDemandRanks` ranks last
+  (rank 43). `resolveRead` (`LuaTypeNodes.kt`) picks the first-ranked demand, so the declared one is never
+  consulted and the member reads `{ ... }`, which `isOptional` rejects. The required control reads `ObjR` and
+  keeps reporting.
 - Why the fix adds an ERROR: the pair judged against the final graph carries the declared `@param opts?` use
   (`ManagerOpts | nil`); main hid it (BUG-116).
 
@@ -61,6 +65,14 @@ A declared member type must bound its member's `read`: when the member is declar
 arm whatever usage demands are merged in, as BUG-552 did for `?` parameters (`LuaTypeAlgebra.parameterDemand`).
 BUG-115's rule would not cure this alone, because `ManagerOpts` is an exact declared class.
 
+## Fix
+`LuaTypeNodes.VariableElement.resolveRead` passes the picked demand through `keepDeclaredOptional`: when the
+variable has a converted class-member demand (`LuaDemandRanks.isDeclaredMember`) that is optional, the read gains a
+`nil` arm. Signature slots are left to BUG-552's `parameterDemand`.
+
 ## Test Strategy
 `LuaOptionalFieldDemandTest`: the fixture above reports nothing; the `---@field node? ObjR` form read through a
 helper reports no `Missing required field`; a required field (`---@field mode string`) still reports it.
+
+Implemented in `LuaOptionalFieldDemandTest`: the `node? ObjR` form read through a helper, and the required-field
+control. The `ManagerOpts` fixture reports nothing on main already (BUG-116 hides the pair) and is kept as a guard.
