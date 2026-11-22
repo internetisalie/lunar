@@ -6,18 +6,18 @@
   checker judged each value against each use once, against whatever it had worked out by then, and
   kept the verdict, so the same file could get different findings, messages and severities depending
   on the order its parts were examined. It now builds the whole picture first and judges every value
-  and use once against the final result. A false return-type mismatch in penlight's `pretty.lua` is gone.
+  and use once against the final result. A false return-type mismatch in penlight's `pretty.lua` is gone ([2ce76095](https://github.com/internetisalie/lunar/commit/2ce76095)).
 - **A method's arguments bind to the parameters they name** (BUG-117). A method whose `---@param` tags
   were written in a different order than its parameters bound a call's arguments to the wrong
   parameters, producing false *is not assignable* reports. Lunar now orders a method's parameters by
-  its signature and matches each tag by name. Projects re-index once after updating.
+  its signature and matches each tag by name. Projects re-index once after updating ([d4714672](https://github.com/internetisalie/lunar/commit/d4714672)).
 - **A field declared optional stays optional when code reads it** (BUG-118). A class field declared
   `---@field node? T` was treated as required once code read it, so an empty table or a partial literal
-  was reported as *Missing required field*. Lunar now keeps the declared optionality.
+  was reported as *Missing required field*. Lunar now keeps the declared optionality ([d1a3e69c](https://github.com/internetisalie/lunar/commit/d1a3e69c)).
 - **A mismatch against what the code merely uses is no longer an error because the value also reaches an unrelated
   `@param`** (BUG-116). A parameter passed to one function that declares `---@param obj Plain` had every failure of
   its own, including the fields other code reads from it, reported as an error. Only a failure of a declared
-  contract is an error now; the rest stay hypotheses.
+  contract is an error now; the rest stay hypotheses ([411cd844](https://github.com/internetisalie/lunar/commit/411cd844)).
 - **Type checking takes a fraction of the time on a file whose tables share fields across hundreds of
   sites** (BUG-97). Variables that flow into one another both ways are now one node in the analysis,
   where each used to hold a copy of everything the others hold, so the work grew with the square of
@@ -28,91 +28,90 @@
   analysis time limit, so it reports the findings a longer limit always found. Each variable still
   reports at its own place. A union in a message can list its members in a different order, a mismatch
   is no longer listed once per way of writing its union, and three false errors on a generic `Result`
-  return become hypotheses.
+  return become hypotheses ([ee04d88c](https://github.com/internetisalie/lunar/commit/ee04d88c), [db80f6c0](https://github.com/internetisalie/lunar/commit/db80f6c0), [07c8b217](https://github.com/internetisalie/lunar/commit/07c8b217)).
 - **Whether a type mismatch is reported no longer depends on the order variables were declared in**
   (BUG-112). A value that reaches a call through two variables, one of which may also hold something
   the analysis cannot model, was reported as a certain error or quietly dropped depending on which
-  variable came first in the file. It is now treated as uncertain either way.
+  variable came first in the file. It is now treated as uncertain either way ([691d8c2a](https://github.com/internetisalie/lunar/commit/691d8c2a)).
 - **The `else` of a `type(x) == "table"` check no longer still holds arrays** (BUG-111). With
   `---@param cmd string|string[]`, the `else` branch of `if type(cmd) == "table"` still treated `cmd`
   as `string | string[]`, so `self.cmd = cmd` against a `string` field was reported as not assignable.
   A table check now rules out every table-shaped member of the type: arrays, classes and table
-  literals as well as plain tables.
+  literals as well as plain tables ([faf4e5ac](https://github.com/internetisalie/lunar/commit/faf4e5ac)).
 - **A value's inferred type no longer depends on the order the code uses it in** (BUG-110). When a
   value was used in several ways — joined with `..` in one function, measured with `#` in another —
   its type came from whichever use the analysis happened to reach first. Moving an unrelated call
   could therefore change a hover from `string` to `any[] | string | { ... }`, and the variables
   sharing a value through a call could each show a different type. The first use in the code now
   decides, wherever it is reached from. A wrong argument count at the first call of a class method
-  is now reported once, on the call, rather than also on the method name.
+  is now reported once, on the call, rather than also on the method name ([05db859c](https://github.com/internetisalie/lunar/commit/05db859c)).
 - **Type checking takes less time on a file that annotates one generic class many times** (BUG-96).
   Resolving a variable's type gathered each value reaching it once for every variable it passed
   through, and hashed a table value again each time, and checking a table against a table type
   rebuilt the table's member list once for every field the type names. Each value is now gathered
   once per resolution and each member list built once per check, with the same results. On a
   514-line file with 32 annotations of one generic class, checking takes about 475 s instead of
-  870 s, which is still far too slow to use.
+  870 s, which is still far too slow to use ([db15d51c](https://github.com/internetisalie/lunar/commit/db15d51c), [f41e613a](https://github.com/internetisalie/lunar/commit/f41e613a)).
 - **A nested array type keeps every level** (BUG-109). `---@type string[][]` was read as
   `string[]`, so `local t = {{'a'}}` was reported as not assignable, including against a union with a
   `string[][]` arm such as `string|string[]|string[][]`. Each `[]` suffix is now one array level, at
   any depth: the type displays as `string[][]`, indexing it gives a `string[]`, and a constructor
-  nested to the wrong depth or holding the wrong element type is still reported.
+  nested to the wrong depth or holding the wrong element type is still reported ([51dc06bb](https://github.com/internetisalie/lunar/commit/51dc06bb)).
 - **A chained call has its last call's type** (BUG-100). In `a():b()`, the result was given `a()`'s
   type, so passing `getGeneric(h):resolve()` where its declared return was expected, or calling a
   method on it, was reported against the wrong class. Each call in a chain now resolves its method
   on the previous call's result, the same as `local r = a(); r:b()`, and a call whose method cannot
-  be found gives an unknown result.
+  be found gives an unknown result ([3c318542](https://github.com/internetisalie/lunar/commit/3c318542)).
 - **A table constructor can be assigned to an array type** (BUG-481). `---@type string[]` on
   `local xs = {}` was reported as *`{ ... }` is not assignable to `string[]`*, and so was passing
   `{ 1, 2 }` to a `number[]` parameter. A constructor whose positional entries all fit the element
   type, or that has none, is now accepted, including against a union with an array arm such as
   `Foo|Foo[]`. A constructor holding an entry of the wrong type, or a value that is not a table, is
-  still reported.
+  still reported ([835e1946](https://github.com/internetisalie/lunar/commit/835e1946)).
 - **A method whose `self` is a constrained generic reports only the field it lacks** (BUG-94). In
   `---@generic T: SomeClass` with `---@param self T` on a `:` method, `self` now reads as `SomeClass`:
   a field the class declares is accepted and one it does not declare is reported as undefined.
   `return self` for `---@return T` is no longer reported as a missing field or a mismatch. A
   `---@param self X` tag on any `:` method is no longer counted as an extra argument, and no longer
-  types the method's first declared parameter.
+  types the method's first declared parameter ([ee20d284](https://github.com/internetisalie/lunar/commit/ee20d284)).
 - **Assigning a wrong value to a class field is reported once, on that line** (BUG-75). With
   `---@type integer` on `m.x = 1`, a later `m.x = true` was also reported on the earlier, valid
   assignment. And `t.x = {}`, with `---@field x A`, was reported as a missing required field.
   The wrong assignment is still reported on its own line, and a table written to a class-typed
-  field is no longer checked for missing fields.
+  field is no longer checked for missing fields ([c50df276](https://github.com/internetisalie/lunar/commit/c50df276)).
 - **A call that passes `...` or another call's results is no longer reported as too few arguments**
   (BUG-81). `f(...)` and `f(g())` supply as many values as are available at run time, so Lunar no
   longer counts them as one argument. A `---@param b integer|nil` parameter may also be omitted,
-  like `b?`. A call that really leaves a required parameter unset is still reported.
+  like `b?`. A call that really leaves a required parameter unset is still reported ([aee94e4e](https://github.com/internetisalie/lunar/commit/aee94e4e)).
 - **An optional or overloaded return is no longer reported as a mismatch** (BUG-85, BUG-91). A
   function declared `---@return number?` that returns `nil`, one declared `---@return number, number?`
   that returns a single value, and one whose `---@overload` returns a different type, were all
-  reported as "not assignable". They are now accepted, and a return of any other type is still reported.
+  reported as "not assignable". They are now accepted, and a return of any other type is still reported ([96161006](https://github.com/internetisalie/lunar/commit/96161006)).
 - **Type checking a large file repeats less work** (MAINT-61). Each pass of the type checker
   compared every value of a variable with every use again, even pairs it had already checked. It
   now checks only the pairs that are new since its last look at that variable. The findings it
-  reports are unchanged.
+  reports are unchanged ([d3841670](https://github.com/internetisalie/lunar/commit/d3841670)).
 - **An edit rebuilds only the types it can change** (MAINT-63, BUG-108). Lunar used to discard every cached
   file's types after any edit. A file's cached types now stay valid until a file they were built
-  from changes, or until an edit can change the index lookups they resolved through. Across the type
-  corpus, the files whose types take 250 ms or more to read after an edit fall by about a third
-  again.
+  from changes, or until an edit can change the index lookups they resolved through. Large projects
+  re-check far fewer files after each edit ([8dad422c](https://github.com/internetisalie/lunar/commit/8dad422c), [d29d9e7b](https://github.com/internetisalie/lunar/commit/d29d9e7b)).
 - **Analysing a very large file no longer fails intermittently** (BUG-103). A file whose types
   link a great many values together, such as the Lua language server's parser, could abort its
   analysis with a stack overflow when it was the first thing read in a fresh IDE session. The same
-  analysis now completes every time.
-- **`require` of a module with no project file resolves to nothing** (BUG-102). A bare `require("checks")`, `require("log")` or similar, naming a module that has no file in the project, jumped to and took its types from an unrelated directory's `init.lua`. That also tied unrelated files into a `require` cycle, so findings in them changed with the order files were opened and after a restart. A bare name now matches `<name>.lua` or `<name>/init.lua` only.
+  analysis now completes every time ([bceb8e3e](https://github.com/internetisalie/lunar/commit/bceb8e3e)).
+- **`require` of a module with no project file resolves to nothing** (BUG-102). A bare `require("checks")`, `require("log")` or similar, naming a module that has no file in the project, jumped to and took its types from an unrelated directory's `init.lua`. That also tied unrelated files into a `require` cycle, so findings in them changed with the order files were opened and after a restart. A bare name now matches `<name>.lua` or `<name>/init.lua` only ([1f5f43e4](https://github.com/internetisalie/lunar/commit/1f5f43e4)).
 - **Type inference after an edit is faster** (MAINT-65). A call with no function argument no longer
   resolves the callee's type to look for a callback to seed, so it no longer builds the callee
-  file's types inside the caller's. Across the type corpus, the files whose types take 250 ms or
-  more to rebuild after an edit fall by about a third.
+  file's types inside the caller's. On large projects,
+  types are ready sooner after an edit ([4035acf4](https://github.com/internetisalie/lunar/commit/4035acf4)).
 - **`---@cast` now changes a variable's type** (BUG-99). A variable narrowed with `---@cast name T`,
   `+T`, `-T` or `-?` kept its original type for every later use, so values the cast excluded were
   still reported as "not assignable" at those uses and at the callers that passed them. The cast now
-  takes effect from the next statement on, including a cast on the first line of a function body.
+  takes effect from the next statement on, including a cast on the first line of a function body ([bf6575f9](https://github.com/internetisalie/lunar/commit/bf6575f9)).
 - **A `require`d `@class` module is one class** (BUG-98). A local holding a module whose returned
   table is annotated `@class` was reported as `Class | { ... } is not assignable to { ... }` on its
   member accesses. The class annotation and the table constructor now merge into a single class, so
-  both its methods and its constructor fields resolve.
+  both its methods and its constructor fields resolve ([ac896053](https://github.com/internetisalie/lunar/commit/ac896053)).
 - **The packages browser keeps up with what you install** (BUG-64, BUG-65, BUG-66, BUG-69). The
   Installed tab lists each rock as `name  version` and refreshes after an install, update or
   uninstall. An installed rock with a newer version shows an update marker and an Update button in
