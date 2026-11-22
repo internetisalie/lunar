@@ -79,13 +79,34 @@ internal class LuaSeverityClaims {
     /**
      * Demotes every claim held by a variable with an unknown write in its up-set, and returns the
      * verdict for each claimed `(element, message)`: ERROR only while none of its claims is demoted.
+     * [failsUse] says whether a value fails a use on its own, which settles the provenance of a claim
+     * checked against a variable ([settleVariableUseProvenance]).
      */
     fun resolve(
         variables: Sequence<VariableElement>,
         isUnknownWrite: (ValueNode) -> Boolean,
+        failsUse: (ValueNode, UseNode) -> Boolean,
     ): Map<Pair<PsiElement, String>, Verdict> {
+        settleVariableUseProvenance(failsUse)
         for (variable in variables) demoteHeldBy(variable, isUnknownWrite)
         return claims.groupBy { it.element to it.message }.mapValues { (_, group) -> verdictOf(group) }
+    }
+
+    /**
+     * BUG-116: a pair checked against a variable is checked against the MERGE of every use the variable
+     * reaches, so the variable being able to reach a declared use says nothing about the demand that
+     * failed. Such a claim is declared only when the value fails, on its own, a declared use the
+     * variable reaches. Read off the final graph, so it does not depend on whether the declared use was
+     * wired when the variable's pair was checked.
+     */
+    private fun settleVariableUseProvenance(failsUse: (ValueNode, UseNode) -> Boolean) {
+        for (claim in claims) {
+            val variable = canonical(claim.useNode) as? VariableElement ?: continue
+            claim.demoted =
+                variable.downSet.none {
+                    it is UseNode && it !is VariableElement && it.declaredDemand && failsUse(claim.valueNode, it)
+                }
+        }
     }
 
     private fun verdictOf(group: List<Claim>): Verdict =

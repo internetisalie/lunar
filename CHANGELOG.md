@@ -2,6 +2,10 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A mismatch against what the code merely uses is no longer an error because the value also reaches an unrelated
+  `@param`** (BUG-116). A parameter passed to one function that declares `---@param obj Plain` had every failure of
+  its own, including the fields other code reads from it, reported as an error. Only a failure of a declared
+  contract is an error now; the rest stay hypotheses.
 - **Type checking takes a fraction of the time on a file whose tables share fields across hundreds of
   sites** (BUG-97). Variables that flow into one another both ways are now one node in the analysis,
   where each used to hold a copy of everything the others hold, so the work grew with the square of

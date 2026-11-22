@@ -3,7 +3,7 @@ id: "BUG-116"
 title: "A mismatch is an ERROR because its variable reaches some declared use, not because the failing demand is declared"
 type: "bug"
 parent_id: "BUG"
-status: "todo"
+status: "done"
 priority: "high"
 folders:
   - "[[features/bug-fixes|bug-fixes]]"
@@ -65,3 +65,15 @@ leaves these pairs failing.
 `LuaDeclaredProvenanceTest`: the fixture above gives HYPOTHESIS, not ERROR, at `name`/`node`; a fixture whose arm
 fails a **declared** field (`---@class Strict` with `---@field id integer`, argument `{}`) still gives ERROR.
 Assert on main and on the BUG-114 branch alike (the rows are schedule independent here).
+
+## Fix
+`LuaSeverityClaims.resolve` settles a claim whose use is a variable against the final graph. The pair
+`(value, variable)` is checked against the merge of every use the variable reaches, so a declared use being
+reachable proves nothing about the demand that failed. The claim is declared only when the value, taken alone,
+is not assignable to a declared non-variable use in the variable's down-set (`isCompatible`, run after the
+fixed point). Claims against a leaf use keep the flag they were recorded with. The check-time `declaredDemand`
+is a necessary condition only, and a pair checked before the declared use was wired is judged the same as one
+checked after, because the settling reads the final down-set.
+
+Regression test: `LuaDeclaredProvenanceTest` (the fixture gives no ERROR; a missing declared field, directly and
+through another variable, stays ERROR).

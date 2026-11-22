@@ -232,6 +232,9 @@ internal class VariableElement(
      * argument-variable → parameter-variable, so the pair actually checked is (value, *variable*),
      * and [VariableNode] is itself a [UseNode]. Inheriting the `false` default demoted every
      * declared-contract violation reached through a call to a hypothesis.
+     *
+     * This says only that a declared use is reachable. Whether the demand that FAILED is declared is
+     * settled against the final graph ([LuaSeverityClaims], BUG-116).
      */
     override val declaredDemand: Boolean get() = rep().rootDeclaredDemand()
 

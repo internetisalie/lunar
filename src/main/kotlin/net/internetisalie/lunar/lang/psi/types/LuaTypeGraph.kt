@@ -472,7 +472,13 @@ class LuaTypeGraph {
      */
     private fun settleSeverities() {
         val variables = _nodes.asSequence().filterIsInstance<VariableElement>().filter { it.isRep }
-        val verdicts = severityClaims.resolve(variables) { isUnknown(it.write) }
+        compatMemo.clear()
+        val verdicts =
+            severityClaims.resolve(
+                variables,
+                { isUnknown(it.write) },
+                { value, use -> !isCompatible(value.write, use.read, CompatContext()) },
+            )
         if (verdicts.isEmpty()) return
         _errors.replaceAll { error ->
             val verdict = verdicts[error.element to error.message] ?: return@replaceAll error
