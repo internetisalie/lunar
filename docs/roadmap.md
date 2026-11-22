@@ -156,6 +156,7 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-106 | One call in the luacheck type audit resolves its callee in some runs and not in others | todo | S | — | MAINT-63 TC 11 compares around it | ✓ |
 | BUG-107 | The corpus sweep's highlight failure names its file and exception only in test stdout, which CI does not keep; a CI-only zerobrane failure could not be identified | todo | S | — | one CI flake on PR 252, green on re-run and on the builder | ✓ |
 | BUG-113 | An `io.open` file is judged incompatible with the `{ seek = fun(p, p) }` demand its own `:seek` call creates (luarocks `zip.lua`) | todo | S | — | found gating BUG-97 part 2; a hidden hypothesis today | ✓ |
+| BUG-114 | A file's type findings depend on the order its value/use pairs are checked: a pair is checked once, never re-examined, and its check adds edges | todo | M | — | found by BUG-97's candidate-9 prototype; blocks reordering the checker | ✓ |
 | BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
 | BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
 | BUG-44 | Assigning a wrong value to a class `@field` (`self.b = 'x'` for a `boolean`) is reported only as a hypothesis | todo | S | — | found by MAINT-54's false-negative audit | ✓ |
