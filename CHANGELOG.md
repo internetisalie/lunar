@@ -2,6 +2,18 @@
 
 ## [0.21] — On-demand definition libraries, and the completion fixes needed to make them work
 
+- **A file's type findings no longer depend on the order the checker reaches its code** (BUG-114). The
+  checker judged each value against each use once, against whatever it had worked out by then, and
+  kept the verdict, so the same file could get different findings, messages and severities depending
+  on the order its parts were examined. It now builds the whole picture first and judges every value
+  and use once against the final result. A false return-type mismatch in penlight's `pretty.lua` is gone.
+- **A method's arguments bind to the parameters they name** (BUG-117). A method whose `---@param` tags
+  were written in a different order than its parameters bound a call's arguments to the wrong
+  parameters, producing false *is not assignable* reports. Lunar now orders a method's parameters by
+  its signature and matches each tag by name. Projects re-index once after updating.
+- **A field declared optional stays optional when code reads it** (BUG-118). A class field declared
+  `---@field node? T` was treated as required once code read it, so an empty table or a partial literal
+  was reported as *Missing required field*. Lunar now keeps the declared optionality.
 - **A mismatch against what the code merely uses is no longer an error because the value also reaches an unrelated
   `@param`** (BUG-116). A parameter passed to one function that declares `---@param obj Plain` had every failure of
   its own, including the fields other code reads from it, reported as an error. Only a failure of a declared
@@ -9,11 +21,14 @@
 - **Type checking takes a fraction of the time on a file whose tables share fields across hundreds of
   sites** (BUG-97). Variables that flow into one another both ways are now one node in the analysis,
   where each used to hold a copy of everything the others hold, so the work grew with the square of
-  the group. Checking the 5 164-line parser that sets `start` and `finish` on hundreds of tables takes
-  about 1.5 s instead of about 10 s, and it now finishes within the analysis time limit, so it reports
-  the 104 findings a longer limit always found. Each variable still reports at its own place. A union
-  in a message can list its members in a different order, a mismatch is no longer listed once per
-  way of writing its union, and three false errors on a generic `Result` return become hypotheses.
+  the group. Deciding whether a value meets a declared contract reads the variable's own constraints,
+  gathering a variable's values stops once every reachable value is found, and a value/use pair
+  already checked is skipped without allocating. Checking the 5 164-line parser that sets `start` and
+  `finish` on hundreds of tables takes about 1 s instead of about 30 s, and it now finishes within the
+  analysis time limit, so it reports the findings a longer limit always found. Each variable still
+  reports at its own place. A union in a message can list its members in a different order, a mismatch
+  is no longer listed once per way of writing its union, and three false errors on a generic `Result`
+  return become hypotheses.
 - **Whether a type mismatch is reported no longer depends on the order variables were declared in**
   (BUG-112). A value that reaches a call through two variables, one of which may also hold something
   the analysis cannot model, was reported as a certain error or quietly dropped depending on which
@@ -30,13 +45,6 @@
   sharing a value through a call could each show a different type. The first use in the code now
   decides, wherever it is reached from. A wrong argument count at the first call of a class method
   is now reported once, on the call, rather than also on the method name.
-- **Type checking takes less time on a file whose tables share fields across hundreds of sites**
-  (BUG-97). Deciding whether a value meets a declared contract, and gathering the values a variable
-  holds, walked every variable joined to it through a shared table field, once for each variable it
-  reached. The first now reads the variable's own constraints, and the second stops once every value
-  it can reach is gathered, with the same results. On a 5 164-line parser that sets `start` and
-  `finish` on hundreds of tables, checking takes about 23 s instead of 30 s, which is still far too
-  slow to use.
 - **Type checking takes less time on a file that annotates one generic class many times** (BUG-96).
   Resolving a variable's type gathered each value reaching it once for every variable it passed
   through, and hashed a table value again each time, and checking a table against a table type

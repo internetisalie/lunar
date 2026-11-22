@@ -73,17 +73,18 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 > the v0.21.0 tag and its published release are unchanged. Wave 20 closed with v0.20.1; the
 > rows filed under it after that release moved here on 2026-11-02.
 
-> **v0.21.21 goal — LuaLS parity: no wrong warnings against LuaLS's own tests, and LuaLS-scale code at
-> editor speed.** Cut when all three hold and main is green:
-> 1. **Fast:** every type-corpus file's snapshot builds in under 250 ms, cold and after an edit, with
->    the per-file p99 under 100 ms (MAINT-60, BUG-96, BUG-97). MAINT-60's probes showed targeted
->    changes cannot reach them; the patch is held until they are met, including by the larger engine
->    work (pair-model redesign, incremental re-inference) that MAINT-60 files one item per cause.
->    Met when MAINT-60's sweep, run on the libvirt builder at the release candidate's commit, prints
->    `release READY` (MAINT-60-07).
-> 2. **No wrong warnings:** every MAINT-55 conformance case scored `false-report` reaches `agree`.
+> **v0.21.21 goal — no wrong warnings.** Cut when all three hold and main is green:
+> 1. **No wrong warnings:** every MAINT-55 conformance case scored `false-report` reaches `agree`, and no
+>    corpus file reports an ERROR that is not a real defect.
+> 2. **Findings independent of check order:** a file's findings are the same whatever order its pairs are
+>    checked in (BUG-114, `LuaScheduleIndependenceTest`). BUG-119's `Any`-arm wiring is the known exception.
 > 3. **No regressions:** the MAINT-55 ratchet stays green, and the MAINT-54 audit is unchanged except for
 >    recorded corrections.
+
+> **v0.21.22 goal — LuaLS-scale code at editor speed.** Every type-corpus file's snapshot builds in under
+> 250 ms, cold and after an edit, with the per-file p99 under 100 ms (MAINT-60, BUG-96, BUG-97, BUG-104).
+> Met when MAINT-60's sweep, run on the libvirt builder at the release candidate's commit, prints
+> `release READY` (MAINT-60-07). Moved from v0.21.21 on 2026-11-22, with BUG-115 and BUG-119.
 
 | ID | Title | Status | Prio | Depends on | Unblocks | Parallel |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -157,7 +158,6 @@ onto a fresh feature branch; the SHAs above are stable references even if a bran
 | BUG-107 | The corpus sweep's highlight failure names its file and exception only in test stdout, which CI does not keep; a CI-only zerobrane failure could not be identified | todo | S | — | one CI flake on PR 252, green on re-run and on the builder | ✓ |
 | BUG-113 | An `io.open` file is judged incompatible with the `{ seek = fun(p, p) }` demand its own `:seek` call creates (luarocks `zip.lua`) | todo | S | — | found gating BUG-97 part 2; a hidden hypothesis today | ✓ |
 | BUG-115 | A union value's table arm is rejected for members an inferred demand lists, where a lone table is not (the `nil \| { ... } is not assignable to { ... }` family; 36 `compile.lua` anchors) | todo | M | — | found diagnosing BUG-114's fix; present on main as HYPOTHESIS | ✓ |
-| BUG-116 | A mismatch is an ERROR because its variable reaches some declared use, not because the failing demand is declared | todo | M | BUG-115 | found diagnosing BUG-114's fix; why 115's rows are ERROR there | ✓ |
 | BUG-119 | A union with an `Any` arm wires an arm only when it is already compatible, so the closure depends on check order (luarocks `zip.lua`) | todo | M | — | found diagnosing BUG-114's fix; BUG-114 §5 | ✓ |
 | BUG-42 | Arguments to a function on a local table in the same file (`local M = {}`, `M.f(true)`) are not checked | todo | S | — | found by MAINT-54's false-negative audit; also MAINT-54 DR-01b | ✓ |
 | BUG-43 | A method called on `io.open`'s possibly-nil file (`fd:seek(true)`) is not checked; only a dropped hypothesis remains | todo | C | — | found by MAINT-54's false-negative audit | ✓ |
